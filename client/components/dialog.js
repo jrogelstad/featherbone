@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,14 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered*/
 /*global f, m*/
 /**
     @module Dialog
 */
 
 const dialog = {};
-const dialogPolyfill = window.dialogPolyfill;
+
 /**
     View model for dialog.
 
@@ -339,13 +339,6 @@ dialog.component = {
             id: ids.dialog,
             class: "fb-dialog",
             style: f.copy(vm.style()),
-            oncreate: function (vnode) {
-                // Make Chrome style dialog available for all browsers
-                let dlg = document.getElementById(vnode.dom.id);
-                if (!dlg.showModal) {
-                    dialogPolyfill.registerDialog(dlg);
-                }
-            },
             onupdate: function (vnode) {
                 let dlg = document.getElementById(vnode.dom.id);
                 if (

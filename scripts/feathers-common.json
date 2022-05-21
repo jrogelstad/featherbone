@@ -125,6 +125,18 @@
             "showLabelKey": {
                 "description": "When printing include label key on child table rows",
                 "type": "boolean"
+            },
+            "orientation": {
+                "description": "Grid (tab) orientation",
+                "type": "string",
+                "default": "H",
+                "dataList": [{
+                    "value": "H",
+                    "label": "Horizontal Tabs"
+                }, {
+                    "value": "V",
+                    "label": "Vertical Sections"
+                }]
             }
         }
     },
@@ -144,6 +156,51 @@
             "name": {
                 "description": "Tab name",
                 "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormAction",
+        "plural": "FormActions",
+        "module": "Core",
+        "description": "Form action definitions",
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "actions"
+                }
+            },
+            "name": {
+                "description": "Name",
+                "format": "",
+                "type": "string",
+                "isRequired": false
+            },
+            "title": {
+                "description": "Title",
+                "format": "",
+                "type": "string",
+                "isRequired": true
+            },
+            "icon": {
+                "description": "Icon name",
+                "type": "string",
+                "format": "icon",
+                "isRequired": false
+            },
+            "method": {
+                "description": "Method to execute for action",
+                "type": "string",
+                "format": "",
+                "isRequired": true
+            },
+            "validator": {
+                "description": "Selection validation check",
+                "type": "string",
+                "format": "",
+                "isRequired": false
             }
         }
     },
@@ -177,7 +234,7 @@
                 "type": "integer",
                 "default": 0,
                 "isRequired": true,
-                "max": 3
+                "max": 4
             },
             "showLabel": {
                 "description": "Flag to show or hide label",
@@ -702,7 +759,8 @@
                         "symbol"
                     ]
                 },
-                "description": "Display unit of mesaure"
+                "description": "Display unit of mesaure",
+                "isAlwaysLoad": true
             }
         }
     },
@@ -917,6 +975,9 @@
                 }, {
                     "value": "W",
                     "label": "Work"
+                }, {
+                    "value": "F",
+                    "label": "Fax"
                 }, {
                     "value": "O",
                     "label": "Other"

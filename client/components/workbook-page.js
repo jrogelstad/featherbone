@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered, devel*/
 /*global f, jsonpatch, m*/
 /**
    @module WorkbookPage
@@ -120,9 +120,11 @@ const editSheetConfig = {
             width: 165
         }, {
             attr: "method",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "validator",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "hasSeparator",
@@ -321,6 +323,9 @@ workbookPage.viewModel = function (options) {
         @method configureSheet
     */
     vm.configureSheet = function (e) {
+        if (!vm.workbook().canUpdate()) {
+            return;
+        }
         let dlg = vm.sheetConfigureDialog();
         let sheet = vm.sheet(e.sheetId);
         let data = {
@@ -377,6 +382,7 @@ workbookPage.viewModel = function (options) {
             } else {
                 vm.buttonEdit().disable();
             }
+            vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
 
             vm.saveProfile();
         };
@@ -506,7 +512,7 @@ workbookPage.viewModel = function (options) {
                 nmodel.state().goto("/Ready/Fetched/Clean");
                 nmodel.checkDelete();
                 nmodel.checkUpdate();
-                vm.tableWidget().models().add(nmodel, true);
+                vm.tableWidget().models().add(nmodel, true, true);
                 m.redraw();
             };
             return;
@@ -737,6 +743,9 @@ workbookPage.viewModel = function (options) {
         @method saveProfile
     */
     vm.saveProfile = function () {
+        if (!vm.workbook().canUpdate()) {
+            return;
+        }
         saveProfile(
             workbook.data.name(),
             vm.config(),
@@ -762,6 +771,10 @@ workbookPage.viewModel = function (options) {
             workbook.data.localConfig(d);
             workbook.save();
         };
+
+        if (!vm.workbook().canUpdate()) {
+            return;
+        }
 
         confirmDialog.message(
             "Are you sure you want to share your workbook " +
@@ -928,7 +941,7 @@ workbookPage.viewModel = function (options) {
             let tableModel = vm.tableWidget().selection();
 
             if (!(tableModel && tableModel.id() === model.id())) {
-                vm.tableWidget().models().add(model, true);
+                vm.tableWidget().models().add(model, true, true);
             }
         }
     });
@@ -1282,6 +1295,13 @@ workbookPage.component = {
         let menu = f.getComponent("AccountMenu");
         let toolbarClass = "fb-toolbar";
         let menuButtonClass = "fb-menu-button";
+        let menuAuthLinkClass = (
+            "pure-menu-link " + (
+                vm.workbook().canUpdate()
+                ? ""
+                : " pure-menu-disabled"
+            )
+        );
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1490,7 +1510,7 @@ workbookPage.component = {
                             }, [
                                 m("li", {
                                     id: "nav-menu-configure-worksheet",
-                                    class: "pure-menu-link",
+                                    class: menuAuthLinkClass,
                                     title: "Configure current worksheet",
                                     onclick: vm.configureSheet
                                 }, [m("i", {
@@ -1502,9 +1522,13 @@ workbookPage.component = {
                                 }, "table_chart")], "Sheet"),
                                 m("li", {
                                     id: "nav-menu-configure-workbook",
-                                    class: "pure-menu-link",
+                                    class: menuAuthLinkClass,
                                     title: "Configure current workbook",
-                                    onclick: vm.editWorkbookDialog().show
+                                    onclick: (
+                                        vm.workbook().canUpdate()
+                                        ? vm.editWorkbookDialog().show
+                                        : undefined
+                                    )
                                 }, [m("i", {
                                     id: "nav-menu-configure-workbook-icon",
                                     class: (
@@ -1514,13 +1538,7 @@ workbookPage.component = {
                                 }, "backup_table")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
-                                    class: (
-                                        "pure-menu-link " + (
-                                            vm.workbook().canUpdate()
-                                            ? ""
-                                            : " pure-menu-disabled"
-                                        )
-                                    ),
+                                    class: menuAuthLinkClass,
                                     title: "Share workbook configuration",
                                     onclick: vm.share
                                 }, [m("i", {
@@ -1535,7 +1553,7 @@ workbookPage.component = {
                                     class: "pure-menu-link",
                                     title: (
                                         "Revert workbook configuration " +
-                                        "to original state"
+                                        "to default state"
                                     ),
                                     onclick: vm.revert
                                 }, [m("i", {

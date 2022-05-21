@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser, bitwise*/
+/*jslint this, browser, bitwise, unordered*/
 /**
     @module Core
 */
@@ -966,15 +966,31 @@ formats.richText.editor = function (options) {
         key: options.key,
         oncreate: function (vnode) {
             let e = document.getElementById(vnode.dom.id);
+            let prop = options.prop;
+
             tinymce.init({
                 target: e,
                 height: 500,
-                readonly: Boolean(options.readonly),
                 setup: function (editor) {
                     editor.on("change", function (e) {
-                        options.prop(e.level.content);
+                        prop(e.level.content);
                     });
                 }
+            }).then(function (editors) {
+                let editor = editors[0];
+
+                editor.mode.set(
+                    prop.state().current()[0] === "/Disabled"
+                    ? "readonly"
+                    : "design"
+                );
+                // Update editor when readonly state of readonly changes
+                prop.state().substateMap.Disabled.enter(function () {
+                    editor.mode.set("readonly");
+                });
+                prop.state().substateMap.Disabled.exit(function () {
+                    editor.mode.set("design");
+                });
             });
         },
         onremove: function () {
@@ -1642,7 +1658,12 @@ f.createEditor = function (obj) {
                 keys.find((theKey) => rel.properties[theKey].isNaturalKey) ||
                 keys.find((theKey) => rel.properties[theKey].isLabelKey)
             );
-            theProp = theProp().data[rel];
+            theProp = theProp();
+            theProp = (
+                theProp
+                ? theProp.data[rel]
+                : () => null
+            );
         }
 
         if (theProp.format && f.formats()[theProp.format].editor) {
@@ -1962,11 +1983,7 @@ f.processEvent = function (obj) {
         });
 
         if (instance) {
-            if (ary.showDeleted()) {
-                instance.data.isDeleted(true);
-            } else {
-                ary.remove(instance);
-            }
+            ary.remove(instance);
         }
         break;
     case "lock":
@@ -2276,5 +2293,7 @@ f.state = function () {
     @return {State}
 */
 f.State = State;
+f.TABLE_MIN_HEIGHT = 200;
+f.TABLE_COLUMN_WIDTH_DEFAULT = 150;
 
 export default Object.freeze(f);

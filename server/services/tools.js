@@ -1,6 +1,6 @@
-    /*
+/*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this*/
+/*jslint node, this, unordered*/
 /**
     @module Tools
 */
@@ -88,9 +88,19 @@
             `canDelete`
             @param {String} table
             @param {Array} tokens
+            @param {Boolean} [rowAuth] check row authorization
+            @param {Integer} [p] parameter number. Default 1
             @return {String} SQL clause
         */
-        tools.buildAuthSql = function (action, table, tokens, rowAuth) {
+        tools.buildAuthSql = function (
+            action,
+            table,
+            tokens,
+            rowAuth,
+            p,
+            prefix
+        ) {
+            p = p || 1;
             let actions;
             let i = (
                 rowAuth
@@ -112,6 +122,11 @@
                 throw msg;
             }
 
+            if (prefix) {
+                tokens.push(prefix + table);
+            } else {
+                tokens.push(table);
+            }
             while (i) {
                 i -= 1;
                 tokens.push(table);
@@ -120,7 +135,7 @@
             action = action.toSnakeCase();
 
             sql = (
-                " AND _pk IN (" +
+                " AND %I._pk IN (" +
                 "SELECT %I._pk " +
                 "FROM %I " +
                 "  JOIN \"$feather\" " +
@@ -129,7 +144,7 @@
                 "  SELECT " + action + " FROM ( " +
                 "    SELECT " + action +
                 "    FROM \"$auth\", pg_authid" +
-                "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
+                "    WHERE pg_has_role($" + p + ", pg_authid.oid, 'member')" +
                 "      AND \"$auth\".object_pk " +
                 "        IN (\"$feather\".parent_pk, %I._pk)" +
                 "      AND \"$auth\".role=pg_authid.rolname" +
@@ -140,7 +155,7 @@
                 "  WHERE " + action +
                 ") "
             );
-            
+
             if (rowAuth) {
                 sql += (
                     "EXCEPT " +
@@ -150,7 +165,8 @@
                     "  SELECT " + action + " FROM (" +
                     "    SELECT " + action +
                     "    FROM \"$auth\", pg_authid" +
-                    "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
+                    "    WHERE pg_has_role($" + p +
+                    ", pg_authid.oid, 'member')" +
                     "      AND \"$auth\".object_pk=%I._pk" +
                     "      AND \"$auth\".role=pg_authid.rolname" +
                     "      AND " + action + " IS NOT NULL " +
@@ -160,7 +176,7 @@
                     "WHERE NOT " + action + ")"
                 );
             }
-            
+
             sql += ")";
 
             return sql;
@@ -208,7 +224,14 @@
 
             // Add authorization criteria
             if (isSuperUser === false) {
-                sql += tools.buildAuthSql("canRead", table, tokens, rowAuth);
+                sql += tools.buildAuthSql(
+                    "canRead",
+                    table,
+                    tokens,
+                    rowAuth,
+                    1,
+                    "_"
+                );
 
                 params.push(obj.client.currentUser());
                 p += 1;
