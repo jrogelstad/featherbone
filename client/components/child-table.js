@@ -59,7 +59,13 @@ childTable.viewModel = function (options) {
             vm.buttonOpen().disable();
         }
     }
-
+    /**
+        Actions instantiated as buttons
+        @method actionButtons
+        @param {Form.FormAction} action
+        @return {Array}
+    */
+    vm.actionButtons = f.prop([]);
     /**
         Add button view model.
         @method buttonAdd
@@ -196,6 +202,40 @@ childTable.viewModel = function (options) {
     // ..........................................................
     // PRIVATE
     //
+    // Add action buttons defined in form
+    let config = f.copy(options.config);
+    config.actions = config.actions || [];
+    let modelName = options.feather.name.toCamelCase();
+    let actidx = config.actions.length - 1;
+    let action;
+    let fn;
+    let theClass = "fb-toolbar-button fb-toolbar-button-right ";
+    let btn;
+    let validator = function (check) {
+        return !Boolean(check(vm.tableWidget().selections()));
+    };
+    let onClick = (act) => act(vm);
+
+    while (actidx >= 0) {
+        action = config.actions[actidx];
+        fn = f.catalog().store().models()[modelName];
+
+        btn = f.createViewModel("Button", {
+            onclick: onClick.bind(null, fn.static()[action.method]),
+            label: action.name,
+            title: action.title,
+            icon: action.icon,
+            class: theClass
+        });
+        if (Boolean(action.validator)) {
+            btn.isDisabled = validator.bind(
+                null,
+                fn.static()[action.validator]
+            );
+        }
+        vm.actionButtons().push(btn);
+        actidx -= 1;
+    }
 
     // Create table widget view model
     vm.tableWidget(f.createViewModel("TableWidget", {
@@ -415,6 +455,7 @@ childTable.component = {
         let index = ary.indexOf(sel);
         let buttonUp = vm.buttonUp();
         let buttonDown = vm.buttonDown();
+        let controls;
 
         buttonUp.disable();
         buttonDown.disable();
@@ -430,29 +471,26 @@ childTable.component = {
             }
         }
 
-        return m("div", [
-            m(btn, {
-                viewModel: vm.buttonAdd()
-            }),
-            m(btn, {
-                viewModel: vm.buttonRemove()
-            }),
-            m(btn, {
-                viewModel: vm.buttonUndo()
-            }),
-            m(btn, {
-                viewModel: vm.buttonOpen()
-            }),
-            m(btn, {
-                viewModel: vm.buttonDown()
-            }),
-            m(btn, {
-                viewModel: vm.buttonUp()
-            }),
+        controls = [
+            m(btn, {viewModel: vm.buttonAdd()}),
+            m(btn, {viewModel: vm.buttonRemove()}),
+            m(btn, {viewModel: vm.buttonUndo()}),
+            m(btn, {viewModel: vm.buttonOpen()}),
+            m(btn, {viewModel: vm.buttonDown()}),
+            m(btn, {viewModel: vm.buttonUp()})
+        ];
+
+        vm.actionButtons().forEach(function (ab) {
+            return controls.push(m(btn, {viewModel: ab}));
+        });
+
+        controls.push(
             m(f.getComponent("TableWidget"), {
                 viewModel: vm.tableWidget()
             })
-        ]);
+        );
+
+        return m("div", controls);
     }
 };
 
