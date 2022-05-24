@@ -656,8 +656,8 @@ formPage.viewModel = function (options) {
     // PUBLIC
     //
     /**
-        Actionsinstantiated as buttons
-        @method formActions
+        Actions instantiated as buttons
+        @method actionButtons
         @param {Form.FormAction} action
         @return {Array}
     */
@@ -979,9 +979,8 @@ formPage.viewModel = function (options) {
     form.actions = form.actions || [];
     let actidx = form.actions.length - 1;
     let action;
-    let fn = f.catalog().store().models()[options.feather.toCamelCase()];
+    let fn;
     let theClass = toolbarButtonClass + " fb-toolbar-button-right ";
-    let posClass;
     let btn;
     let validator = function (check) {
         return !Boolean(check(vm.selections()));
@@ -992,9 +991,6 @@ formPage.viewModel = function (options) {
         action = form.actions[actidx];
         fn = f.catalog().store().models()[options.feather.toCamelCase()];
         theClass = toolbarButtonClass + " fb-toolbar-button-right ";
-        posClass = "";
-
-        theClass += posClass;
 
         btn = f.createViewModel("Button", {
             onclick: onClick.bind(null, fn.static()[action.method]),
