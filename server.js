@@ -41,6 +41,7 @@
     const config = new Config();
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
+    const pdf = require("./server/services/pdf.js");
     const check = [
         "data",
         "do",
@@ -909,6 +910,49 @@
         );
     }
 
+    function doProcessFile(req, res) {
+        let data = {encoded: null};
+        if (!req.user) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
+        return new Promise(function (rev) {
+            let url = req.body.url || req.url;
+            pdf.fetchBytes(decodeURI(url)).then(function (bytes) {
+                if (req.method === "POST" && req.body && (
+                    req.body.annotation || req.body.watermark
+                )) {
+                    pdf.annotate(bytes, req.body).then(function (bytes2) {
+                        // data.bytes = bytes;
+                        data.encoded = Buffer.from(
+                            bytes2,
+                            "binary"
+                        ).toString("base64");
+                        rev();
+                    });
+                } else {
+                    data.encoded = Buffer.from(
+                        bytes,
+                        "binary"
+                    ).toString("base64");
+                    rev();
+                }
+            });
+
+        }).then(function () {
+            res.writeHeader(200, "application/json");
+            res.write(JSON.stringify(data));
+            res.end();
+        });
+    }
+
+    function doRequestFile(req, res) {
+        if (!req.user) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
+        return doGetFile(req, res);
+    }
 
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
@@ -961,6 +1005,7 @@
 
         fs.readFile(url + file, function (err, resp) {
             if (err) {
+                console.log(err);
                 error.bind(res)(new Error(err));
                 return;
             }
@@ -1022,9 +1067,10 @@
                 });
             }
         });
-        req.logout();
-        req.session.destroy();
-        res.status(200).send();
+        req.logout(function () {
+            req.session.destroy();
+            res.status(200).send();
+        });
     }
 
     function doGetProfile(req, res) {
@@ -1347,10 +1393,6 @@
             "/node_modules/tinymce/themes/mobile"
         ];
 
-        if (fileUpload) {
-            dirs.push("/files/upload");
-        }
-
         let files = [
             "/api.json",
             "/index.html",
@@ -1443,7 +1485,6 @@
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
             target = target.slice(0, target.indexOf("/"));
-
             if (!req.user && check.indexOf(target) !== -1) {
                 res.status(401).json("Unauthorized session");
                 return;
@@ -1472,6 +1513,12 @@
 
         // File upload
         app.use(expressFileUpload());
+
+        // Uploaded files
+        if (fileUpload) {
+            app.get("/files/upload/:filename", doRequestFile);
+            app.post("/files/upload/:filename", doProcessFile);
+        }
 
         // Create routes for each catalog object
         registerDataRoutes();

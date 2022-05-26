@@ -27,6 +27,7 @@
     const readFileSync = "readFileSync"; // Lint dogma
     const f = require("../../common/core");
     const fs = require("fs");
+    const os = require("os");
     const {CRUD} = require("./crud");
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
@@ -999,21 +1000,33 @@
         return that;
     };
 
-    function fetchUrlBytes(url) {
+    function fetchBytes(url) {
+        let rex = new RegExp(
+            "^(http|https)://(localhost|"
+            + os.hostname() + ")"
+        );
         return new Promise(function (res2) {
-            let svc = http;
-            if (url.match(/^https/gi)) {
-                svc = https;
-            }
-            svc.get(url, function (res) {
-                let data = [];
-                res.on("data", function (chunk) {
-                    data.push(chunk);
-                }).on("end", function () {
-                    let buffer = Buffer.concat(data);
-                    res2(buffer);
+            if (url.match(rex) && url.match(/files\/upload/)) {
+                readFile(
+                    "./files/upload/" + url.slice(url.lastIndexOf("/") + 1)
+                ).then(function (bytes) {
+                    res2(bytes);
                 });
-            });
+            } else {
+                let svc = http;
+                if (url.match(/^https/gi)) {
+                    svc = https;
+                }
+                svc.get(url, function (res) {
+                    let data = [];
+                    res.on("data", function (chunk) {
+                        data.push(chunk);
+                    }).on("end", function () {
+                        let buffer = Buffer.concat(data);
+                        res2(buffer);
+                    });
+                });
+            }
         });
     }
 
@@ -1021,7 +1034,8 @@
         let aP = [];
         attachments.forEach(function (attach) {
             let prom = new Promise(function (res, rej) {
-                fetchUrlBytes(attach.source).then(function (src) {
+
+                fetchBytes(attach.source).then(function (src) {
                     if (attach.source.match(/(jpg|jpeg|png)$/i)) {
                         doc.pageBreak();
                         let table = doc.table({widths: [200, 0]});
@@ -1497,6 +1511,17 @@
             });
         });
     }
+    async function readFile(path) {
+        return await new Promise(function (res, rej) {
+            fs.readFile(path, function (err, resp) {
+                if (err) {
+                    rej(resp);
+                } else {
+                    res(resp);
+                }
+            });
+        });
+    }
     async function waterMarkPdf(bytes, label, outPath, options) {
         let cfg = newPdfConfig();
         cfg.textLabel = label || defTextLabel;
@@ -1546,15 +1571,7 @@
             cvs = await waterMark(cfg);
         }
         if (typeof bytes === "string") {
-            bytes = await new Promise(function (res, rej) {
-                fs.readFile(bytes, function (err, resp) {
-                    if (err) {
-                        rej(resp);
-                    } else {
-                        res(resp);
-                    }
-                });
-            });
+            bytes = await readFile(bytes);
         }
         let pdfDoc = await PDFDocument.load(bytes);
 
@@ -1571,6 +1588,7 @@
         return outBytes;
     }
 
+    exports.fetchBytes = fetchBytes;
     exports.annotate = async function (bytes, options) {
         if (!options) {
             return bytes;
