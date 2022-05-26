@@ -1021,6 +1021,7 @@
         let aP = [];
         attachments.forEach(function (attach) {
             let prom = new Promise(function (res, rej) {
+
                 fetchUrlBytes(attach.source).then(function (src) {
                     if (attach.source.match(/(jpg|jpeg|png)$/i)) {
                         doc.pageBreak();
@@ -1571,6 +1572,7 @@
         return outBytes;
     }
 
+    exports.fetchUrlBytes = fetchUrlBytes;
     exports.annotate = async function (bytes, options) {
         if (!options) {
             return bytes;
