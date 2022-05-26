@@ -912,14 +912,18 @@
 
     function doProcessFile(req, res) {
         let data = {encoded: null};
+        if (!req.user) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
         return new Promise(function (rev) {
             let url = req.body.url || req.url;
-            pdf.fetchUrlBytes(decodeURI(url)).then(function (bytes) {
-                data.bytes = bytes;
+            pdf.fetchBytes(decodeURI(url)).then(function (bytes) {
                 if (req.method === "POST" && req.body && (
                     req.body.annotation || req.body.watermark
                 )) {
                     pdf.annotate(bytes, req.body).then(function (bytes2) {
+                        // data.bytes = bytes;
                         data.encoded = Buffer.from(
                             bytes2,
                             "binary"
@@ -927,6 +931,10 @@
                         rev();
                     });
                 } else {
+                    data.encoded = Buffer.from(
+                        bytes,
+                        "binary"
+                    ).toString("base64");
                     rev();
                 }
             });
@@ -939,6 +947,10 @@
     }
 
     function doRequestFile(req, res) {
+        if (!req.user) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
         return doGetFile(req, res);
     }
 
@@ -1055,9 +1067,10 @@
                 });
             }
         });
-        req.logout();
-        req.session.destroy();
-        res.status(200).send();
+        req.logout(function () {
+            req.session.destroy();
+            res.status(200).send();
+        });
     }
 
     function doGetProfile(req, res) {
