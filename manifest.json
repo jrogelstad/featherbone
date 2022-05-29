@@ -1,6 +1,6 @@
 {
     "module": "Core",
-    "version": "1.0.0-alpha-3",
+    "version": "1.0.0-beta-1",
     "files": [
         {
             "type": "execute",
@@ -8,7 +8,7 @@
         },
         {
             "type": "feather",
-            "path": "scripts/feathers.json",
+            "path": "scripts/feathers-bootstrap.json",
             "isSystem": true
         },
         {
@@ -26,7 +26,7 @@
         },
         {
             "type": "feather",
-            "path": "scripts/feathers-common.json"
+            "path": "scripts/feathers.json"
         },
         {
             "type": "workbook",
