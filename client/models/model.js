@@ -477,6 +477,10 @@ function createModel(data, feather) {
         fn.title = simpleProp(options.title || "");
         d[options.name] = fn;
 
+		if (typeof fn.type === "object") {
+			fn.filter = f.prop({criteria:[]});
+		}
+
         return this;
     };
 

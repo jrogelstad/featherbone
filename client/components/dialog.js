@@ -22,7 +22,7 @@
 */
 
 const dialog = {};
-const dialogPolyfill = window.dialogPolyfill;
+
 /**
     View model for dialog.
 
@@ -339,13 +339,6 @@ dialog.component = {
             id: ids.dialog,
             class: "fb-dialog",
             style: f.copy(vm.style()),
-            oncreate: function (vnode) {
-                // Make Chrome style dialog available for all browsers
-                let dlg = document.getElementById(vnode.dom.id);
-                if (!dlg.showModal) {
-                    dialogPolyfill.registerDialog(dlg);
-                }
-            },
             onupdate: function (vnode) {
                 let dlg = document.getElementById(vnode.dom.id);
                 if (
