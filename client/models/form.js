@@ -130,7 +130,7 @@ function formAction(data, feather) {
     model = f.createModel(data, feather);
 
     /**
-        Feather static method datalist.
+        List of available static methods on model.
 
         __Type:__ `Array`
 
@@ -318,6 +318,60 @@ function formAttr(data, feather) {
 }
 
 f.catalog().registerModel("FormAttr", formAttr);
+
+function formAttrAction(data, feather) {
+    let model;
+    feather = feather || f.catalog().getFeather("FormAttrAction");
+    model = f.createModel(data, feather);
+
+    /**
+        List of available static methods on model.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.methodList
+        @for Models.FormAttrAction
+        @type Property
+    */
+    model.addCalculated({
+        name: "methodList",
+        type: "array",
+        function: function () {
+            let ary = [];
+            let parent = model.parent();
+            let name = parent.parent().data.feather();
+            let formFeather;
+            let prop;
+            let rel;
+            let fn;
+
+            if (!name) {
+                return ary;
+            }
+
+            formFeather = f.catalog().getFeather(name);
+            prop = formFeather.properties[parent.data.attr()];
+            if (typeof prop.type !== "object") {
+                return ary;
+            }
+
+            rel = prop.type.relation.toCamelCase();
+            fn = f.catalog().store().models()[rel];
+            ary = Object.keys(fn.static());
+            ary.sort();
+            return ary.map(function (key) {
+                return {label: key, value: key};
+            });
+        }
+    });
+
+    return model;
+}
+f.catalog().registerModel("FormAttrAction", formAttrAction);
 
 function formAttrColumn(data, feather) {
     let model;
