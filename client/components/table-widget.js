@@ -405,7 +405,7 @@ function createTableDataView(options, col) {
             verticalAlign: "text-top",
             textIndent: options.model.data[indentOn]() + "em"
         };
-        if (!options.model.isParent()) {
+        if (!options.model.isTreeParent()) {
             iconStyle.color = "white";
         }
         icon = (

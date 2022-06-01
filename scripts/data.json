@@ -559,12 +559,12 @@
                 "attr": "method",
                 "dataList": "methodList",
                 "label": "",
-                "width": 165
+                "width": 225
             }, {
                 "attr": "validator",
                 "dataList": "methodList",
                 "label": "",
-                "width": 165
+                "width": 225
             }]
         }, {
             "attr": "title",
@@ -644,6 +644,8 @@
         "tabs": [{
             "name": "Columns"
         }, {
+            "name": "Actions"
+        }, {
             "name": "Print"
         }],
         "attrs": [{
@@ -700,10 +702,42 @@
             }]
         }, {
             "attr": "font",
-            "grid": 2
+            "grid": 3
         }, {
             "attr": "fontSize",
-            "grid": 2
+            "grid": 3
+        }, {
+            "attr": "actions",
+            "dataList": "",
+            "grid": 2,
+            "label": "",
+            "unit": 0,
+            "showLabel": false,
+            "columns": [{
+                "attr": "name",
+                "dataList": "",
+                "width": 165
+            }, {
+                "attr": "title",
+                "dataList": "",
+                "label": "",
+                "width": 165
+            }, {
+                "attr": "icon",
+                "dataList": "",
+                "label": "",
+                "width": 165
+            }, {
+                "attr": "method",
+                "dataList": "methodList",
+                "label": "",
+                "width": 225
+            }, {
+                "attr": "validator",
+                "dataList": "methodList",
+                "label": "",
+                "width": 225
+            }]
         }]
     }
 }, {

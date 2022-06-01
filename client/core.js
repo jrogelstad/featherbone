@@ -1420,7 +1420,7 @@ f.hashCode = function (s) {
 };
 
 f.types.resourceLink = {};
-f.types.resourceLink.tableData = function (obj) {
+f.types.resourceLink.tableData = function (obj, decorator) {
 
     let dat = obj.value.data;
     let ico = dat.icon();
@@ -1438,8 +1438,11 @@ f.types.resourceLink.tableData = function (obj) {
         ? m("span", {class: "material-icons fb-table-icon"}, ico)
         : ""
     );
-
-    return m("a", {href: rec, target: "_blank"}, icon, label);
+    if (decorator) {
+        return decorator(obj, rec, icon, label);
+    } else {
+        return m("a", {href: rec, target: "_blank"}, icon, label);
+    }
 };
 
 f.types.address = {};

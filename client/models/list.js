@@ -121,22 +121,22 @@ function createList(feather) {
                     row = ary[i];
                     if (row.data[indentOn]() < level) {
                         iParent = row;
-                        iParent.isParent(true);
+                        iParent.isTreeParent(true);
                     }
                 }
             }
             // Set up current model indent properties
-            model.isParent = f.prop(false);
-            model.parent = f.prop(iParent);
+            model.isTreeParent = f.prop(false);
+            model.treeParent = f.prop(iParent);
             model.collapsed = f.prop(false);
             model.hide = function () {
-                let parent = model.parent();
+                let treeParent = model.treeParent();
 
-                if (parent) {
-                    if (parent.collapsed()) {
+                if (treeParent) {
+                    if (treeParent.collapsed()) {
                         return true;
                     } else {
-                        return parent.hide();
+                        return treeParent.hide();
                     }
                 }
 
@@ -193,7 +193,7 @@ function createList(feather) {
     ary.collapseAll = function () {
         if (ary.indentOn()) {
             ary.forEach(function (model) {
-                if (model.isParent()) {
+                if (model.isTreeParent()) {
                     model.collapsed(true);
                 }
             });
@@ -208,7 +208,7 @@ function createList(feather) {
     ary.expandAll = function () {
         if (ary.indentOn()) {
             ary.forEach(function (model) {
-                if (model.isParent()) {
+                if (model.isTreeParent()) {
                     model.collapsed(false);
                 }
             });
