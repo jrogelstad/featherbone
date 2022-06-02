@@ -594,8 +594,7 @@ formPage.viewModel = function (options) {
                 window.location.hostname + ":" +
                 window.location.port + "/pdf/" + resp
             );
-
-            window.open(url);
+            window.open(encodeURI(url));
         }
 
         let payload;
