@@ -964,7 +964,6 @@
                             doc.pipe(w);
                             doc.end().then(function () {
                                 if (!options || !options.watermark) {
-                                    console.log("Redirect to: " + file);
                                     resolve(file);
                                     return file;
                                 }

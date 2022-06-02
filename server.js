@@ -957,7 +957,6 @@
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
         let file = req.params.file || "";
-        //console.log(url + "/" + file);
         let suffix = (
             file
             ? file.slice(file.indexOf("."), file.length)
