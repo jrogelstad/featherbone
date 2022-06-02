@@ -527,14 +527,16 @@
                                     p.type.relation,
                                     "ResourceLink"
                                 )) {
-                                    let figure = "Figure "
-                                    + (attachments.length + 1);
-                                    attachments.push({
-                                        attachmentLabel: figure,
-                                        label: rec[attr].label,
-                                        source: rec[attr].resource
-                                    });
-                                    row.cell(figure);
+                                    if (options && options.attach) {
+                                        let figure = "Figure "
+                                        + (attachments.length + 1);
+                                        attachments.push({
+                                            attachmentLabel: figure,
+                                            label: rec[attr].label,
+                                            source: rec[attr].resource
+                                        });
+                                        row.cell(figure);
+                                    }
                                     return;
                                 }
 
@@ -962,6 +964,7 @@
                             doc.pipe(w);
                             doc.end().then(function () {
                                 if (!options || !options.watermark) {
+                                    console.log("Redirect to: " + file);
                                     resolve(file);
                                     return file;
                                 }
