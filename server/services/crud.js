@@ -1624,6 +1624,11 @@
                 afterLog = function () {
                     // We're going to return the changes
                     result = jsonpatch.compare(obj.cache, result);
+					
+					// Update newRec for "trigger after" events
+					if (obj.newRec) {
+						jsonpatch.applyPatch(obj.newRec, result);
+					}
 
                     // Report back result
                     resolve(result);
@@ -2419,6 +2424,11 @@
 
                 done = function () {
                     let ret = jsonpatch.compare(cacheRec, result);
+
+					// Update newRec for "trigger after" use if applicable
+					if (obj.newRec) {
+						jsonpatch.applyPatch(obj.newRec, ret);
+					}
 
                     ret = ret.filter(
                         (r) => r.path.slice(r.path.length - 5) !== "/lock"
