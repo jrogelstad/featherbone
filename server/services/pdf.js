@@ -29,6 +29,7 @@
     const fs = require("fs");
     const os = require("os");
     const {CRUD} = require("./crud");
+    const {Tools} = require("./tools");
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
@@ -36,6 +37,7 @@
     const defTextLabel = "Confidential";
     const http = require("http");
     const https = require("https");
+    const formats = new Tools().formats;
 
     const fonts = {
         Barcode39: new pdf.Font(
@@ -413,14 +415,14 @@
                             });
                         }
 
-                        function formatMoney(value) {
+                        function formatMoney(value, scale) {
                             let style;
                             let amount = value.amount || 0;
                             let curr = currs.find(
                                 (c) => c.code === value.currency
                             );
                             let hasDisplayUnit = curr.hasDisplayUnit;
-                            let minorUnit = (
+                            let minorUnit = scale || (
                                 hasDisplayUnit
                                 ? curr.displayUnit.minorUnit
                                 : curr.minorUnit
@@ -666,12 +668,18 @@
                                 });
                                 break;
                             case "object":
-                                if (p.format === "money") {
+                                if (
+                                    formats[p.format] &&
+                                    formats[p.format].isMoney
+                                ) {
                                     curr = currs.find(
                                         (c) => c.code === value.currency
                                     );
                                     if (curr) {
-                                        value = formatMoney(value);
+                                        value = formatMoney(
+                                            value,
+                                            formats[p.format].scale
+                                        );
                                         row.cell(fontMod(value), {
                                             font: ovrFont,
                                             fontSize: style.fontSize,
@@ -747,7 +755,8 @@
                                     prop.type === "integer" ||
                                     (
                                         prop.type === "object" &&
-                                        prop.format === "money"
+                                        formats[prop.format] &&
+                                        formats[prop.format].isMoney
                                     )
                                 ) {
                                     opts.textAlign = "right";
