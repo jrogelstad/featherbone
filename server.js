@@ -42,6 +42,8 @@
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
+    const {webauthn} = require("./server/services/webauthn");
+
     const check = [
         "data",
         "do",
@@ -250,6 +252,11 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+            webauthn.init(
+                (process.env.RPID || resp.rpId || "localhost"),
+                (process.env.ORIGIN || resp.origin || "http://localhost")
+            );
+
         } catch (err) {
             logger.error(err.message);
             console.log(err);
@@ -1525,6 +1532,10 @@
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
 
+        app.get("/webauthn/reg", webauthn.doWebAuthNRegister);
+        app.post("/webauthn/reg", webauthn.postWebAuthNRegister);
+        app.get("/webauthn/auth", webauthn.doWebAuthNAuthenticate);
+        app.post("/webauthn/auth", webauthn.postWebAuthNAuthenticate);
         app.post("/connect", doConnect);
         app.post("/data/user-accounts", doQueryRequest);
         app.post("/data/user-account", doPostUserAccount);
