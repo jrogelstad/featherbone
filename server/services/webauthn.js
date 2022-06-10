@@ -1,4 +1,11 @@
 /*jslint node, unordered */
+
+// USING: https://github.com/webauthn-open-source/fido2-lib
+// ALTERNATE: https://github.com/Jxck/jxck.io/blob/main/labs.jxck.io/webauthentication/fido-u2f/app.mjs
+// ALT 2: https://github.com/ais-one/cookbook/blob/develop/js-node/expressjs/router/fido.js
+// and https://github.com/ais-one/cookbook/blob/develop/js-node/expressjs/public/demo-express/fido.html
+// FLOW: https://webauthn.guide/
+//
 (function (exports) {
     "use strict";
     const f = require("../../common/core");
