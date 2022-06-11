@@ -289,6 +289,7 @@
                         if (typeof data[0] === "string") {
                             ids = data;
                         } else {
+                            ids = data.map((d) => d.id);
                             resolve(data);
                             return;
                         }
@@ -327,7 +328,7 @@
                 }
 
                 function doPrint() {
-                    return new Promise(function (resolve) {
+                    return new Promise(function (resolve, reject) {
                         let defFont = (
                             (form && form.font)
                             ? form.font
@@ -357,6 +358,8 @@
                         let path = dir + file;
                         let w = fs.createWriteStream(path);
 
+                        w.on("error", reject);
+
                         form = form || buildForm(
                             localFeathers[rows[0].objectType],
                             localFeathers
@@ -376,12 +379,7 @@
                             }
 
                             if (!fthr.properties[key]) {
-                                throw (
-                                    "Form \"" + form.name +
-                                    "\" references property \"" + key +
-                                    "\" which does not exist on feather \"" +
-                                    fthr.name + "\""
-                                );
+                                return {name: key};
                             }
                             fthr.properties[key].name = key;
                             return fthr.properties[key];
@@ -620,7 +618,7 @@
                                 return;
                             }
 
-                            switch (p.type) {
+                            switch (p.type || typeof value) {
                             case "string":
                                 if (!value) {
                                     row.cell("");
@@ -737,6 +735,13 @@
                                 },
                                 padding: 5
                             });
+
+                            if (!p.type) {
+                                throw (
+                                    "Attribute '" +
+                                    p.name + "' does not have a relation"
+                                );
+                            }
                             feather = localFeathers[p.type.relation];
 
                             tr = table.header({
@@ -956,6 +961,7 @@
                             }
                             n = 0;
                         }
+
                         new Promise(function (resAtt) {
                             if (!attachments.length) {
                                 resAtt();
