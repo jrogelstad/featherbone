@@ -579,7 +579,6 @@ formPage.viewModel = function (options) {
             now.getMinutes()
         );
 
-        console.log(file);
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
@@ -598,9 +597,31 @@ formPage.viewModel = function (options) {
             window.open(url);
         }
 
+        // Include both persistant and calculated values
+        function serialize(mdl) {
+            let ret = {};
+            Object.keys(mdl.data).forEach(function (key) {
+                if (Array.isArray(mdl.data[key]())) {
+                    ret[key] = mdl.data[key]().map(function (item) {
+                        if (item.isModel) {
+                            return serialize(item);
+                        }
+                        return item;
+                    });
+                    return;
+                }
+                ret[key] = (
+                    mdl.data[key].toJSON
+                    ? mdl.data[key].toJSON()
+                    : mdl.data[key]()
+                );
+            });
+            return ret;
+        }
+
         let payload;
         let theBody = {
-            id: vm.model().id(),
+            data: serialize(vm.model()),
             form: form.name,
             filename: file
         };

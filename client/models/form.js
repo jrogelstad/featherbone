@@ -226,7 +226,8 @@ function formAttr(data, feather) {
         function validator(fprop) {
             return Boolean(
                 !fprop || fprop.type !== "object" ||
-                fprop.format !== "money"
+                f.formats()[fprop.format] &&
+                f.formats()[fprop.format].isMoney
             );
         }
 
@@ -468,7 +469,8 @@ function formAttrColumn(data, feather) {
         function validator(fprop) {
             return Boolean(
                 !fprop || fprop.type !== "object" ||
-                fprop.format !== "money"
+                f.formats()[fprop.format] &&
+                f.formats()[fprop.format].isMoney
             );
         }
 

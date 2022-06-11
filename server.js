@@ -39,6 +39,7 @@
     });
     const {Config} = require("./server/config");
     const config = new Config();
+    const {Tools} = require("./server/services/tools");
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
@@ -87,11 +88,19 @@
         Fast json patch library per API documented here:
         https://github.com/Starcounter-Jack/JSON-Patch#api
         @property jsonpatch
-        @type Datasource
+        @type Object
         @for f
         @final
     */
     f.jsonpatch = require("fast-json-patch");
+
+    /**
+        @property formats
+        @type Object
+        @for f
+        @final
+    */
+    f.formats = new Tools().formats;
 
     let app = express();
     let routes = [];
@@ -849,7 +858,7 @@
 
         datasource.printPdfForm(
             req.body.form,
-            req.body.id || req.body.ids,
+            req.body.id || req.body.ids || req.body.data,
             req.body.filename,
             req.user.name,
             req.body.options
