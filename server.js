@@ -858,7 +858,7 @@
 
         datasource.printPdfForm(
             req.body.form,
-            req.body.id || req.body.ids,
+            req.body.id || req.body.ids || req.body.data,
             req.body.filename,
             req.user.name,
             req.body.options
