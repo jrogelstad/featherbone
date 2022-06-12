@@ -218,798 +218,767 @@
             @param {String} [Form] name
             @param {Object|String|Array} Input Record, id, or array of either
             @param {String} [Filename] Target filename
+            @params {Object} Options
             @return {Promise} Filename
         */
-        that.printForm = function (vClient, form, data, filename, options) {
-            return new Promise(function (resolve, reject) {
-                if (!Array.isArray(data)) {
-                    data = [data];
+        that.printForm = async function (
+            vClient,
+            form,
+            data,
+            filename,
+            options
+        ) {
+            if (!Array.isArray(data)) {
+                data = [data];
+            }
+            let ids;
+            let theObj;
+            let currId;
+            let rows;
+            let currs;
+            let localFeathers = {};
+            let dir = "./files/downloads/";
+            let attachments = [];
+            let annotation;
+            let resp;
+
+            if (options && options.annotation) {
+                annotation = options.annotation;
+            }
+
+            if (typeof data[0] === "string") {
+                ids = data;
+
+                theObj = await crud.doSelect({
+                    name: "Object",
+                    client: vClient,
+                    properties: ["id", "objectType"],
+                    id: ids[0]
+                }, false, true);
+
+                rows = await crud.doSelect({
+                    name: theObj.objectType,
+                    client: vClient,
+                    user: vClient.currentUser(),
+                    filter: {
+                        criteria: [{
+                            property: "id",
+                            operator: "IN",
+                            value: ids
+                        }]
+                    }
+                });
+
+                if (!rows.length) {
+                    throw new Error("Data not found");
                 }
-                let ids;
-                let currId;
-                let requests = [];
-                let rows;
-                let currs;
-                let localFeathers = {};
-                let dir = "./files/downloads/";
-                let attachments = [];
-                let annotation;
+            } else {
+                ids = data.map((d) => d.id);
+                rows = data;
+            }
 
-                if (options && options.annotation) {
-                    annotation = options.annotation;
-                }
+            currs = await crud.doSelect({
+                name: "Currency",
+                client: vClient
+            }, false, true);
 
-                function getForm() {
-                    return new Promise(function (resolve, reject) {
-                        crud.doSelect({
-                            name: "Form",
-                            client: vClient,
-                            filter: {
-                                criteria: [{
-                                    property: "name",
-                                    value: form
-                                }]
-                            }
-                        }, false, true).then(resolve).catch(reject);
-                    });
-                }
+            if (form) {
+                resp = await crud.doSelect({
+                    name: "Form",
+                    client: vClient,
+                    filter: {
+                        criteria: [{
+                            property: "name",
+                            value: form
+                        }]
+                    }
+                }, false, true);
 
-                function getFeather(resp) {
-                    return new Promise(function (resolve, reject) {
-                        rows = resp[0];
-                        currs = resp[1];
-
-                        if (!rows.length) {
-                            reject("Data not found");
-                            return;
-                        }
-                        if (form) {
-                            if (!resp[2][0]) {
-                                reject("Form " + form + " not found");
-                                return;
-                            }
-
-                            if (!resp[2][0].isActive) {
-                                reject("Form " + form + " is not active");
-                                return;
-                            }
-                            form = resp[2][0];
-                        }
-
-                        feathers.getFeathers(
-                            vClient,
-                            rows[0].objectType,
-                            localFeathers
-                        ).then(resolve).catch(reject);
-                    });
-                }
-
-                function getData() {
-                    return new Promise(function (resolve, reject) {
-                        if (typeof data[0] === "string") {
-                            ids = data;
-                        } else {
-                            ids = data.map((d) => d.id);
-                            resolve(data);
-                            return;
-                        }
-
-                        function callback(resp) {
-                            crud.doSelect({
-                                name: resp.objectType,
-                                client: vClient,
-                                user: vClient.currentUser(),
-                                filter: {
-                                    criteria: [{
-                                        property: "id",
-                                        operator: "IN",
-                                        value: ids
-                                    }]
-                                }
-                            }).then(resolve).catch(reject);
-                        }
-
-                        crud.doSelect({
-                            name: "Object",
-                            client: vClient,
-                            properties: ["id", "objectType"],
-                            id: ids[0]
-                        }, false, true).then(callback).catch(reject);
-                    });
+                if (!resp[0]) {
+                    throw new Error("Form " + form + " not found");
                 }
 
-                function getCurr() {
-                    return new Promise(function (resolve, reject) {
-                        crud.doSelect({
-                            name: "Currency",
-                            client: vClient
-                        }, false, true).then(resolve).catch(reject);
-                    });
+                if (!resp[0].isActive) {
+                    throw new Error("Form " + form + " is not active");
                 }
 
-                function doPrint() {
-                    return new Promise(function (resolve, reject) {
-                        let defFont = (
-                            (form && form.font)
-                            ? form.font
-                            : "Helvetica"
-                        );
-                        let defSize = (
-                            (form && form.paperSize)
-                            ? form.paperSize
-                            : "Letter Wide"
-                        );
-                        let doc = new pdf.Document({
-                            width: sizes[defSize].width,
-                            height: sizes[defSize].height,
-                            font: fonts[defFont],
-                            padding: 36,
-                            paddingTop: 54,
-                            properties: {
-                                creator: vClient.currentUser()
-                            }
-                        });
+                form = resp[0];
+            }
 
-                        let header;
-                        let src = fs[readFileSync]("./files/logo.jpg");
-                        let logo = new pdf.Image(src);
-                        let n = 0;
-                        let file = (filename || f.createId()) + ".pdf";
-                        let path = dir + file;
-                        let w = fs.createWriteStream(path);
+            await feathers.getFeathers(
+                vClient,
+                rows[0].objectType,
+                localFeathers
+            );
 
-                        w.on("error", reject);
-
-                        form = form || buildForm(
-                            localFeathers[rows[0].objectType],
-                            localFeathers
-                        );
-
-                        function resolveProperty(key, fthr) {
-                            let idx = key.indexOf(".");
-                            let attr;
-                            let rel;
-
-                            if (idx !== -1) {
-                                attr = key.slice(0, idx);
-                                rel = fthr.properties[attr].type.relation;
-                                fthr = localFeathers[rel];
-                                key = key.slice(idx + 1, key.length);
-                                return resolveProperty(key, fthr);
-                            }
-
-                            if (!fthr.properties[key]) {
-                                return {name: key};
-                            }
-                            fthr.properties[key].name = key;
-                            return fthr.properties[key];
-                        }
-
-                        function getLabel(feather, attr) {
-                            feather = localFeathers[feather];
-                            let p = resolveProperty(attr.attr, feather);
-                            return (
-                                attr.label ||
-                                p.alias ||
-                                p.name.toName()
-                            );
-                        }
-
-                        function inheritedFrom(source, target) {
-                            let feather = localFeathers[source];
-                            let props;
-
-                            if (!feather) {
-                                return false;
-                            }
-
-                            props = feather.properties;
-
-                            if (feather.name === target) {
-                                return true;
-                            }
-                            return Object.keys(props).some(function (k) {
-                                return props[k].inheritedFrom === target;
-                            });
-                        }
-
-                        function formatMoney(value, scale) {
-                            let style;
-                            let amount = value.amount || 0;
-                            let curr = currs.find(
-                                (c) => c.code === value.currency
-                            );
-                            let hasDisplayUnit = curr.hasDisplayUnit;
-                            let minorUnit = scale || (
-                                hasDisplayUnit
-                                ? curr.displayUnit.minorUnit
-                                : curr.minorUnit
-                            );
-
-                            style = {
-                                minimumFractionDigits: minorUnit,
-                                maximumFractionDigits: minorUnit
-                            };
-
-                            if (hasDisplayUnit) {
-                                curr.conversions.some(function (conv) {
-                                    if (
-                                        conv.toUnit().id === curr.displayUnit.id
-                                    ) {
-                                        amount = amount.div(
-                                            conv.ratio
-                                        ).round(minorUnit);
-
-                                        return true;
-                                    }
-                                });
-
-                                curr = currs.find(
-                                    (c) => c.code === curr.displayUnit.code
-                                );
-                            }
-                            return (
-                                curr.symbol + " " +
-                                amount.toLocaleString(undefined, style)
-                            );
-                        }
-
-                        function formatValue(
-                            row,
-                            feather,
-                            attr,
-                            rec,
-                            showLabel,
-                            style,
-                            printBlank
-                        ) {
-                            feather = localFeathers[feather];
-                            let p = resolveProperty(attr, feather);
-                            let curr;
-                            let parts = attr.split(".");
-                            let value = rec[parts[0]];
-                            let item;
-                            let nkey;
-                            let lkey;
-                            let rel;
-                            let cr = "\n";
-                            let fontStr = style.font || defFont;
-                            let ovrFont = fonts[fontStr];
-
-                            function fontMod(val) {
-                                if (fontStr.startsWith("Barcode")) {
-                                    val = "*" + val + "*";
-                                }
-                                return val;
-                            }
-
-                            parts.shift();
-                            while (parts.length) {
-                                if (value === null) {
-                                    value = "";
-                                    parts = [];
-                                } else {
-                                    value = value[parts.shift()];
-                                }
-                            }
-
-                            if (printBlank) {
-                                row.cell("");
-                                return;
-                            }
-
-                            if (typeof p.type === "object") {
-                                if (value === null) {
-                                    row.cell("");
-                                    return;
-                                }
-
-                                if (inheritedFrom(p.type.relation, "Address")) {
-                                    value = rec[attr].street;
-                                    if (rec[attr].name) {
-                                        value = rec[attr].name + cr + value;
-                                    }
-                                    if (rec[attr].unit) {
-                                        value += cr + rec[attr].unit;
-                                    }
-                                    value += cr + rec[attr].city + ", ";
-                                    value += rec[attr].state + " ";
-                                    value += rec[attr].postalCode;
-                                    value += cr + rec[attr].country;
-                                    row.cell(fontMod(value), {
-                                        font: ovrFont,
-                                        fontSize: style.fontSize
-                                    });
-                                    return;
-                                }
-
-                                if (inheritedFrom(
-                                    p.type.relation,
-                                    "ResourceLink"
-                                )) {
-                                    let figure = "Figure "
-                                    + (attachments.length + 1);
-                                    attachments.push({
-                                        attachmentLabel: figure,
-                                        label: rec[attr].label,
-                                        source: rec[attr].resource
-                                    });
-                                    row.cell(figure);
-                                    return;
-                                }
-
-                                if (inheritedFrom(p.type.relation, "Contact")) {
-                                    rel = row.cell().text();
-                                    rel.add(
-                                        value.fullName
-                                    );
-                                    if (showLabel) {
-                                        if (value.phone) {
-                                            rel.br().add(
-                                                value.phone,
-                                                {
-                                                    font: ovrFont,
-                                                    fontSize: 10
-                                                }
-                                            );
-                                        }
-                                        if (value.email) {
-                                            rel.br().add(
-                                                value.email,
-                                                {
-                                                    font: ovrFont,
-                                                    fontSize: 10
-                                                }
-                                            );
-                                        }
-                                        if (value.address) {
-                                            rel.br().add(
-                                                (
-                                                    value.address.city + "," +
-                                                    value.address.state
-                                                ),
-                                                {
-                                                    font: ovrFont,
-                                                    fontSize: 10
-                                                }
-                                            );
-                                        }
-                                    }
-                                    return;
-                                }
-
-                                feather = localFeathers[p.type.relation];
-                                nkey = Object.keys(feather.properties).find(
-                                    (k) => feather.properties[k].isNaturalKey
-                                );
-                                if (showLabel) {
-                                    lkey = Object.keys(feather.properties).find(
-                                        (k) => feather.properties[k].isLabelKey
-                                    );
-                                }
-                                if (lkey && !nkey) {
-                                    nkey = lkey;
-                                    lkey = undefined;
-                                }
-                                rel = row.cell().text();
-                                if (lkey) {
-                                    rel.add(
-                                        fontMod(value[nkey]),
-                                        {
-                                            font: ovrFont,
-                                            fontSize: style.fontSize
-                                        }
-                                    ).br().add(
-                                        value[lkey],
-                                        {
-                                            font: ovrFont,
-                                            fontSize: 10
-                                        }
-                                    );
-                                } else {
-                                    rel.add(
-                                        fontMod(value[nkey]),
-                                        {
-                                            font: ovrFont,
-                                            fontSize: style.fontSize
-                                        }
-                                    );
-                                }
-                                return;
-                            }
-
-                            switch (p.type || typeof value) {
-                            case "string":
-                                if (!value) {
-                                    row.cell("");
-                                    return;
-                                }
-                                if (p.dataList) {
-                                    item = p.dataList.find(
-                                        (i) => i.value === value
-                                    );
-                                    value = (
-                                        item
-                                        ? item.label
-                                        : "Invalid data list value: " + value
-                                    );
-                                } else if (p.format === "date") {
-                                    value = f.parseDate(
-                                        value
-                                    ).toLocaleDateString();
-                                } else if (p.format === "dateTime") {
-                                    value = new Date(value).toLocaleString();
-                                }
-
-                                row.cell(fontMod(value), {
-                                    font: ovrFont,
-                                    fontSize: style.fontSize
-                                });
-                                break;
-                            case "boolean":
-                                if (value) {
-                                    value = "True";
-                                } else {
-                                    value = "False";
-                                }
-                                row.cell(fontMod(value), {
-                                    font: ovrFont,
-                                    fontSize: style.fontSize
-                                });
-                                break;
-                            case "integer":
-                            case "number":
-                                row.cell(fontMod(value.toLocaleString()), {
-                                    font: ovrFont,
-                                    fontSize: style.fontSize,
-                                    textAlign: "right"
-                                });
-                                break;
-                            case "object":
-                                if (
-                                    formats[p.format] &&
-                                    formats[p.format].isMoney
-                                ) {
-                                    curr = currs.find(
-                                        (c) => c.code === value.currency
-                                    );
-                                    if (curr) {
-                                        value = formatMoney(
-                                            value,
-                                            formats[p.format].scale
-                                        );
-                                        row.cell(fontMod(value), {
-                                            font: ovrFont,
-                                            fontSize: style.fontSize,
-                                            textAlign: "right"
-                                        });
-                                    } else {
-                                        row.cell("Invalid currency");
-                                    }
-                                }
-                                break;
-                            default:
-                                row.cell(fontMod(value), {
-                                    font: ovrFont,
-                                    fontSize: style.fontSize
-                                });
-                            }
-                        }
-
-                        function formatTable(obj) {
-                            let feather = localFeathers[obj.feather];
-                            let attr = obj.attribute;
-                            let p = resolveProperty(attr.attr, feather);
-
-                            let tr;
-                            let maxWidth = doc.width.minus(
-                                doc.paddingLeft
-                            ).minus(doc.paddingRight);
-                            let ttlWidth = 0;
-                            let cols = attr.columns.filter(function (c) {
-                                ttlWidth += c.width || COL_WIDTH_DEFAULT;
-                                return ttlWidth <= maxWidth;
-                            });
-                            let table;
-
-                            if (attr.showLabel) {
-                                doc.cell("", {
-                                    minHeight: 10
-                                });
-                                doc.cell(getLabel(obj.feather, attr) + ":", {
-                                    padding: 5,
-                                    font: fonts[defFont + "Bold"]
-                                });
-                            }
-
-                            table = doc.table({
-                                widths: cols.map(
-                                    (c) => c.width || COL_WIDTH_DEFAULT
-                                ),
-                                borderHorizontalWidths: function (i) {
-                                    return (
-                                        i < 2
-                                        ? 1
-                                        : 0.1
-                                    );
-                                },
-                                padding: 5
-                            });
-
-                            if (!p.type) {
-                                throw (
-                                    "Attribute '" +
-                                    p.name + "' does not have a relation"
-                                );
-                            }
-                            feather = localFeathers[p.type.relation];
-
-                            tr = table.header({
-                                font: fonts[defFont + "Bold"],
-                                borderBottomWidth: 1.5
-                            });
-
-                            function addHeaderCol(col) {
-                                let opts = {
-                                    font: fonts[defFont + "Bold"]
-                                };
-                                let prop = resolveProperty(col.attr, feather);
-
-                                if (
-                                    prop.type === "number" ||
-                                    prop.type === "integer" ||
-                                    (
-                                        prop.type === "object" &&
-                                        formats[prop.format] &&
-                                        formats[prop.format].isMoney
-                                    )
-                                ) {
-                                    opts.textAlign = "right";
-                                }
-                                tr.cell(getLabel(feather.name, col), opts);
-                            }
-
-                            function addRow(rec) {
-                                let row = table.row();
-
-                                cols.forEach(function (col) {
-                                    formatValue(
-                                        row,
-                                        rec.objectType,
-                                        col.attr,
-                                        rec,
-                                        Boolean(form.showLabelKey),
-                                        {
-                                            font: col.font,
-                                            fontSize: col.fontSize
-                                        },
-                                        col.printBlank
-                                    );
-                                });
-                            }
-
-                            cols.forEach(addHeaderCol);
-                            data[attr.attr].forEach(addRow);
-                        }
-
-                        function buildSection(tab) {
-                            let attrs = form.attrs.filter((a) => a.grid === n);
-                            let colCnt = 0;
-                            let rowCnt = 0;
-                            let ary = [];
-                            let tbl;
-                            let units = [];
-                            let c = 0;
-                            let tables = [];
-
-                            if (tab) {
-                                doc.cell("", {
-                                    minHeight: 10
-                                });
-                                doc.cell(tab.name, {
-                                    font: fonts[defFont + "Bold"],
-                                    backgroundColor: 0xd3d3d3,
-                                    fontSize: 14,
-                                    paddingLeft: 9,
-                                    paddingBottom: 2
-                                });
-                            }
-
-                            // Figure out how many units (columns)
-                            // in form
-                            attrs.forEach(function (a) {
-                                if (a.unit > colCnt) {
-                                    colCnt = a.unit;
-                                }
-                                if (!ary[a.unit]) {
-                                    ary[a.unit] = [a];
-                                } else {
-                                    ary[a.unit].push(a);
-                                }
-                            });
-                            colCnt += 1;
-                            ary.forEach(function (i) {
-                                if (i.length > rowCnt) {
-                                    rowCnt = i.length;
-                                }
-                            });
-
-                            // Build table
-                            while (c < colCnt) {
-                                units.push(100); // label
-                                units.push(134); // value
-                                c += 1;
-                            }
-                            tbl = doc.table({
-                                widths: units,
-                                padding: 5
-                            });
-
-                            function addRow() {
-                                let row = tbl.row();
-                                let i = 0;
-                                let attr;
-                                let label;
-
-                                while (i < colCnt) {
-                                    if (ary[i] === undefined) {
-                                        i += 1;
-                                        return;
-                                    }
-                                    attr = ary[i].shift();
-                                    if (attr) {
-                                        // Handle Label
-                                        if (
-                                            attr.showLabel &&
-                                            !attr.columns.length
-                                        ) {
-                                            label = getLabel(
-                                                data.objectType,
-                                                attr
-                                            );
-
-                                            row.cell(label + ":", {
-                                                textAlign: "right",
-                                                font: fonts[defFont + "Bold"]
-                                            });
-                                        } else {
-                                            row.cell("");
-                                        }
-                                        // Handle value
-                                        if (attr.columns.length) {
-                                            // Build tables after done with grid
-                                            // Can't put a table in a cell
-                                            tables.push({
-                                                feather: data.objectType,
-                                                attribute: attr
-                                            });
-                                        } else {
-                                            formatValue(
-                                                row,
-                                                data.objectType,
-                                                attr.attr,
-                                                data,
-                                                true,
-                                                {
-                                                    font: attr.font,
-                                                    fontSize: attr.fontSize
-                                                }
-                                            );
-                                        }
-                                    }
-                                    i += 1;
-                                }
-                            }
-                            c = 0;
-                            while (c < rowCnt) {
-                                addRow();
-                                c += 1;
-                            }
-
-                            while (tables.length) {
-                                formatTable(tables.shift());
-                            }
-
-                            n += 1;
-                        }
-
-                        header = doc.header().table({
-                            widths: [null, null],
-                            paddingBottom: 1 * pdf.cm
-                        }).row();
-
-                        header.cell().text({
-                            fontSize: 20,
-                            font: fonts[defFont + "Bold"]
-                        }).add(form.title || rows[0].objectType.toName());
-
-                        header.cell().image(logo, {
-                            align: "right",
-                            height: 1.5 * pdf.cm
-                        });
-
-/*                      Some bug in footer fouls up alignment
-                        doc.footer().pageNumber(function (curr, total) {
-                            return curr + " / " + total;
-                        }, {
-                            textAlign: "center"
-                        });
-*/
-                        // Loop through data to build content
-                        function getRow() {
-                            return rows.find((r) => r.id === currId);
-                        }
-
-                        while (ids.length) {
-                            currId = ids.shift();
-                            data = getRow();
-                            if (data) { // In case id not found
-                                if (
-                                    annotation
-                                    &&
-                                    data[annotation.dataSource]
-                                ) {
-                                    annotation.dataIn = data[
-                                        annotation.dataSource
-                                    ];
-                                }
-                                buildSection();
-                                form.tabs.forEach(buildSection);
-                                if (ids.length) {
-                                    doc.pageBreak();
-                                }
-                            }
-                            n = 0;
-                        }
-
-                        new Promise(function (resAtt) {
-                            if (!attachments.length) {
-                                resAtt();
-                            } else {
-                                addAttachments(
-                                    doc,
-                                    attachments,
-                                    annotation
-                                ).then(resAtt);
-                            }
-
-                        }).then(function () {
-                            doc.pipe(w);
-                            doc.end().then(function () {
-                                if (!options || !options.watermark) {
-                                    resolve(file);
-                                    return file;
-                                }
-                                w.on("close", function () {
-                                    options.watermark.width = doc.width;
-                                    options.watermark.height = doc.height;
-                                    waterMarkPdf(
-                                        path,
-                                        options.watermark.label,
-                                        path,
-                                        options.watermark
-                                    ).then(function () {
-                                        resolve(file);
-                                    });
-                                });
-                            }).catch(reject);
-                        });
-                    });
+            // Do Print
+            let defFont = (
+                (form && form.font)
+                ? form.font
+                : "Helvetica"
+            );
+            let defSize = (
+                (form && form.paperSize)
+                ? form.paperSize
+                : "Letter Wide"
+            );
+            let doc = new pdf.Document({
+                width: sizes[defSize].width,
+                height: sizes[defSize].height,
+                font: fonts[defFont],
+                padding: 36,
+                paddingTop: 54,
+                properties: {
+                    creator: vClient.currentUser()
                 }
-
-                requests.push(getData());
-                requests.push(getCurr());
-                if (form) {
-                    requests.push(getForm());
-                }
-                Promise.all(requests).then(
-                    getFeather
-                ).then(
-                    doPrint
-                ).then(
-                    resolve
-                ).catch(reject);
             });
+
+            let header;
+            let src = fs[readFileSync]("./files/logo.jpg");
+            let logo = new pdf.Image(src);
+            let n = 0;
+            let file = (filename || f.createId()) + ".pdf";
+            let path = dir + file;
+            let w = fs.createWriteStream(path);
+
+            w.on("error", function (e) {
+                return;
+            });
+
+            form = form || buildForm(
+                localFeathers[rows[0].objectType],
+                localFeathers
+            );
+
+            function resolveProperty(key, fthr) {
+                let idx = key.indexOf(".");
+                let attr;
+                let rel;
+
+                if (idx !== -1) {
+                    attr = key.slice(0, idx);
+                    rel = fthr.properties[attr].type.relation;
+                    fthr = localFeathers[rel];
+                    key = key.slice(idx + 1, key.length);
+                    return resolveProperty(key, fthr);
+                }
+
+                if (!fthr.properties[key]) {
+                    return {name: key};
+                }
+                fthr.properties[key].name = key;
+                return fthr.properties[key];
+            }
+
+            function getLabel(feather, attr) {
+                feather = localFeathers[feather];
+                let p = resolveProperty(attr.attr, feather);
+                return (
+                    attr.label ||
+                    p.alias ||
+                    p.name.toName()
+                );
+            }
+
+            function inheritedFrom(source, target) {
+                let feather = localFeathers[source];
+                let props;
+
+                if (!feather) {
+                    return false;
+                }
+
+                props = feather.properties;
+
+                if (feather.name === target) {
+                    return true;
+                }
+                return Object.keys(props).some(function (k) {
+                    return props[k].inheritedFrom === target;
+                });
+            }
+
+            function formatMoney(value, scale) {
+                let style;
+                let amount = value.amount || 0;
+                let curr = currs.find(
+                    (c) => c.code === value.currency
+                );
+                let hasDisplayUnit = curr.hasDisplayUnit;
+                let minorUnit = scale || (
+                    hasDisplayUnit
+                    ? curr.displayUnit.minorUnit
+                    : curr.minorUnit
+                );
+
+                style = {
+                    minimumFractionDigits: minorUnit,
+                    maximumFractionDigits: minorUnit
+                };
+
+                if (hasDisplayUnit) {
+                    curr.conversions.some(function (conv) {
+                        if (
+                            conv.toUnit().id === curr.displayUnit.id
+                        ) {
+                            amount = amount.div(
+                                conv.ratio
+                            ).round(minorUnit);
+
+                            return true;
+                        }
+                    });
+
+                    curr = currs.find(
+                        (c) => c.code === curr.displayUnit.code
+                    );
+                }
+                return (
+                    curr.symbol + " " +
+                    amount.toLocaleString(undefined, style)
+                );
+            }
+
+            function formatValue(
+                row,
+                feather,
+                attr,
+                rec,
+                showLabel,
+                style,
+                printBlank
+            ) {
+                feather = localFeathers[feather];
+                let p = resolveProperty(attr, feather);
+                let curr;
+                let parts = attr.split(".");
+                let value = rec[parts[0]];
+                let item;
+                let nkey;
+                let lkey;
+                let rel;
+                let cr = "\n";
+                let fontStr = style.font || defFont;
+                let ovrFont = fonts[fontStr];
+
+                function fontMod(val) {
+                    if (fontStr.startsWith("Barcode")) {
+                        val = "*" + val + "*";
+                    }
+                    return val;
+                }
+
+                parts.shift();
+                while (parts.length) {
+                    if (value === null) {
+                        value = "";
+                        parts = [];
+                    } else {
+                        value = value[parts.shift()];
+                    }
+                }
+
+                if (printBlank) {
+                    row.cell("");
+                    return;
+                }
+
+                if (typeof p.type === "object") {
+                    if (value === null) {
+                        row.cell("");
+                        return;
+                    }
+
+                    if (inheritedFrom(p.type.relation, "Address")) {
+                        value = rec[attr].street;
+                        if (rec[attr].name) {
+                            value = rec[attr].name + cr + value;
+                        }
+                        if (rec[attr].unit) {
+                            value += cr + rec[attr].unit;
+                        }
+                        value += cr + rec[attr].city + ", ";
+                        value += rec[attr].state + " ";
+                        value += rec[attr].postalCode;
+                        value += cr + rec[attr].country;
+                        row.cell(fontMod(value), {
+                            font: ovrFont,
+                            fontSize: style.fontSize
+                        });
+                        return;
+                    }
+
+                    if (inheritedFrom(
+                        p.type.relation,
+                        "ResourceLink"
+                    )) {
+                        let figure = "Figure "
+                        + (attachments.length + 1);
+                        attachments.push({
+                            attachmentLabel: figure,
+                            label: rec[attr].label,
+                            source: rec[attr].resource
+                        });
+                        row.cell(figure);
+                        return;
+                    }
+
+                    if (inheritedFrom(p.type.relation, "Contact")) {
+                        rel = row.cell().text();
+                        rel.add(
+                            value.fullName
+                        );
+                        if (showLabel) {
+                            if (value.phone) {
+                                rel.br().add(
+                                    value.phone,
+                                    {
+                                        font: ovrFont,
+                                        fontSize: 10
+                                    }
+                                );
+                            }
+                            if (value.email) {
+                                rel.br().add(
+                                    value.email,
+                                    {
+                                        font: ovrFont,
+                                        fontSize: 10
+                                    }
+                                );
+                            }
+                            if (value.address) {
+                                rel.br().add(
+                                    (
+                                        value.address.city + "," +
+                                        value.address.state
+                                    ),
+                                    {
+                                        font: ovrFont,
+                                        fontSize: 10
+                                    }
+                                );
+                            }
+                        }
+                        return;
+                    }
+
+                    feather = localFeathers[p.type.relation];
+                    nkey = Object.keys(feather.properties).find(
+                        (k) => feather.properties[k].isNaturalKey
+                    );
+                    if (showLabel) {
+                        lkey = Object.keys(feather.properties).find(
+                            (k) => feather.properties[k].isLabelKey
+                        );
+                    }
+                    if (lkey && !nkey) {
+                        nkey = lkey;
+                        lkey = undefined;
+                    }
+                    rel = row.cell().text();
+                    if (lkey) {
+                        rel.add(
+                            fontMod(value[nkey]),
+                            {
+                                font: ovrFont,
+                                fontSize: style.fontSize
+                            }
+                        ).br().add(
+                            value[lkey],
+                            {
+                                font: ovrFont,
+                                fontSize: 10
+                            }
+                        );
+                    } else {
+                        rel.add(
+                            fontMod(value[nkey]),
+                            {
+                                font: ovrFont,
+                                fontSize: style.fontSize
+                            }
+                        );
+                    }
+                    return;
+                }
+
+                switch (p.type || typeof value) {
+                case "string":
+                    if (!value) {
+                        row.cell("");
+                        return;
+                    }
+                    if (p.dataList) {
+                        item = p.dataList.find(
+                            (i) => i.value === value
+                        );
+                        value = (
+                            item
+                            ? item.label
+                            : "Invalid data list value: " + value
+                        );
+                    } else if (p.format === "date") {
+                        value = f.parseDate(
+                            value
+                        ).toLocaleDateString();
+                    } else if (p.format === "dateTime") {
+                        value = new Date(value).toLocaleString();
+                    }
+
+                    row.cell(fontMod(value), {
+                        font: ovrFont,
+                        fontSize: style.fontSize
+                    });
+                    break;
+                case "boolean":
+                    if (value) {
+                        value = "True";
+                    } else {
+                        value = "False";
+                    }
+                    row.cell(fontMod(value), {
+                        font: ovrFont,
+                        fontSize: style.fontSize
+                    });
+                    break;
+                case "integer":
+                case "number":
+                    row.cell(fontMod(value.toLocaleString()), {
+                        font: ovrFont,
+                        fontSize: style.fontSize,
+                        textAlign: "right"
+                    });
+                    break;
+                case "object":
+                    if (
+                        formats[p.format] &&
+                        formats[p.format].isMoney
+                    ) {
+                        curr = currs.find(
+                            (c) => c.code === value.currency
+                        );
+                        if (curr) {
+                            value = formatMoney(
+                                value,
+                                formats[p.format].scale
+                            );
+                            row.cell(fontMod(value), {
+                                font: ovrFont,
+                                fontSize: style.fontSize,
+                                textAlign: "right"
+                            });
+                        } else {
+                            row.cell("Invalid currency");
+                        }
+                    }
+                    break;
+                default:
+                    row.cell(fontMod(value), {
+                        font: ovrFont,
+                        fontSize: style.fontSize
+                    });
+                }
+            }
+
+            function formatTable(obj) {
+                let feather = localFeathers[obj.feather];
+                let attr = obj.attribute;
+                let p = resolveProperty(attr.attr, feather);
+
+                let tr;
+                let maxWidth = doc.width.minus(
+                    doc.paddingLeft
+                ).minus(doc.paddingRight);
+                let ttlWidth = 0;
+                let cols = attr.columns.filter(function (c) {
+                    ttlWidth += c.width || COL_WIDTH_DEFAULT;
+                    return ttlWidth <= maxWidth;
+                });
+                let table;
+
+                if (attr.showLabel) {
+                    doc.cell("", {
+                        minHeight: 10
+                    });
+                    doc.cell(getLabel(obj.feather, attr) + ":", {
+                        padding: 5,
+                        font: fonts[defFont + "Bold"]
+                    });
+                }
+
+                table = doc.table({
+                    widths: cols.map(
+                        (c) => c.width || COL_WIDTH_DEFAULT
+                    ),
+                    borderHorizontalWidths: function (i) {
+                        return (
+                            i < 2
+                            ? 1
+                            : 0.1
+                        );
+                    },
+                    padding: 5
+                });
+
+                if (!p.type) {
+                    throw (
+                        "Attribute '" +
+                        p.name + "' does not have a relation"
+                    );
+                }
+                feather = localFeathers[p.type.relation];
+
+                tr = table.header({
+                    font: fonts[defFont + "Bold"],
+                    borderBottomWidth: 1.5
+                });
+
+                function addHeaderCol(col) {
+                    let opts = {
+                        font: fonts[defFont + "Bold"]
+                    };
+                    let prop = resolveProperty(col.attr, feather);
+
+                    if (
+                        prop.type === "number" ||
+                        prop.type === "integer" ||
+                        (
+                            prop.type === "object" &&
+                            formats[prop.format] &&
+                            formats[prop.format].isMoney
+                        )
+                    ) {
+                        opts.textAlign = "right";
+                    }
+                    tr.cell(getLabel(feather.name, col), opts);
+                }
+
+                function addRow(rec) {
+                    let row = table.row();
+
+                    cols.forEach(function (col) {
+                        formatValue(
+                            row,
+                            rec.objectType,
+                            col.attr,
+                            rec,
+                            Boolean(form.showLabelKey),
+                            {
+                                font: col.font,
+                                fontSize: col.fontSize
+                            },
+                            col.printBlank
+                        );
+                    });
+                }
+
+                cols.forEach(addHeaderCol);
+                data[attr.attr].forEach(addRow);
+            }
+
+            function buildSection(tab) {
+                let attrs = form.attrs.filter((a) => a.grid === n);
+                let colCnt = 0;
+                let rowCnt = 0;
+                let ary = [];
+                let tbl;
+                let units = [];
+                let c = 0;
+                let tables = [];
+
+                if (tab) {
+                    doc.cell("", {
+                        minHeight: 10
+                    });
+                    doc.cell(tab.name, {
+                        font: fonts[defFont + "Bold"],
+                        backgroundColor: 0xd3d3d3,
+                        fontSize: 14,
+                        paddingLeft: 9,
+                        paddingBottom: 2
+                    });
+                }
+
+                // Figure out how many units (columns)
+                // in form
+                attrs.forEach(function (a) {
+                    if (a.unit > colCnt) {
+                        colCnt = a.unit;
+                    }
+                    if (!ary[a.unit]) {
+                        ary[a.unit] = [a];
+                    } else {
+                        ary[a.unit].push(a);
+                    }
+                });
+                colCnt += 1;
+                ary.forEach(function (i) {
+                    if (i.length > rowCnt) {
+                        rowCnt = i.length;
+                    }
+                });
+
+                // Build table
+                while (c < colCnt) {
+                    units.push(100); // label
+                    units.push(134); // value
+                    c += 1;
+                }
+                tbl = doc.table({
+                    widths: units,
+                    padding: 5
+                });
+
+                function addRow() {
+                    let row = tbl.row();
+                    let i = 0;
+                    let attr;
+                    let label;
+
+                    while (i < colCnt) {
+                        if (ary[i] === undefined) {
+                            i += 1;
+                            return;
+                        }
+                        attr = ary[i].shift();
+                        if (attr) {
+                            // Handle Label
+                            if (
+                                attr.showLabel &&
+                                !attr.columns.length
+                            ) {
+                                label = getLabel(
+                                    data.objectType,
+                                    attr
+                                );
+
+                                row.cell(label + ":", {
+                                    textAlign: "right",
+                                    font: fonts[defFont + "Bold"]
+                                });
+                            } else {
+                                row.cell("");
+                            }
+                            // Handle value
+                            if (attr.columns.length) {
+                                // Build tables after done with grid
+                                // Can't put a table in a cell
+                                tables.push({
+                                    feather: data.objectType,
+                                    attribute: attr
+                                });
+                            } else {
+                                formatValue(
+                                    row,
+                                    data.objectType,
+                                    attr.attr,
+                                    data,
+                                    true,
+                                    {
+                                        font: attr.font,
+                                        fontSize: attr.fontSize
+                                    }
+                                );
+                            }
+                        }
+                        i += 1;
+                    }
+                }
+                c = 0;
+                while (c < rowCnt) {
+                    addRow();
+                    c += 1;
+                }
+
+                while (tables.length) {
+                    formatTable(tables.shift());
+                }
+
+                n += 1;
+            }
+
+            header = doc.header().table({
+                widths: [null, null],
+                paddingBottom: 1 * pdf.cm
+            }).row();
+
+            header.cell().text({
+                fontSize: 20,
+                font: fonts[defFont + "Bold"]
+            }).add(form.title || rows[0].objectType.toName());
+
+            header.cell().image(logo, {
+                align: "right",
+                height: 1.5 * pdf.cm
+            });
+
+/*          Some bug in footer fouls up alignment
+            doc.footer().pageNumber(function (curr, total) {
+                return curr + " / " + total;
+            }, {
+                textAlign: "center"
+            });
+*/
+            // Loop through data to build content
+            function getRow() {
+                return rows.find((r) => r.id === currId);
+            }
+
+            while (ids.length) {
+                currId = ids.shift();
+                data = getRow();
+                if (data) { // In case id not found
+                    if (
+                        annotation &&
+                        data[annotation.dataSource]
+                    ) {
+                        annotation.dataIn = data[
+                            annotation.dataSource
+                        ];
+                    }
+                    buildSection();
+                    form.tabs.forEach(buildSection);
+                    if (ids.length) {
+                        doc.pageBreak();
+                    }
+                }
+                n = 0;
+            }
+
+            await new Promise(function (resolve) {
+                if (!attachments.length) {
+                    resolve();
+                } else {
+                    addAttachments(
+                        doc,
+                        attachments,
+                        annotation
+                    ).then(resolve);
+                }
+            });
+
+            doc.pipe(w);
+            await doc.end();
+            if (!options || !options.watermark) {
+                return file;
+            }
+
+            await new Promise(function (resolve) {
+                w.on("close", async function () {
+                    options.watermark.width = doc.width;
+                    options.watermark.height = doc.height;
+                    await waterMarkPdf(
+                        path,
+                        options.watermark.label,
+                        path,
+                        options.watermark
+                    );
+                    resolve();
+                });
+            });
+
+            return file;
         };
 
         return that;
