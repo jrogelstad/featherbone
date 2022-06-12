@@ -226,8 +226,10 @@ function formAttr(data, feather) {
         function validator(fprop) {
             return Boolean(
                 !fprop || fprop.type !== "object" ||
-                f.formats()[fprop.format] &&
-                f.formats()[fprop.format].isMoney
+                (
+                    f.formats()[fprop.format] &&
+                    f.formats()[fprop.format].isMoney
+                )
             );
         }
 
@@ -469,8 +471,10 @@ function formAttrColumn(data, feather) {
         function validator(fprop) {
             return Boolean(
                 !fprop || fprop.type !== "object" ||
-                f.formats()[fprop.format] &&
-                f.formats()[fprop.format].isMoney
+                (
+                    f.formats()[fprop.format] &&
+                    f.formats()[fprop.format].isMoney
+                )
             );
         }
 
@@ -546,3 +550,338 @@ function formAttrColumn(data, feather) {
 }
 
 f.catalog().registerModel("FormAttrColumn", formAttrColumn);
+
+function printOverlay(data, feather) {
+    let model;
+    let props;
+
+    function properties() {
+        if (!props) {
+            let keys;
+            let formFeather = model.data.feather();
+            let result = [];
+
+            if (!formFeather) {
+                return result;
+            }
+            formFeather = f.catalog().getFeather(formFeather);
+            keys = Object.keys(formFeather.properties || []).sort();
+            keys.unshift("");
+            props = keys.map(function (key) {
+                return {
+                    value: key,
+                    label: key
+                };
+            });
+        }
+        return props;
+    }
+
+    function handleProperties() {
+        props = undefined;
+    }
+
+    feather = feather || f.catalog().getFeather("PrintOverlay");
+    model = f.createModel(data, feather);
+
+    /**
+        Feathers datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.feathers
+        @for Models.PrintOverlay
+        @type Property
+    */
+    model.addCalculated({
+        name: "feathers",
+        type: "array",
+        function: f.feathers
+    });
+
+    /**
+        Modules datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.modules
+        @for Models.PrintOverlay
+        @type Property
+    */
+    model.addCalculated({
+        name: "modules",
+        type: "array",
+        function: f.catalog().store().data().modules
+    });
+
+    /**
+        Feather properties datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.properties
+        @for Models.PrintOverlay
+        @type Property
+    */
+    model.addCalculated({
+        name: "properties",
+        type: "array",
+        function: properties
+    });
+
+    model.onChanged("feather", handleProperties);
+    model.onLoad(handleProperties);
+
+    return model;
+}
+
+f.catalog().registerModel("PrintOverlay", printOverlay);
+
+function printOverlayAttr(data, feather) {
+    let model;
+
+    function handleProp(name, validator) {
+        let attr = model.data.attr;
+        let formFeather = model.parent().data.feather();
+        let prop = model.data[name];
+        let fprop;
+        let readOnly;
+
+        if (!formFeather || !attr()) {
+            prop.isReadOnly(true);
+            return;
+        }
+
+        formFeather = f.catalog().getFeather(formFeather);
+        if (formFeather) {
+            fprop = formFeather.properties[attr()];
+
+            readOnly = validator(fprop);
+            prop.isReadOnly(readOnly);
+        }
+
+        return readOnly;
+    }
+
+    function handleColumns() {
+        let columns = model.data.columns();
+
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type !== "object" ||
+                !fprop.type.parentOf
+            );
+        }
+
+        if (handleProp("columns", validator)) {
+            columns.canAdd(false);
+        } else {
+            columns.canAdd(true);
+        }
+    }
+
+    function properties() {
+        let keys;
+        let formFeather = model.parent().data.feather();
+        let result = [];
+
+        if (!formFeather) {
+            return result;
+        }
+        formFeather = f.catalog().getFeather(formFeather);
+        keys = Object.keys(formFeather.properties || []).sort();
+        result = keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+        result.unshift({
+            value: "",
+            label: ""
+        });
+
+        return result;
+    }
+
+    feather = feather || f.catalog().getFeather("PrintOverlayAttr");
+    model = f.createModel(data, feather);
+
+    /**
+        Feather properties datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.properties
+        @for Models.PrintOverlay
+        @type Property
+    */
+    model.addCalculated({
+        name: "properties",
+        type: "array",
+        function: properties
+    });
+
+    model.onChanged("attr", handleColumns);
+    model.onLoad(handleColumns);
+
+    model.data.columns().canAdd(false);
+
+    model.onValidate(function () {
+        let found = model.parent().data.properties().find(
+            (p) => model.data.attr() === p.value
+        );
+
+        if (!found) {
+            throw (
+                "Attribute '" + model.data.attr() + "' not in feather '" +
+                model.parent().data.feather() + "'"
+            );
+        }
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("PrintOverlayAttr", printOverlayAttr);
+
+function printOverlayAttrColumn(data, feather) {
+    let model;
+
+    function getChildFeather() {
+        let formFeather = model.parent().parent().data.feather();
+        let parentAttr = model.parent().data.attr();
+        let childFeather;
+
+        if (!formFeather || !parentAttr) {
+            return;
+        }
+
+        formFeather = f.catalog().getFeather(formFeather);
+        if (
+            formFeather &&
+            formFeather.properties[parentAttr]
+        ) {
+            childFeather = f.catalog().getFeather(
+                formFeather.properties[parentAttr].type.relation
+            );
+        }
+
+        return childFeather;
+    }
+
+    function resolveProperties(feather, properties, ary, prefix) {
+        prefix = prefix || "";
+        let result = ary || [];
+
+        properties.forEach(function (key) {
+            let rfeather;
+            let prop = feather.properties[key];
+            let isObject = typeof prop.type === "object";
+            let path = prefix + key;
+
+            if (isObject && prop.type.properties) {
+                rfeather = f.catalog().getFeather(prop.type.relation);
+                resolveProperties(
+                    rfeather,
+                    prop.type.properties,
+                    result,
+                    path + "."
+                );
+            }
+
+            if (
+                isObject && (
+                    prop.type.childOf ||
+                    prop.type.parentOf ||
+                    prop.type.isChild
+                )
+            ) {
+                return;
+            }
+
+            result.push(path);
+        });
+
+        return result;
+    }
+
+    function properties() {
+        let keys;
+        let childFeather = getChildFeather();
+        let result = [];
+
+        if (!childFeather) {
+            return result;
+        }
+
+        keys = Object.keys(childFeather.properties || []).sort();
+        keys = resolveProperties(childFeather, keys).sort();
+        return keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+    }
+
+    feather = feather || f.catalog().getFeather("PrintOverlayAttrColumn");
+    model = f.createModel(data, feather);
+
+    /**
+        Feather properties datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.properties
+        @for Models.PrintOverlayAttrColumn
+        @type Property
+    */
+    model.addCalculated({
+        name: "properties",
+        type: "array",
+        function: properties
+    });
+
+    model.onValidate(function () {
+        let childFeather;
+
+        if (!model.data.properties().some(
+            (p) => model.data.attr() === p.value
+        )) {
+            childFeather = getChildFeather();
+            if (childFeather) {
+                throw (
+                    "Attribute '" + model.data.attr() + "' not in feather '" +
+                    getChildFeather().name + "'"
+                );
+            } else {
+                throw "Feather must be selected to set attributes";
+            }
+        }
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("PrintOverlayAttrColumn", printOverlayAttrColumn);
