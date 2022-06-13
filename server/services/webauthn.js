@@ -5,6 +5,7 @@
 // ALT 2: https://github.com/ais-one/cookbook/blob/develop/js-node/expressjs/router/fido.js
 // and https://github.com/ais-one/cookbook/blob/develop/js-node/expressjs/public/demo-express/fido.html
 // FLOW: https://webauthn.guide/
+// https://developers.yubico.com/WebAuthn/WebAuthn_Developer_Guide/WebAuthn_Client_Registration.html
 //
 (function (exports) {
     "use strict";
@@ -15,7 +16,7 @@
     let challenges = {};
 
     let fido2Lib;
-
+    let rpId;
     let originUrl = "http://localhost";
 
     function b64_b64url(inStr) {
@@ -68,11 +69,12 @@
         return Buffer.from(byteArray);
     }
 
-    function init(rpId, origin) {
+    function init(rid, origin) {
         originUrl = origin;
+        rpId = rid;
         fido2Lib = new Fido2Lib({
             timeout: 120000,
-            rpId,
+            rpId: rid,
             rpName: "FeatherBone",
             rpIcon: "https://localhost/featherbone.png",
             challengeSize: 128,
@@ -131,13 +133,16 @@
                                 : "user.name"
                             )
                         ],
-                        "operator": "~*",
+                        "operator": "=",
                         "value": name
                     }
                 ]
             },
             "showDeleted": false
         };
+        if(byId){
+            console.log(object.filter.criteria);
+        }
         return await datasource.request(object, true);
     }
 
@@ -157,7 +162,9 @@
             },
             "credentialId": credentialId,
             "counter": counter,
-            "publicKey": publicKey
+            "publicKey": publicKey,
+            "rpId": rpId,
+            "originUrl": originUrl
         };
         let payload = {
             name: "WebauthnCredential",
