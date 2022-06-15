@@ -341,7 +341,7 @@
             let path = dir + file;
             let w = fs.createWriteStream(path);
 
-            w.on("error", function (e) {
+            w.on("error", function () {
                 return;
             });
 
