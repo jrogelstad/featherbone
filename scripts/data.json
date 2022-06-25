@@ -938,8 +938,8 @@
     "method": "POST",
     "id": "j0b035m0jim4",
     "data": {
-        "name": "DEFAULT",
-        "description": "Default value",
+        "name": "DISABLED",
+        "description": "Disabled value",
         "module": "Core",
         "hasColor": true,
         "color": "#c0c0c0"
