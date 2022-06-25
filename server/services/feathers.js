@@ -1573,26 +1573,36 @@
                                            children */
                                         if (type.childOf) {
                                             theParent = catalog[type.relation];
-                                            pProps = theParent.properties;
-                                            if (!pProps[type.childOf]) {
-                                                descr = "Parent of \"" + key;
-                                                descr += "\" on \"";
-                                                descr += spec.name + "\"";
+                                            if (theParent) {
+                                                pProps = theParent.properties;
+                                                if (!pProps[type.childOf]) {
+                                                    descr = "Parent of \"" + key;
+                                                    descr += "\" on \"";
+                                                    descr += spec.name + "\"";
 
-                                                pProps[type.childOf] = {
-                                                    description: descr,
-                                                    type: {
-                                                        relation: spec.name,
-                                                        parentOf: key
-                                                    }
-                                                };
+                                                    pProps[type.childOf] = {
+                                                        description: descr,
+                                                        type: {
+                                                            relation: spec.name,
+                                                            parentOf: key
+                                                        }
+                                                    };
 
+                                                } else {
+                                                    err = "Property \"";
+                                                    err += type.childOf;
+                                                    err += "\" already exists on";
+                                                    err += "\"" + type.relation;
+                                                    err += "\"";
+                                                }
                                             } else {
-                                                err = "Property \"";
-                                                err += type.childOf;
-                                                err += "\" already exists on";
-                                                err += "\"" + type.relation;
-                                                err += "\"";
+                                                err = (
+                                                   "Relation feather " +
+                                                   type.relation + " required by " +
+                                                   spec.name +
+                                                   " not found, likely due to a " +
+                                                   "missing dependency."
+                                                );
                                             }
                                         } else if (type.parentOf) {
                                             err = "Can not set parent ";
@@ -1611,9 +1621,19 @@
                                            child on this feather. */
                                         } else {
                                             theParent = catalog[type.relation];
-                                            prop.type.isChild = Boolean(
-                                                theParent.isChild
-                                            );
+                                            if (!theParent) {
+                                                err = (
+                                                   "Relation feather " +
+                                                   type.relation + " required by " +
+                                                   spec.name +
+                                                   " not found, likely due to a " +
+                                                   "missing dependency."
+                                                );
+                                            } else {
+                                                prop.type.isChild = Boolean(
+                                                    theParent.isChild
+                                                );
+                                            }
                                         }
                                     } else {
                                         err = "Relation not defined for ";
