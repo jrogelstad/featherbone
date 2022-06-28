@@ -599,6 +599,22 @@
             "showLabel": true,
             "unit": 0
         }, {
+            "attr": "hideTitle",
+            "dataList": "",
+            "columns": [],
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
+            "unit": 1
+        }, {
+            "attr": "hideLogo",
+            "dataList": "",
+            "columns": [],
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
+            "unit": 1
+        }, {
             "attr": "created",
             "columns": [],
             "dataList": "",
