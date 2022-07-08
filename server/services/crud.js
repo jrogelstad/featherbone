@@ -1913,7 +1913,9 @@
                 let theClient = db.getClient(obj.client);
 
                 if (!patches.length) {
-                    resolve([]);
+                    crud.unlock(theClient, {
+                        id: obj.id
+                    }).then(resolve.bind(null, [])).catch(reject);
                     return;
                 }
 
