@@ -273,7 +273,7 @@ addressRelation.component = {
             class: "fb-input",
             value: vm.content(vm.isCell()),
             readonly: readOnly,
-            rows: 6,
+            rows: 7,
             style: {whiteSpace: "pre"}
         };
         let dlg;

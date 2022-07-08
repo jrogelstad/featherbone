@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -110,6 +110,10 @@
         "A4 Wide": {
             height: 595.296,
             width: 841.896
+        },
+        "Label 4x4": {
+            height: 288,
+            width: 288
         },
         "Label 4x6": {
             height: 432,
@@ -898,20 +902,28 @@
                 n += 1;
             }
 
-            header = doc.header().table({
-                widths: [null, null],
-                paddingBottom: 1 * pdf.cm
-            }).row();
+            if (form.hideLogo !== true || form.hideTitle !== true) {
+                header = doc.header().table({
+                    widths: [null, null],
+                    paddingBottom: 1 * pdf.cm
+                }).row();
 
-            header.cell().text({
-                fontSize: 20,
-                font: fonts[defFont + "Bold"]
-            }).add(form.title || rows[0].objectType.toName());
+                header.cell().text({
+                    fontSize: 20,
+                    font: fonts[defFont + "Bold"]
+                }).add(
+                    form.hideTitle
+                    ? ""
+                    : form.title || rows[0].objectType.toName()
+                );
 
-            header.cell().image(logo, {
-                align: "right",
-                height: 1.5 * pdf.cm
-            });
+                if (!form.hideLogo) {
+                    header.cell().image(logo, {
+                        align: "right",
+                        height: 1.5 * pdf.cm
+                    });
+                }
+            }
 
 /*          Some bug in footer fouls up alignment
             doc.footer().pageNumber(function (curr, total) {

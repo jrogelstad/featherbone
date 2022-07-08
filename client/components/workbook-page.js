@@ -1,4 +1,4 @@
-/*
+ /*
     Framework for building object relational database apps
     Copyright (C) 2022  John Rogelstad
 
@@ -385,6 +385,7 @@ workbookPage.viewModel = function (options) {
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
 
             vm.saveProfile();
+            vm.refresh();
         };
         dlg.show();
     };
