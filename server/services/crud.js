@@ -2661,19 +2661,20 @@
                 }
 
                 function nextVal(feather) {
-                    let pname = "properties";
+                    let pname = "overloads";
                     let attr = Object.keys(
-                        feather.properties
+                        feather.overloads
                     ).find(function (key) {
-                        return feather.properties[key].autonumber;
+                        return feather.overloads[key].autonumber;
                     });
-                    // Check overloads
+
+                    // Check regular properties
                     if (!attr) {
-                        pname = "overloads";
+                        pname = "properties";
                         attr = Object.keys(
-                            feather.overloads
+                            feather.properties
                         ).find(function (key) {
-                            return feather.overloads[key].autonumber;
+                            return feather.properties[key].autonumber;
                         });
                     }
 
