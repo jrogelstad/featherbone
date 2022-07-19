@@ -764,25 +764,161 @@ workbookPage.viewModel = function (options) {
         @method share
     */
     vm.share = function () {
-        let doShare;
         let confirmDialog = vm.confirmDialog();
+        let action = f.prop("Default");
+        let name = f.prop("");
+        let template = f.prop("");
+        let lastError = f.prop("");
+        let dlgSelectId1 = f.createId();
+        let dlgSelectId2 = f.createId();
+        let workbooks = f.catalog().store().workbooks();
+        let temps = Object.keys(workbooks).filter(
+            (k) => workbooks[k].data.isTemplate()
+        );
 
-        doShare = function () {
-            let d = f.copy(vm.config());
-            workbook.data.localConfig(d);
-            workbook.save();
-        };
+        function isValid() {
+            switch (action()) {
+            case "Copy":
+            case "New":
+                if (!name()) {
+                    lastError("Name is required");
+                    return false;
+                }
+                break;
+            case "Update":
+                if (!name()) {
+                    lastError("Select a template to update");
+                    return false;
+                }
+                break;
+            }
+            lastError("");
+            return true;
+        }
+
+        async function doShare() {
+            let data;
+            let opts;
+            let newWb;
+            let mdlname;
+
+            switch (action()) {
+            case "Default":
+                data = f.copy(vm.config());
+                workbook.data.localConfig(data);
+                workbook.save();
+                break;
+            case "Copy":
+                data = workbook.toJSON();
+                delete data.authorizations;
+                data.defaultConfig = (
+                    (data.localConfig && data.localConfig.length)
+                    ? data.localConfig
+                    : data.defaultConfig
+                );
+                data.name = name();
+                data.label = name();
+                opts = {
+                    workbook: data.name.toSpinalCase(),
+                    key: data.defaultConfig[0].name.toSpinalCase()
+                };
+                mdlname = name().toSpinalCase().toCamelCase();
+
+                // Instantiate copy
+                newWb = f.catalog().store().models().workbook();
+                newWb.set(data);
+                // Save it to server
+                await newWb.save();
+                // Register it locally
+                f.catalog().register("workbooks", mdlname, newWb);
+                // Go to new copy
+                m.route.set("/workbook/:workbook/:key", opts);
+                break;
+            case "New":
+                console.log("Not implemented");
+                break;
+            case "Update":
+                console.log("Not implemented");
+                break;
+            }
+        }
 
         if (!vm.workbook().canUpdate()) {
             return;
         }
 
-        confirmDialog.message(
-            "Are you sure you want to share your workbook " +
-            "configuration with all other users?"
-        );
-        confirmDialog.icon("help_outline");
+        confirmDialog.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgSelectId1
+                    }, "Share Layout As:"),
+                    m("select", {
+                        id: dlgSelectId1,
+                        onchange: (e) => action(e.target.value),
+                        value: action()
+                    }, [
+                        m("option", {
+                            value: "Default"
+                        }, "Default for this workbook"),
+                        m("option", {
+                            value: "Copy"
+                        }, "Copy to a new workbook"),
+                        m("option", {
+                            value: "New"
+                        }, "New workbook template"),
+                        m("option", {
+                            value: "Update"
+                        }, "Update to a template")
+                    ])
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    style: {display: (
+                        (action() === "Default" || action() === "Update")
+                        ? "none"
+                        : undefined
+                    )}
+                }, [
+                    m("label", {}, "Workbook Name:"),
+                    m("input", {
+                        onchange: (e) => name(e.target.value),
+                        value: name(),
+                        autocomplete: "off"
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    style: {display: (
+                        action() !== "Update"
+                        ? "none"
+                        : undefined
+                    )}
+                }, [
+                    m("label", {
+                        for: dlgSelectId2
+                    }, "Template:"),
+                    m("select", {
+                        id: dlgSelectId2,
+                        onchange: (e) => template(e.target.value),
+                        value: template()
+                    }, temps)
+                ])
+            ]);
+        };
+        confirmDialog.icon("share");
+        confirmDialog.title("Share");
         confirmDialog.onOk(doShare);
+        confirmDialog.buttonOk().isDisabled = () => !isValid();
+        confirmDialog.buttonOk().title = function () {
+            if (!isValid()) {
+                return lastError();
+            }
+        };
         confirmDialog.show();
     };
     /**
