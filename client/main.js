@@ -40,6 +40,7 @@ let loadWorkbooks;
 let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
+let addWorkbookTemplateViewModel;
 let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let initialized = false;
@@ -100,6 +101,9 @@ const home = {
                 m(components.dialog, {
                     viewModel: addWorkbookViewModel
                 }),
+                m(components.dialog, {
+                    viewModel: addWorkbookTemplateViewModel
+                }),
                 m("span", {
                     class: toolbarClass + " fb-toolbar-home"
                 }, [
@@ -120,8 +124,35 @@ const home = {
                         ),
                         title: (
                             isSuper
-                            ? "Add workbook"
-                            : "Must be a super user to add a workbook"
+                            ? "Add workbook from template"
+                            : (
+                                "Must be a super user to add a" +
+                                "workbook from a template"
+                            )
+                        ),
+                        onclick: addWorkbookTemplateViewModel.show,
+                        disabled: !isSuper
+                    }, [
+                        m("i", {
+                            class: "material-icons-outlined"
+                        }, "library_add")
+                    ]),
+                    m("button", {
+                        class: (
+                            toolbarButtonClass +
+                            " fb-toolbar-button " +
+                            " fb-toolbar-button-middle-side" +
+                            " fb-toolbar-button-home " +
+                            (
+                                isSuper
+                                ? ""
+                                : "fb-button-disabled"
+                            )
+                        ),
+                        title: (
+                            isSuper
+                            ? "Add new workbook"
+                            : "Must be a super user to add a new workbook"
                         ),
                         onclick: addWorkbookViewModel.show,
                         disabled: !isSuper
@@ -668,6 +699,9 @@ function initApp() {
         fetchRequests.push(ary().fetch({}));
     });
     Promise.all(fetchRequests).then(function () {
+        let template = f.prop("");
+        let selId = f.createId();
+
         isSuper = f.currentUser().isSuper;
 
         // Menu
@@ -676,10 +710,42 @@ function initApp() {
         // View model for adding workbooks.
         addWorkbookViewModel = viewModels.formDialog({
             icon: "add",
-            title: "Add workbook",
+            title: "Add new workbook",
             model: addWorkbookModel(),
             config: addWorkbookConfig
         });
+
+        // View model for adding workbooks.
+        addWorkbookTemplateViewModel = viewModels.dialog({
+            icon: "library_add",
+            title: "Add workbook using a template"
+        });
+        addWorkbookTemplateViewModel.content = function () {
+            let templates = Object.keys(workbooks).filter(
+                (k) => workbooks[k].data.isTemplate()
+            ).map(function (t) {
+                return m("option", {
+                    value: workbooks[t].id()
+                }, workbooks[t].data.name());
+            });
+
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: selId
+                    }, "Template:"),
+                    m("select", {
+                        id: selId,
+                        onchange: (e) => template(e.target.value),
+                        value: template()
+                    }, templates)
+                ])
+            ]);
+        };
 
         // View model for sse error trapping
         sseErrorDialogViewModel = viewModels.dialog({

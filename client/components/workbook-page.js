@@ -774,7 +774,16 @@ workbookPage.viewModel = function (options) {
         let workbooks = f.catalog().store().workbooks();
         let temps = Object.keys(workbooks).filter(
             (k) => workbooks[k].data.isTemplate()
-        );
+        ).map(function (t) {
+            return m("option", {
+                value: workbooks[t].id()
+            }, workbooks[t].data.name());
+        });
+        let names = Object.keys(workbooks);
+        let mdlname;
+        let data;
+        let opts;
+        let newWb;
 
         function isValid() {
             switch (action()) {
@@ -784,24 +793,53 @@ workbookPage.viewModel = function (options) {
                     lastError("Name is required");
                     return false;
                 }
+
+                if (names.some((n) => workbooks[n].data.name() === name())) {
+                    lastError("Name is already used");
+                    return false;
+                }
+
                 break;
             case "Update":
                 if (!name()) {
                     lastError("Select a template to update");
                     return false;
                 }
+
                 break;
             }
             lastError("");
             return true;
         }
 
-        async function doShare() {
-            let data;
-            let opts;
-            let newWb;
-            let mdlname;
+        async function copy(isTmpl) {
+            data = workbook.toJSON();
+            delete data.authorizations;
+            data.defaultConfig = (
+                (data.localConfig && data.localConfig.length)
+                ? data.localConfig
+                : data.defaultConfig
+            );
+            data.name = name();
+            data.label = name();
+            data.isTemplate = isTmpl;
+            opts = {
+                workbook: data.name.toSpinalCase(),
+                key: data.defaultConfig[0].name.toSpinalCase()
+            };
+            mdlname = name().toSpinalCase().toCamelCase();
 
+            // Instantiate copy
+            newWb = f.catalog().store().models().workbook();
+            newWb.set(data);
+            // Save it to server
+            await newWb.save();
+            newWb.checkUpdate();
+            // Register it locally
+            f.catalog().register("workbooks", mdlname, newWb);
+        }
+
+        async function doShare() {
             switch (action()) {
             case "Default":
                 data = f.copy(vm.config());
@@ -809,33 +847,13 @@ workbookPage.viewModel = function (options) {
                 workbook.save();
                 break;
             case "Copy":
-                data = workbook.toJSON();
-                delete data.authorizations;
-                data.defaultConfig = (
-                    (data.localConfig && data.localConfig.length)
-                    ? data.localConfig
-                    : data.defaultConfig
-                );
-                data.name = name();
-                data.label = name();
-                opts = {
-                    workbook: data.name.toSpinalCase(),
-                    key: data.defaultConfig[0].name.toSpinalCase()
-                };
-                mdlname = name().toSpinalCase().toCamelCase();
+                await copy(false);
 
-                // Instantiate copy
-                newWb = f.catalog().store().models().workbook();
-                newWb.set(data);
-                // Save it to server
-                await newWb.save();
-                // Register it locally
-                f.catalog().register("workbooks", mdlname, newWb);
                 // Go to new copy
                 m.route.set("/workbook/:workbook/:key", opts);
                 break;
             case "New":
-                console.log("Not implemented");
+                await copy(true);
                 break;
             case "Update":
                 console.log("Not implemented");
