@@ -53,6 +53,10 @@ const home = {
             let workbook = workbooks[key];
             let config = workbook.getConfig();
 
+            if (workbook.data.isTemplate()) {
+                return;
+            }
+
             vnode["go" + workbook.data.name()] = function () {
                 m.route.set("/workbook/:workbook/:key", {
                     workbook: workbook.data.name().toSpinalCase(),
