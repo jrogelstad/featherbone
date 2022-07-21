@@ -776,14 +776,15 @@ workbookPage.viewModel = function (options) {
             (k) => workbooks[k].data.isTemplate()
         ).map(function (t) {
             return m("option", {
-                value: workbooks[t].id()
+                value: t
             }, workbooks[t].data.name());
         });
         let names = Object.keys(workbooks);
+        let profileData = f.copy(vm.config());
         let mdlname;
         let data;
         let opts;
-        let newWb;
+        let wb;
 
         function isValid() {
             switch (action()) {
@@ -801,7 +802,7 @@ workbookPage.viewModel = function (options) {
 
                 break;
             case "Update":
-                if (!name()) {
+                if (!template()) {
                     lastError("Select a template to update");
                     return false;
                 }
@@ -815,11 +816,8 @@ workbookPage.viewModel = function (options) {
         async function copy(isTmpl) {
             data = workbook.toJSON();
             delete data.authorizations;
-            data.defaultConfig = (
-                (data.localConfig && data.localConfig.length)
-                ? data.localConfig
-                : data.defaultConfig
-            );
+            data.defaultConfig = profileData;
+            data.localConfig = [];
             data.id = f.createId();
             data.name = name();
             data.label = name();
@@ -831,20 +829,19 @@ workbookPage.viewModel = function (options) {
             mdlname = name().toSpinalCase().toCamelCase();
 
             // Instantiate copy
-            newWb = f.catalog().store().models().workbook();
-            newWb.set(data);
+            wb = f.catalog().store().models().workbook();
+            wb.set(data);
             // Save it to server
-            await newWb.save();
-            newWb.checkUpdate();
+            await wb.save();
+            wb.checkUpdate();
             // Register it locally
-            f.catalog().register("workbooks", mdlname, newWb);
+            f.catalog().register("workbooks", mdlname, wb);
         }
 
         async function doShare() {
             switch (action()) {
             case "Default":
-                data = f.copy(vm.config());
-                workbook.data.localConfig(data);
+                workbook.data.localConfig(profileData);
                 workbook.save();
                 break;
             case "Copy":
@@ -857,7 +854,16 @@ workbookPage.viewModel = function (options) {
                 await copy(true);
                 break;
             case "Update":
-                console.log("Not implemented");
+                wb = workbooks[template()];
+                data = workbook.toJSON();
+                delete data.authorizations;
+                delete data.id;
+                delete data.name;
+                delete data.isTemplate;
+                data.defaultConfig = profileData;
+                data.localConfig = [];
+                wb.set(data);
+                wb.save();
                 break;
             }
         }
