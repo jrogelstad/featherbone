@@ -699,29 +699,6 @@ function initApp() {
         fetchRequests.push(ary().fetch({}));
     });
     Promise.all(fetchRequests).then(function () {
-        let template = f.prop("");
-        let tempname = f.prop("");
-        let lastError = f.prop("");
-        let selId = f.createId();
-
-        function isValid() {
-            let names = Object.keys(workbooks);
-            if (!template()) {
-                lastError("A template must be selected");
-                return false;
-            }
-            if (!tempname()) {
-                lastError("Name is required");
-                return false;
-            }
-            if (names.some((n) => workbooks[n].data.name() === tempname())) {
-                lastError("Name is already used");
-                return false;
-            }
-            lastError("");
-            return true;
-        }
-
         isSuper = f.currentUser().isSuper;
 
         // Menu
@@ -735,7 +712,29 @@ function initApp() {
             config: addWorkbookConfig
         });
 
-        // View model for adding workbooks.
+        // View model for adding workbooks from template
+        let template = f.prop("");
+        let newname = f.prop("");
+        let lastError = f.prop("");
+        let selId = f.createId();
+
+        function isValid() {
+            let names = Object.keys(workbooks);
+            if (!template()) {
+                lastError("A template must be selected");
+                return false;
+            }
+            if (!newname()) {
+                lastError("Name is required");
+                return false;
+            }
+            if (names.some((n) => workbooks[n].data.name() === newname())) {
+                lastError("Name is already used");
+                return false;
+            }
+            lastError("");
+            return true;
+        }
         addWbFromTemplateDlg = viewModels.dialog({
             icon: "library_add",
             title: "Add workbook using a template"
@@ -767,13 +766,36 @@ function initApp() {
                 m("div", {class: "pure-control-group"}, [
                     m("label", {}, "Workbook Name:"),
                     m("input", {
-                        onchange: (e) => tempname(e.target.value),
-                        value: tempname(),
+                        onchange: (e) => newname(e.target.value),
+                        value: newname(),
                         autocomplete: "off"
                     })
                 ])
             ]);
         };
+        addWbFromTemplateDlg.onOk(async function () {
+            let name = template().toSpinalCase().toCamelCase();
+            let data = workbooks[name].toJSON();
+            data.id = f.createId();
+            data.name = newname();
+            data.label = "";
+            data.isTemplate = false;
+            let opts = {
+                workbook: data.name.toSpinalCase(),
+                key: data.defaultConfig[0].name.toSpinalCase()
+            };
+
+            // Instantiate copy
+            let newWb = f.catalog().store().models().workbook();
+            newWb.set(data);
+            // Save it to server
+            await newWb.save();
+            newWb.checkUpdate();
+            // Add to menue
+            registerWorkbook(data);
+            // Go there
+            m.route.set("/workbook/:workbook/:key", opts);
+        });
         addWbFromTemplateDlg.buttonOk().isDisabled = () => !isValid();
         addWbFromTemplateDlg.buttonOk().title = function () {
             if (!isValid()) {
