@@ -820,6 +820,7 @@ workbookPage.viewModel = function (options) {
                 ? data.localConfig
                 : data.defaultConfig
             );
+            data.id = f.createId();
             data.name = name();
             data.label = name();
             data.isTemplate = isTmpl;

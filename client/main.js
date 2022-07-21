@@ -40,7 +40,7 @@ let loadWorkbooks;
 let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
-let addWorkbookTemplateViewModel;
+let addWbFromTemplateDlg;
 let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let initialized = false;
@@ -102,7 +102,7 @@ const home = {
                     viewModel: addWorkbookViewModel
                 }),
                 m(components.dialog, {
-                    viewModel: addWorkbookTemplateViewModel
+                    viewModel: addWbFromTemplateDlg
                 }),
                 m("span", {
                     class: toolbarClass + " fb-toolbar-home"
@@ -130,7 +130,7 @@ const home = {
                                 "workbook from a template"
                             )
                         ),
-                        onclick: addWorkbookTemplateViewModel.show,
+                        onclick: addWbFromTemplateDlg.show,
                         disabled: !isSuper
                     }, [
                         m("i", {
@@ -700,7 +700,27 @@ function initApp() {
     });
     Promise.all(fetchRequests).then(function () {
         let template = f.prop("");
+        let tempname = f.prop("");
+        let lastError = f.prop("");
         let selId = f.createId();
+
+        function isValid() {
+            let names = Object.keys(workbooks);
+            if (!template()) {
+                lastError("A template must be selected");
+                return false;
+            }
+            if (!tempname()) {
+                lastError("Name is required");
+                return false;
+            }
+            if (names.some((n) => workbooks[n].data.name() === tempname())) {
+                lastError("Name is already used");
+                return false;
+            }
+            lastError("");
+            return true;
+        }
 
         isSuper = f.currentUser().isSuper;
 
@@ -716,11 +736,11 @@ function initApp() {
         });
 
         // View model for adding workbooks.
-        addWorkbookTemplateViewModel = viewModels.dialog({
+        addWbFromTemplateDlg = viewModels.dialog({
             icon: "library_add",
             title: "Add workbook using a template"
         });
-        addWorkbookTemplateViewModel.content = function () {
+        addWbFromTemplateDlg.content = function () {
             let templates = Object.keys(workbooks).filter(
                 (k) => workbooks[k].data.isTemplate()
             ).map(function (t) {
@@ -743,8 +763,22 @@ function initApp() {
                         onchange: (e) => template(e.target.value),
                         value: template()
                     }, templates)
+                ]),
+                m("div", {class: "pure-control-group"}, [
+                    m("label", {}, "Workbook Name:"),
+                    m("input", {
+                        onchange: (e) => tempname(e.target.value),
+                        value: tempname(),
+                        autocomplete: "off"
+                    })
                 ])
             ]);
+        };
+        addWbFromTemplateDlg.buttonOk().isDisabled = () => !isValid();
+        addWbFromTemplateDlg.buttonOk().title = function () {
+            if (!isValid()) {
+                return lastError();
+            }
         };
 
         // View model for sse error trapping
