@@ -416,7 +416,7 @@ accountMenu.component = {
                         cdlg.show();
                     }
                 }, [m("i", {
-                    id: "material-icons nav-account-myinfo-icon",
+                    id: "nav-account-myinfo-icon",
                     class: (
                         "material-icons-outlined " +
                         "fb-menu-list-icon"

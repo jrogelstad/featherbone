@@ -46,6 +46,7 @@ let models = catalog.store().models();
 let initialized = false;
 let isSuper = false;
 
+const showMenuWorkbook = f.prop(false);
 const preFetch = [];
 const fetchRequests = [];
 const home = {
@@ -76,16 +77,31 @@ const home = {
     },
     view: function () {
         let toolbarClass = "fb-toolbar";
-        let toolbarButtonClass = "fb-toolbar-button";
+        let menuButtonClass = (
+            "pure-button " +
+            "material-icons-outlined " +
+            "fb-menu-button fb-menu-button-right-side"
+        );
+        let dlgsClosed = (
+            addWorkbookViewModel.state().current()[0] ===
+            "/Display/Closed" &&
+            addWbFromTemplateDlg.state().current()[0] ===
+            "/Display/Closed"
+        );
+        let menuAuthLinkClass = (
+            "pure-menu-link " + (
+                isSuper
+                ? ""
+                : " pure-menu-disabled"
+            )
+        );
 
         switch (f.currentUser().mode) {
         case "test":
             toolbarClass += " fb-toolbar-test";
-            toolbarButtonClass = " fb-toolbar-button-test";
             break;
         case "dev":
             toolbarClass += " fb-toolbar-dev";
-            toolbarButtonClass = " fb-toolbar-button-dev";
             break;
         }
 
@@ -110,56 +126,80 @@ const home = {
                     m("div", {
                         class: "fb-header-home"
                     }, "Home"),
-                    m("button", {
+                    m("div", {
+                        id: "wb-manage-div",
                         class: (
-                            toolbarButtonClass +
-                            " fb-toolbar-button " +
-                            " fb-toolbar-button-right-side" +
-                            " fb-toolbar-button-home " +
-                            (
-                                isSuper
-                                ? ""
-                                : "fb-button-disabled"
-                            )
+                            "pure-menu " +
+                            "custom-restricted-width " +
+                            "fb-menu fb-menu-setup"
                         ),
-                        title: (
-                            isSuper
-                            ? "Add workbook from template"
-                            : (
-                                "Must be a super user to add a" +
-                                "workbook from a template"
-                            )
-                        ),
-                        onclick: addWbFromTemplateDlg.show,
-                        disabled: !isSuper
+                        onclick: function (e) {
+                            if (
+                                dlgsClosed &&
+                                e.srcElement.nodeName !== "BUTTON" &&
+                                e.target.parentElement.nodeName !== "BUTTON"
+                            ) {
+                                showMenuWorkbook(true);
+                            }
+                        },
+                        onmouseout: function (ev) {
+                            if (
+                                !ev || !ev.relatedTarget ||
+                                !ev.relatedTarget.id ||
+                                ev.relatedTarget.id.indexOf(
+                                    "wb-manage"
+                                ) === -1
+                            ) {
+                                showMenuWorkbook(false);
+                            }
+                        }
                     }, [
-                        m("i", {
-                            class: "material-icons-outlined"
-                        }, "library_add")
-                    ]),
-                    m("button", {
-                        class: (
-                            toolbarButtonClass +
-                            " fb-toolbar-button " +
-                            " fb-toolbar-button-middle-side" +
-                            " fb-toolbar-button-home " +
-                            (
-                                isSuper
-                                ? ""
-                                : "fb-button-disabled"
+                        m("span", {
+                            id: "wb-manage-button",
+                            title: "Manage Workbooks",
+                            class: menuButtonClass
+                        }, "backup_tablearrow_drop_down"),
+                        m("ul", {
+                            id: "wb-manage-list",
+                            class: (
+                                "pure-menu-list fb-menu-list " +
+                                "fb-menu-list-setup" + (
+                                    showMenuWorkbook()
+                                    ? " fb-menu-list-show"
+                                    : ""
+                                )
                             )
-                        ),
-                        title: (
-                            isSuper
-                            ? "Add new workbook"
-                            : "Must be a super user to add a new workbook"
-                        ),
-                        onclick: addWorkbookViewModel.show,
-                        disabled: !isSuper
-                    }, [
-                        m("i", {
-                            class: "material-icons"
-                        }, "add")
+                        }, [
+                            m("li", {
+                                id: "wb-manage-add",
+                                class: menuAuthLinkClass,
+                                title: "Change password",
+                                onclick: function () {
+                                    if (isSuper) {
+                                        addWorkbookViewModel.show();
+                                    }
+                                }
+                            }, [m("i", {
+                                id: "wb-manage-add-icon",
+                                class: "material-icons fb-menu-list-icon"
+                            }, "add")], "Add Workbook"),
+                            m("li", {
+                                id: "wb-manage-from-template",
+                                class: menuAuthLinkClass,
+                                title: "Add workbook from template",
+                                onclick: function () {
+                                    if (isSuper) {
+                                        addWbFromTemplateDlg.show();
+                                    }
+                                }
+                            }, [m("i", {
+                                id: "wb-manage-from-template-icon",
+                                class: (
+                                    "material-icons-outlined " +
+                                    "fb-menu-list-icon"
+                                )
+                            }, "library_add")], "Add From Template")
+                        ])
                     ]),
                     m(components.accountMenu)
                 ])
