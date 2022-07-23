@@ -1652,6 +1652,7 @@ workbookPage.component = {
                         }, [
                             m("span", {
                                 id: "nav-menu-button",
+                                title: "Manage workbook",
                                 class: (
                                     "pure-button " +
                                     "material-icons-outlined " +
@@ -1697,7 +1698,7 @@ workbookPage.component = {
                                         "material-icons-outlined " +
                                         "fb-menu-list-icon"
                                     )
-                                }, "backup_table")], "Workbook"),
+                                }, "edit_note")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
                                     class: menuAuthLinkClass,
