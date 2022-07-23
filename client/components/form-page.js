@@ -1067,8 +1067,8 @@ formPage.viewModel = function (options) {
 
     vm.buttonCopy(f.createViewModel("Button", {
         onclick: vm.doCopy,
-        icon: "library_add",
-        title: "New copy",
+        icon: "copy_all",
+        title: "Copy",
         class: (
             toolbarButtonClass +
             " fb-toolbar-button-right" +
