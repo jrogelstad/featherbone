@@ -177,7 +177,7 @@ const home = {
                             id: "wb-manage-button",
                             title: "Manage Workbooks",
                             class: menuButtonClass
-                        }, "backup_tablearrow_drop_down"),
+                        }, "edit_notearrow_drop_down"),
                         m("ul", {
                             id: "wb-manage-list",
                             class: (
@@ -219,7 +219,7 @@ const home = {
                                     "material-icons-outlined " +
                                     "fb-menu-list-icon"
                                 )
-                            }, "library_add")], "Add From Template"),
+                            }, "copy")], "Copy From Template"),
                             m("li", {
                                 id: "wb-manage-delete-template",
                                 class: menuAuthLinkClass,
