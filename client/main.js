@@ -54,7 +54,7 @@ const newname = f.prop("");
 function templates() {
     return Object.keys(workbooks).filter(
         (k) => workbooks[k].data.isTemplate()
-    ).map(function (t) {
+    ).sort().map(function (t) {
         return m("option", {
             value: workbooks[t].id()
         }, workbooks[t].data.name());
