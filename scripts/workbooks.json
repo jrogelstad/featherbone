@@ -1,8 +1,10 @@
 [{
-		"name": "Develop",
+		"name": "Development",
 		"module": "Core",
-		"description": "Setup definitions",
+		"description": "Integrated development environment",
 		"icon": "architecture",
+        "isTemplate": true,
+        "label": "Develop",
 		"authorizations": [],
 		"defaultConfig": [{
 				"name": "Modules",
@@ -199,10 +201,12 @@
 		]
 	},
 	{
-		"name": "Admin",
+		"name": "User Administration",
 		"module": "Core",
-		"description": "Application administration",
+		"description": "User account and role administration",
 		"icon": "manage_accounts",
+        "isTemplate": true,
+        "label": "Admin",
 		"authorizations": [],
 		"defaultConfig": [{
 			"name": "UserAccounts",
@@ -245,10 +249,12 @@
 		}]
 	},
 	{
-		"name": "Currency",
+		"name": "Currency Maintenance",
 		"module": "Core",
-		"description": "Currency definitions",
+		"description": "Currency and exchange rate maintenance",
 		"icon": "payments",
+        "isTemplate": true,
+        "label": "Currency",
 		"defaultConfig": [{
 				"name": "Conversions",
 				"feather": "CurrencyConversion",
