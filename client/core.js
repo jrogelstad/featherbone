@@ -1456,7 +1456,10 @@ f.types.address.tableData = function (obj) {
     if (value) {
         d = value.data;
 
-        content = d.city() + ", " + d.state() + " " + d.postalCode();
+        if (d.name()) {
+            content = d.name() + " ";
+        }
+        content += d.city() + ", " + d.state() + " " + d.postalCode();
 
         title = d.street();
 
