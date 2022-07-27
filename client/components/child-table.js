@@ -212,7 +212,7 @@ childTable.viewModel = function (options) {
     let theClass = "fb-toolbar-button fb-toolbar-button-right ";
     let btn;
     let validator = function (check) {
-        return !Boolean(check(vm.tableWidget().selections()));
+        return !Boolean(check(vm.tableWidget().selections(), vm));
     };
     let onClick = (act) => act(vm);
 
