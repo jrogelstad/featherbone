@@ -43,6 +43,8 @@
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
+    const {webauthn} = require("./server/services/webauthn");
+
     const check = [
         "data",
         "do",
@@ -259,6 +261,11 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+            webauthn.init(
+                (process.env.RPID || resp.rpId || "localhost"),
+                (process.env.ORIGIN || resp.origin || "http://localhost")
+            );
+
         } catch (err) {
             logger.error(err.message);
             console.log(err);
@@ -966,7 +973,6 @@
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
         let file = req.params.file || "";
-        //console.log(url + "/" + file);
         let suffix = (
             file
             ? file.slice(file.indexOf("."), file.length)
@@ -1429,7 +1435,7 @@
         app.use(bodyParser.urlencoded({
             extended: true
         }));
-        app.use(bodyParser.json());
+        app.use(bodyParser.json({limit: '5mb'}));
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
@@ -1535,6 +1541,10 @@
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
 
+        app.get("/webauthn/reg", webauthn.doWebAuthNRegister);
+        app.post("/webauthn/reg", webauthn.postWebAuthNRegister);
+        app.get("/webauthn/auth", webauthn.doWebAuthNAuthenticate);
+        app.post("/webauthn/auth", webauthn.postWebAuthNAuthenticate);
         app.post("/connect", doConnect);
         app.post("/data/user-accounts", doQueryRequest);
         app.post("/data/user-account", doPostUserAccount);

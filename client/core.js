@@ -26,6 +26,7 @@ import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
 import State from "./state.js";
 import icons from "./icons.js";
+import webauthn from "./components/webauthn.js";
 
 const m = window.m;
 const f = window.f;
@@ -1161,6 +1162,7 @@ f.getForm = function (options) {
     @return {Array}
 */
 f.icons = () => icons;
+f.webauthn = () => webauthn;
 
 /**
     Object to define what input type to use for data
