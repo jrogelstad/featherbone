@@ -125,7 +125,8 @@ const workbook = {
         },
         isTemplate: {
             description: "Template for creating new workbooks",
-            type: "boolean"
+            type: "boolean",
+            default: false
         },
     }
 };
