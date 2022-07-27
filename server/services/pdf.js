@@ -516,14 +516,16 @@
                         p.type.relation,
                         "ResourceLink"
                     )) {
-                        let figure = "Figure "
-                        + (attachments.length + 1);
-                        attachments.push({
-                            attachmentLabel: figure,
-                            label: rec[attr].label,
-                            source: rec[attr].resource
-                        });
-                        row.cell(figure);
+                        if (options && options.attach) {
+                            let figure = "Figure "
+                            + (attachments.length + 1);
+                            attachments.push({
+                                attachmentLabel: figure,
+                                label: rec[attr].label,
+                                source: rec[attr].resource
+                            });
+                            row.cell(figure);
+                        }
                         return;
                     }
 
@@ -547,64 +549,7 @@
                                     value.email,
                                     {
                                         font: ovrFont,
-                                        fontSize: style.fontSize
-                                    });
-                                    return;
-                                }
-
-                                if (inheritedFrom(
-                                    p.type.relation,
-                                    "ResourceLink"
-                                )) {
-                                    if (options && options.attach) {
-                                        let figure = "Figure "
-                                        + (attachments.length + 1);
-                                        attachments.push({
-                                            attachmentLabel: figure,
-                                            label: rec[attr].label,
-                                            source: rec[attr].resource
-                                        });
-                                        row.cell(figure);
-                                    }
-                                    return;
-                                }
-
-                                if (inheritedFrom(p.type.relation, "Contact")) {
-                                    rel = row.cell().text();
-                                    rel.add(
-                                        value.fullName
-                                    );
-                                    if (showLabel) {
-                                        if (value.phone) {
-                                            rel.br().add(
-                                                value.phone,
-                                                {
-                                                    font: ovrFont,
-                                                    fontSize: 10
-                                                }
-                                            );
-                                        }
-                                        if (value.email) {
-                                            rel.br().add(
-                                                value.email,
-                                                {
-                                                    font: ovrFont,
-                                                    fontSize: 10
-                                                }
-                                            );
-                                        }
-                                        if (value.address) {
-                                            rel.br().add(
-                                                (
-                                                    value.address.city + "," +
-                                                    value.address.state
-                                                ),
-                                                {
-                                                    font: ovrFont,
-                                                    fontSize: 10
-                                                }
-                                            );
-                                        }
+                                        fontSize: 10
                                     }
                                 );
                             }
