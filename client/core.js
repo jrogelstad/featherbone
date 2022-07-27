@@ -339,6 +339,7 @@ function input(pType, options) {
         style: options.style,
         type: pType,
         onchange: (e) => prop(e.target.value),
+        onclick: (e) => e.redraw = false,
         oncreate: options.onCreate,
         onremove: options.onRemove,
         onfocus: options.onFocus,
