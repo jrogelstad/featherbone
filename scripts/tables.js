@@ -184,7 +184,7 @@
         "module text," +
         "sequence smallint," +
         "actions json," +
-        "is_template boolean default false" +
+        "is_template boolean default false, " +
         "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$workbook\" IS " +
