@@ -23,6 +23,11 @@ a.pure-button-selected {
     color: #fbfcfe;
 }
 
+textarea {
+    overflow: auto;
+    width: 60%;
+}
+
 .CodeMirror {
   height: auto !important;
   border: 1px solid #eee;

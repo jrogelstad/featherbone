@@ -62,6 +62,9 @@
         /**
             Send an email message with an optional Pdf attached.
 
+            Note: if data ids are not provided for pdf, assume file has
+            already been generated at the filename.
+
             @method send
             @param {Object} Request payload
             @param {Object} payload.data Payload data
@@ -76,7 +79,7 @@
             @param {Object} [payload.data.pdf] PDF Generation data (optional)
             @param {String} [payload.data.pdf.form] Form name
             @param {String|Array} [payload.data.pdf.ids] Record id or ids
-            @param {filename} [payload.data.pdf.filename] Name of attachement
+            @param {String} [payload.data.pdf.filename] Name of attachement
             @param {Object} payload.client Database client
             @return {Object} Promise
         */
@@ -120,20 +123,30 @@
                 }
 
                 if (opts) {
-                    pdf.printForm(
-                        obj.client,
-                        opts.form,
-                        opts.ids,
-                        opts.filename
-                    ).then(
-                        attachPdf
-                    ).then(
-                        sendMail
-                    ).then(
-                        cleanup
-                    ).catch(
-                        reject
-                    );
+                    if (!opts.ids) {
+                        attachPdf(opts.filename).then(
+                            sendMail
+                        ).then(
+                            cleanup
+                        ).catch(
+                            reject
+                        );
+                    } else {
+                        pdf.printForm(
+                            obj.client,
+                            opts.form,
+                            opts.ids,
+                            opts.filename
+                        ).then(
+                            attachPdf
+                        ).then(
+                            sendMail
+                        ).then(
+                            cleanup
+                        ).catch(
+                            reject
+                        );
+                    }
                 } else {
                     sendMail().then(resolve).catch(reject);
                 }

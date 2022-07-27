@@ -458,6 +458,7 @@ moneyRelation.component = {
                 onchange: (e) => vm.amount(e.target.value),
                 value: vm.amount(),
                 readonly: readOnly,
+                onclick: (e) => e.redraw = false,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 onfocus: vnode.attrs.onFocus,
