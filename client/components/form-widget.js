@@ -325,6 +325,10 @@ function resizeWidget(vm, vnode) {
     let bodyHeight = window.innerHeight;
     let eids = vm.outsideElementIds();
 
+    if (!e) {
+        return;
+    }
+
     eids.forEach(function (id) {
         let h = document.getElementById(id).clientHeight;
         bodyHeight = bodyHeight.minus(h);

@@ -45,6 +45,7 @@ button.viewModel = function (options) {
     let mode;
     let label;
     let hotkey;
+    let style = options.style || {};
 
     // ..........................................................
     // PUBLIC
@@ -237,7 +238,7 @@ button.viewModel = function (options) {
         @return {Object}
     */
     vm.style = function () {
-        return options.style || {};
+        return style;
     };
     /**
         @method title
