@@ -450,7 +450,10 @@
 
             while (idx !== -1) {
                 fp = fthr.properties[attr];
-                if (fp.format === "money") { // Hard coded type
+                if (
+                    formats[fp.format] &&
+                    formats[fp.format].isMoney
+                ) { // Hard coded type
                     where.operator = where.operator || "=";
                     if (where.op === "IN") {
                         part = [];
@@ -1500,7 +1503,8 @@
                         /* Handle non-relational composites */
                         if (
                             prop.type === "object" &&
-                            prop.format === "money"
+                            formats[prop.format] &&
+                            formats[prop.format].isMoney
                         ) {
                             Object.keys(value || {}).forEach(function (attr) {
                                 args.push(col);
@@ -1624,6 +1628,11 @@
                 afterLog = function () {
                     // We're going to return the changes
                     result = jsonpatch.compare(obj.cache, result);
+
+                    // Update newRec for "trigger after" events
+                    if (obj.newRec) {
+                        jsonpatch.applyPatch(obj.newRec, result);
+                    }
 
                     // Report back result
                     resolve(result);
@@ -1904,7 +1913,9 @@
                 let theClient = db.getClient(obj.client);
 
                 if (!patches.length) {
-                    resolve([]);
+                    crud.unlock(theClient, {
+                        id: obj.id
+                    }).then(resolve.bind(null, [])).catch(reject);
                     return;
                 }
 
@@ -2268,7 +2279,8 @@
                         } else if (
                             updRec[key] !== oldRec[key] &&
                             props[key].type === "object" &&
-                            props[key].format === "money"
+                            formats[props[key].format] &&
+                            formats[props[key].format].isMoney
                         ) {
 
                             Object.keys(updRec[key]).forEach(
@@ -2419,6 +2431,11 @@
 
                 done = function () {
                     let ret = jsonpatch.compare(cacheRec, result);
+
+                    // Update newRec for "trigger after" use if applicable
+                    if (obj.newRec) {
+                        jsonpatch.applyPatch(obj.newRec, ret);
+                    }
 
                     ret = ret.filter(
                         (r) => r.path.slice(r.path.length - 5) !== "/lock"
