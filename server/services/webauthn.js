@@ -140,7 +140,7 @@
             },
             "showDeleted": false
         };
-        if(byId){
+        if (byId) {
             console.log(object.filter.criteria);
         }
         return await datasource.request(object, true);
