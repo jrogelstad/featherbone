@@ -1,4 +1,4 @@
-/*
+ /*
     Framework for building object relational database apps
     Copyright (C) 2022  John Rogelstad
 
@@ -385,6 +385,7 @@ workbookPage.viewModel = function (options) {
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
 
             vm.saveProfile();
+            vm.refresh();
         };
         dlg.show();
     };
@@ -763,25 +764,186 @@ workbookPage.viewModel = function (options) {
         @method share
     */
     vm.share = function () {
-        let doShare;
         let confirmDialog = vm.confirmDialog();
+        let action = f.prop("Default");
+        let name = f.prop("");
+        let template = f.prop("");
+        let lastError = f.prop("");
+        let dlgSelectId1 = f.createId();
+        let dlgSelectId2 = f.createId();
+        let workbooks = f.catalog().store().workbooks();
+        let temps = Object.keys(workbooks).filter(
+            (k) => workbooks[k].data.isTemplate()
+        ).map(function (t) {
+            return m("option", {
+                value: t
+            }, workbooks[t].data.name());
+        });
+        let names = Object.keys(workbooks);
+        let profileData = f.copy(vm.config());
+        let mdlname;
+        let data;
+        let opts;
+        let wb;
 
-        doShare = function () {
-            let d = f.copy(vm.config());
-            workbook.data.localConfig(d);
-            workbook.save();
-        };
+        function isValid() {
+            switch (action()) {
+            case "Copy":
+            case "New":
+                if (!name()) {
+                    lastError("Name is required");
+                    return false;
+                }
+
+                if (names.some((n) => workbooks[n].data.name() === name())) {
+                    lastError("Name is already used");
+                    return false;
+                }
+
+                break;
+            case "Update":
+                if (!template()) {
+                    lastError("Select a template to update");
+                    return false;
+                }
+
+                break;
+            }
+            lastError("");
+            return true;
+        }
+
+        async function copy(isTmpl) {
+            data = workbook.toJSON();
+            delete data.authorizations;
+            data.defaultConfig = profileData;
+            data.localConfig = [];
+            data.id = f.createId();
+            data.name = name();
+            data.label = name();
+            data.isTemplate = isTmpl;
+            opts = {
+                workbook: data.name.toSpinalCase(),
+                key: data.defaultConfig[0].name.toSpinalCase()
+            };
+            mdlname = name().toSpinalCase().toCamelCase();
+
+            // Instantiate copy
+            wb = f.catalog().store().models().workbook();
+            wb.set(data);
+            // Save it to server
+            await wb.save();
+            wb.checkUpdate();
+            // Register it locally
+            f.catalog().register("workbooks", mdlname, wb);
+        }
+
+        async function doShare() {
+            switch (action()) {
+            case "Default":
+                workbook.data.localConfig(profileData);
+                workbook.save();
+                break;
+            case "Copy":
+                await copy(false);
+
+                // Go to new copy
+                m.route.set("/workbook/:workbook/:key", opts);
+                break;
+            case "New":
+                await copy(true);
+                break;
+            case "Update":
+                wb = workbooks[template()];
+                data = workbook.toJSON();
+                delete data.authorizations;
+                delete data.id;
+                delete data.name;
+                delete data.isTemplate;
+                data.defaultConfig = profileData;
+                data.localConfig = [];
+                wb.set(data);
+                wb.save();
+                break;
+            }
+        }
 
         if (!vm.workbook().canUpdate()) {
             return;
         }
 
-        confirmDialog.message(
-            "Are you sure you want to share your workbook " +
-            "configuration with all other users?"
-        );
-        confirmDialog.icon("help_outline");
+        confirmDialog.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgSelectId1
+                    }, "Share Layout As:"),
+                    m("select", {
+                        id: dlgSelectId1,
+                        onchange: (e) => action(e.target.value),
+                        value: action()
+                    }, [
+                        m("option", {
+                            value: "Default"
+                        }, "Default for this workbook"),
+                        m("option", {
+                            value: "Copy"
+                        }, "Copy to a new workbook"),
+                        m("option", {
+                            value: "New"
+                        }, "New workbook template"),
+                        m("option", {
+                            value: "Update"
+                        }, "Update to a template")
+                    ])
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    style: {display: (
+                        (action() === "Default" || action() === "Update")
+                        ? "none"
+                        : undefined
+                    )}
+                }, [
+                    m("label", {}, "Workbook Name:"),
+                    m("input", {
+                        onchange: (e) => name(e.target.value),
+                        value: name(),
+                        autocomplete: "off"
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    style: {display: (
+                        action() !== "Update"
+                        ? "none"
+                        : undefined
+                    )}
+                }, [
+                    m("label", {
+                        for: dlgSelectId2
+                    }, "Template:"),
+                    m("select", {
+                        id: dlgSelectId2,
+                        onchange: (e) => template(e.target.value),
+                        value: template()
+                    }, temps)
+                ])
+            ]);
+        };
+        confirmDialog.icon("share");
+        confirmDialog.title("Share");
         confirmDialog.onOk(doShare);
+        confirmDialog.buttonOk().isDisabled = () => !isValid();
+        confirmDialog.buttonOk().title = function () {
+            if (!isValid()) {
+                return lastError();
+            }
+        };
         confirmDialog.show();
     };
     /**
@@ -1490,6 +1652,7 @@ workbookPage.component = {
                         }, [
                             m("span", {
                                 id: "nav-menu-button",
+                                title: "Manage workbook",
                                 class: (
                                     "pure-button " +
                                     "material-icons-outlined " +
@@ -1535,7 +1698,7 @@ workbookPage.component = {
                                         "material-icons-outlined " +
                                         "fb-menu-list-icon"
                                     )
-                                }, "backup_table")], "Workbook"),
+                                }, "edit_note")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
                                     class: menuAuthLinkClass,

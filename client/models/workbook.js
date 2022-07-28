@@ -122,7 +122,11 @@ const workbook = {
                 parentOf: "parent",
                 relation: "WorkbookAuthorization"
             }
-        }
+        },
+        isTemplate: {
+            description: "Template for creating new workbooks",
+            type: "boolean"
+        },
     }
 };
 

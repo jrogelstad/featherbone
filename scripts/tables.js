@@ -184,6 +184,7 @@
         "module text," +
         "sequence smallint," +
         "actions json," +
+        "is_template boolean default false, " +
         "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$workbook\" IS " +
@@ -201,7 +202,9 @@
         "COMMENT ON COLUMN \"$workbook\".sequence IS " +
         "'Presentation order';" +
         "COMMENT ON COLUMN \"$workbook\".actions IS " +
-        "'Menu action definition';"
+        "'Menu action definition';" +
+        "COMMENT ON COLUMN \"$workbook\".is_template IS " +
+        "'Flag workbook as template only';"
     );
 
     const createSessionSql = (
@@ -504,7 +507,11 @@
                     let altSql = (
                         "ALTER TABLE \"$workbook\" " +
                         "ADD COLUMN IF NOT EXISTS label text default ''; " +
-                        "COMMENT ON COLUMN \"$workbook\".label IS 'Menu label';"
+                        "COMMENT ON COLUMN \"$workbook\".label IS 'Menu label';" +
+                        "ALTER TABLE \"$workbook\" " +
+                        "ADD COLUMN IF NOT EXISTS is_template boolean default false; " +
+                        "COMMENT ON COLUMN \"$workbook\".is_template IS " +
+                        "'Flag workbook as template only';"
                     );
                     if (err) {
                         reject(err);

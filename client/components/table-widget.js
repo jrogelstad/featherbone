@@ -123,7 +123,6 @@ function createTableDataEditor(options, col) {
     inputOpts = {
         id: theId,
         key: theId,
-        onclick: theVm.toggleSelection.bind(this, theModel, theId),
         value: prop(),
         style: {
             minWidth: columnWidth + "px",
@@ -1753,12 +1752,6 @@ tableWidget.viewModel = function (options) {
     */
     vm.isDragging = f.prop(false);
     /**
-        @method isScrolling
-        @param {Boolean} flag
-        @return {Boolean}
-    */
-    vm.isScrolling = f.prop(false);
-    /**
         @method isSelected
         @param {Model} model
         @return {Boolean}
@@ -1972,14 +1965,14 @@ tableWidget.viewModel = function (options) {
         header.scrollLeft = rows.scrollLeft;
 
         // No need to redraw
-        vm.isScrolling(true);
+        evt.redraw = false;
     };
 
     /**
         @method onscrollFooter
         @param {Event} event
     */
-    vm.onscrollFooter = function () {
+    vm.onscrollFooter = function (evt) {
         let ids = vm.ids();
         let rows = document.getElementById(ids.rows);
         let footer = document.getElementById(ids.footer);
@@ -1988,7 +1981,7 @@ tableWidget.viewModel = function (options) {
         rows.scrollLeft = footer.scrollLeft;
 
         // No need to redraw
-        vm.isScrolling(true);
+        evt.redraw = false;
     };
     /**
         Rerun query.
@@ -2485,26 +2478,6 @@ tableWidget.component = {
     */
     oninit: function (vnode) {
         vnode.attrs.viewModel.canToggle(true);
-    },
-
-    /**
-        Block redrawing where unneccessary to improve performance.
-        @method onbeforeupdate
-        @param {Object} vnode Virtual node
-        @param {ViewModels.TableWidget} vnode.viewModel
-    */
-    onbeforeupdate: function (vnode) {
-        let vm = vnode.attrs.viewModel;
-        let isDragging = vm.isDragging();
-        let isScrolling = vm.isScrolling();
-
-        if (isScrolling) {
-            vm.isScrolling(false); // Reset
-        }
-
-        if (isDragging || isScrolling) {
-            return false; // Don't redraw
-        }
     },
 
     /**

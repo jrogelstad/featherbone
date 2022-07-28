@@ -593,8 +593,7 @@ formPage.viewModel = function (options) {
                 window.location.hostname + ":" +
                 window.location.port + "/pdf/" + resp
             );
-
-            window.open(url);
+            window.open(encodeURI(url));
         }
 
         // Include both persistant and calculated values
@@ -1067,8 +1066,8 @@ formPage.viewModel = function (options) {
 
     vm.buttonCopy(f.createViewModel("Button", {
         onclick: vm.doCopy,
-        icon: "library_add",
-        title: "New copy",
+        icon: "copy_all",
+        title: "Copy",
         class: (
             toolbarButtonClass +
             " fb-toolbar-button-right" +

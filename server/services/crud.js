@@ -1913,7 +1913,9 @@
                 let theClient = db.getClient(obj.client);
 
                 if (!patches.length) {
-                    resolve([]);
+                    crud.unlock(theClient, {
+                        id: obj.id
+                    }).then(resolve.bind(null, [])).catch(reject);
                     return;
                 }
 
@@ -2659,19 +2661,20 @@
                 }
 
                 function nextVal(feather) {
-                    let pname = "properties";
+                    let pname = "overloads";
                     let attr = Object.keys(
-                        feather.properties
+                        feather.overloads
                     ).find(function (key) {
-                        return feather.properties[key].autonumber;
+                        return feather.overloads[key].autonumber;
                     });
-                    // Check overloads
+
+                    // Check regular properties
                     if (!attr) {
-                        pname = "overloads";
+                        pname = "properties";
                         attr = Object.keys(
-                            feather.overloads
+                            feather.properties
                         ).find(function (key) {
-                            return feather.overloads[key].autonumber;
+                            return feather.properties[key].autonumber;
                         });
                     }
 
