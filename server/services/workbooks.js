@@ -146,6 +146,7 @@
                         "icon, sequence, actions, label, " +
                         "default_config AS \"defaultConfig\", " +
                         "local_config AS \"localConfig\", " +
+                        "is_template AS \"isTemplate\", " +
                         "to_json(ARRAY( SELECT ROW(role, can_read, " +
                         "can_update) " +
                         "  FROM \"$auth\" as auth " +
@@ -434,7 +435,7 @@
                                         "default_config=$5," +
                                         "local_config=$6, module=$7, " +
                                         "icon=$8, sequence=$9, actions=$10, " +
-                                        "label=$11 " +
+                                        "label=$11, is_template=$12 " +
                                         "WHERE name=$1;"
                                     );
                                     theId = row.id;
@@ -461,7 +462,8 @@
                                         icon,
                                         wb.sequence || row.sequence || 0,
                                         {}, // TODO
-                                        wb.label || row.label
+                                        wb.label || row.label,
+                                        wb.isTemplate || row.isTemplate
                                     ];
                                     execute();
                                 } else {
@@ -489,12 +491,13 @@
                                             "local_config, icon, " +
                                             "created_by, updated_by, " +
                                             "sequence, actions, label, " +
-                                            "created, updated, is_deleted) " +
+                                            "created, updated, is_deleted, " +
+                                            "is_template) " +
                                             "VALUES (" +
                                             "nextval('object__pk_seq')," +
                                             "$1, $2, $3, $4, $5, $6, $7, $8," +
                                             "$9, $9, $10, $11, $12, " +
-                                            "now(), now(), false) " +
+                                            "now(), now(), false, $13) " +
                                             "RETURNING _pk;"
                                         );
                                         theId = f.createId();
@@ -514,7 +517,8 @@
                                             theClient.currentUser(),
                                             wb.sequence || 0,
                                             {}, // TODO
-                                            wb.label
+                                            wb.label,
+                                            wb.isTemplate
                                         ];
 
                                         execute();

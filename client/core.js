@@ -26,6 +26,7 @@ import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
 import State from "./state.js";
 import icons from "./icons.js";
+import webauthn from "./components/webauthn.js";
 
 const m = window.m;
 const f = window.f;
@@ -339,6 +340,7 @@ function input(pType, options) {
         style: options.style,
         type: pType,
         onchange: (e) => prop(e.target.value),
+        onclick: (e) => e.redraw = false,
         oncreate: options.onCreate,
         onremove: options.onRemove,
         onfocus: options.onFocus,
@@ -1160,6 +1162,7 @@ f.getForm = function (options) {
     @return {Array}
 */
 f.icons = () => icons;
+f.webauthn = () => webauthn;
 
 /**
     Object to define what input type to use for data
@@ -1456,7 +1459,10 @@ f.types.address.tableData = function (obj) {
     if (value) {
         d = value.data;
 
-        content = d.city() + ", " + d.state() + " " + d.postalCode();
+        if (d.name()) {
+            content = d.name() + " ";
+        }
+        content += d.city() + ", " + d.state() + " " + d.postalCode();
 
         title = d.street();
 

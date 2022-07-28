@@ -273,8 +273,7 @@ addressRelation.component = {
             class: "fb-input",
             value: vm.content(vm.isCell()),
             readonly: readOnly,
-            rows: 6,
-            style: {whiteSpace: "pre"}
+            rows: 7
         };
         let dlg;
 
@@ -305,6 +304,7 @@ addressRelation.component = {
         ]);
 
         return ret;
+       
     }
 };
 

@@ -772,6 +772,7 @@ relationWidget.component = {
                 },
                 oninput: (e) => vm.oninput(e.target.value),
                 value: vm.value(),
+                onclick: (e) => e.redraw = false,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 placeholder: vm.placeholder,

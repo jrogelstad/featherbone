@@ -599,6 +599,22 @@
             "showLabel": true,
             "unit": 0
         }, {
+            "attr": "hideTitle",
+            "dataList": "",
+            "columns": [],
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
+            "unit": 1
+        }, {
+            "attr": "hideLogo",
+            "dataList": "",
+            "columns": [],
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
+            "unit": 1
+        }, {
             "attr": "created",
             "columns": [],
             "dataList": "",
@@ -938,8 +954,8 @@
     "method": "POST",
     "id": "j0b035m0jim4",
     "data": {
-        "name": "DEFAULT",
-        "description": "Default value",
+        "name": "DISABLED",
+        "description": "Disabled value",
         "module": "Core",
         "hasColor": true,
         "color": "#c0c0c0"
