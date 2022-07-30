@@ -1218,7 +1218,6 @@ workbookPage.viewModel = function (options) {
         class: toolbarButtonClass
     }));
     vm.buttonEdit().icon = function () {
-        console.log(vm.tableWidget().mode().current()[0]);
         if (vm.tableWidget().mode().current()[0] === "/Mode/Edit") {
             return "edit";
         } else {
