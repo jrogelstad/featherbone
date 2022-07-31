@@ -753,7 +753,7 @@ relationWidget.component = {
         } else {
             theStyle.width = "60%";
             theStyle.maxWidth = "350px";
-            inputStyle = {width: "100%"}
+            inputStyle = {width: "100%"};
         }
 
         // Build the view
@@ -776,7 +776,9 @@ relationWidget.component = {
                 },
                 oninput: (e) => vm.oninput(e.target.value),
                 value: vm.value(),
-                onclick: (e) => e.redraw = false,
+                onclick: function (e) {
+                    e.redraw = false;
+                },
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 placeholder: vm.placeholder,
