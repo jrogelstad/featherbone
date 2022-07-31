@@ -462,7 +462,9 @@
                 function createViews(resp) {
                     return new Promise(function (resolve, reject) {
                         let feathers = f.copy(resp);
-                        let deps = Object.keys(feathers);
+                        let deps = Object.keys(feathers).filter(
+                            (d) => !feathers[d].isView
+                        );
                         let found;
                         let deferred = [];
                         let err;
@@ -1576,9 +1578,11 @@
                                             if (theParent) {
                                                 pProps = theParent.properties;
                                                 if (!pProps[type.childOf]) {
-                                                    descr = "Parent of \"" + key;
-                                                    descr += "\" on \"";
-                                                    descr += spec.name + "\"";
+                                                    descr = (
+                                                        "Parent of \"" + key +
+                                                        "\" on \"" +
+                                                        spec.name + "\""
+                                                    );
 
                                                     pProps[type.childOf] = {
                                                         description: descr,
@@ -1589,19 +1593,22 @@
                                                     };
 
                                                 } else {
-                                                    err = "Property \"";
-                                                    err += type.childOf;
-                                                    err += "\" already exists on";
-                                                    err += "\"" + type.relation;
-                                                    err += "\"";
+                                                    err = (
+                                                        "Property \"" +
+                                                        type.childOf +
+                                                        "\" already exists on" +
+                                                        "\"" + type.relation +
+                                                        "\""
+                                                    );
                                                 }
                                             } else {
                                                 err = (
-                                                   "Relation feather " +
-                                                   type.relation + " required by " +
-                                                   spec.name +
-                                                   " not found, likely due to a " +
-                                                   "missing dependency."
+                                                    "Relation feather " +
+                                                    type.relation +
+                                                    " required by " +
+                                                    spec.name +
+                                                    " not found, likely due " +
+                                                    "to a missing dependency."
                                                 );
                                             }
                                         } else if (type.parentOf) {
@@ -1623,11 +1630,13 @@
                                             theParent = catalog[type.relation];
                                             if (!theParent) {
                                                 err = (
-                                                   "Relation feather " +
-                                                   type.relation + " required by " +
-                                                   spec.name +
-                                                   " not found, likely due to a " +
-                                                   "missing dependency."
+                                                    "Relation feather " +
+                                                    type.relation +
+                                                    " required by " +
+                                                    spec.name +
+                                                    " not found, likely " +
+                                                    "due to a " +
+                                                    "missing dependency."
                                                 );
                                             } else {
                                                 prop.type.isChild = Boolean(
