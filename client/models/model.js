@@ -2204,7 +2204,7 @@ function createModel(data, feather) {
             }
 
             // Recursively validate children
-            if (prop.isToMany() && prop().length) {
+            if (prop.isToMany() && !prop.isCalculated && prop().length) {
                 prop().forEach(function (child) {
                     if (!child.isValid()) {
                         throw child.lastError();
