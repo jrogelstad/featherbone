@@ -741,7 +741,7 @@ relationWidget.component = {
         }
 
         // Hack size to fit button.
-        if (theStyle.maxWidth) {
+        if (vm.isCell() && theStyle.maxWidth) {
             maxWidth = theStyle.maxWidth.replace("px", "");
             maxWidth = maxWidth - 35;
             maxWidth = (
@@ -750,6 +750,10 @@ relationWidget.component = {
                 : maxWidth
             );
             inputStyle.maxWidth = maxWidth + "px";
+        } else {
+            theStyle.width = "60%";
+            theStyle.maxWidth = "350px";
+            inputStyle = {width: "100%"}
         }
 
         // Build the view

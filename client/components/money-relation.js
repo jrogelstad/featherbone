@@ -434,6 +434,11 @@ moneyRelation.component = {
             width: "116px",
             textAlign: "right"
         };
+        if (!vm.showCurrency() && !vm.isCell()) {
+            displayStyle.width = "60%";
+            inputStyle.width = "100%";
+            inputStyle.maxWidth = "315px";
+        }
 
         if (vm.isCell()) {
             displayStyle.float = "right";
