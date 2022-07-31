@@ -114,10 +114,14 @@ textarea {
 }
 
 .fb-input {
-  width: 215px;
+  width: 60%;
+  min-width: 215px;
+  max-width: 350px;
 }
 .fb-input-number {
-  width: 215px;
+  width: 60%;
+  min-width: 215px;
+  max-width: 350px;
   text-align: right;
 }
 
@@ -662,7 +666,7 @@ textarea {
 }
 
 .fb-relation-label {
-  width: 215px;
+  width: 100%;
 }
 .fb-relation-label.truncate {
   white-space: nowrap;
