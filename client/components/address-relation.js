@@ -306,7 +306,6 @@ addressRelation.component = {
         ]);
 
         return ret;
-       
     }
 };
 

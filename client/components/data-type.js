@@ -575,7 +575,7 @@ dataType.viewModel = function (options) {
         ]);
     };
 
-    vm.dataTypeDialog().style().width = "450px";
+    vm.dataTypeDialog().style().width = "500px";
     vm.dataTypeDialog().style().height = "450px";
 
     vm.buttonEdit(f.createViewModel("Button", {

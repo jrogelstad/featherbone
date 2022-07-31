@@ -1220,10 +1220,9 @@ workbookPage.viewModel = function (options) {
     vm.buttonEdit().icon = function () {
         if (vm.tableWidget().mode().current()[0] === "/Mode/Edit") {
             return "edit";
-        } else {
-            return "edit_off";
         }
-    }
+        return "edit_off";
+    };
     if (!vm.tableWidget().isEditModeEnabled()) {
         vm.buttonEdit().disable();
     }
