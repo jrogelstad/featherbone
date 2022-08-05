@@ -81,6 +81,7 @@ signInPage.component = {
                     class: "fb-sign-in-label"
                 }, ""),
                 m("button", {
+                    style: {width: "215px"},
                     id: "signin",
                     class: "pure-button pure-button-primary fb-input",
                     onclick: function () {
