@@ -197,7 +197,7 @@ dialog.viewModel = function (options) {
         @return {Object}
     */
     vm.style = f.prop({
-        width: "450px"
+        width: "500px"
     });
 
     // ..........................................................
