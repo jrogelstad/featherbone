@@ -662,7 +662,7 @@ formPage.viewModel = function (options) {
         ]);
         dlg.buttonOk().label("&Ok");
         dlg.buttonCancel().label("&Cancel");
-        dlg.style({width: "450px"});
+        dlg.style({width: "500px"});
     }
 
     // Check if we've already got a model instantiated

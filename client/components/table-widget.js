@@ -1429,7 +1429,7 @@ tableWidget.viewModel = function (options) {
         dlg.buttonOk().label("&Ok");
         dlg.buttonCancel().label("&Cancel");
         dlg.style({
-            width: "450px"
+            width: "500px"
         });
     }
 
