@@ -435,7 +435,8 @@
             let theAlias;
             let fp;
             let fk;
-            let where = filter.criteria.find((c) => c.property === prop);
+            let wheres = filter.criteria.filter((c) => c.property === prop);
+            let where;
             let whereArys = filter.criteria.filter(
                 (c) => (
                     Array.isArray(c.property) &&
@@ -454,40 +455,43 @@
                     formats[fp.format] &&
                     formats[fp.format].isMoney
                 ) { // Hard coded type
-                    where.operator = where.operator || "=";
-                    if (where.op === "IN") {
-                        part = [];
-                        if (where.value.length) {
-                            where.value.forEach(function (val) {
-                                params.push(val);
+                    while (wheres.length) {
+                        where = wheres.shift();
+                        where.operator = where.operator || "=";
+                        if (where.operator === "IN") {
+                            part = [];
+                            if (where.value.length) {
+                                where.value.forEach(function (val) {
+                                    params.push(val);
+                                    part.push("$" + p);
+                                    p += 1;
+                                });
+                                part = tools.resolvePath(
+                                    where.property,
+                                    ptokens
+                                ) + " IN (" + part.join(",") + ")";
+                            // If no values in array, then no result
+                            } else {
+                                params.push(false);
                                 part.push("$" + p);
                                 p += 1;
-                            });
+                            }
+                        } else {
+                            if (typeof where.value === "object") {
+                                where.property = where.property + ".id";
+                                where.value = where.value.id;
+                            }
+                            params.push(where.value);
                             part = tools.resolvePath(
                                 where.property,
                                 ptokens
-                            ) + " IN (" + part.join(",") + ")";
-                        // If no values in array, then no result
-                        } else {
-                            params.push(false);
-                            part.push("$" + p);
+                            ) + " " + where.operator + " $" + p;
                             p += 1;
                         }
-                    } else {
-                        if (typeof where.value === "object") {
-                            where.property = where.property + ".id";
-                            where.value = where.value.id;
-                        }
-                        params.push(where.value);
-                        part = tools.resolvePath(
-                            where.property,
-                            ptokens
-                        ) + " " + where.operator + " $" + p;
-                        p += 1;
-                    }
 
-                    joinArrays.parts.push(part);
-                    idx = -1;
+                        joinArrays.parts.push(part);
+                        idx = -1;
+                    }
                 } else {
                     // Join
                     theTable = fp.type.relation.toSnakeCase();
@@ -529,7 +533,8 @@
                     prop = prop.slice(idx + 1, prop.length);
                     idx = prop.indexOf(".");
                     if (idx === -1) { // done joining?
-                        if (where) {
+                        while (wheres.length) {
+                            where = wheres.shift();
                             p = appendWhere(
                                 {
                                     property: prop,

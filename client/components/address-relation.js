@@ -277,11 +277,12 @@ addressRelation.component = {
         };
         let dlg;
 
+        options.style = {
+            width: "100%"
+        };
+
         if (vm.isCell()) {
             options.rows = 1;
-            options.style = {
-                width: "100%"
-            };
         }
 
         if (!readOnly) {
@@ -294,6 +295,7 @@ addressRelation.component = {
         }
 
         theStyle.display = theStyle.display || "inline-block";
+        theStyle.width = "60%";
 
         // Build the view
         ret = m("div", {
@@ -304,7 +306,6 @@ addressRelation.component = {
         ]);
 
         return ret;
-       
     }
 };
 
