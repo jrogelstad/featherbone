@@ -477,9 +477,9 @@ function createModel(data, feather) {
         fn.title = simpleProp(options.title || "");
         d[options.name] = fn;
 
-		if (typeof fn.type === "object") {
-			fn.filter = f.prop({criteria:[]});
-		}
+        if (typeof fn.type === "object") {
+            fn.filter = f.prop({criteria: []});
+        }
 
         return this;
     };
@@ -1468,10 +1468,9 @@ function createModel(data, feather) {
         // Make all props read only, but remember previous state
         keys.forEach(function (key) {
             let prop = d[key];
-            let value = prop();
 
             if (prop.isToMany() && !prop.isCalculated) {
-                value.forEach(function (item) {
+                prop().forEach(function (item) {
                     item.state().goto("/Ready/Fetched/ReadOnly");
                 });
                 return;
@@ -2204,7 +2203,7 @@ function createModel(data, feather) {
             }
 
             // Recursively validate children
-            if (prop.isToMany() && prop().length) {
+            if (prop.isToMany() && !prop.isCalculated && prop().length) {
                 prop().forEach(function (child) {
                     if (!child.isValid()) {
                         throw child.lastError();

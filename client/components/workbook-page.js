@@ -1215,9 +1215,14 @@ workbookPage.viewModel = function (options) {
         onclick: vm.tableWidget().toggleMode,
         title: "Edit mode",
         hotkey: "E",
-        icon: "edit",
         class: toolbarButtonClass
     }));
+    vm.buttonEdit().icon = function () {
+        if (vm.tableWidget().mode().current()[0] === "/Mode/Edit") {
+            return "edit";
+        }
+        return "edit_off";
+    };
     if (!vm.tableWidget().isEditModeEnabled()) {
         vm.buttonEdit().disable();
     }
