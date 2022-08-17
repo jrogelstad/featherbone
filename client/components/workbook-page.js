@@ -1125,9 +1125,6 @@ workbookPage.viewModel = function (options) {
         subscribe: true,
         footerId: vm.footerId()
     }));
-    if (vm.sheet().isEditMode) {
-        vm.tableWidget().toggleMode();
-    }
 
     // Watch when columns change and save profile
     vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
@@ -1384,6 +1381,10 @@ workbookPage.viewModel = function (options) {
     }).catch(function (err) {
         console.error(err.message);
     });
+
+    if (vm.sheet().isEditMode) {
+        vm.tableWidget().toggleMode();
+    }
 
     return vm;
 };
