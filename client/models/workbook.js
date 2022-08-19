@@ -127,7 +127,7 @@ const workbook = {
             description: "Template for creating new workbooks",
             type: "boolean",
             default: false
-        },
+        }
     }
 };
 
@@ -185,6 +185,11 @@ const workbookDefaultConifg = {
             description: "Menu actions that can be performed",
             type: "object",
             default: []
+        },
+        isEditMode: {
+            description: "Flags whether in edit mode",
+            type: "boolean",
+            default: false
         }
     }
 };
