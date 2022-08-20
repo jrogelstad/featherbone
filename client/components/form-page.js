@@ -740,7 +740,7 @@ formPage.viewModel = function (options) {
         @method doApply
     */
     vm.doApply = function () {
-        vm.model().save().then(function () {
+        vm.model().save(vm).then(function () {
             callReceiver();
         });
     };
