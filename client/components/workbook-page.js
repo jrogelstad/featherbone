@@ -749,7 +749,7 @@ workbookPage.viewModel = function (options) {
         }
         saveProfile(
             workbook.data.name(),
-            vm.config(),
+            vm.config,
             vm.confirmDialog()
         );
     };
@@ -1147,7 +1147,7 @@ workbookPage.viewModel = function (options) {
         model: workbook,
         config: editWorkbookConfig
     }));
-    vm.editWorkbookDialog().style().width = "475px";
+    vm.editWorkbookDialog().style().width = "500px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(f.createViewModel("Button", {
@@ -1212,13 +1212,18 @@ workbookPage.viewModel = function (options) {
 
     // Create button view models
     vm.buttonEdit(f.createViewModel("Button", {
-        onclick: vm.tableWidget().toggleMode,
+        onclick: function () {
+            vm.tableWidget().toggleMode();
+            vm.sheet().isEditMode = vm.isEditMode();
+            vm.saveProfile();
+        },
         title: "Edit mode",
         hotkey: "E",
         class: toolbarButtonClass
     }));
+    vm.isEditMode = () => vm.tableWidget().mode().current()[0] === "/Mode/Edit";
     vm.buttonEdit().icon = function () {
-        if (vm.tableWidget().mode().current()[0] === "/Mode/Edit") {
+        if (vm.isEditMode()) {
             return "edit";
         }
         return "edit_off";
@@ -1376,6 +1381,10 @@ workbookPage.viewModel = function (options) {
     }).catch(function (err) {
         console.error(err.message);
     });
+
+    if (vm.sheet().isEditMode) {
+        vm.tableWidget().toggleMode();
+    }
 
     return vm;
 };
