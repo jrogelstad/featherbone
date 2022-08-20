@@ -360,10 +360,11 @@ function createList(feather) {
         Save dirty records in list. Returns a Promise.
 
         @method save
+        @parameter {Object} [ViewModel] For save pre and post processing
         @return {Promise}
     */
-    ary.save = function () {
-        return doSend("save");
+    ary.save = function (vm) {
+        return doSend("save", undefined, vm);
     };
 
     /**
@@ -585,7 +586,7 @@ function createList(feather) {
         let requests = [];
 
         dirty.forEach(function (model) {
-            requests.push(model.save());
+            requests.push(model.save(context.viewModel));
         });
 
         Promise.all(requests).then(function (resp) {
@@ -596,7 +597,6 @@ function createList(feather) {
 
     doSend = function (...args) {
         let evt = args[0];
-        let merge = args[1];
 
         return new Promise(function (pResolve, pReject) {
             let context = {
@@ -605,7 +605,11 @@ function createList(feather) {
             };
 
             if (args.length > 1) {
-                context.merge = merge;
+                context.merge = args[1];
+            }
+
+            if (args.length > 2) {
+                context.viewModel = args[2];
             }
 
             state.send(evt, context);
