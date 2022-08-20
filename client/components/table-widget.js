@@ -2009,7 +2009,7 @@ tableWidget.viewModel = function (options) {
         @method save
     */
     vm.save = function () {
-        vm.models().save();
+        vm.models().save(vm);
     };
     /**
         @method scrollbarWidth
