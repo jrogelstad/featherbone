@@ -389,6 +389,7 @@ workbookPage.viewModel = function (options) {
                 vm.buttonEdit().disable();
             }
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
+            vm.tableWidget().isMultiSelectEnabled(data.drawerForm === "N");
 
             vm.saveProfile();
             vm.refresh();
@@ -1163,6 +1164,10 @@ workbookPage.viewModel = function (options) {
     vm.tableWidget().state().resolve("/Selection/Off").enter(function () {
         vm.formWidget(undefined);
     });
+    vm.tableWidget().isMultiSelectEnabled(
+        !vm.sheet().drawerForm ||
+        vm.sheet().drawerForm === "N"
+    );
 
     // Watch when columns change and save profile
     vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
