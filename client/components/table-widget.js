@@ -1289,7 +1289,7 @@ tableWidget.viewModel = function (options) {
         let props = [];
         let fp = vm.feather().properties;
 
-        if (!vm.isEditModeEnabled()) {
+        if (!vm.isLoadAllProperties() && !vm.isEditModeEnabled()) {
             attrs = vm.config().columns.map((col) => col.attr);
             // Purge dot notation
             attrs.forEach(function (a) {
@@ -1608,6 +1608,24 @@ tableWidget.viewModel = function (options) {
         return isEditModeEnabled(...args);
     };
     /**
+        Allow multiple selections in view mode
+        @method isMultiSelectEnabled
+        @param {Boolean} flag Default true
+        @return {Boolean}
+    */
+    vm.isMultiSelectEnabled = f.prop(true);
+    /**
+        If false then only shown properties
+        are loaded, which helps with performance.
+        Otherwise load entire objects for editing
+        purposes.
+
+        @method isLoadAllProperties
+        @param {Boolean} flag Default false
+        @return {Boolean}
+    */
+    vm.isLoadAllProperties = f.prop(false);
+    /**
         Flag whether list is populated by query.
         @method isQuery
         @param {Boolean} flag
@@ -1656,13 +1674,6 @@ tableWidget.viewModel = function (options) {
             : undefined
         );
     };
-    /**
-        Allow multiple selections in view mode
-        @method isMultiSelectEnabled
-        @param {Boolean} flag
-        @return {Boolean}
-    */
-    vm.isMultiSelectEnabled = f.prop(true);
     /**
         Dialog for error messages. Content changes depending on context.
         @method errorDialog
