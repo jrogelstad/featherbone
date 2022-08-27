@@ -1657,6 +1657,13 @@ tableWidget.viewModel = function (options) {
         );
     };
     /**
+        Allow multiple selections in view mode
+        @method isMultiSelectEnabled
+        @param {Boolean} flag
+        @return {Boolean}
+    */
+    vm.isMultiSelectEnabled = f.prop(true);
+    /**
         Dialog for error messages. Content changes depending on context.
         @method errorDialog
         @param {ViewModels.Dialog} dialog
@@ -2324,6 +2331,9 @@ tableWidget.viewModel = function (options) {
                     let modelIds;
                     let adds;
                     let isSelected = vm.isSelected(model);
+                    if (!vm.isMultiSelectEnabled()) {
+                        optKey = "";
+                    }
 
                     switch (optKey) {
                     case "ctrlKey":
