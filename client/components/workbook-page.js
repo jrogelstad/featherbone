@@ -389,7 +389,7 @@ workbookPage.viewModel = function (options) {
                 vm.buttonEdit().disable();
             }
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
-            vm.tableWidget().isMultiSelectEnabled(data.drawerForm === "N");
+            handleDrawer();
 
             vm.saveProfile();
             vm.refresh();
@@ -1142,21 +1142,45 @@ workbookPage.viewModel = function (options) {
         footerId: vm.footerId()
     }));
 
-    let dform = f.getForm({
-        form: undefined, //options.form,
-        feather: theFeather
-    });
+    function getDrawerForm() {
+        let df = vm.sheet().drawerForm;
+        if (!df || df === "N") {
+            return false;
+        }
+        return f.getForm({
+            form: (
+                df === "D"
+                ? undefined
+                : df
+            ),
+            feather: theFeather.name
+        });
+    }
+    function hasDrawer() {
+        return (
+            vm.sheet().drawerForm &&
+            vm.sheet().drawerForm !== "N"
+        );
+    }
+
+    function handleDrawer() {
+        vm.tableWidget().isMultiSelectEnabled(!hasDrawer());
+        vm.tableWidget().isLoadAllProperties(hasDrawer());
+    }
 
     vm.tableWidget().state().resolve("/Selection/On").enter(function () {
         let df = vm.sheet().drawerForm || "N";
         if (df === "N") {
+            vm.formWidget(undefined);
             return;
         }
-        let theId = vm.tableWidget().selections()[0].id();
+        let fw = vm.formWidget();
+        let mdl = vm.tableWidget().selections()[0];
+
+        mdl.state().send("freeze");
         vm.formWidget(f.createViewModel("FormWidget", {
-            model: theFeather.name,
-            config: dform,
-            id: theId,
+            model: mdl,
+            config: getDrawerForm(),
             maxHeight: "200px",
             isScrollable: true
         }));
@@ -1164,10 +1188,7 @@ workbookPage.viewModel = function (options) {
     vm.tableWidget().state().resolve("/Selection/Off").enter(function () {
         vm.formWidget(undefined);
     });
-    vm.tableWidget().isMultiSelectEnabled(
-        !vm.sheet().drawerForm ||
-        vm.sheet().drawerForm === "N"
-    );
+    handleDrawer();
 
     // Watch when columns change and save profile
     vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
@@ -1527,10 +1548,9 @@ workbookPage.component = {
 
         if (formWidget) {
             drawerForm = m("div", {
+                id: formWidget.model().id() + "wrapper",
                 style: {height: "200px"}
-            }, [
-                m(fw, {viewModel: formWidget})
-            ]);
+            }, [m(fw, {viewModel: formWidget})]);
         }
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {

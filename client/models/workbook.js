@@ -883,6 +883,12 @@ function worksheetModel(data) {
     let state;
     let substate;
 
+    function handleReadOnly() {
+        d.isEditModeEnabled.isReadOnly(
+            d.drawerForm() && d.drawerForm() !== "N"
+        );
+    }
+
     function thefeathers() {
         return Object.keys(f.catalog().feathers()).sort().map(function (key) {
             return {value: key, label: key};
@@ -949,11 +955,18 @@ function worksheetModel(data) {
             idx += 1;
         });
     });
+    model.onChanged("drawerForm", function () {
+        if (d.drawerForm() !== "N") {
+            d.isEditModeEnabled(false);
+        }
+        handleReadOnly();
+    });
 
     // Update statechart for modified behavior
     state = model.state();
     substate = state.resolve("/Ready/New");
     substate.event("fetched", function () {
+        handleReadOnly();
         this.goto("/Ready/Fetched/Clean");
     });
     substate = state.resolve("/Busy/Saving");
@@ -966,6 +979,7 @@ function worksheetModel(data) {
     });
     substate = state.resolve("/Delete");
     substate.enters.shift();
+    handleReadOnly();
 
     return model;
 }
