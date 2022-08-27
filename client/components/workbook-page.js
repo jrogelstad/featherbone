@@ -446,6 +446,15 @@ workbookPage.viewModel = function (options) {
     */
     vm.filterDialog = f.prop();
     /**
+        Form widget for inline viewing
+
+        @method formWidget
+        @param {ViewModels.FormWidget} [widget]
+        @return {ViewModels.FormWidget}
+    */
+    vm.formWidget = f.prop();
+
+    /**
         @method goHome
     */
     vm.goHome = function () {
@@ -1126,6 +1135,25 @@ workbookPage.viewModel = function (options) {
         footerId: vm.footerId()
     }));
 
+    let dform = f.getForm({
+        form: undefined, //options.form,
+        feather: theFeather
+    });
+
+    vm.tableWidget().state().resolve("/Selection/On").enter(function () {
+        let theId = vm.tableWidget().selections()[0].id();
+        vm.formWidget(f.createViewModel("FormWidget", {
+            model: theFeather.name,
+            config: dform,
+            id: theId,
+            maxHeight: "200px",
+            isScrollable: true
+        }));
+    });
+    vm.tableWidget().state().resolve("/Selection/Off").enter(function () {
+        vm.formWidget(undefined);
+    });
+
     // Watch when columns change and save profile
     vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
         if (!vm.tableWidget().isDragging()) {
@@ -1478,6 +1506,17 @@ workbookPage.component = {
                 : " pure-menu-disabled"
             )
         );
+        let fw = f.getComponent("FormWidget");
+        let formWidget = vm.formWidget();
+        let drawerForm;
+
+        if (formWidget) {
+            drawerForm = m("div", {
+                style: {height: "200px"}
+            }, [
+                m(fw, {viewModel: formWidget})
+            ]);
+        }
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1550,6 +1589,7 @@ workbookPage.component = {
         }
 
         return m("div", {
+            id: "workbook-table",
             class: "pure-form",
             oncreate: function () {
                 let title = vm.sheet().name.toName();
@@ -1763,6 +1803,7 @@ workbookPage.component = {
                     m("div", {
                         id: vm.footerId()
                     }, [
+                        drawerForm,
                         tabs,
                         m("i", {
                             class: (
