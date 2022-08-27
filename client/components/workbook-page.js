@@ -86,6 +86,10 @@ const editSheetConfig = {
         grid: 1
     }, {
         attr: "form",
+        grid: 1,
+        label: "Drill down form"
+    }, {
+        attr: "drawerForm",
         grid: 1
     }, {
         attr: "isEditModeEnabled",
@@ -332,7 +336,8 @@ workbookPage.viewModel = function (options) {
             id: sheet.id,
             name: sheet.name,
             feather: sheet.feather,
-            form: sheet.form || "",
+            form: sheet.form || "D",
+            drawerForm: sheet.drawerForm || "N",
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
@@ -348,6 +353,7 @@ workbookPage.viewModel = function (options) {
             sheet.name = data.name;
             sheet.feather = data.feather;
             sheet.form = data.form;
+            sheet.drawerForm = data.drawerForm;
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
@@ -1141,6 +1147,10 @@ workbookPage.viewModel = function (options) {
     });
 
     vm.tableWidget().state().resolve("/Selection/On").enter(function () {
+        let df = vm.sheet().drawerForm || "N";
+        if (df === "N") {
+            return;
+        }
         let theId = vm.tableWidget().selections()[0].id();
         vm.formWidget(f.createViewModel("FormWidget", {
             model: theFeather.name,
