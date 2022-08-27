@@ -1129,6 +1129,13 @@ workbookPage.viewModel = function (options) {
         refresh: vm.refresh
     }));
 
+    function hasDrawer() {
+        return (
+            vm.sheet().drawerForm &&
+            vm.sheet().drawerForm !== "N"
+        );
+    }
+
     // Create table widget view model
     vm.tableWidget(f.createViewModel("TableWidget", {
         class: formWorkbookClass,
@@ -1139,7 +1146,8 @@ workbookPage.viewModel = function (options) {
         search: vm.searchInput().value,
         ondblclick: vm.modelOpen,
         subscribe: true,
-        footerId: vm.footerId()
+        footerId: vm.footerId(),
+        loadAllProperties: hasDrawer()
     }));
 
     function getDrawerForm() {
@@ -1156,12 +1164,6 @@ workbookPage.viewModel = function (options) {
             feather: theFeather.name
         });
     }
-    function hasDrawer() {
-        return (
-            vm.sheet().drawerForm &&
-            vm.sheet().drawerForm !== "N"
-        );
-    }
 
     function handleDrawer() {
         vm.tableWidget().isMultiSelectEnabled(!hasDrawer());
@@ -1174,14 +1176,13 @@ workbookPage.viewModel = function (options) {
             vm.formWidget(undefined);
             return;
         }
-        let fw = vm.formWidget();
         let mdl = vm.tableWidget().selections()[0];
 
         mdl.state().send("freeze");
         vm.formWidget(f.createViewModel("FormWidget", {
             model: mdl,
             config: getDrawerForm(),
-            maxHeight: "200px",
+            maxHeight: "300px",
             isScrollable: true
         }));
     });
@@ -1549,7 +1550,7 @@ workbookPage.component = {
         if (formWidget) {
             drawerForm = m("div", {
                 id: formWidget.model().id() + "wrapper",
-                style: {height: "200px"}
+                style: {height: "300px"}
             }, [m(fw, {viewModel: formWidget})]);
         }
 

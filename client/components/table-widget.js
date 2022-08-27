@@ -1624,7 +1624,9 @@ tableWidget.viewModel = function (options) {
         @param {Boolean} flag Default false
         @return {Boolean}
     */
-    vm.isLoadAllProperties = f.prop(false);
+    vm.isLoadAllProperties = f.prop(
+        Boolean(options.loadAllProperties)
+    );
     /**
         Flag whether list is populated by query.
         @method isQuery
