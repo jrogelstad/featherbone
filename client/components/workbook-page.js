@@ -1155,12 +1155,15 @@ workbookPage.viewModel = function (options) {
         if (!df || df === "N") {
             return false;
         }
+        let form;
+
+        if (df !== "D") {
+            form = f.catalog().store().data().forms().find(function (frm) {
+                return df === frm.name;
+            }) || {};
+        }
         return f.getForm({
-            form: (
-                df === "D"
-                ? undefined
-                : df
-            ),
+            form: form.id,
             feather: theFeather.name
         });
     }
