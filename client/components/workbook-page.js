@@ -1172,13 +1172,23 @@ workbookPage.viewModel = function (options) {
 
     vm.tableWidget().state().resolve("/Selection/On").enter(function () {
         let df = vm.sheet().drawerForm || "N";
-        vm.formWidget(undefined);
         if (df === "N") {
+            vm.formWidget(undefined);
             return;
         }
         let mdl = vm.tableWidget().selections()[0];
+        let formWidget = vm.formWidget();
 
-        m.redraw.sync();
+        if (
+            formWidget &&
+            formWidget.model() &&
+            formWidget.model().id() === mdl.id()
+        ) {
+            return;
+        }
+
+        vm.formWidget(undefined);
+        m.redraw.sync(); // Force refresh
         mdl.state().send("freeze");
         vm.formWidget(f.createViewModel("FormWidget", {
             model: mdl,
