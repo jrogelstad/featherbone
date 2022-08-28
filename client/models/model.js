@@ -1999,6 +1999,9 @@ function createModel(data, feather) {
                 this.event("delete", function () {
                     this.goto("/Deleted");
                 });
+                this.event("fetched", function () {
+                    this.goto("/Ready/Fetched/Clean");
+                });
                 this.canCopy = () => false;
                 this.canDelete = () => true;
                 this.canSave = model.isValid;
