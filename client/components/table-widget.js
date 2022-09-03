@@ -1683,7 +1683,7 @@ tableWidget.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.errorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "report_problem",
+        icon: "error",
         title: "Error"
     }));
     /**
@@ -2029,7 +2029,10 @@ tableWidget.viewModel = function (options) {
         @method save
     */
     vm.save = function () {
-        vm.models().save(vm);
+        vm.models().save(vm).catch(function (err) {
+            vm.errorDialog().message(err.message);
+            vm.errorDialog().show();
+        });
     };
     /**
         @method scrollbarWidth
