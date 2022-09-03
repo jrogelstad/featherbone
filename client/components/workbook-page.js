@@ -86,6 +86,10 @@ const editSheetConfig = {
         grid: 1
     }, {
         attr: "form",
+        grid: 1,
+        label: "Drill down form"
+    }, {
+        attr: "drawerForm",
         grid: 1
     }, {
         attr: "isEditModeEnabled",
@@ -332,7 +336,8 @@ workbookPage.viewModel = function (options) {
             id: sheet.id,
             name: sheet.name,
             feather: sheet.feather,
-            form: sheet.form || "",
+            form: sheet.form || "D",
+            drawerForm: sheet.drawerForm || "N",
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
@@ -348,6 +353,7 @@ workbookPage.viewModel = function (options) {
             sheet.name = data.name;
             sheet.feather = data.feather;
             sheet.form = data.form;
+            sheet.drawerForm = data.drawerForm;
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
@@ -383,6 +389,7 @@ workbookPage.viewModel = function (options) {
                 vm.buttonEdit().disable();
             }
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
+            handleDrawer();
 
             vm.saveProfile();
             vm.refresh();
@@ -445,6 +452,15 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.FilterDialog}
     */
     vm.filterDialog = f.prop();
+    /**
+        Form widget for inline viewing
+
+        @method formWidget
+        @param {ViewModels.FormWidget} [widget]
+        @return {ViewModels.FormWidget}
+    */
+    vm.formWidget = f.prop();
+
     /**
         @method goHome
     */
@@ -1113,6 +1129,13 @@ workbookPage.viewModel = function (options) {
         refresh: vm.refresh
     }));
 
+    function hasDrawer() {
+        return (
+            vm.sheet().drawerForm &&
+            vm.sheet().drawerForm !== "N"
+        );
+    }
+
     // Create table widget view model
     vm.tableWidget(f.createViewModel("TableWidget", {
         class: formWorkbookClass,
@@ -1123,8 +1146,64 @@ workbookPage.viewModel = function (options) {
         search: vm.searchInput().value,
         ondblclick: vm.modelOpen,
         subscribe: true,
-        footerId: vm.footerId()
+        footerId: vm.footerId(),
+        loadAllProperties: hasDrawer()
     }));
+
+    function getDrawerForm() {
+        let df = vm.sheet().drawerForm;
+        if (!df || df === "N") {
+            return false;
+        }
+        let form;
+
+        if (df !== "D") {
+            form = f.catalog().store().data().forms().find(function (frm) {
+                return df === frm.name;
+            }) || {};
+        }
+        return f.getForm({
+            form: form.id,
+            feather: theFeather.name
+        });
+    }
+
+    function handleDrawer() {
+        vm.tableWidget().isMultiSelectEnabled(!hasDrawer());
+        vm.tableWidget().isLoadAllProperties(hasDrawer());
+    }
+
+    vm.tableWidget().state().resolve("/Selection/On").enter(function () {
+        let df = vm.sheet().drawerForm || "N";
+        if (df === "N") {
+            vm.formWidget(undefined);
+            return;
+        }
+        let mdl = vm.tableWidget().selections()[0];
+        let formWidget = vm.formWidget();
+
+        if (
+            formWidget &&
+            formWidget.model() &&
+            formWidget.model().id() === mdl.id()
+        ) {
+            return;
+        }
+
+        vm.formWidget(undefined);
+        m.redraw.sync(); // Force refresh
+        mdl.state().send("freeze");
+        vm.formWidget(f.createViewModel("FormWidget", {
+            model: mdl,
+            config: getDrawerForm(),
+            maxHeight: "300px",
+            isScrollable: true
+        }));
+    });
+    vm.tableWidget().state().resolve("/Selection/Off").enter(function () {
+        vm.formWidget(undefined);
+    });
+    handleDrawer();
 
     // Watch when columns change and save profile
     vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
@@ -1478,6 +1557,16 @@ workbookPage.component = {
                 : " pure-menu-disabled"
             )
         );
+        let fw = f.getComponent("FormWidget");
+        let formWidget = vm.formWidget();
+        let drawerForm;
+
+        if (formWidget) {
+            drawerForm = m("div", {
+                id: formWidget.model().id() + "wrapper",
+                style: {height: "300px"}
+            }, [m(fw, {viewModel: formWidget})]);
+        }
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1550,6 +1639,7 @@ workbookPage.component = {
         }
 
         return m("div", {
+            id: "workbook-table",
             class: "pure-form",
             oncreate: function () {
                 let title = vm.sheet().name.toName();
@@ -1763,6 +1853,7 @@ workbookPage.component = {
                     m("div", {
                         id: vm.footerId()
                     }, [
+                        drawerForm,
                         tabs,
                         m("i", {
                             class: (
