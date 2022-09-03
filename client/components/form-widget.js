@@ -322,6 +322,11 @@ function buildFieldset(vm, attrs) {
 
 function resizeWidget(vm, vnode) {
     let e = document.getElementById(vnode.dom.id);
+    let maxHeight = vm.maxHeight();
+    if (maxHeight) {
+        e.style.maxHeight = maxHeight;
+        return;
+    }
     let bodyHeight = window.innerHeight;
     let eids = vm.outsideElementIds();
 
@@ -456,6 +461,14 @@ formWidget.viewModel = function (options) {
         @return {Integer}
     */
     vm.selectedTab = f.prop(1);
+    /**
+        Fixed max height of the form.
+
+        @method maxHeight
+        @param {String} [max height]
+        @return {String}
+    */
+    vm.maxHeight = f.prop(options.maxHeight);
     /**
         @method model
         @param {Model} [model]
