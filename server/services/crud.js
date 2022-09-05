@@ -778,7 +778,16 @@
                     sql += " TO SAVEPOINT last_savepoint; COMMIT;";
                     savepoint = false;
                 }
-                client.query(sql).then(resolve).catch(reject);
+                client.query(sql).then(function () {
+                    let callbacks = client.rollbacks.slice();
+                    function next() {
+                        if (callbacks.length) {
+                            callbacks.shift()().then(next).catch(console.log);
+                        }
+                    }
+                    next();
+                    resolve();
+                }).then(resolve).catch(reject);
             });
         };
         /**
@@ -1843,21 +1852,12 @@
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                if (
-                    !obj.filter || (
-                        !obj.filter.criteria &&
-                        !obj.filter.limit
-                    )
-                ) {
-                    feathername = obj.name;
-                }
-
                 // Handle subscription
                 await events.subscribe(
                     theClient,
                     obj.subscription,
                     result.map((item) => item.id),
-                    feathername
+                    obj.name
                 );
 
                 return result;

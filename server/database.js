@@ -263,9 +263,14 @@
 
                         pool.connect(function (err, c, d) {
                             let callbacks = [];
+                            let rollbacks = [];
 
                             function doOnCommit(callback) {
                                 callbacks.push(callback);
+                            }
+
+                            function doOnRollback(callback) {
+                                rollbacks.push(callback);
                             }
 
                             // handle an error from the connection
@@ -283,7 +288,9 @@
                             c.isTriggering = prop(false);
                             c.wrapped = prop(false);
                             c.onCommit = doOnCommit;
+                            c.onRollback = doOnRollback;
                             c.callbacks = callbacks;
+                            c.rollbacks = rollbacks;
                             clients[id] = c;
 
                             if (referenceOnly) {
@@ -293,7 +300,8 @@
                                         currentUser: c.currentUser,
                                         isTriggering: c.isTriggering,
                                         wrapped: c.wrapped,
-                                        onCommit: doOnCommit
+                                        onCommit: doOnCommit,
+                                        onRollback: doOnRollback
                                     }),
                                     done: function () {
                                         delete clients[id];
