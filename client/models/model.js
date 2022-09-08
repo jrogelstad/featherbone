@@ -1067,11 +1067,16 @@ function createModel(data, feather) {
 
         @method onSave
         @param {Function} callback Callback function to call on save
+        @param {Boolean} [flag] Put first in preprocess queue. Default false
         @chainable
         @return {Object}
     */
-    model.onSave = function (callback) {
-        onSave.push(callback);
+    model.onSave = function (callback, prepend) {
+        if (prepend) {
+            onSave.unshift(callback);
+        } else {
+            onSave.push(callback);
+        }
         return model;
     };
 
