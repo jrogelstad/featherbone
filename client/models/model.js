@@ -67,16 +67,20 @@ function simpleProp(store) {
     @private
     @method onFetching
 */
-function onFetching() {
-    this.state().goto("/Busy/Fetching");
+function onFetching(ary) {
+    if (!Array.isArray(ary) || ary.indexOf(this) !== -1) {
+        this.state().goto("/Busy/Fetching");
+    }
 }
 
 /**
     @private
     @method onFetched
 */
-function onFetched() {
-    this.state().goto("/Ready/Fetched");
+function onFetched(ary) {
+    if (!Array.isArray(ary) || ary.indexOf(this) !== -1) {
+        this.state().goto("/Ready/Fetched");
+    }
 }
 
 /**
@@ -132,8 +136,8 @@ function extendArray(model, prop, name, onChange, onChanged) {
         }
 
         // Synchronize statechart
-        state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
-        state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
+        state.resolve("/Busy/Fetching").enter(onFetching.bind(result, ary));
+        state.resolve("/Ready/Fetched").enter(onFetched.bind(result, ary));
 
         // Remove original enter response on child
         result.state().resolve("/Busy/Fetching").enters.shift();
@@ -1826,10 +1830,10 @@ function createModel(data, feather) {
 
                         // Synchronize statechart
                         state.resolve("/Busy/Fetching").enter(
-                            onFetching.bind(result)
+                            onFetching.bind(result, null)
                         );
                         state.resolve("/Ready/Fetched").enter(
-                            onFetched.bind(result)
+                            onFetched.bind(result, null)
                         );
 
                         // Remove original do fetch event on child
