@@ -562,6 +562,10 @@
             "label": {
                 "description": "Alternate column label",
                 "type": "string"
+            },
+            "width": {
+                "description": "Column width",
+                "type": "integer"
             }
         }
     },
