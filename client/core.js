@@ -217,7 +217,7 @@ function buildSelector(obj, opts) {
     let selectComponents = vm.selectComponents();
     let val = opts.prop();
     let values = obj.dataList.map((item) => item.value).join();
-
+ 
     val = (
         val === ""
         ? undefined
@@ -877,6 +877,9 @@ formats.textArea.editor = function (options) {
         required: options.required,
         style: options.style,
         onchange: (e) => prop(e.target.value),
+        onclick: function (e) {
+            e.redraw = false;
+        },
         oncreate: options.onCreate,
         onremove: options.onRemove,
         onfocus: options.onFocus,
@@ -1987,6 +1990,14 @@ f.processEvent = function (obj) {
         break;
     case "create":
         ary.add(ary.model(data));
+        /*
+        instance = ary.model();
+        instance.set(data, true, true);
+        instance.state().send("fetched");
+        if (ary.inFilter(instance)) {
+            ary.add(instance);
+        }
+        */
         break;
     case "delete":
         instance = ary.find(function (model) {
