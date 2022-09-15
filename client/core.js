@@ -312,12 +312,14 @@ function buildRelationWidgetFromLayout(id) {
             );
             vnode.attrs.form = (
                 layout.data.form()
-                ? f.getForm(layout.data.form().id())
+                ? f.getForm({form: layout.data.form().id()})
                 : undefined
             );
             vnode.attrs.list = {
                 columns: layout.data.searchColumns().toJSON()
             };
+            vnode.attrs.feather = layout.data.feather();
+
             oninit(vnode);
         },
         view: relationWidget.view
@@ -2066,8 +2068,8 @@ f.resolveAlias = function (feather, attr) {
         return attr.toName();
     }
 
-    ret = overload.alias || feather.properties[attr].alias || attr;
-    return ret.toName();
+    ret = overload.alias || feather.properties[attr].alias || attr.toName();
+    return ret;
 };
 
 /**
