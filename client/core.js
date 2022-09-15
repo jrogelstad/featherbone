@@ -312,12 +312,14 @@ function buildRelationWidgetFromLayout(id) {
             );
             vnode.attrs.form = (
                 layout.data.form()
-                ? f.getForm(layout.data.form().id())
+                ? f.getForm({form: layout.data.form().id()})
                 : undefined
             );
             vnode.attrs.list = {
                 columns: layout.data.searchColumns().toJSON()
             };
+            vnode.attrs.feather = layout.data.feather();
+
             oninit(vnode);
         },
         view: relationWidget.view
@@ -877,6 +879,9 @@ formats.textArea.editor = function (options) {
         required: options.required,
         style: options.style,
         onchange: (e) => prop(e.target.value),
+        onclick: function (e) {
+            e.redraw = false;
+        },
         oncreate: options.onCreate,
         onremove: options.onRemove,
         onfocus: options.onFocus,
@@ -1987,6 +1992,14 @@ f.processEvent = function (obj) {
         break;
     case "create":
         ary.add(ary.model(data));
+        /*
+        instance = ary.model();
+        instance.set(data, true, true);
+        instance.state().send("fetched");
+        if (ary.inFilter(instance)) {
+            ary.add(instance);
+        }
+        */
         break;
     case "delete":
         instance = ary.find(function (model) {
@@ -2055,8 +2068,8 @@ f.resolveAlias = function (feather, attr) {
         return attr.toName();
     }
 
-    ret = overload.alias || feather.properties[attr].alias || attr;
-    return ret.toName();
+    ret = overload.alias || feather.properties[attr].alias || attr.toName();
+    return ret;
 };
 
 /**
