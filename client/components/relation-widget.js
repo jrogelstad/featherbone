@@ -274,11 +274,15 @@ relationWidget.viewModel = function (options) {
         @method new
     */
     vm.new = function () {
+        let form = options.form || {};
+        let thefeather = options.feather || type.relation.toSpinalCase();
+
         m.route.set("/edit/:feather/:key", {
-            feather: type.relation.toSpinalCase(),
+            feather: thefeather,
             key: f.createId()
         }, {
             state: {
+                form: form.id,
                 receiver: registerReceiver(),
                 create: true
             }
@@ -576,6 +580,7 @@ relationWidget.component = {
                 labelProperty: options.labelProperty,
                 form: options.form,
                 list: options.list,
+                feather: options.feather,
                 filter: options.filter,
                 isCell: options.isCell,
                 id: options.id,
