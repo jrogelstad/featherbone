@@ -83,6 +83,8 @@ relationWidget.viewModel = function (options) {
     let configId = f.createId();
     let blurVal;
     let theProps = options.list.columns.map((l) => l.attr);
+    let thefeather = options.feather || type.relation;
+
     if (theProps.indexOf(labelProperty) === -1) {
         theProps.unshift(labelProperty);
     }
@@ -148,7 +150,7 @@ relationWidget.viewModel = function (options) {
         }
     }
 
-    modelList = f.createList(type.relation, {
+    modelList = f.createList(thefeather, {
         background: true,
         filter: mergeFilter(theFilter),
         fetch: false,
@@ -275,10 +277,9 @@ relationWidget.viewModel = function (options) {
     */
     vm.new = function () {
         let form = options.form || {};
-        let thefeather = options.feather || type.relation.toSpinalCase();
 
         m.route.set("/edit/:feather/:key", {
-            feather: thefeather,
+            feather: thefeather.toSpinalCase(),
             key: f.createId()
         }, {
             state: {
@@ -315,7 +316,7 @@ relationWidget.viewModel = function (options) {
         f.catalog().register("config", configId, searchList);
 
         m.route.set("/search/:feather", {
-            feather: type.relation.toSpinalCase(),
+            feather: thefeather.toSpinalCase(),
             config: configId
         }, {
             state: {
@@ -537,7 +538,7 @@ relationWidget.viewModel = function (options) {
     vm.style(options.style || {});
 
     f.catalog().isAuthorized({
-        feather: type.relation,
+        feather: thefeather,
         action: "canCreate",
         background: true
     }).then(vm.canCreate).catch(function (err) {
