@@ -1070,7 +1070,7 @@ function createModel(data, feather) {
         untill the promises are resolved.
 
         @method onSave
-        @param {Function} callback Callback function to call on save
+        @param {Function} callback Callback function to call before save
         @param {Boolean} [flag] Put first in preprocess queue. Default false
         @chainable
         @return {Object}
@@ -1089,11 +1089,12 @@ function createModel(data, feather) {
         passed in similar to static functions that allow for working with
         interactive dialogs or other presentation related elements.
 
-        The callback function should return a Promise. Save will not complete
-        untill the promises are resolved.
+        The callback function should return a Promise. Note at this point
+        the save will be committed, so this handles user interactions as
+        post processing such as prompts to print or continue on to next steps.
 
         @method onSaved
-        @param {Function} callback Callback function to call on change
+        @param {Function} callback Callback function to call after save
         @chainable
         @return {Object}
     */

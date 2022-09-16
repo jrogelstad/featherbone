@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser, unordered*/
+/*jslint this, browser, unordered, devel*/
 /**
     @module List
 */
@@ -40,11 +40,12 @@ const LIMIT = 20;
 function createList(feather) {
     let state;
     let doFetch;
-    let doSave;
     let doSend;
     let onClean;
     let onDirty;
     let onDelete;
+    let onSave = [];
+    let onSaved = [];
     let models = catalog.store().models();
     let name = feather.toCamelCase();
     let isSubscribed = false;
@@ -240,6 +241,24 @@ function createList(feather) {
     */
     ary.filter = f.prop({});
 
+    /* TODO
+    ary.inFilter = function () {
+        console.log(JSON.stringify(ary.filter(), null, 2));
+        let criteria = ary.filter().criteria;
+        if (criteria) {
+            return criteria.every(function (crit) {
+                if (Array.isArray(crit.property)) {
+                    crit.property.some(function () {
+                        return true;
+                    });
+                }
+                return true;
+            });
+        }
+        return true;
+    };
+    */
+
     /**
         Default fetch limit.
 
@@ -293,7 +312,47 @@ function createList(feather) {
         @return {Objects}
     */
     ary.model = models[feather.toCamelCase() || "Model"];
+    /**
+        A function to call before executing save. A view model will be
+        passed in similar to static functions that allow for working with
+        interactive dialogs or other presentation related elements.
 
+        The callback function should return a Promise. Save will not complete
+        untill the promises are resolved.
+
+        @method onSave
+        @param {Function} callback Callback function to call before save
+        @param {Boolean} [flag] Put first in preprocess queue. Default false
+        @chainable
+        @return {Object}
+    */
+    ary.onSave = function (callback, prepend) {
+        if (prepend) {
+            onSave.unshift(callback);
+        } else {
+            onSave.push(callback);
+        }
+        return ary;
+    };
+
+    /**
+        A function to call after executing save. A view model will be
+        passed in similar to static functions that allow for working with
+        interactive dialogs or other presentation related elements.
+
+        The callback function should return a Promise. Note at this point
+        the save(s) will be committed, so this handles user interactions as
+        post processing such as prompts to print or continue on to next steps.
+
+        @method onSaved
+        @param {Function} callback Callback function to call on change
+        @chainable
+        @return {Object}
+    */
+    ary.onSaved = function (callback) {
+        onSaved.push(callback);
+        return ary;
+    };
     /**
         The url path to data.
 
@@ -582,18 +641,43 @@ function createList(feather) {
         return m.request(payload).then(callback).catch(console.error);
     };
 
-    doSave = function (context) {
+    async function doPreProcess(vm) {
+        let idx = 0;
+        let callback;
+        while (idx < onSave.length) {
+            callback = onSave[idx];
+            idx += 1;
+            await callback(vm);
+        }
+    }
+
+    async function doPostProcess(vm) {
+        let idx = 0;
+        let callback;
+        while (idx < onSaved.length) {
+            callback = onSaved[idx];
+            idx += 1;
+            await callback(vm);
+        }
+    }
+
+    async function doSave(context) {
         let requests = [];
+        let resp;
 
-        dirty.forEach(function (model) {
-            requests.push(model.save(context.viewModel));
-        });
+        try {
+            await doPreProcess(context.viewModel);
 
-        Promise.all(requests).then(function (resp) {
+            requests = dirty.map((mdl) => mdl.save(context.viewModel));
+            resp = await Promise.all(requests);
             state.send("changed");
             context.resolve(resp);
-        }).catch(context.reject);
-    };
+
+            await doPostProcess(context.viewModel);
+        } catch (e) {
+            context.reject(e);
+        }
+    }
 
     doSend = function (...args) {
         let evt = args[0];
@@ -710,5 +794,6 @@ function list(feather) {
 }
 
 catalog.register("factories", "list", list);
+catalog.register("lists");
 
 export default Object.freeze(list);
