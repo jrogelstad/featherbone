@@ -1585,7 +1585,7 @@
         }
         return outBytes;
     }
-
+    exports.readFile = readFile;
     exports.fetchBytes = fetchBytes;
     exports.annotate = async function (bytes, options) {
         if (!options) {
