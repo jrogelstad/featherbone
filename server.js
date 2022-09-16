@@ -261,6 +261,8 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+
+            webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
                 (process.env.RPID || resp.rpId || "localhost"),
                 (process.env.ORIGIN || resp.origin || "http://localhost")
