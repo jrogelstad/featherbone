@@ -1509,6 +1509,7 @@
                 clearTimeout(sessions[req.sessionID]);
             }
             if (req.user) {
+                webauthn.applyToken(req);
                 req.user.mode = mode;
                 sessions[req.sessionID] = setTimeout(function () {
                     logger.verbose("Session " + req.sessionID + " timed out");
@@ -1540,7 +1541,6 @@
 
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
-
         app.get("/webauthn/reg", webauthn.doWebAuthNRegister);
         app.post("/webauthn/reg", webauthn.postWebAuthNRegister);
         app.get("/webauthn/auth", webauthn.doWebAuthNAuthenticate);
