@@ -1,18 +1,12 @@
 /*jslint node, unordered */
 
-// USING: https://github.com/webauthn-open-source/fido2-lib
-// ALTERNATE: https://github.com/Jxck/jxck.io/blob/main/labs.jxck.io/webauthentication/fido-u2f/app.mjs
-// ALT 2: https://github.com/ais-one/cookbook/blob/develop/js-node/expressjs/router/fido.js
-// and https://github.com/ais-one/cookbook/blob/develop/js-node/expressjs/public/demo-express/fido.html
-// FLOW: https://webauthn.guide/
-// https://developers.yubico.com/WebAuthn/WebAuthn_Developer_Guide/WebAuthn_Client_Registration.html
-//
 (function (exports) {
     "use strict";
     const f = require("../../common/core");
     const datasource = require("../datasource");
     const {Fido2Lib} = require("fido2-lib");
     const crypto = require("crypto");
+    const pdf = require("./pdf.js");
     let challenges = {};
 
     let fido2Lib;
@@ -318,11 +312,138 @@
         res.writeHeader(200, "application/json");
         res.write(JSON.stringify(result));
         res.end();
-
-        //let td = new TextDecoder();
+    }
+    function applyToken(req) {
+        let tokenStr = req.get("fb-token");
+        if (tokenStr) {
+            if (tokenStr.match(/^undefined$/)) {
+                console.warn("Missed identity verification.");
+            } else {
+                let token = extractToken(req);
+                if (token) {
+                    console.log("Applying token: '" + token.name + "'");
+                    req.user = {
+                        id: token.id,
+                        name: token.name
+                    };
+                } else {
+                    console.error("Invalid token");
+                }
+            }
+        }
+    }
+    function extractToken(req) {
+        let key = parseCipherKey();
+        let outObj;
+        let token = req.get("fb-token");
+        if (key && token) {
+            token = decodeURI(token);
+            let tokenDec = decryptToString(key, token);
+            if (tokenDec) {
+                /// Having trouble with PKCS#5/7 padding
+                /// Trim off anything after the last brace
+                let trim = tokenDec.substring(0, tokenDec.lastIndexOf("}") + 1);
+                let tokenObj = JSON.parse(trim);
+                if (tokenObj) {
+                    let expiry = tokenObj.expiryDate - Date.now();
+                    if (expiry > 0) {
+                        outObj = tokenObj;
+                    } else {
+                        console.warn("Token expired");
+                    }
+                } else {
+                    console.error("Failed to parse JSON object");
+                }
+            } else {
+                console.error("Failed to decrypt token");
+            }
+        } else {
+            console.error("Invalid key or token");
+        }
+        return outObj;
     }
 
+    function parseKey(xmlStr) {
+        if (!xmlStr) {
+            return null;
+        }
+        let matKey = xmlStr.match(/<key>([A-Za-z0-9+=\/]+)<\/key>/);
+        let matIv = xmlStr.match(/<iv>([A-Za-z0-9+=\/]+)<\/iv>/);
+        let key;
+        let iv;
+        if (matKey && matKey.length) {
+            key = matKey[1];
+        } else {
+            console.warn("Failed to parse key");
+        }
+        if (matIv && matIv.length) {
+            iv = matIv[1];
+        } else {
+            console.warn("Failed to parse IV");
+        }
+        if (key && iv) {
+            return setDecryptCipher(
+                {
+                    key,
+                    iv
+                }
+            );
+        } else {
+            return null;
+        }
+    }
+
+    function setDecryptCipher(cipherKey, algo) {
+        if (!cipherKey || !cipherKey.key || !cipherKey.iv) {
+            console.error("Invalid cipherKey");
+            return;
+        }
+
+        let keyByte = new Uint8Array(Buffer.from(cipherKey.key, "base64"));
+        let ivByte = new Uint8Array(Buffer.from(cipherKey.iv, "base64"));
+
+        let algorithm = algo || "aes-256-cbc";
+        let secretKey = keyByte;
+        let iv = ivByte;
+
+        cipherKey.decrypt = crypto.createDecipheriv(algorithm, secretKey, iv);
+        cipherKey.decrypt.setAutoPadding(false);
+        return cipherKey;
+    }
+
+    let cipherBuff;
+    async function loadCipher() {
+        cipherBuff = await pdf.readFile("./server/cipher.key");
+    }
+    loadCipher();
+
+    function parseCipherKey() {
+        let keyBuff = cipherBuff;
+        if (!keyBuff) {
+            console.error("Invalid key");
+            return;
+        }
+        return parseKey(Buffer.from(keyBuff).toString());
+    }
+
+    function decryptToString(cipherKey, base64Txt) {
+        if (!cipherKey || !cipherKey.decrypt) {
+            console.error("Invalid cipher key");
+            return null;
+        }
+        let decryptedData = cipherKey.decrypt.update(
+            base64Txt,
+            "base64",
+            "utf-8"
+        );
+        decryptedData += cipherKey.decrypt.final("utf-8");
+        return decryptedData;
+    }
     exports.webauthn = {
+        extractToken,
+        applyToken,
+        decryptToString,
+        parseCipherKey,
         doWebAuthNAuthenticate,
         doWebAuthNRegister,
         postWebAuthNRegister,
