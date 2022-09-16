@@ -2263,16 +2263,19 @@ tableWidget.viewModel = function (options) {
     vm.aggregates(f.copy(options.config.aggregates));
     vm.aggregateValues = f.prop();
     vm.filter().limit = vm.filter().limit || LIMIT;
+    let lopts = {
+        fetch: false,
+        subscribe: options.subscribe,
+        isEditable: vm.isEditModeEnabled(),
+        filter: vm.filter()
+    };
     if (!options.models) {
-        vm.models(f.createList(
-            feather.name,
-            {
-                fetch: false,
-                subscribe: options.subscribe,
-                isEditable: vm.isEditModeEnabled(),
-                filter: vm.filter()
-            }
-        ));
+        let flist = f.catalog().store().lists()[feather.name.toCamelCase()];
+        if (flist) {
+            vm.models(flist(lopts));
+        } else {
+            vm.models(f.createList(feather.name, lopts));
+        }
         setProperties();
         doFetch();
         doFetchAggregates();
