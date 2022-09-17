@@ -985,7 +985,6 @@
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
                         client: theClient,
-                        callback: afterDoSelect,
                         sanitize: false
                     }, true).then(afterDoSelect).catch(reject);
                 };
@@ -1010,8 +1009,12 @@
                         oldRec && oldRec.lock &&
                         oldRec.lock[eventKey] !== obj.eventKey
                     ) {
-                        msg = "Record is locked by " + oldRec.lock.username;
-                        msg += " and cannot be updated.";
+                        msg = (
+                            "Record " + obj.id +
+                            " type " + oldRec.objectType +
+                            " is locked by " + oldRec.lock.username +
+                            " and cannot be deleted."
+                        );
                         reject(new Error(msg));
                         return;
                     }
@@ -1800,7 +1803,10 @@
                 sql += " WHERE id = $1";
 
                 if (obj.isForUpdate) {
-                    sql += " FOR UPDATE";
+                    await theClient.query(
+                        "SELECT pg_advisory_xact_lock($1);",
+                        [key]
+                    );
                 }
 
                 result = await theClient.query(sql, [obj.id]);
@@ -1843,10 +1849,6 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
-
-                if (obj.isForUpdate) {
-                    sql += " FOR UPDATE";
-                }
 
                 //console.log(sql, params);
                 result = await theClient.query(sql, params);
@@ -2033,9 +2035,12 @@
                         resp && resp.lock &&
                         resp.lock[eventKey] !== obj.eventKey
                     ) {
-                        msg = "Record is locked by ";
-                        msg += resp.lock.username;
-                        msg += " and cannot be updated.";
+                        msg = (
+                            "Record " + resp.id +
+                            " object type " + resp.objectType +
+                            " is locked by " + resp.lock.username +
+                            " and cannot be updated."
+                        );
                         reject(new Error(msg));
                         return;
                     }
@@ -2483,107 +2488,104 @@
             @param {String} [process] Description of lock reason
             @return {Promise} Resolves to `true` if successful.
         */
-        crud.lock = function (client, nodeid, id, username, eventkey, process) {
+        crud.lock = async function (
+            client,
+            nodeid,
+            id,
+            username,
+            eventkey,
+            process
+        ) {
+            let prcLock = Boolean(process);
             process = process || "Editing";
-            return new Promise(function (resolve, reject) {
-                let msg;
+            let msg;
 
-                if (!nodeid) {
-                    reject(new Error("Lock requires a node id."));
-                    return;
-                }
+            if (!nodeid) {
+                throw new Error("Lock requires a node id.");
+            }
 
-                if (!eventkey) {
-                    reject(new Error("Lock requires an eventkey."));
-                    return;
-                }
+            if (!eventkey) {
+                throw new Error("Lock requires an eventkey.");
+            }
 
-                if (!id) {
-                    reject(new Error("Lock requires an object id."));
-                    return;
-                }
+            if (!id) {
+                throw new Error("Lock requires an object id.");
+            }
 
-                if (!username) {
-                    reject(new Error("Lock requires a username."));
-                    return;
-                }
+            if (!username) {
+                throw new Error("Lock requires a username.");
+            }
 
-                function checkLock() {
-                    return new Promise(function (resolve, reject) {
-                        let sql = (
-                            "SELECT to_json(lock) AS lock " +
-                            "FROM object WHERE id = $1"
-                        );
+            let sql = (
+                "SELECT pg_advisory_xact_lock(_pk) " +
+                "FROM object WHERE id = $1"
+            );
 
-                        function callback(resp) {
-                            if (!resp.rows.length) {
-                                msg = "Record " + id + " not found.";
-                                reject(new Error(msg));
-                                return;
-                            }
+            // If process wait until other processes release advisory lock
+            if (prcLock) {
+                await client.query(sql, [id]);
+            }
 
-                            if (
-                                resp.rows[0].lock &&
-                                resp.rows[0].lock[ekey] !== eventkey
-                            ) {
-                                msg = "Record " + id + " is already locked.";
-                                reject(new Error(msg));
-                                return;
-                            }
+            // Now get application record lock
+            sql = (
+                "SELECT to_json(lock) AS lock," +
+                "tableoid::regclass::text AS object_type " +
+                "FROM object WHERE id = $1"
+            );
 
-                            resolve();
-                        }
+            let resp = await client.query(sql, [id]);
 
-                        client.query(sql, [id]).then(
-                            callback
-                        ).catch(
-                            reject
-                        );
-                    });
-                }
+            if (!resp.rows.length) {
+                msg = "Record " + id + " not found.";
+                throw new Error(msg);
+            }
 
-                function doLock() {
-                    return new Promise(function (resolve, reject) {
-                        let params;
-                        let sql;
-
-                        sql = (
-                            "UPDATE object " +
-                            "SET lock = ROW($1, now(), $2, $3, $4) " +
-                            "WHERE id = $5"
-                        );
-
-                        function callback() {
-                            resolve(true);
-                        }
-
-                        params = [
-                            username,
-                            nodeid,
-                            eventkey,
-                            process,
-                            id
-                        ];
-
-                        client.query(sql, params).then(
-                            callback
-                        ).catch(
-                            reject
-                        );
-                    });
-                }
-
-                Promise.resolve().then(
-                    checkLock
-                ).then(
-                    doLock
-                ).then(
-                    resolve
-                ).catch(
-                    reject
+            if (
+                resp.rows[0].lock &&
+                resp.rows[0].lock[ekey] !== eventkey
+            ) {
+                msg = (
+                    "Record " + id + " on " +
+                    resp.rows[0].object_type.toName() +
+                    " is already locked by " +
+                    resp.rows[0].lock.username
                 );
+                throw new Error(msg);
+            }
 
-            });
+            // Do lock
+            sql = (
+                "UPDATE object " +
+                "SET lock = ROW($1, now(), $2, $3, $4) " +
+                "WHERE id = $5"
+            );
+
+            let params = [
+                username,
+                nodeid,
+                eventkey,
+                process,
+                id
+            ];
+
+            // Auto unlock process based locks on error
+            if (prcLock) {
+                client.onRollback(async function processkUnlock() {
+                    let rconn = await db.connect();
+                    let rsql = (
+                        "UPDATE object " +
+                        "SET lock = null WHERE id = $1;"
+                    );
+                    await rconn.client.query(rsql, [id]);
+                    rconn.done();
+                });
+            }
+
+            // Always update outside of transaction so all see it
+            let conn = await db.connect();
+            await conn.client.query(sql, params);
+            conn.done();
+            return true;
         };
 
         /**

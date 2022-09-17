@@ -675,7 +675,9 @@
         datasource.lock(
             req.body.id,
             username,
-            req.body.eventKey
+            req.body.eventKey,
+            undefined,
+            false
         ).then(
             respond.bind(res)
         ).catch(
