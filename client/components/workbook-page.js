@@ -239,7 +239,6 @@ workbookPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
-
     /**
         @method aggregateDialog
         @param {ViewModels.TableDialog} dialog
@@ -1149,6 +1148,19 @@ workbookPage.viewModel = function (options) {
         footerId: vm.footerId(),
         loadAllProperties: hasDrawer()
     }));
+    vm.actions = function () {
+        let acts = vm.tableWidget().actions();
+        acts.forEach(function (act) {
+            let oc = act.attrs.onclick;
+            act.attrs.onclick = function (ev) {
+                oc(ev);
+                vm.showActions(false);
+                ev.preventDefault();
+                ev.stopPropagation();
+            };
+        });
+        return acts;
+    };
 
     function getDrawerForm() {
         let df = vm.sheet().drawerForm;
@@ -1721,7 +1733,7 @@ workbookPage.component = {
                                         : ""
                                     )
                                 )
-                            }, vm.tableWidget().actions())
+                            }, vm.actions())
                         ]),
                         m("div", {
                             class: "fb-toolbar-spacer"
