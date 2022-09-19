@@ -1374,7 +1374,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
-        icon: "refresh",
+        icon: "autorenew",
         class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
