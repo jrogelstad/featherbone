@@ -1384,6 +1384,16 @@ tableWidget.viewModel = function (options) {
     }
 
     function doFetch(refresh) {
+        let list = vm.models();
+
+        if (
+            vm.isClearOnNoSearch() &&
+            !getFilter().criteria.length
+        ) {
+            list.reset();
+            return;
+        }
+
         if (refresh) {
             doFetchAggregates();
             offset = 0;
@@ -1392,13 +1402,13 @@ tableWidget.viewModel = function (options) {
 
         fetchCount += 1;
         setProperties();
-        vm.models().fetch(
+        list.fetch(
             getFilter(offset),
             refresh !== true
         ).then(function () {
             if (
                 fetchCount < FETCH_MAX &&
-                vm.models().length === offset + LIMIT
+                list.length === offset + LIMIT
             ) {
                 offset += LIMIT;
                 doFetch();
@@ -1614,6 +1624,15 @@ tableWidget.viewModel = function (options) {
         @return {Boolean}
     */
     vm.isMultiSelectEnabled = f.prop(true);
+    /**
+        If true no query results are shown unless
+        a filter criteria exist.
+
+        @method isClearOnNoSearch
+        @param {Boolean} flag Default false
+        @return {Boolean}
+    */
+    vm.isClearOnNoSearch = f.prop(Boolean(options.isClearOnNoSearch));
     /**
         If false then only shown properties
         are loaded, which helps with performance.

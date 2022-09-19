@@ -90,15 +90,20 @@ const editSheetConfig = {
         label: "Drill down form"
     }, {
         attr: "drawerForm",
+        label: "Drawer form",
         grid: 1
     }, {
         attr: "isEditModeEnabled",
         label: "Enable edit mode",
         grid: 1
     }, {
+        attr: "isClearOnNoSearch",
+        label: "Clear on no search",
+        grid: 1
+    }, {
         attr: "columns",
         showLabel: false,
-        height: "139px",
+        height: "219px",
         grid: 2,
         columns: [{
             attr: "attr",
@@ -111,7 +116,7 @@ const editSheetConfig = {
     }, {
         attr: "actions",
         showLabel: false,
-        height: "139px",
+        height: "219px",
         grid: 3,
         columns: [{
             attr: "name",
@@ -337,6 +342,7 @@ workbookPage.viewModel = function (options) {
             feather: sheet.feather,
             form: sheet.form || "D",
             drawerForm: sheet.drawerForm || "N",
+            isClearOnNoSearch: Boolean(sheet.isClearOnNoSearch),
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
@@ -353,6 +359,7 @@ workbookPage.viewModel = function (options) {
             sheet.feather = data.feather;
             sheet.form = data.form;
             sheet.drawerForm = data.drawerForm;
+            sheet.isClearOnNoSearch = data.isClearOnNoSearch;
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
@@ -387,6 +394,7 @@ workbookPage.viewModel = function (options) {
             } else {
                 vm.buttonEdit().disable();
             }
+            vm.tableWidget().isClearOnNoSearch(data.isClearOnNoSearch);
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
             handleDrawer();
 
@@ -1141,6 +1149,7 @@ workbookPage.viewModel = function (options) {
         actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
+        isClearOnNoSearch: vm.sheet().isClearOnNoSearch,
         feather: vm.sheet().feather,
         search: vm.searchInput().value,
         ondblclick: vm.modelOpen,
@@ -1167,7 +1176,7 @@ workbookPage.viewModel = function (options) {
         if (!df || df === "N") {
             return false;
         }
-        let form;
+        let form = {};
 
         if (df !== "D") {
             form = f.catalog().store().data().forms().find(function (frm) {
@@ -1280,6 +1289,7 @@ workbookPage.viewModel = function (options) {
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
+    vm.sheetConfigureDialog().style().height = "485px";
     vm.sheetConfigureDialog().state().resolve(
         "/Display/Showing"
     ).exit(() => sheetEditModel.state().send("clear"));
