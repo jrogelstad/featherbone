@@ -1374,7 +1374,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
-        icon: "sync",
+        icon: "refresh",
         class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
@@ -1496,6 +1496,37 @@ workbookPage.viewModel = function (options) {
     @static
     @namespace Components
 */
+
+function spinButtonView() {
+    let vm = this.viewModel.buttonRefresh();
+    let tw = this.viewModel.tableWidget();
+    let iclass = "material-icons-outlined fb-button-icon ";		
+
+    if (tw.models().state().current()[0].slice(0, 5) === "/Busy") {
+        iclass += "fb-spin";
+    }
+
+    return m("button", {
+        class: "pure-button " + vm.class(),
+        id: vm.id(),
+        type: "button",
+        style: vm.style(),
+        disabled: vm.isDisabled(),
+        onclick: vm.onclick(),
+        oncreate: function () {
+            document.addEventListener("keydown", vm.onkeydown);
+        },
+        onremove: function () {
+            document.removeEventListener("keydown", vm.onkeydown);
+        },
+        title: vm.title()
+    }, [
+        m("i", {
+            class: iclass
+        }, vm.icon())
+    ], vm.label());
+}
+
 workbookPage.component = {
     /**
         Must pass view model instance or options to build one.
@@ -1582,6 +1613,10 @@ workbookPage.component = {
         let fw = f.getComponent("FormWidget");
         let formWidget = vm.formWidget();
         let drawerForm;
+        let spbtn = {
+            oninit: btn.oninit,
+            view: spinButtonView
+        };
 
         if (formWidget) {
             drawerForm = m("div", {
@@ -1754,8 +1789,8 @@ workbookPage.component = {
                         m(btn, {
                             viewModel: vm.buttonClear()
                         }),
-                        m(btn, {
-                            viewModel: vm.buttonRefresh()
+                        m(spbtn, {
+                            viewModel: vm
                         }),
                         m(btn, {
                             viewModel: vm.buttonSort()
