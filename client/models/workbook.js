@@ -177,6 +177,11 @@ const workbookDefaultConifg = {
             type: "string",
             default: "100"
         },
+        isClearOnNoSearch: {
+            description: "Show no results unless search or filter applied",
+            type: "boolean",
+            default: false
+        },
         isEditModeEnabled: {
             description: "Flags whether inline editing is allowed",
             type: "boolean",
@@ -789,6 +794,11 @@ const worksheet = {
             description: "Default drawer form",
             type: "string",
             dataList: "drawerForms"
+        },
+        isClearOnNoSearch: {
+            description: "Show no results unless search or filter applied",
+            type: "boolean",
+            default: false
         },
         isEditModeEnabled: {
             description: "ALlow inline editing",
