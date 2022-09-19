@@ -952,7 +952,7 @@ textarea {
 }
 .fb-spin {
     animation-name: spinning;
-    animation-duration: 0.4s;
+    animation-duration: 0.7s;
     animation-iteration-count: infinite;
     /* linear | ease | ease-in | ease-out | ease-in-out */
     animation-timing-function: linear;
