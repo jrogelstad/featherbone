@@ -406,6 +406,7 @@ function createList(feather) {
         ary.length = 0;
         dirty.length = 0;
         ary.index({});
+        state.goto("/Unitialized");
     };
 
     /**

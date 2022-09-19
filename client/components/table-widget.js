@@ -2548,6 +2548,14 @@ tableWidget.component = {
         let dlg = f.getComponent("Dialog");
         let aggs = theVm.aggregates();
         let tableBodyClass = "fb-table-body";
+        let watermarkStyle = {display: "none"};
+
+        if (
+            theVm.isClearOnNoSearch() &&
+            theVm.models().state().current()[0] === "/Unitialized"
+        ) {
+            watermarkStyle.display = "block";
+        }
 
         // Build header
         header = (function () {
@@ -2665,6 +2673,18 @@ tableWidget.component = {
             m("table", {
                 class: "pure-table fb-table"
             }, [
+                m("div", {
+                    class: "fb-search-watermark",
+                    id: "search-watermark",
+                    style: watermarkStyle
+                }, [
+                    m("div", {
+                        class: "fb-search-watermark-icon material-icons"
+                    }, "search"),
+                    m("div", {
+                        class: "fb-search-watermark-text"
+                    }, "Ready to Search")
+                ]),
                 m("thead", {
                     ondragover: theVm.ondragover,
                     draggable: true,
