@@ -53,6 +53,7 @@ function createList(feather) {
     let dirty = [];
     let sid = f.createId();
     let isBackground = false;
+    let pending = [];
 
     // ..........................................................
     // PUBLIC
@@ -401,9 +402,11 @@ function createList(feather) {
         @method reset
     */
     ary.reset = function () {
+        pending.length = 0;
         ary.length = 0;
         dirty.length = 0;
         ary.index({});
+        state.goto("/Unitialized");
     };
 
     /**
@@ -521,6 +524,9 @@ function createList(feather) {
         let theBody = {};
         let isMerge = true;
         let cfeather = catalog.getFeather(name.toCamelCase(true));
+        let pendId = f.createId();
+
+        pending.push(pendId);
 
         // Undo any edited rows
         if (!context.merge) {
@@ -537,6 +543,12 @@ function createList(feather) {
             let attrs;
             let props = {};
             let cache = [];
+
+            // If canceled, bail out
+            if (pending.indexOf(pendId) === -1) {
+                context.resolve(ary);
+                return;
+            }
 
             if (!isMerge) {
                 ary.reset();
@@ -592,6 +604,10 @@ function createList(feather) {
             }
 
             state.send("fetched");
+            if (!isBackground) {
+                m.redraw();
+            }
+            isBackground = false; // reset
             context.resolve(ary);
         }
 
@@ -635,10 +651,11 @@ function createList(feather) {
             method: "POST",
             url: theUrl,
             body: theBody,
-            background: isBackground
+            background: true
         };
-        isBackground = false; // reset
-        return m.request(payload).then(callback).catch(console.error);
+        return m.request(payload, {background: true}).then(
+            callback
+        ).catch(console.error);
     };
 
     async function doPreProcess(vm) {
@@ -713,6 +730,13 @@ function createList(feather) {
         this.state("Busy", function () {
             this.state("Fetching", function () {
                 this.enter(doFetch);
+                this.event("fetch", function (pContext) {
+                    pending.length = 0;
+                    this.goto("/Busy", {
+                        context: pContext,
+                        force: true
+                    });
+                });
             });
             this.state("Saving", function () {
                 this.enter(doSave);

@@ -214,7 +214,8 @@ searchInput.component = {
             onfocus: vm.start,
             onblur: vm.end,
             oninput: (e) => vm.text(e.target.value),
-            onkeydown: vm.onkeydown
+            onkeydown: vm.onkeydown,
+            autocomplete: "off"
         });
     }
 };
