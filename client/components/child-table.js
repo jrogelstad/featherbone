@@ -48,7 +48,7 @@ childTable.viewModel = function (options) {
         let currentState = root.state().current()[0];
 
         if (
-            canAdd() &&
+            canAdd() !== false &&
             currentState !== "/Ready/Fetched/ReadOnly" &&
             currentState !== "/Locked"
         ) {
