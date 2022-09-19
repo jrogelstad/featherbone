@@ -942,6 +942,22 @@ textarea {
   animation: lds-dual-ring 1.2s linear infinite;
 }
 
+@keyframes spinning {
+    from {
+        transform: rotate(0deg)
+    }
+    to {
+        transform: rotate(360deg)
+    }
+}
+.fb-spin {
+    animation-name: spinning;
+    animation-duration: 0.4s;
+    animation-iteration-count: infinite;
+    /* linear | ease | ease-in | ease-out | ease-in-out */
+    animation-timing-function: linear;
+}
+
 .lds-large-dual-ring {
   display: inline-block;
   width: 160px;
