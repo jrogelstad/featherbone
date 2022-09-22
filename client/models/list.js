@@ -720,6 +720,9 @@ function createList(feather) {
     // Define statechart
     state = State.define(function () {
         this.state("Unitialized", function () {
+            this.event("fetched", function () {
+                this.goto("/Fetched");
+            });
             this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
                     context: pContext
