@@ -1385,10 +1385,11 @@ tableWidget.viewModel = function (options) {
 
     function doFetch(refresh) {
         let list = vm.models();
+        let crit = getFilter().criteria || [];
 
         if (
             vm.isClearOnNoSearch() &&
-            !getFilter().criteria.length
+            !crit.length
         ) {
             list.reset();
             return;
