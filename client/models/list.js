@@ -53,7 +53,6 @@ function createList(feather) {
     let dirty = [];
     let sid = f.createId();
     let isBackground = false;
-    let pending = [];
 
     // ..........................................................
     // PUBLIC
@@ -364,6 +363,15 @@ function createList(feather) {
     ary.path = f.prop();
 
     /**
+        Pending transactions.
+
+        @method path
+        @param {String} Path
+        @return {String}
+    */
+    ary.pending = f.prop([]);
+
+    /**
         Array of properties to fetch if only a subset required.
         If undefined, then all properties returned.
 
@@ -402,7 +410,7 @@ function createList(feather) {
         @method reset
     */
     ary.reset = function () {
-        pending.length = 0;
+        ary.pending().length = 0;
         ary.length = 0;
         dirty.length = 0;
         ary.index({});
@@ -526,7 +534,7 @@ function createList(feather) {
         let cfeather = catalog.getFeather(name.toCamelCase(true));
         let pendId = f.createId();
 
-        pending.push(pendId);
+        ary.pending().push(pendId);
 
         // Undo any edited rows
         if (!context.merge) {
@@ -545,7 +553,7 @@ function createList(feather) {
             let cache = [];
 
             // If canceled, bail out
-            if (pending.indexOf(pendId) === -1) {
+            if (ary.pending().indexOf(pendId) === -1) {
                 context.resolve(ary);
                 return;
             }
@@ -734,7 +742,7 @@ function createList(feather) {
             this.state("Fetching", function () {
                 this.enter(doFetch);
                 this.event("fetch", function (pContext) {
-                    pending.length = 0;
+                    ary.pending().length = 0;
                     this.goto("/Busy", {
                         context: pContext,
                         force: true
