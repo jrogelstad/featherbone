@@ -141,6 +141,7 @@ relationWidget.viewModel = function (options) {
                 value: "^" + blurVal
             }];
             vm.fetch().then(function (resp) {
+                theFilter.criteria.length = 0;
                 if (resp && resp.length) {
                     vm.onchange(blurVal);
                 } else {

@@ -91,6 +91,9 @@ addressRelation.viewModel = function (options) {
         if (d.country) {
             content += cr + d.country();
         }
+        if (d.phone && d.phone()) {
+            content += cr + "Ph: " + d.phone();
+        }
 
         return content;
     };
@@ -211,6 +214,8 @@ addressRelation.viewModel = function (options) {
             }, {
                 attr: "country",
                 dataList: vm.countries()
+            }, {
+                attr: "phone"
             }]
         }
     }));

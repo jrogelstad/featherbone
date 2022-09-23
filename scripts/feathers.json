@@ -1113,7 +1113,7 @@
                 "type": {
                     "relation": "Address",
                     "properties": ["type", "street", "unit", "city",
-                        "state", "postalCode", "country"
+                        "state", "postalCode", "country", "phone"
                     ]
                 }
             },
