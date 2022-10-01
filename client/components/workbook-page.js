@@ -1220,6 +1220,7 @@ workbookPage.viewModel = function (options) {
             maxHeight: "300px",
             isScrollable: true
         }));
+        vm.formWidget().style().width = "92%";
     });
     vm.tableWidget().state().resolve("/Selection/Off").enter(function () {
         vm.formWidget(undefined);
