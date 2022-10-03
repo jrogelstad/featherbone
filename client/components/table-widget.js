@@ -1420,6 +1420,8 @@ tableWidget.viewModel = function (options) {
     // Dialog gets modified by actions, so reset after any useage
     function doResetDialog() {
         let dlg = vm.confirmDialog();
+        let state = dlg.buttonOk().state();
+        let mode = state.resolve(state.resolve("/Mode").current()[0]);
 
         dlg.icon("help_outline");
         dlg.title("Confirmation");
@@ -1433,15 +1435,15 @@ tableWidget.viewModel = function (options) {
                 id: dlg.ids().content
             }, dlg.message());
         };
-        dlg.buttons([
-            dlg.buttonOk,
-            dlg.buttonCancel
-        ]);
+        dlg.buttons([dlg.buttonOk, dlg.buttonCancel]);
+        dlg.buttonOk().title("");
         dlg.buttonOk().label("&Ok");
+        dlg.buttonOk().isDisabled = function () {
+            return mode.isDisabled();
+        };
+        dlg.buttonCancel().title("");
         dlg.buttonCancel().label("&Cancel");
-        dlg.style({
-            width: "500px"
-        });
+        dlg.style({width: "500px"});
     }
 
     function selectionChanged() {
