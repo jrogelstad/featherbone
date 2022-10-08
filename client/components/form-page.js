@@ -903,6 +903,16 @@ formPage.viewModel = function (options) {
         return vm.formWidget().model();
     };
    /**
+        Returns model for compatibility with actions
+        with list actions.
+
+        @method selection
+        @return {Model}
+    */
+    vm.selection = function () {
+        return vm.formWidget().model();
+    };
+   /**
         Returns model in an array for compatibility
         with list actions.
 
