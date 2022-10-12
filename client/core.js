@@ -2002,12 +2002,12 @@ f.processEvent = function (obj) {
         */
         break;
     case "delete":
-        instance = ary.find(function (model) {
+        instance = ary.indexOf(function (model) {
             return model.id() === data;
         });
 
-        if (instance) {
-            ary.remove(instance);
+        if (instance !== -1) {
+            ary.splice(instance, 1);
         }
         break;
     case "lock":
