@@ -534,7 +534,17 @@ formWidget.viewModel = function (options) {
     });
 
     // Subscribe to external events
-    vm.model().subscribe(true);
+    if (vm.model().state().current()[0] === "/Ready/New") {
+        let subscribed = false;
+        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
+            if (!subscribed) {
+                vm.model().subscribe(true);
+                subscribed = false;
+            }
+        });
+    } else {
+        vm.model().subscribe(true);
+    }
 
     return vm;
 };
