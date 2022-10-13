@@ -309,7 +309,7 @@ function createTableDataView(options, col) {
             let optKey;
             if (ev.shiftKey) {
                 optKey = "shiftKey";
-            } else if (ev.ctrlKey) {
+            } else if (ev.ctrlKey || ev.metaKey) {
                 optKey = "ctrlKey";
             }
             theVm.toggleSelection(
@@ -694,7 +694,7 @@ function createTableRow(options, pModel) {
         let optKey;
         if (ev.shiftKey) {
             optKey = "shiftKey";
-        } else if (ev.ctrlKey) {
+        } else if (ev.ctrlKey || ev.metaKey) {
             optKey = "ctrlKey";
         }
         theVm.toggleSelection(
