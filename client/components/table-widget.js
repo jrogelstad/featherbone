@@ -2302,7 +2302,9 @@ tableWidget.viewModel = function (options) {
         doFetch();
         doFetchAggregates();
     }
-    vm.models().state().resolve("/Unitialized").enter(vm.unselect);
+    if (vm.models().state) {
+        vm.models().state().resolve("/Unitialized").enter(vm.unselect);
+    }
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {
