@@ -251,6 +251,10 @@
             @return {Promise}
         */
         that.connect = function (referenceOnly) {
+            // TODO reference only prevents SQL in scripts,
+            // but what if there is no other way? Commenting
+            // out for now.
+            referenceOnly = false;
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
 
