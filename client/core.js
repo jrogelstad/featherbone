@@ -2212,7 +2212,7 @@ f.sendMail = function (params, dialog) {
         };
 
         dialog.title("Send mail");
-        dialog.icon("envelope");
+        dialog.icon("send");
         dialog.onOk(onOk);
         dialog.onCancel(reject);
         dialog.style({
