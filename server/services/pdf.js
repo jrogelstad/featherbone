@@ -927,13 +927,12 @@
                 }
             }
 
-/*          Some bug in footer fouls up alignment
+            //Some bug in footer fouls up alignment
             doc.footer().pageNumber(function (curr, total) {
                 return curr + " / " + total;
-            }, {
-                textAlign: "center"
-            });
-*/
+            }, {textAlign: "center"});
+            doc.cell("", {minHeight: 0.1 * pdf.cm});
+
             // Loop through data to build content
             function getRow() {
                 return rows.find((r) => r.id === currId);
