@@ -894,6 +894,7 @@
                     html: req.body.message.html
                 },
                 pdf: {
+                    data: req.body.pdf.data,
                     form: req.body.pdf.form,
                     ids: req.body.pdf.id || req.body.pdf.ids,
                     filename: req.body.pdf.filename

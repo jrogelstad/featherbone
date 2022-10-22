@@ -123,7 +123,7 @@
                 }
 
                 if (opts) {
-                    if (!opts.ids) {
+                    if (!opts.ids && !opts.data) {
                         attachPdf(opts.filename).then(
                             sendMail
                         ).then(
@@ -135,7 +135,7 @@
                         pdf.printForm(
                             obj.client,
                             opts.form,
-                            opts.ids,
+                            opts.data || opts.ids,
                             opts.filename
                         ).then(
                             attachPdf
