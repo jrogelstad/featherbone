@@ -1329,6 +1329,17 @@ formPage.component = {
                 viewModel: vm.formWidget()
             })
         ]);
+    },
+    onremove: function (vnode) {
+        let frminstances = f.catalog().store().formInstances();
+        let key = vnode.attrs.key;
+        let existing = frminstances[key];
+
+        // Form widget unsubscribes, but if cached leave subscription
+        // because we're intended to come back here
+        if (existing) {
+            existing.model().subscribe(true);
+        }
     }
 };
 
