@@ -639,9 +639,9 @@
                     break;
                 case "boolean":
                     if (value) {
-                        value = "True";
+                        value = "X";
                     } else {
-                        value = "False";
+                        value = "";
                     }
                     row.cell(fontMod(value), {
                         font: ovrFont,
