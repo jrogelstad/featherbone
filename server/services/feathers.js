@@ -472,7 +472,7 @@
                         function nextChild() {
                             if (deferred.length) {
                                 obj.client.query(
-                                    deferred.shift()
+                                    deferred.pop()
                                 ).then(
                                     nextChild
                                 ).catch(reject);
