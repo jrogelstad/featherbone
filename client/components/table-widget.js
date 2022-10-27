@@ -1130,7 +1130,7 @@ tableWidget.viewModel = function (options) {
                     fattrs.push(attr);
                 } else if (
                     typeof fmt === "object" &&
-                    !fmt.childOf
+                    fmt.relation
                 ) {
                     props = f.catalog().getFeather(fmt.relation).properties;
                     nk = Object.keys(props).find(
