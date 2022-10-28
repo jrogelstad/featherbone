@@ -1966,6 +1966,39 @@ f.processEvent = function (obj) {
         return;
     }
 
+    let filter = f.copy(ary.filter());
+    // Avoid resorting array driving DOM
+    // Make a copy to work with
+    let cary = ary.slice();
+    let at;
+    function doSort(a, b) {
+        let ret = 0;
+        let i = 0;
+        let item;
+        let prop;
+
+        while (i < filter.sort.length && ret === 0) {
+            item = filter.sort[i];
+            prop = item.property;
+            if (item.order === "DESC") {
+                if (a.data[prop]() < b.data[prop]()) {
+                    ret = 1;
+                } else if (a.data[prop]() > b.data[prop]()) {
+                    ret = -1;
+                }
+            } else {
+                if (a.data[prop]() > b.data[prop]) {
+                    ret = 1;
+                } else if (a.data[prop]() < b.data[prop]()) {
+                    ret = -1;
+                }
+            }
+            i += 1;
+        }
+
+        return ret;
+    }
+
     // Apply event to the catalog data;
     switch (change) {
     case "update":
@@ -1991,15 +2024,19 @@ f.processEvent = function (obj) {
         }
         break;
     case "create":
-        ary.add(ary.model(data));
-        /*
         instance = ary.model();
         instance.set(data, true, true);
         instance.state().send("fetched");
         if (ary.inFilter(instance)) {
-            ary.add(instance);
+            if (filter.sort) {
+                cary.push(instance);
+                cary.sort(doSort);
+                at = cary.indexOf(instance);
+                ary.add(instance, true, at);
+            } else {
+                ary.add(instance);
+            }
         }
-        */
         break;
     case "delete":
         instance = ary.indexOf(function (model) {
