@@ -1854,14 +1854,7 @@
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                if (
-                    !obj.filter || (
-                        !obj.filter.criteria &&
-                        !obj.filter.limit
-                    )
-                ) {
-                    feathername = obj.name;
-                }
+                feathername = obj.name;
 
                 // Handle subscription
                 await events.subscribe(
