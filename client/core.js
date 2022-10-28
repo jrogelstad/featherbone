@@ -1975,21 +1975,24 @@ f.processEvent = function (obj) {
         let ret = 0;
         let i = 0;
         let item;
-        let prop;
+        let aprop;
+        let bprop;
 
         while (i < filter.sort.length && ret === 0) {
             item = filter.sort[i];
-            prop = item.property;
+            aprop = f.resolveProperty(a, item.property);
+            bprop = f.resolveProperty(b, item.property);
+            
             if (item.order === "DESC") {
-                if (a.data[prop]() < b.data[prop]()) {
+                if (aprop() < bprop()) {
                     ret = 1;
-                } else if (a.data[prop]() > b.data[prop]()) {
+                } else if (aprop() > bprop()) {
                     ret = -1;
                 }
             } else {
-                if (a.data[prop]() > b.data[prop]) {
+                if (aprop() > bprop()) {
                     ret = 1;
-                } else if (a.data[prop]() < b.data[prop]()) {
+                } else if (aprop() < bprop()) {
                     ret = -1;
                 }
             }

@@ -260,15 +260,22 @@ function createList(feather) {
 
         if (criteria && criteria.length) {
             return criteria.every(function (crit) {
+                let prop;
+                let val;
+
                 // Search (OR)
                 if (Array.isArray(crit.property)) {
                     return crit.property.some(function (p) {
-                        return mdl.data[p]().search(crit.val);
+                        prop = f.resolveProperty(mdl, p);
+                        val = prop() || "";
+                        rg = new RegExp(crit.value, "i");
+                        return val.search(rg);
                     });
                 }
 
                 // Comparisons
-                let val = mdl.data[crit.property]();
+                prop = f.resolveProperty(mdl, crit.property);
+                val = prop();
                 switch (crit.operator) {
                 case "=":
                     return val === crit.value;
