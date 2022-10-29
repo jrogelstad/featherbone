@@ -69,7 +69,7 @@ function createList(feather) {
         @param {Boolean} Subscribe flag.
         @param {Boolean} Add to top of list if new.
     */
-    ary.add = function (model, subscribe, prepend) {
+    ary.add = function (model, subscribe, at) {
         let mstate;
         let payload;
         let theUrl;
@@ -83,17 +83,29 @@ function createList(feather) {
         let row;
         let indentOn = ary.indentOn();
         let level;
+        let keys;
+        let k;
 
         if (!Number.isNaN(oid)) {
             dirty.remove(ary[oid]);
             ary.splice(oid, 1, model);
         } else {
-            if (prepend) {
+            if (at === true) {
                 Object.keys(idx).forEach(function (k) {
                     idx[k] += 1;
                 });
                 idx[id] = 0;
                 ary.unshift(model);
+            } else if (typeof at === "number") {
+                i = at;
+                keys = Object.keys(idx);
+                while (i < keys.length) {
+                    k = keys[i];
+                    idx[k] += 1;
+                    i += 1;
+                }
+                idx[id] = at;
+                ary.splice(at, 0, model);
             } else {
                 idx[id] = ary.length;
                 ary.push(model);
@@ -241,23 +253,62 @@ function createList(feather) {
     */
     ary.filter = f.prop({});
 
-    /* TODO
-    ary.inFilter = function () {
-        console.log(JSON.stringify(ary.filter(), null, 2));
+    ary.inFilter = function (mdl) {
         let criteria = ary.filter().criteria;
-        if (criteria) {
+        let rg;
+
+        if (criteria && criteria.length) {
             return criteria.every(function (crit) {
+                let prop;
+                let val;
+
+                // Search (OR)
                 if (Array.isArray(crit.property)) {
-                    crit.property.some(function () {
-                        return true;
+                    return crit.property.some(function (p) {
+                        prop = f.resolveProperty(mdl, p);
+                        val = prop() || "";
+                        rg = new RegExp(crit.value, "i");
+                        return val.search(rg);
                     });
+                }
+
+                // Comparisons
+                prop = f.resolveProperty(mdl, crit.property);
+                val = prop();
+                switch (crit.operator) {
+                case "=":
+                    return val === crit.value;
+                case "!=":
+                    return val !== crit.value;
+                case "~":
+                    rg = new RegExp(crit.value);
+                    return val.match(rg);
+                case "~*":
+                    rg = new RegExp(crit.value, "i");
+                    return val.match(rg);
+                case "!~":
+                    rg = new RegExp(crit.value);
+                    return !val.match(rg);
+                case "!~*":
+                    rg = new RegExp(crit.value, "i");
+                    return !val.match(rg);
+                case ">":
+                    return val > crit.value;
+                case "<":
+                    return val < crit.value;
+                case ">=":
+                    return val >= crit.value;
+                case "<=":
+                    return val <= crit.value;
+                case "IN":
+                    return crit.value.indexOf(val) !== 1;
                 }
                 return true;
             });
         }
+
         return true;
     };
-    */
 
     /**
         Default fetch limit.
