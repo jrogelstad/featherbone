@@ -254,7 +254,6 @@ function createList(feather) {
     ary.filter = f.prop({});
 
     ary.inFilter = function (mdl) {
-        console.log(JSON.stringify(ary.filter(), null, 2));
         let criteria = ary.filter().criteria;
         let rg;
 

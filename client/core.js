@@ -1966,7 +1966,10 @@ f.processEvent = function (obj) {
         return;
     }
 
-    let filter = f.copy(ary.filter());
+    let filter = {};
+    if (ary.canFilter) {
+        filter = f.copy(ary.filter() || {})
+    };
     // Avoid resorting array driving DOM
     // Make a copy to work with
     let cary = ary.slice();
@@ -1982,7 +1985,7 @@ f.processEvent = function (obj) {
             item = filter.sort[i];
             aprop = f.resolveProperty(a, item.property);
             bprop = f.resolveProperty(b, item.property);
-            
+
             if (item.order === "DESC") {
                 if (aprop() < bprop()) {
                     ret = 1;
@@ -2000,6 +2003,24 @@ f.processEvent = function (obj) {
         }
 
         return ret;
+    }
+
+    // Add model to list if it should appear
+    // in filter
+    function addContingent() {
+        instance = ary.model();
+        instance.set(data, true, true);
+        instance.state().send("fetched");
+        if (ary.inFilter(instance)) {
+            if (filter.sort) {
+                cary.push(instance);
+                cary.sort(doSort);
+                at = cary.indexOf(instance);
+                ary.add(instance, true, at);
+            } else {
+                ary.add(instance);
+            }
+        }
     }
 
     // Apply event to the catalog data;
@@ -2022,24 +2043,18 @@ f.processEvent = function (obj) {
                 instance.state().goto("Ready/Fetched/ReadOnly");
                 instance.set(data, true, true);
                 instance.state().goto("Ready/Fetched/Clean");
+                if (!ary.inFilter(instance)) {
+                    // New data state should no longer show
+                    ary.splice(ary.indexOf(instance), 1);
+                }
                 m.redraw();
             }
+        } else {
+            addContingent();
         }
         break;
     case "create":
-        instance = ary.model();
-        instance.set(data, true, true);
-        instance.state().send("fetched");
-        if (ary.inFilter(instance)) {
-            if (filter.sort) {
-                cary.push(instance);
-                cary.sort(doSort);
-                at = cary.indexOf(instance);
-                ary.add(instance, true, at);
-            } else {
-                ary.add(instance);
-            }
-        }
+        addContingent();
         break;
     case "delete":
         instance = ary.indexOf(function (model) {
