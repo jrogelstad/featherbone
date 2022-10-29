@@ -789,6 +789,11 @@ formPage.viewModel = function (options) {
         delete instances[id];
         delete formInstances[id];
         vm.model().copy();
+        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
+            if (!vm.model().subscribe()) {
+                vm.model().subscribe(true);
+            }
+        });
         id = vm.model().id();
         instances[id] = vm.model();
         formInstances[id] = inst;
