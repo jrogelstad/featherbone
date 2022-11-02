@@ -1967,9 +1967,12 @@ f.processEvent = function (obj) {
     }
 
     let filter = {};
+    // Handle if this is list array
     if (ary.canFilter) {
-        filter = f.copy(ary.filter() || {})
-    };
+        filter = f.copy(ary.filter() || {});
+    } else {
+        ary.inFilter = () => true;
+    }
     // Avoid resorting array driving DOM
     // Make a copy to work with
     let cary = ary.slice();
