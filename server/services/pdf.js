@@ -927,7 +927,6 @@
                 }
             }
 
-            //Some bug in footer fouls up alignment
             doc.footer().pageNumber(function (curr, total) {
                 return curr + " / " + total;
             }, {textAlign: "center"});
