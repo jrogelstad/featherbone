@@ -275,6 +275,11 @@ function createList(feather) {
                 // Comparisons
                 prop = f.resolveProperty(mdl, crit.property);
                 val = prop();
+
+                if (val === null) {
+                    return false;
+                }
+
                 switch (crit.operator) {
                 case "=":
                     return val === crit.value;
