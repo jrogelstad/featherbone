@@ -25,6 +25,17 @@
   display: none;
 }
 
+.fb-zoom-control {
+  display: none;
+}
 
+.fb-form-content {
+  overflow: visible;
+}
+
+.fb-table-body {
+  overflow: visible;
+  height: 100% !important;
+}
 
 
