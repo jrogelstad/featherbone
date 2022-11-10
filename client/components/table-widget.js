@@ -1288,9 +1288,11 @@ tableWidget.viewModel = function (options) {
         let attrs;
         let props = [];
         let fp = vm.feather().properties;
+        let sort = vm.filter().sort || [];
 
         if (!vm.isLoadAllProperties() && !vm.isEditModeEnabled()) {
             attrs = vm.config().columns.map((col) => col.attr);
+            attrs = attrs.concat(sort.map((s) => s.property));
             // Purge dot notation
             attrs.forEach(function (a) {
                 let i = a.indexOf(".");
