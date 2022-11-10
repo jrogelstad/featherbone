@@ -188,7 +188,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        return vm.models().fetch(mergeFilter(theFilter), false, true);
+        return vm.models().fetch(mergeFilter(theFilter), false, false);
     };
     /**
         @method id
