@@ -1586,16 +1586,45 @@
         app.get("/workbook/:name", doGetWorkbook);
         app.put("/workbook/:name", doSaveWorkbook);
         app.delete("/workbook/:name", doDeleteWorkbook);
+        let pending = [];
+        let isFetching = false;
+
+        function processFetch() {
+            if (!isFetching && pending.length) {
+                isFetching = true;
+                let job = pending[0];
+                let jobId = job.payload.id;
+                let jobName = job.payload.name;
+                datasource.request(job.payload, true).then(function (resp) {
+                    // Group together any other responses for the same
+                    // record to reduce duplicate queries
+                    let jobs = pending.filter(
+                        (p) => (
+                            p.payload.id === jobId &&
+                            p.payload.name === jobName
+                        )
+                    );
+                    jobs.forEach(function (thejob) {
+                        let idx = pending.indexOf(thejob);
+                        pending.splice(idx, 1);
+                        thejob.callback(resp);
+                    });
+                    isFetching = false;
+                    processFetch();
+                }).catch(function (e) {
+                    console.error(e);
+                });
+            }
+        }
 
         // HANDLE PUSH NOTIFICATION -------------------------------
         // Receiver callback for all events, sends only to applicable instance.
         function receiver(message) {
-            let payload;
             let eventKey = message.payload.subscription.eventkey;
             let change = message.payload.subscription.change;
             let fn = eventSessions[eventKey];
 
-            function callback(resp) {
+            function cb(resp) {
                 if (resp) {
                     message.payload.data = resp;
                 }
@@ -1603,29 +1632,28 @@
                 fn(message);
             }
 
-            function err(e) {
-                console.error(e);
-            }
-
             if (fn) {
                 if (fn.fetch === false) {
-                    callback();
+                    cb();
                     return;
                 }
 
                 // If record change, fetch new record
                 if (change === "create" || change === "update") {
-                    payload = {
-                        name: message.payload.data.table.toCamelCase(true),
-                        method: "GET",
-                        user: systemUser,
-                        id: message.payload.data.id
-                    };
-                    datasource.request(payload, true).then(callback).catch(err);
+                    pending.push({
+                        payload: {
+                            name: message.payload.data.table.toCamelCase(true),
+                            method: "GET",
+                            user: systemUser,
+                            id: message.payload.data.id
+                        },
+                        callback: cb
+                    });
+                    processFetch();
                     return;
                 }
 
-                callback();
+                cb();
             }
         }
 
