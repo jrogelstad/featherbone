@@ -85,9 +85,6 @@
         // Reslove connection string
         function setConfig(resp) {
             return new Promise(function (resolve) {
-
-
-
                 cache = {
                     postgres: {
                         host: resp.pgHost,
@@ -95,7 +92,8 @@
                         database: resp.pgDatabase,
                         user: resp.pgUser,
                         password: resp.pgPassword,
-                        ssl: sslConfig(resp)
+                        ssl: sslConfig(resp),
+                        max: resp.pgMaxConnections
                     }
                 };
                 resolve(resp);
