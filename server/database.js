@@ -261,6 +261,7 @@
                     return new Promise(function (resolve, reject) {
                         if (!pool) {
                             pool = new Pool(cache.postgres);
+                            pool.setMaxListeners(cache.postgres.max);
                         }
 
                         pool.connect(function (err, c, d) {
@@ -450,6 +451,7 @@
                 // Create pool
                 function doPool() {
                     pool = new Pool(cache.postgres);
+                    pool.setMaxListeners(cache.postgres.max);
                     resolve(pool);
                 }
 
