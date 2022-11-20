@@ -93,7 +93,7 @@
                         user: resp.pgUser,
                         password: resp.pgPassword,
                         ssl: sslConfig(resp),
-                        max: resp.pgMaxConnections
+                        max: resp.pgMaxConnections || 10
                     }
                 };
                 resolve(resp);
