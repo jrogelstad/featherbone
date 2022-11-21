@@ -802,6 +802,11 @@ function doHandleForm(obj) {
             let feather = resp;
             let requests = [];
 
+            if (!resp) {
+                resolve();
+                return;
+            }
+
             obj.newRec.attrs.forEach(function (attr) {
                 if (attr === null) {
                     return;
