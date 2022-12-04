@@ -1710,6 +1710,7 @@ tableWidget.viewModel = function (options) {
         icon: "error",
         title: "Error"
     }));
+    vm.errorDialog().buttonCancel().hide();
     /**
         @method feather
         @param {Object} feather
