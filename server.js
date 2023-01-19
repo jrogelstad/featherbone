@@ -980,7 +980,7 @@
             file
             ? file.slice(file.indexOf("."), file.length)
             : url.slice(url.lastIndexOf("."), url.length)
-        );
+        ).toLowerCase();
         let mimetype;
 
         switch (suffix) {
