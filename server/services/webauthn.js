@@ -412,10 +412,12 @@
     }
 
     let cipherBuff;
-    async function loadCipher() {
-        cipherBuff = await pdf.readFile("./server/cipher.key");
+    async function loadCipher(key) {
+        if (!key) {
+            return;
+        }
+        cipherBuff = await pdf.readFile();
     }
-    loadCipher();
 
     function parseCipherKey() {
         let keyBuff = cipherBuff;
@@ -440,6 +442,7 @@
         return decryptedData;
     }
     exports.webauthn = {
+        loadCipher,
         extractToken,
         applyToken,
         decryptToString,

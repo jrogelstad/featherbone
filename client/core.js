@@ -217,7 +217,7 @@ function buildSelector(obj, opts) {
     let selectComponents = vm.selectComponents();
     let val = opts.prop();
     let values = obj.dataList.map((item) => item.value).join();
-
+ 
     val = (
         val === ""
         ? undefined
