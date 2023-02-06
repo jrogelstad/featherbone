@@ -91,6 +91,9 @@ addressRelation.viewModel = function (options) {
         if (d.country) {
             content += cr + d.country();
         }
+        if (d.phone && d.phone()) {
+            content += cr + "Ph: " + d.phone();
+        }
 
         return content;
     };
@@ -211,6 +214,8 @@ addressRelation.viewModel = function (options) {
             }, {
                 attr: "country",
                 dataList: vm.countries()
+            }, {
+                attr: "phone"
             }]
         }
     }));
@@ -273,16 +278,16 @@ addressRelation.component = {
             class: "fb-input",
             value: vm.content(vm.isCell()),
             readonly: readOnly,
-            rows: 6,
-            style: {whiteSpace: "pre"}
+            rows: 7
         };
         let dlg;
 
+        options.style = {
+            width: "100%"
+        };
+
         if (vm.isCell()) {
             options.rows = 1;
-            options.style = {
-                width: "100%"
-            };
         }
 
         if (!readOnly) {
@@ -295,6 +300,7 @@ addressRelation.component = {
         }
 
         theStyle.display = theStyle.display || "inline-block";
+        theStyle.width = "60%";
 
         // Build the view
         ret = m("div", {

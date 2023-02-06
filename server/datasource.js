@@ -461,6 +461,14 @@
     */
     that.lock = function (id, username, eventkey, process, client) {
         return new Promise(function (resolve, reject) {
+            if (client === undefined) {
+                reject(
+                    "No parameter passed for the client argument " +
+                    "on lock attempt. Either a database client or " +
+                    "`false` must be passed"
+                );
+                return;
+            }
             let theClient;
             // Do the work
             function doLock(resp) {

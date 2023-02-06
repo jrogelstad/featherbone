@@ -29,6 +29,62 @@
 
     const db = new Database();
     const tools = {};
+    const formats = {
+        integer: {
+            type: "integer",
+            default: 0
+        },
+        long: {
+            type: "bigint",
+            default: 0
+        },
+        float: {
+            type: "real",
+            default: 0
+        },
+        double: {
+            type: "double precision",
+            default: 0
+        },
+        string: {
+            type: "text",
+            default: "''"
+        },
+        boolean: {
+            type: "boolean",
+            default: "false"
+        },
+        date: {
+            type: "date",
+            default: "today()"
+        },
+        dateTime: {
+            type: "timestamp with time zone",
+            default: "now()"
+        },
+        enum: {
+            type: "text",
+            default: ""
+        },
+        color: {
+            type: "text",
+            default: "#000000"
+        },
+        money: {
+            type: "mono",
+            // Hack because promises tough to deal with
+            default: null,
+            isMoney: true
+        },
+        lock: {
+            type: "lock",
+            default: null
+        },
+        object: {
+            type: "json",
+            default: null
+        }
+    };
 
     function curry(...args1) {
         let fn = args1[0];
@@ -505,61 +561,7 @@
             @property formats
             @type Object
         */
-        tools.formats = {
-            integer: {
-                type: "integer",
-                default: 0
-            },
-            long: {
-                type: "bigint",
-                default: 0
-            },
-            float: {
-                type: "real",
-                default: 0
-            },
-            double: {
-                type: "double precision",
-                default: 0
-            },
-            string: {
-                type: "text",
-                default: "''"
-            },
-            boolean: {
-                type: "boolean",
-                default: "false"
-            },
-            date: {
-                type: "date",
-                default: "today()"
-            },
-            dateTime: {
-                type: "timestamp with time zone",
-                default: "now()"
-            },
-            enum: {
-                type: "text",
-                default: ""
-            },
-            color: {
-                type: "text",
-                default: "#000000"
-            },
-            money: {
-                type: "mono",
-                // Hack because promises tough to deal with
-                default: null
-            },
-            lock: {
-                type: "lock",
-                default: null
-            },
-            object: {
-                type: "json",
-                default: null
-            }
-        };
+        tools.formats = formats;
 
         /**
             Get the primary key for a given id.

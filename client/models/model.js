@@ -67,16 +67,20 @@ function simpleProp(store) {
     @private
     @method onFetching
 */
-function onFetching() {
-    this.state().goto("/Busy/Fetching");
+function onFetching(ary) {
+    if (!Array.isArray(ary) || ary.indexOf(this) !== -1) {
+        this.state().goto("/Busy/Fetching");
+    }
 }
 
 /**
     @private
     @method onFetched
 */
-function onFetched() {
-    this.state().goto("/Ready/Fetched");
+function onFetched(ary) {
+    if (!Array.isArray(ary) || ary.indexOf(this) !== -1) {
+        this.state().goto("/Ready/Fetched");
+    }
 }
 
 /**
@@ -132,8 +136,8 @@ function extendArray(model, prop, name, onChange, onChanged) {
         }
 
         // Synchronize statechart
-        state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
-        state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
+        state.resolve("/Busy/Fetching").enter(onFetching.bind(result, ary));
+        state.resolve("/Ready/Fetched").enter(onFetched.bind(result, ary));
 
         // Remove original enter response on child
         result.state().resolve("/Busy/Fetching").enters.shift();
@@ -385,6 +389,8 @@ function createModel(data, feather) {
     let onChange = {};
     let onChanged = {};
     let onCopy = [];
+    let onSave = [];
+    let onSaved = [];
     let isFrozen = false;
     let naturalKey;
     let canCreate;
@@ -477,9 +483,9 @@ function createModel(data, feather) {
         fn.title = simpleProp(options.title || "");
         d[options.name] = fn;
 
-		if (typeof fn.type === "object") {
-			fn.filter = f.prop({criteria:[]});
-		}
+        if (typeof fn.type === "object") {
+            fn.filter = f.prop({criteria: []});
+        }
 
         return this;
     };
@@ -1055,7 +1061,47 @@ function createModel(data, feather) {
 
         return this;
     };
+    /**
+        A function to call before executing save. A view model will be
+        passed in similar to static functions that allow for working with
+        interactive dialogs or other presentation related elements.
 
+        The callback function should return a Promise. Save will not complete
+        untill the promises are resolved.
+
+        @method onSave
+        @param {Function} callback Callback function to call before save
+        @param {Boolean} [flag] Put first in preprocess queue. Default false
+        @chainable
+        @return {Object}
+    */
+    model.onSave = function (callback, prepend) {
+        if (prepend) {
+            onSave.unshift(callback);
+        } else {
+            onSave.push(callback);
+        }
+        return model;
+    };
+
+    /**
+        A function to call after executing save. A view model will be
+        passed in similar to static functions that allow for working with
+        interactive dialogs or other presentation related elements.
+
+        The callback function should return a Promise. Note at this point
+        the save will be committed, so this handles user interactions as
+        post processing such as prompts to print or continue on to next steps.
+
+        @method onSaved
+        @param {Function} callback Callback function to call after save
+        @chainable
+        @return {Object}
+    */
+    model.onSaved = function (callback) {
+        onSaved.push(callback);
+        return model;
+    };
     /**
         Add a validator to execute when the `isValid` function is
         called, which is also called after saving events. Errors thrown
@@ -1134,12 +1180,15 @@ function createModel(data, feather) {
         "/Ready/New" states.
 
         Returns a promise with model.data as the value.
+        The `ViewModel` object is passed though to any
+        callbacks created by `onSave` or `onSaved`.
 
         @method save
+        @param {Object} [ViewModel]
         @return {Promise}
     */
-    model.save = function () {
-        return doSend("save");
+    model.save = function (vm) {
+        return doSend("save", vm);
     };
 
     /**
@@ -1368,6 +1417,26 @@ function createModel(data, feather) {
         onCopy.forEach((callback) => callback(orig));
     }
 
+    async function doPreProcess(vm) {
+        let idx = 0;
+        let callback;
+        while (idx < onSave.length) {
+            callback = onSave[idx];
+            idx += 1;
+            await callback(vm);
+        }
+    }
+
+    async function doPostProcess(vm) {
+        let idx = 0;
+        let callback;
+        while (idx < onSaved.length) {
+            callback = onSaved[idx];
+            idx += 1;
+            await callback(vm);
+        }
+    }
+
     doClear = function (context) {
         let keys = Object.keys(model.data);
         let values = {};
@@ -1468,10 +1537,9 @@ function createModel(data, feather) {
         // Make all props read only, but remember previous state
         keys.forEach(function (key) {
             let prop = d[key];
-            let value = prop();
 
             if (prop.isToMany() && !prop.isCalculated) {
-                value.forEach(function (item) {
+                prop().forEach(function (item) {
                     item.state().goto("/Ready/Fetched/ReadOnly");
                 });
                 return;
@@ -1546,16 +1614,7 @@ function createModel(data, feather) {
     };
 
     doPatch = function (context) {
-        let patch = jsonpatch.compare(lastFetched, model.toJSON());
-        let payload = {
-            method: "PATCH",
-            path: (
-                model.path(model.name, model.id()) +
-                "?eventKey=" + catalog.eventKey()
-            ),
-            body: patch
-        };
-
+        let patch;
         function callback(result) {
             // Update to sent changes
             jsonpatch.applyPatch(lastFetched, patch);
@@ -1577,8 +1636,23 @@ function createModel(data, feather) {
         }
 
         if (model.isValid()) {
-            datasource.request(payload).then(
+            doPreProcess(context.viewModel).then(function () {
+                patch = jsonpatch.compare(lastFetched, model.toJSON());
+                if (!patch.length) {
+                    return Promise.resolve([]);
+                }
+                return datasource.request({
+                    method: "PATCH",
+                    path: (
+                        model.path(model.name, model.id()) +
+                        "?eventKey=" + catalog.eventKey()
+                    ),
+                    body: patch
+                });
+            }).then(
                 callback
+            ).then(
+                doPostProcess.bind(null, context.viewModel)
             ).catch(
                 doError.bind(context)
             );
@@ -1618,8 +1692,12 @@ function createModel(data, feather) {
         });
 
         if (model.isValid()) {
-            datasource.request(payload).then(
+            doPreProcess(context.viewModel).then(
+                datasource.request.bind(null, payload)
+            ).then(
                 callback
+            ).then(
+                doPostProcess.bind(null, context.viewModel)
             ).catch(
                 doError.bind(context)
             );
@@ -1630,11 +1708,12 @@ function createModel(data, feather) {
         model.set(lastFetched, true);
     };
 
-    doSend = function (evt) {
+    doSend = function (evt, vm) {
         return new Promise(function (pResolve, pReject) {
             state.send(evt, {
                 resolve: pResolve,
-                reject: pReject
+                reject: pReject,
+                viewModel: vm
             });
         });
     };
@@ -1752,10 +1831,10 @@ function createModel(data, feather) {
 
                         // Synchronize statechart
                         state.resolve("/Busy/Fetching").enter(
-                            onFetching.bind(result)
+                            onFetching.bind(result, null)
                         );
                         state.resolve("/Ready/Fetched").enter(
-                            onFetched.bind(result)
+                            onFetched.bind(result, null)
                         );
 
                         // Remove original do fetch event on child
@@ -1929,6 +2008,9 @@ function createModel(data, feather) {
                 });
                 this.event("delete", function () {
                     this.goto("/Deleted");
+                });
+                this.event("fetched", function () {
+                    this.goto("/Ready/Fetched/Clean");
                 });
                 this.canCopy = () => false;
                 this.canDelete = () => true;
@@ -2204,7 +2286,7 @@ function createModel(data, feather) {
             }
 
             // Recursively validate children
-            if (prop.isToMany() && prop().length) {
+            if (prop.isToMany() && !prop.isCalculated && prop().length) {
                 prop().forEach(function (child) {
                     if (!child.isValid()) {
                         throw child.lastError();

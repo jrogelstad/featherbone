@@ -434,6 +434,11 @@ moneyRelation.component = {
             width: "116px",
             textAlign: "right"
         };
+        if (!vm.showCurrency() && !vm.isCell()) {
+            displayStyle.width = "60%";
+            inputStyle.width = "100%";
+            inputStyle.maxWidth = "315px";
+        }
 
         if (vm.isCell()) {
             displayStyle.float = "right";
@@ -458,6 +463,9 @@ moneyRelation.component = {
                 onchange: (e) => vm.amount(e.target.value),
                 value: vm.amount(),
                 readonly: readOnly,
+                onclick: function (e) {
+                    e.redraw = false;
+                },
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 onfocus: vnode.attrs.onFocus,

@@ -1,4 +1,4 @@
-/*
+ /*
     Framework for building object relational database apps
     Copyright (C) 2022  John Rogelstad
 
@@ -86,15 +86,24 @@ const editSheetConfig = {
         grid: 1
     }, {
         attr: "form",
+        grid: 1,
+        label: "Drill down form"
+    }, {
+        attr: "drawerForm",
+        label: "Drawer form",
         grid: 1
     }, {
         attr: "isEditModeEnabled",
         label: "Enable edit mode",
         grid: 1
     }, {
+        attr: "isClearOnNoSearch",
+        label: "Clear on no search",
+        grid: 1
+    }, {
         attr: "columns",
         showLabel: false,
-        height: "139px",
+        height: "219px",
         grid: 2,
         columns: [{
             attr: "attr",
@@ -107,7 +116,7 @@ const editSheetConfig = {
     }, {
         attr: "actions",
         showLabel: false,
-        height: "139px",
+        height: "219px",
         grid: 3,
         columns: [{
             attr: "name",
@@ -235,7 +244,6 @@ workbookPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
-
     /**
         @method aggregateDialog
         @param {ViewModels.TableDialog} dialog
@@ -332,7 +340,9 @@ workbookPage.viewModel = function (options) {
             id: sheet.id,
             name: sheet.name,
             feather: sheet.feather,
-            form: sheet.form || "",
+            form: sheet.form || "D",
+            drawerForm: sheet.drawerForm || "N",
+            isClearOnNoSearch: Boolean(sheet.isClearOnNoSearch),
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
@@ -348,6 +358,8 @@ workbookPage.viewModel = function (options) {
             sheet.name = data.name;
             sheet.feather = data.feather;
             sheet.form = data.form;
+            sheet.drawerForm = data.drawerForm;
+            sheet.isClearOnNoSearch = data.isClearOnNoSearch;
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
@@ -382,9 +394,12 @@ workbookPage.viewModel = function (options) {
             } else {
                 vm.buttonEdit().disable();
             }
+            vm.tableWidget().isClearOnNoSearch(data.isClearOnNoSearch);
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
+            handleDrawer();
 
             vm.saveProfile();
+            vm.refresh();
         };
         dlg.show();
     };
@@ -444,6 +459,15 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.FilterDialog}
     */
     vm.filterDialog = f.prop();
+    /**
+        Form widget for inline viewing
+
+        @method formWidget
+        @param {ViewModels.FormWidget} [widget]
+        @return {ViewModels.FormWidget}
+    */
+    vm.formWidget = f.prop();
+
     /**
         @method goHome
     */
@@ -748,7 +772,7 @@ workbookPage.viewModel = function (options) {
         }
         saveProfile(
             workbook.data.name(),
-            vm.config(),
+            vm.config,
             vm.confirmDialog()
         );
     };
@@ -763,25 +787,186 @@ workbookPage.viewModel = function (options) {
         @method share
     */
     vm.share = function () {
-        let doShare;
         let confirmDialog = vm.confirmDialog();
+        let action = f.prop("Default");
+        let name = f.prop("");
+        let template = f.prop("");
+        let lastError = f.prop("");
+        let dlgSelectId1 = f.createId();
+        let dlgSelectId2 = f.createId();
+        let workbooks = f.catalog().store().workbooks();
+        let temps = Object.keys(workbooks).filter(
+            (k) => workbooks[k].data.isTemplate()
+        ).map(function (t) {
+            return m("option", {
+                value: t
+            }, workbooks[t].data.name());
+        });
+        let names = Object.keys(workbooks);
+        let profileData = f.copy(vm.config());
+        let mdlname;
+        let data;
+        let opts;
+        let wb;
 
-        doShare = function () {
-            let d = f.copy(vm.config());
-            workbook.data.localConfig(d);
-            workbook.save();
-        };
+        function isValid() {
+            switch (action()) {
+            case "Copy":
+            case "New":
+                if (!name()) {
+                    lastError("Name is required");
+                    return false;
+                }
+
+                if (names.some((n) => workbooks[n].data.name() === name())) {
+                    lastError("Name is already used");
+                    return false;
+                }
+
+                break;
+            case "Update":
+                if (!template()) {
+                    lastError("Select a template to update");
+                    return false;
+                }
+
+                break;
+            }
+            lastError("");
+            return true;
+        }
+
+        async function copy(isTmpl) {
+            data = workbook.toJSON();
+            delete data.authorizations;
+            data.defaultConfig = profileData;
+            data.localConfig = [];
+            data.id = f.createId();
+            data.name = name();
+            data.label = name();
+            data.isTemplate = isTmpl;
+            opts = {
+                workbook: data.name.toSpinalCase(),
+                key: data.defaultConfig[0].name.toSpinalCase()
+            };
+            mdlname = name().toSpinalCase().toCamelCase();
+
+            // Instantiate copy
+            wb = f.catalog().store().models().workbook();
+            wb.set(data);
+            // Save it to server
+            await wb.save();
+            wb.checkUpdate();
+            // Register it locally
+            f.catalog().register("workbooks", mdlname, wb);
+        }
+
+        async function doShare() {
+            switch (action()) {
+            case "Default":
+                workbook.data.localConfig(profileData);
+                workbook.save();
+                break;
+            case "Copy":
+                await copy(false);
+
+                // Go to new copy
+                m.route.set("/workbook/:workbook/:key", opts);
+                break;
+            case "New":
+                await copy(true);
+                break;
+            case "Update":
+                wb = workbooks[template()];
+                data = workbook.toJSON();
+                delete data.authorizations;
+                delete data.id;
+                delete data.name;
+                delete data.isTemplate;
+                data.defaultConfig = profileData;
+                data.localConfig = [];
+                wb.set(data);
+                wb.save();
+                break;
+            }
+        }
 
         if (!vm.workbook().canUpdate()) {
             return;
         }
 
-        confirmDialog.message(
-            "Are you sure you want to share your workbook " +
-            "configuration with all other users?"
-        );
-        confirmDialog.icon("help_outline");
+        confirmDialog.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgSelectId1
+                    }, "Share Layout As:"),
+                    m("select", {
+                        id: dlgSelectId1,
+                        onchange: (e) => action(e.target.value),
+                        value: action()
+                    }, [
+                        m("option", {
+                            value: "Default"
+                        }, "Default for this workbook"),
+                        m("option", {
+                            value: "Copy"
+                        }, "Copy to a new workbook"),
+                        m("option", {
+                            value: "New"
+                        }, "New workbook template"),
+                        m("option", {
+                            value: "Update"
+                        }, "Update to a template")
+                    ])
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    style: {display: (
+                        (action() === "Default" || action() === "Update")
+                        ? "none"
+                        : undefined
+                    )}
+                }, [
+                    m("label", {}, "Workbook Name:"),
+                    m("input", {
+                        onchange: (e) => name(e.target.value),
+                        value: name(),
+                        autocomplete: "off"
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    style: {display: (
+                        action() !== "Update"
+                        ? "none"
+                        : undefined
+                    )}
+                }, [
+                    m("label", {
+                        for: dlgSelectId2
+                    }, "Template:"),
+                    m("select", {
+                        id: dlgSelectId2,
+                        onchange: (e) => template(e.target.value),
+                        value: template()
+                    }, temps)
+                ])
+            ]);
+        };
+        confirmDialog.icon("share");
+        confirmDialog.title("Share");
         confirmDialog.onOk(doShare);
+        confirmDialog.buttonOk().isDisabled = () => !isValid();
+        confirmDialog.buttonOk().title = function () {
+            if (!isValid()) {
+                return lastError();
+            }
+        };
         confirmDialog.show();
     };
     /**
@@ -951,18 +1136,96 @@ workbookPage.viewModel = function (options) {
         refresh: vm.refresh
     }));
 
+    function hasDrawer() {
+        return (
+            vm.sheet().drawerForm &&
+            vm.sheet().drawerForm !== "N"
+        );
+    }
+
     // Create table widget view model
     vm.tableWidget(f.createViewModel("TableWidget", {
         class: formWorkbookClass,
         actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
+        isClearOnNoSearch: vm.sheet().isClearOnNoSearch,
         feather: vm.sheet().feather,
         search: vm.searchInput().value,
         ondblclick: vm.modelOpen,
         subscribe: true,
-        footerId: vm.footerId()
+        footerId: vm.footerId(),
+        loadAllProperties: hasDrawer()
     }));
+    vm.actions = function () {
+        let acts = vm.tableWidget().actions();
+        acts.forEach(function (act) {
+            let oc = act.attrs.onclick;
+            act.attrs.onclick = function (ev) {
+                oc(ev);
+                vm.showActions(false);
+                ev.preventDefault();
+                ev.stopPropagation();
+            };
+        });
+        return acts;
+    };
+
+    function getDrawerForm() {
+        let df = vm.sheet().drawerForm;
+        if (!df || df === "N") {
+            return false;
+        }
+        let form = {};
+
+        if (df !== "D") {
+            form = f.catalog().store().data().forms().find(function (frm) {
+                return df === frm.name;
+            }) || {};
+        }
+        return f.getForm({
+            form: form.id,
+            feather: theFeather.name
+        });
+    }
+
+    function handleDrawer() {
+        vm.tableWidget().isMultiSelectEnabled(!hasDrawer());
+        vm.tableWidget().isLoadAllProperties(hasDrawer());
+    }
+
+    vm.tableWidget().state().resolve("/Selection/On").enter(function () {
+        let df = vm.sheet().drawerForm || "N";
+        if (df === "N") {
+            vm.formWidget(undefined);
+            return;
+        }
+        let mdl = vm.tableWidget().selections()[0];
+        let formWidget = vm.formWidget();
+
+        if (
+            formWidget &&
+            formWidget.model() &&
+            formWidget.model().id() === mdl.id()
+        ) {
+            return;
+        }
+
+        vm.formWidget(undefined);
+        m.redraw.sync(); // Force refresh
+        mdl.state().send("freeze");
+        vm.formWidget(f.createViewModel("FormWidget", {
+            model: mdl,
+            config: getDrawerForm(),
+            maxHeight: "300px",
+            isScrollable: true
+        }));
+        vm.formWidget().style().width = "92%";
+    });
+    vm.tableWidget().state().resolve("/Selection/Off").enter(function () {
+        vm.formWidget(undefined);
+    });
+    handleDrawer();
 
     // Watch when columns change and save profile
     vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
@@ -985,7 +1248,7 @@ workbookPage.viewModel = function (options) {
         model: workbook,
         config: editWorkbookConfig
     }));
-    vm.editWorkbookDialog().style().width = "475px";
+    vm.editWorkbookDialog().style().width = "500px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(f.createViewModel("Button", {
@@ -1027,6 +1290,7 @@ workbookPage.viewModel = function (options) {
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
+    vm.sheetConfigureDialog().style().height = "485px";
     vm.sheetConfigureDialog().state().resolve(
         "/Display/Showing"
     ).exit(() => sheetEditModel.state().send("clear"));
@@ -1050,12 +1314,22 @@ workbookPage.viewModel = function (options) {
 
     // Create button view models
     vm.buttonEdit(f.createViewModel("Button", {
-        onclick: vm.tableWidget().toggleMode,
+        onclick: function () {
+            vm.tableWidget().toggleMode();
+            vm.sheet().isEditMode = vm.isEditMode();
+            vm.saveProfile();
+        },
         title: "Edit mode",
         hotkey: "E",
-        icon: "edit",
         class: toolbarButtonClass
     }));
+    vm.isEditMode = () => vm.tableWidget().mode().current()[0] === "/Mode/Edit";
+    vm.buttonEdit().icon = function () {
+        if (vm.isEditMode()) {
+            return "edit";
+        }
+        return "edit_off";
+    };
     if (!vm.tableWidget().isEditModeEnabled()) {
         vm.buttonEdit().disable();
     }
@@ -1101,7 +1375,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
-        icon: "sync",
+        icon: "autorenew",
         class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
@@ -1210,6 +1484,10 @@ workbookPage.viewModel = function (options) {
         console.error(err.message);
     });
 
+    if (vm.sheet().isEditMode) {
+        vm.tableWidget().toggleMode();
+    }
+
     return vm;
 };
 
@@ -1219,6 +1497,37 @@ workbookPage.viewModel = function (options) {
     @static
     @namespace Components
 */
+
+function spinButtonView() {
+    let vm = this.viewModel.buttonRefresh();
+    let tw = this.viewModel.tableWidget();
+    let iclass = "material-icons-outlined fb-button-icon ";		
+
+    if (tw.models().state().current()[0].slice(0, 5) === "/Busy") {
+        iclass += "fb-spin";
+    }
+
+    return m("button", {
+        class: "pure-button " + vm.class(),
+        id: vm.id(),
+        type: "button",
+        style: vm.style(),
+        disabled: vm.isDisabled(),
+        onclick: vm.onclick(),
+        oncreate: function () {
+            document.addEventListener("keydown", vm.onkeydown);
+        },
+        onremove: function () {
+            document.removeEventListener("keydown", vm.onkeydown);
+        },
+        title: vm.title()
+    }, [
+        m("i", {
+            class: iclass
+        }, vm.icon())
+    ], vm.label());
+}
+
 workbookPage.component = {
     /**
         Must pass view model instance or options to build one.
@@ -1302,6 +1611,20 @@ workbookPage.component = {
                 : " pure-menu-disabled"
             )
         );
+        let fw = f.getComponent("FormWidget");
+        let formWidget = vm.formWidget();
+        let drawerForm;
+        let spbtn = {
+            oninit: btn.oninit,
+            view: spinButtonView
+        };
+
+        if (formWidget) {
+            drawerForm = m("div", {
+                id: formWidget.model().id() + "wrapper",
+                style: {height: "300px"}
+            }, [m(fw, {viewModel: formWidget})]);
+        }
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1374,6 +1697,7 @@ workbookPage.component = {
         }
 
         return m("div", {
+            id: "workbook-table",
             class: "pure-form",
             oncreate: function () {
                 let title = vm.sheet().name.toName();
@@ -1455,7 +1779,7 @@ workbookPage.component = {
                                         : ""
                                     )
                                 )
-                            }, vm.tableWidget().actions())
+                            }, vm.actions())
                         ]),
                         m("div", {
                             class: "fb-toolbar-spacer"
@@ -1466,8 +1790,8 @@ workbookPage.component = {
                         m(btn, {
                             viewModel: vm.buttonClear()
                         }),
-                        m(btn, {
-                            viewModel: vm.buttonRefresh()
+                        m(spbtn, {
+                            viewModel: vm
                         }),
                         m(btn, {
                             viewModel: vm.buttonSort()
@@ -1490,6 +1814,7 @@ workbookPage.component = {
                         }, [
                             m("span", {
                                 id: "nav-menu-button",
+                                title: "Manage workbook",
                                 class: (
                                     "pure-button " +
                                     "material-icons-outlined " +
@@ -1535,7 +1860,7 @@ workbookPage.component = {
                                         "material-icons-outlined " +
                                         "fb-menu-list-icon"
                                     )
-                                }, "backup_table")], "Workbook"),
+                                }, "edit_note")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
                                     class: menuAuthLinkClass,
@@ -1586,6 +1911,7 @@ workbookPage.component = {
                     m("div", {
                         id: vm.footerId()
                     }, [
+                        drawerForm,
                         tabs,
                         m("i", {
                             class: (

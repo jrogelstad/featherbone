@@ -1,4 +1,5 @@
 {
+    "cipher": "",
     "clientPort": 80,
     "debug": true,
     "fileUpload": true,
@@ -12,6 +13,7 @@
     "passwordLength": 0,
     "pgHost": "127.0.0.1",
     "pgDatabase": "demo",
+    "pgMaxConnections": 10,
     "pgPort": 5432,
     "pgUser": "admin",
     "pgPassword": "password",

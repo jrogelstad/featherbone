@@ -98,6 +98,9 @@
                     "value": "A4 Wide",
                     "label": "A4 Wide"
                 }, {
+                    "value": "Label 4x4",
+                    "label": "Label 4x4"
+                }, {
                     "value": "Label 4x6",
                     "label": "Label 4x6"
                 }, {
@@ -137,6 +140,14 @@
                     "value": "V",
                     "label": "Vertical Sections"
                 }]
+            },
+            "hideTitle": {
+                "description": "When printing do not include a title",
+                "type": "boolean"
+            },
+            "hideLogo": {
+                "description": "When printing do not include the logo",
+                "type": "boolean"
             }
         }
     },
@@ -551,6 +562,10 @@
             "label": {
                 "description": "Alternate column label",
                 "type": "string"
+            },
+            "width": {
+                "description": "Column width",
+                "type": "integer"
             }
         }
     },
@@ -1098,7 +1113,7 @@
                 "type": {
                     "relation": "Address",
                     "properties": ["type", "street", "unit", "city",
-                        "state", "postalCode", "country"
+                        "state", "postalCode", "country", "phone"
                     ]
                 }
             },

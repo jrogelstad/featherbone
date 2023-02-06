@@ -122,6 +122,11 @@ const workbook = {
                 parentOf: "parent",
                 relation: "WorkbookAuthorization"
             }
+        },
+        isTemplate: {
+            description: "Template for creating new workbooks",
+            type: "boolean",
+            default: false
         }
     }
 };
@@ -154,7 +159,13 @@ const workbookDefaultConifg = {
             isRequired: true
         },
         form: {
-            description: "Form layout",
+            default: "D",
+            description: "Form layout for drill down",
+            type: "string"
+        },
+        drawerForm: {
+            default: "N",
+            description: "Form layout for in list drawer",
             type: "string"
         },
         list: {
@@ -165,6 +176,11 @@ const workbookDefaultConifg = {
             description: "Zoom level",
             type: "string",
             default: "100"
+        },
+        isClearOnNoSearch: {
+            description: "Show no results unless search or filter applied",
+            type: "boolean",
+            default: false
         },
         isEditModeEnabled: {
             description: "Flags whether inline editing is allowed",
@@ -180,6 +196,11 @@ const workbookDefaultConifg = {
             description: "Menu actions that can be performed",
             type: "object",
             default: []
+        },
+        isEditMode: {
+            description: "Flags whether in edit mode",
+            type: "boolean",
+            default: false
         }
     }
 };
@@ -769,6 +790,16 @@ const worksheet = {
             type: "string",
             dataList: "forms"
         },
+        drawerForm: {
+            description: "Default drawer form",
+            type: "string",
+            dataList: "drawerForms"
+        },
+        isClearOnNoSearch: {
+            description: "Show no results unless search or filter applied",
+            type: "boolean",
+            default: false
+        },
         isEditModeEnabled: {
             description: "ALlow inline editing",
             type: "boolean"
@@ -862,18 +893,24 @@ function worksheetModel(data) {
     let state;
     let substate;
 
+    function handleReadOnly() {
+        d.isEditModeEnabled.isReadOnly(
+            d.drawerForm() && d.drawerForm() !== "N"
+        );
+    }
+
     function thefeathers() {
         return Object.keys(f.catalog().feathers()).sort().map(function (key) {
             return {value: key, label: key};
         });
     }
 
-    function theforms() {
+    function theforms(isDrawer) {
         let forms = f.catalog().store().data().forms();
         let feather = model.data.feather();
 
         // Only forms that have matching feather
-        return forms.filter(function (form) {
+        let ret = forms.filter(function (form) {
             return (
                 form.feather === feather &&
                 form.isActive
@@ -881,6 +918,19 @@ function worksheetModel(data) {
         }).map(function (form) {
             return {value: form.name, label: form.name};
         });
+
+        ret.unshift({
+            value: "D",
+            label: "Default"
+        });
+
+        if (isDrawer) {
+            ret.unshift({
+                value: "N",
+                label: "None"
+            });
+        }
+        return ret;
     }
 
     model.addCalculated({
@@ -893,6 +943,12 @@ function worksheetModel(data) {
         name: "forms",
         type: "array",
         function: theforms
+    });
+
+    model.addCalculated({
+        name: "drawerForms",
+        type: "array",
+        function: theforms.bind(null, true)
     });
 
     model.onChanged("feather", function () {
@@ -909,11 +965,18 @@ function worksheetModel(data) {
             idx += 1;
         });
     });
+    model.onChanged("drawerForm", function () {
+        if (d.drawerForm() !== "N") {
+            d.isEditModeEnabled(false);
+        }
+        handleReadOnly();
+    });
 
     // Update statechart for modified behavior
     state = model.state();
     substate = state.resolve("/Ready/New");
     substate.event("fetched", function () {
+        handleReadOnly();
         this.goto("/Ready/Fetched/Clean");
     });
     substate = state.resolve("/Busy/Saving");
@@ -926,6 +989,7 @@ function worksheetModel(data) {
     });
     substate = state.resolve("/Delete");
     substate.enters.shift();
+    handleReadOnly();
 
     return model;
 }

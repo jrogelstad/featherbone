@@ -106,7 +106,17 @@ navigator.viewModel = function () {
         @method workbooks
         @return {Object}
     */
-    vm.workbooks = f.catalog().store().workbooks;
+    vm.workbooks = function () {
+        let wbs = f.catalog().store().workbooks();
+        let ret = {};
+        Object.keys(wbs).forEach(function (key) {
+            if (!wbs[key].data.isTemplate()) {
+                ret[key] = wbs[key];
+            }
+        });
+        return ret;
+    };
+
     /**
         @method goHome
     */

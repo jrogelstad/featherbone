@@ -44,6 +44,7 @@ Temporary Items
 
 files/downloads
 files/import
+files/upload
 node/node_modules
 node/npm-debug.log
 node_modules

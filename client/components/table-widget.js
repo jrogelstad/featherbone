@@ -123,7 +123,6 @@ function createTableDataEditor(options, col) {
     inputOpts = {
         id: theId,
         key: theId,
-        onclick: theVm.toggleSelection.bind(this, theModel, theId),
         value: prop(),
         style: {
             minWidth: columnWidth + "px",
@@ -310,7 +309,7 @@ function createTableDataView(options, col) {
             let optKey;
             if (ev.shiftKey) {
                 optKey = "shiftKey";
-            } else if (ev.ctrlKey) {
+            } else if (ev.ctrlKey || ev.metaKey) {
                 optKey = "ctrlKey";
             }
             theVm.toggleSelection(
@@ -695,7 +694,7 @@ function createTableRow(options, pModel) {
         let optKey;
         if (ev.shiftKey) {
             optKey = "shiftKey";
-        } else if (ev.ctrlKey) {
+        } else if (ev.ctrlKey || ev.metaKey) {
             optKey = "ctrlKey";
         }
         theVm.toggleSelection(
@@ -1131,7 +1130,7 @@ tableWidget.viewModel = function (options) {
                     fattrs.push(attr);
                 } else if (
                     typeof fmt === "object" &&
-                    !fmt.childOf
+                    fmt.relation
                 ) {
                     props = f.catalog().getFeather(fmt.relation).properties;
                     nk = Object.keys(props).find(
@@ -1289,9 +1288,11 @@ tableWidget.viewModel = function (options) {
         let attrs;
         let props = [];
         let fp = vm.feather().properties;
+        let sort = vm.filter().sort || [];
 
-        if (!vm.isEditModeEnabled()) {
+        if (!vm.isLoadAllProperties() && !vm.isEditModeEnabled()) {
             attrs = vm.config().columns.map((col) => col.attr);
+            attrs = attrs.concat(sort.map((s) => s.property));
             // Purge dot notation
             attrs.forEach(function (a) {
                 let i = a.indexOf(".");
@@ -1385,6 +1386,17 @@ tableWidget.viewModel = function (options) {
     }
 
     function doFetch(refresh) {
+        let list = vm.models();
+        let crit = getFilter().criteria || [];
+
+        if (
+            vm.isClearOnNoSearch() &&
+            !crit.length
+        ) {
+            list.reset();
+            return;
+        }
+
         if (refresh) {
             doFetchAggregates();
             offset = 0;
@@ -1393,13 +1405,13 @@ tableWidget.viewModel = function (options) {
 
         fetchCount += 1;
         setProperties();
-        vm.models().fetch(
+        list.fetch(
             getFilter(offset),
             refresh !== true
         ).then(function () {
             if (
                 fetchCount < FETCH_MAX &&
-                vm.models().length === offset + LIMIT
+                list.length === offset + LIMIT
             ) {
                 offset += LIMIT;
                 doFetch();
@@ -1410,6 +1422,8 @@ tableWidget.viewModel = function (options) {
     // Dialog gets modified by actions, so reset after any useage
     function doResetDialog() {
         let dlg = vm.confirmDialog();
+        let state = dlg.buttonOk().state();
+        let mode = state.resolve(state.resolve("/Mode").current()[0]);
 
         dlg.icon("help_outline");
         dlg.title("Confirmation");
@@ -1423,15 +1437,15 @@ tableWidget.viewModel = function (options) {
                 id: dlg.ids().content
             }, dlg.message());
         };
-        dlg.buttons([
-            dlg.buttonOk,
-            dlg.buttonCancel
-        ]);
+        dlg.buttons([dlg.buttonOk, dlg.buttonCancel]);
+        dlg.buttonOk().title("");
         dlg.buttonOk().label("&Ok");
+        dlg.buttonOk().isDisabled = function () {
+            return mode.isDisabled();
+        };
+        dlg.buttonCancel().title("");
         dlg.buttonCancel().label("&Cancel");
-        dlg.style({
-            width: "450px"
-        });
+        dlg.style({width: "500px"});
     }
 
     function selectionChanged() {
@@ -1609,6 +1623,35 @@ tableWidget.viewModel = function (options) {
         return isEditModeEnabled(...args);
     };
     /**
+        Allow multiple selections in view mode
+        @method isMultiSelectEnabled
+        @param {Boolean} flag Default true
+        @return {Boolean}
+    */
+    vm.isMultiSelectEnabled = f.prop(true);
+    /**
+        If true no query results are shown unless
+        a filter criteria exist.
+
+        @method isClearOnNoSearch
+        @param {Boolean} flag Default false
+        @return {Boolean}
+    */
+    vm.isClearOnNoSearch = f.prop(Boolean(options.isClearOnNoSearch));
+    /**
+        If false then only shown properties
+        are loaded, which helps with performance.
+        Otherwise load entire objects for editing
+        purposes.
+
+        @method isLoadAllProperties
+        @param {Boolean} flag Default false
+        @return {Boolean}
+    */
+    vm.isLoadAllProperties = f.prop(
+        Boolean(options.loadAllProperties)
+    );
+    /**
         Flag whether list is populated by query.
         @method isQuery
         @param {Boolean} flag
@@ -1664,9 +1707,10 @@ tableWidget.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.errorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "report_problem",
+        icon: "error",
         title: "Error"
     }));
+    vm.errorDialog().buttonCancel().hide();
     /**
         @method feather
         @param {Object} feather
@@ -1752,12 +1796,6 @@ tableWidget.viewModel = function (options) {
         @return {Boolean}
     */
     vm.isDragging = f.prop(false);
-    /**
-        @method isScrolling
-        @param {Boolean} flag
-        @return {Boolean}
-    */
-    vm.isScrolling = f.prop(false);
     /**
         @method isSelected
         @param {Model} model
@@ -1972,14 +2010,14 @@ tableWidget.viewModel = function (options) {
         header.scrollLeft = rows.scrollLeft;
 
         // No need to redraw
-        vm.isScrolling(true);
+        evt.redraw = false;
     };
 
     /**
         @method onscrollFooter
         @param {Event} event
     */
-    vm.onscrollFooter = function () {
+    vm.onscrollFooter = function (evt) {
         let ids = vm.ids();
         let rows = document.getElementById(ids.rows);
         let footer = document.getElementById(ids.footer);
@@ -1988,7 +2026,7 @@ tableWidget.viewModel = function (options) {
         rows.scrollLeft = footer.scrollLeft;
 
         // No need to redraw
-        vm.isScrolling(true);
+        evt.redraw = false;
     };
     /**
         Rerun query.
@@ -2016,7 +2054,10 @@ tableWidget.viewModel = function (options) {
         @method save
     */
     vm.save = function () {
-        vm.models().save();
+        vm.models().save(vm).catch(function (err) {
+            vm.errorDialog().message(err.message);
+            vm.errorDialog().show();
+        });
     };
     /**
         @method scrollbarWidth
@@ -2247,19 +2288,25 @@ tableWidget.viewModel = function (options) {
     vm.aggregates(f.copy(options.config.aggregates));
     vm.aggregateValues = f.prop();
     vm.filter().limit = vm.filter().limit || LIMIT;
+    let lopts = {
+        fetch: false,
+        subscribe: options.subscribe,
+        isEditable: vm.isEditModeEnabled(),
+        filter: vm.filter()
+    };
     if (!options.models) {
-        vm.models(f.createList(
-            feather.name,
-            {
-                fetch: false,
-                subscribe: options.subscribe,
-                isEditable: vm.isEditModeEnabled(),
-                filter: vm.filter()
-            }
-        ));
+        let flist = f.catalog().store().lists()[feather.name.toCamelCase()];
+        if (flist) {
+            vm.models(flist(lopts));
+        } else {
+            vm.models(f.createList(feather.name, lopts));
+        }
         setProperties();
         doFetch();
         doFetchAggregates();
+    }
+    if (vm.models().state) {
+        vm.models().state().resolve("/Unitialized").enter(vm.unselect);
     }
 
     // Bind refresh to filter change event
@@ -2331,6 +2378,9 @@ tableWidget.viewModel = function (options) {
                     let modelIds;
                     let adds;
                     let isSelected = vm.isSelected(model);
+                    if (!vm.isMultiSelectEnabled()) {
+                        optKey = "";
+                    }
 
                     switch (optKey) {
                     case "ctrlKey":
@@ -2488,26 +2538,6 @@ tableWidget.component = {
     },
 
     /**
-        Block redrawing where unneccessary to improve performance.
-        @method onbeforeupdate
-        @param {Object} vnode Virtual node
-        @param {ViewModels.TableWidget} vnode.viewModel
-    */
-    onbeforeupdate: function (vnode) {
-        let vm = vnode.attrs.viewModel;
-        let isDragging = vm.isDragging();
-        let isScrolling = vm.isScrolling();
-
-        if (isScrolling) {
-            vm.isScrolling(false); // Reset
-        }
-
-        if (isDragging || isScrolling) {
-            return false; // Don't redraw
-        }
-    },
-
-    /**
         @method view
         @param {Object} vnode Virtual node
         @param {ViewModels.TableWidget} vnode.viewModel
@@ -2527,6 +2557,14 @@ tableWidget.component = {
         let dlg = f.getComponent("Dialog");
         let aggs = theVm.aggregates();
         let tableBodyClass = "fb-table-body";
+        let watermarkStyle = {display: "none"};
+
+        if (
+            theVm.isClearOnNoSearch() &&
+            theVm.models().state().current()[0] === "/Unitialized"
+        ) {
+            watermarkStyle.display = "block";
+        }
 
         // Build header
         header = (function () {
@@ -2644,6 +2682,18 @@ tableWidget.component = {
             m("table", {
                 class: "pure-table fb-table"
             }, [
+                m("div", {
+                    class: "fb-search-watermark",
+                    id: "search-watermark",
+                    style: watermarkStyle
+                }, [
+                    m("div", {
+                        class: "fb-search-watermark-icon material-icons"
+                    }, "search"),
+                    m("div", {
+                        class: "fb-search-watermark-text"
+                    }, "Ready to Search")
+                ]),
                 m("thead", {
                     ondragover: theVm.ondragover,
                     draggable: true,

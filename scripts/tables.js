@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*global exports*/
-/*jslint node, browser*/
+/*jslint node, browser, unordered*/
 (function (exports) {
     "use strict";
 
@@ -75,7 +75,8 @@
         "    FOR sub IN" +
         "      SELECT change AS change, eventkey, subscriptionid " +
         "      FROM \"$subscription\"" +
-        "      WHERE nodeid = node.nodeid AND objectid = NEW.id" +
+        "      WHERE nodeid = node.nodeid AND " +
+        "      (objectid = NEW.id OR objectid = TG_TABLE_NAME) " +
         "    LOOP" +
         "        payload := '{\"subscription\": ' || " +
         "        row_to_json(sub)::text || ',\"data\":' || data || '}';" +
@@ -184,6 +185,7 @@
         "module text," +
         "sequence smallint," +
         "actions json," +
+        "is_template boolean default false, " +
         "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$workbook\" IS " +
@@ -201,7 +203,9 @@
         "COMMENT ON COLUMN \"$workbook\".sequence IS " +
         "'Presentation order';" +
         "COMMENT ON COLUMN \"$workbook\".actions IS " +
-        "'Menu action definition';"
+        "'Menu action definition';" +
+        "COMMENT ON COLUMN \"$workbook\".is_template IS " +
+        "'Flag workbook as template only';"
     );
 
     const createSessionSql = (
@@ -504,7 +508,13 @@
                     let altSql = (
                         "ALTER TABLE \"$workbook\" " +
                         "ADD COLUMN IF NOT EXISTS label text default ''; " +
-                        "COMMENT ON COLUMN \"$workbook\".label IS 'Menu label';"
+                        "COMMENT ON COLUMN \"$workbook\".label IS " +
+                        "'Menu label';" +
+                        "ALTER TABLE \"$workbook\" " +
+                        "ADD COLUMN IF NOT EXISTS is_template " +
+                        "boolean default false; " +
+                        "COMMENT ON COLUMN \"$workbook\".is_template IS " +
+                        "'Flag workbook as template only';"
                     );
                     if (err) {
                         reject(err);

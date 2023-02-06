@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser, unordered*/
+/*jslint this, browser, unordered, devel*/
 /**
     @module List
 */
@@ -40,11 +40,12 @@ const LIMIT = 20;
 function createList(feather) {
     let state;
     let doFetch;
-    let doSave;
     let doSend;
     let onClean;
     let onDirty;
     let onDelete;
+    let onSave = [];
+    let onSaved = [];
     let models = catalog.store().models();
     let name = feather.toCamelCase();
     let isSubscribed = false;
@@ -68,7 +69,7 @@ function createList(feather) {
         @param {Boolean} Subscribe flag.
         @param {Boolean} Add to top of list if new.
     */
-    ary.add = function (model, subscribe, prepend) {
+    ary.add = function (model, subscribe, at) {
         let mstate;
         let payload;
         let theUrl;
@@ -82,17 +83,29 @@ function createList(feather) {
         let row;
         let indentOn = ary.indentOn();
         let level;
+        let keys;
+        let k;
 
         if (!Number.isNaN(oid)) {
             dirty.remove(ary[oid]);
             ary.splice(oid, 1, model);
         } else {
-            if (prepend) {
+            if (at === true) {
                 Object.keys(idx).forEach(function (k) {
                     idx[k] += 1;
                 });
                 idx[id] = 0;
                 ary.unshift(model);
+            } else if (typeof at === "number") {
+                i = at;
+                keys = Object.keys(idx);
+                while (i < keys.length) {
+                    k = keys[i];
+                    idx[k] += 1;
+                    i += 1;
+                }
+                idx[id] = at;
+                ary.splice(at, 0, model);
             } else {
                 idx[id] = ary.length;
                 ary.push(model);
@@ -240,6 +253,68 @@ function createList(feather) {
     */
     ary.filter = f.prop({});
 
+    ary.inFilter = function (mdl) {
+        let criteria = ary.filter().criteria;
+        let rg;
+
+        if (criteria && criteria.length) {
+            return criteria.every(function (crit) {
+                let prop;
+                let val;
+
+                // Search (OR)
+                if (Array.isArray(crit.property)) {
+                    return crit.property.some(function (p) {
+                        prop = f.resolveProperty(mdl, p);
+                        val = prop() || "";
+                        rg = new RegExp(crit.value, "i");
+                        return val.search(rg);
+                    });
+                }
+
+                // Comparisons
+                prop = f.resolveProperty(mdl, crit.property);
+                val = prop();
+
+                if (val === null) {
+                    return false;
+                }
+
+                switch (crit.operator) {
+                case "=":
+                    return val === crit.value;
+                case "!=":
+                    return val !== crit.value;
+                case "~":
+                    rg = new RegExp(crit.value);
+                    return val.match(rg);
+                case "~*":
+                    rg = new RegExp(crit.value, "i");
+                    return val.match(rg);
+                case "!~":
+                    rg = new RegExp(crit.value);
+                    return !val.match(rg);
+                case "!~*":
+                    rg = new RegExp(crit.value, "i");
+                    return !val.match(rg);
+                case ">":
+                    return val > crit.value;
+                case "<":
+                    return val < crit.value;
+                case ">=":
+                    return val >= crit.value;
+                case "<=":
+                    return val <= crit.value;
+                case "IN":
+                    return crit.value.indexOf(val) !== 1;
+                }
+                return true;
+            });
+        }
+
+        return true;
+    };
+
     /**
         Default fetch limit.
 
@@ -293,7 +368,47 @@ function createList(feather) {
         @return {Objects}
     */
     ary.model = models[feather.toCamelCase() || "Model"];
+    /**
+        A function to call before executing save. A view model will be
+        passed in similar to static functions that allow for working with
+        interactive dialogs or other presentation related elements.
 
+        The callback function should return a Promise. Save will not complete
+        untill the promises are resolved.
+
+        @method onSave
+        @param {Function} callback Callback function to call before save
+        @param {Boolean} [flag] Put first in preprocess queue. Default false
+        @chainable
+        @return {Object}
+    */
+    ary.onSave = function (callback, prepend) {
+        if (prepend) {
+            onSave.unshift(callback);
+        } else {
+            onSave.push(callback);
+        }
+        return ary;
+    };
+
+    /**
+        A function to call after executing save. A view model will be
+        passed in similar to static functions that allow for working with
+        interactive dialogs or other presentation related elements.
+
+        The callback function should return a Promise. Note at this point
+        the save(s) will be committed, so this handles user interactions as
+        post processing such as prompts to print or continue on to next steps.
+
+        @method onSaved
+        @param {Function} callback Callback function to call on change
+        @chainable
+        @return {Object}
+    */
+    ary.onSaved = function (callback) {
+        onSaved.push(callback);
+        return ary;
+    };
     /**
         The url path to data.
 
@@ -302,6 +417,15 @@ function createList(feather) {
         @return {String}
     */
     ary.path = f.prop();
+
+    /**
+        Pending transactions.
+
+        @method path
+        @param {String} Path
+        @return {String}
+    */
+    ary.pending = f.prop([]);
 
     /**
         Array of properties to fetch if only a subset required.
@@ -342,9 +466,11 @@ function createList(feather) {
         @method reset
     */
     ary.reset = function () {
+        ary.pending().length = 0;
         ary.length = 0;
         dirty.length = 0;
         ary.index({});
+        state.goto("/Unitialized");
     };
 
     /**
@@ -360,10 +486,11 @@ function createList(feather) {
         Save dirty records in list. Returns a Promise.
 
         @method save
+        @parameter {Object} [ViewModel] For save pre and post processing
         @return {Promise}
     */
-    ary.save = function () {
-        return doSend("save");
+    ary.save = function (vm) {
+        return doSend("save", undefined, vm);
     };
 
     /**
@@ -461,6 +588,9 @@ function createList(feather) {
         let theBody = {};
         let isMerge = true;
         let cfeather = catalog.getFeather(name.toCamelCase(true));
+        let pendId = f.createId();
+
+        ary.pending().push(pendId);
 
         // Undo any edited rows
         if (!context.merge) {
@@ -477,6 +607,12 @@ function createList(feather) {
             let attrs;
             let props = {};
             let cache = [];
+
+            // If canceled, bail out
+            if (ary.pending().indexOf(pendId) === -1) {
+                context.resolve(ary);
+                return;
+            }
 
             if (!isMerge) {
                 ary.reset();
@@ -532,6 +668,10 @@ function createList(feather) {
             }
 
             state.send("fetched");
+            if (!isBackground) {
+                m.redraw();
+            }
+            isBackground = false; // reset
             context.resolve(ary);
         }
 
@@ -575,28 +715,53 @@ function createList(feather) {
             method: "POST",
             url: theUrl,
             body: theBody,
-            background: isBackground
+            background: true
         };
-        isBackground = false; // reset
-        return m.request(payload).then(callback).catch(console.error);
+        return m.request(payload, {background: true}).then(
+            callback
+        ).catch(console.error);
     };
 
-    doSave = function (context) {
+    async function doPreProcess(vm) {
+        let idx = 0;
+        let callback;
+        while (idx < onSave.length) {
+            callback = onSave[idx];
+            idx += 1;
+            await callback(vm);
+        }
+    }
+
+    async function doPostProcess(vm) {
+        let idx = 0;
+        let callback;
+        while (idx < onSaved.length) {
+            callback = onSaved[idx];
+            idx += 1;
+            await callback(vm);
+        }
+    }
+
+    async function doSave(context) {
         let requests = [];
+        let resp;
 
-        dirty.forEach(function (model) {
-            requests.push(model.save());
-        });
+        try {
+            await doPreProcess(context.viewModel);
 
-        Promise.all(requests).then(function (resp) {
+            requests = dirty.map((mdl) => mdl.save(context.viewModel));
+            resp = await Promise.all(requests);
             state.send("changed");
             context.resolve(resp);
-        }).catch(context.reject);
-    };
+
+            await doPostProcess(context.viewModel);
+        } catch (e) {
+            context.reject(e);
+        }
+    }
 
     doSend = function (...args) {
         let evt = args[0];
-        let merge = args[1];
 
         return new Promise(function (pResolve, pReject) {
             let context = {
@@ -605,7 +770,11 @@ function createList(feather) {
             };
 
             if (args.length > 1) {
-                context.merge = merge;
+                context.merge = args[1];
+            }
+
+            if (args.length > 2) {
+                context.viewModel = args[2];
             }
 
             state.send(evt, context);
@@ -615,6 +784,9 @@ function createList(feather) {
     // Define statechart
     state = State.define(function () {
         this.state("Unitialized", function () {
+            this.event("fetched", function () {
+                this.goto("/Fetched");
+            });
             this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
                     context: pContext
@@ -625,6 +797,13 @@ function createList(feather) {
         this.state("Busy", function () {
             this.state("Fetching", function () {
                 this.enter(doFetch);
+                this.event("fetch", function (pContext) {
+                    ary.pending().length = 0;
+                    this.goto("/Busy", {
+                        context: pContext,
+                        force: true
+                    });
+                });
             });
             this.state("Saving", function () {
                 this.enter(doSave);
@@ -706,5 +885,6 @@ function list(feather) {
 }
 
 catalog.register("factories", "list", list);
+catalog.register("lists");
 
 export default Object.freeze(list);

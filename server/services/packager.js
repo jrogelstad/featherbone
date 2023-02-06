@@ -709,7 +709,8 @@
                 sql = (
                     "SELECT name, description, icon, launch_config, " +
                     "default_config, local_config, module, sequence, " +
-                    "actions, label FROM \"$workbook\" WHERE module = $1 " +
+                    "actions, label, is_template " +
+                    "FROM \"$workbook\" WHERE module = $1 " +
                     "AND NOT is_deleted " +
                     "ORDER BY name;"
                 );
@@ -734,8 +735,8 @@
                     function finishPackage() {
                         addFeathers(manifest, zip, resp[1], folder);
                         addRelWidgets(manifest, zip, resp[8], folder);
-                        addForms(manifest, zip, resp[2], folder);
                         addServices(manifest, zip, resp[3], folder);
+                        addForms(manifest, zip, resp[2], folder);
                         addBatch("Route", manifest, zip, resp[4], folder);
                         addBatch("Style", manifest, zip, resp[5], folder);
                         addSettings(manifest, zip, resp[6], folder);
