@@ -39,9 +39,12 @@
     });
     const {Config} = require("./server/config");
     const config = new Config();
+    const {Tools} = require("./server/services/tools");
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
+    const {webauthn} = require("./server/services/webauthn");
+
     const check = [
         "data",
         "do",
@@ -87,11 +90,19 @@
         Fast json patch library per API documented here:
         https://github.com/Starcounter-Jack/JSON-Patch#api
         @property jsonpatch
-        @type Datasource
+        @type Object
         @for f
         @final
     */
     f.jsonpatch = require("fast-json-patch");
+
+    /**
+        @property formats
+        @type Object
+        @for f
+        @final
+    */
+    f.formats = new Tools().formats;
 
     let app = express();
     let routes = [];
@@ -250,6 +261,13 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+
+            webauthn.loadCipher(process.env.CIPHER || resp.cipher);
+            webauthn.init(
+                (process.env.RPID || resp.rpId || "localhost"),
+                (process.env.ORIGIN || resp.origin || "http://localhost")
+            );
+
         } catch (err) {
             logger.error(err.message);
             console.log(err);
@@ -659,7 +677,9 @@
         datasource.lock(
             req.body.id,
             username,
-            req.body.eventKey
+            req.body.eventKey,
+            undefined,
+            false
         ).then(
             respond.bind(res)
         ).catch(
@@ -849,7 +869,7 @@
 
         datasource.printPdfForm(
             req.body.form,
-            req.body.id || req.body.ids,
+            req.body.id || req.body.ids || req.body.data,
             req.body.filename,
             req.user.name,
             req.body.options
@@ -876,6 +896,7 @@
                     html: req.body.message.html
                 },
                 pdf: {
+                    data: req.body.pdf.data,
                     form: req.body.pdf.form,
                     ids: req.body.pdf.id || req.body.pdf.ids,
                     filename: req.body.pdf.filename
@@ -957,12 +978,11 @@
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
         let file = req.params.file || "";
-        //console.log(url + "/" + file);
         let suffix = (
             file
             ? file.slice(file.indexOf("."), file.length)
             : url.slice(url.lastIndexOf("."), url.length)
-        );
+        ).toLowerCase();
         let mimetype;
 
         switch (suffix) {
@@ -1420,7 +1440,7 @@
         app.use(bodyParser.urlencoded({
             extended: true
         }));
-        app.use(bodyParser.json());
+        app.use(bodyParser.json({limit: "5mb"}));
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
@@ -1494,6 +1514,7 @@
                 clearTimeout(sessions[req.sessionID]);
             }
             if (req.user) {
+                webauthn.applyToken(req);
                 req.user.mode = mode;
                 sessions[req.sessionID] = setTimeout(function () {
                     logger.verbose("Session " + req.sessionID + " timed out");
@@ -1525,7 +1546,10 @@
 
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
-
+        app.get("/webauthn/reg", webauthn.doWebAuthNRegister);
+        app.post("/webauthn/reg", webauthn.postWebAuthNRegister);
+        app.get("/webauthn/auth", webauthn.doWebAuthNAuthenticate);
+        app.post("/webauthn/auth", webauthn.postWebAuthNAuthenticate);
         app.post("/connect", doConnect);
         app.post("/data/user-accounts", doQueryRequest);
         app.post("/data/user-account", doPostUserAccount);
@@ -1564,16 +1588,45 @@
         app.get("/workbook/:name", doGetWorkbook);
         app.put("/workbook/:name", doSaveWorkbook);
         app.delete("/workbook/:name", doDeleteWorkbook);
+        let pending = [];
+        let isFetching = false;
+
+        function processFetch() {
+            if (!isFetching && pending.length) {
+                isFetching = true;
+                let job = pending[0];
+                let jobId = job.payload.id;
+                let jobName = job.payload.name;
+                datasource.request(job.payload, true).then(function (resp) {
+                    // Group together any other responses for the same
+                    // record to reduce duplicate queries
+                    let jobs = pending.filter(
+                        (p) => (
+                            p.payload.id === jobId &&
+                            p.payload.name === jobName
+                        )
+                    );
+                    jobs.forEach(function (thejob) {
+                        let idx = pending.indexOf(thejob);
+                        pending.splice(idx, 1);
+                        thejob.callback(resp);
+                    });
+                    isFetching = false;
+                    processFetch();
+                }).catch(function (e) {
+                    console.error(e);
+                });
+            }
+        }
 
         // HANDLE PUSH NOTIFICATION -------------------------------
         // Receiver callback for all events, sends only to applicable instance.
         function receiver(message) {
-            let payload;
             let eventKey = message.payload.subscription.eventkey;
             let change = message.payload.subscription.change;
             let fn = eventSessions[eventKey];
 
-            function callback(resp) {
+            function cb(resp) {
                 if (resp) {
                     message.payload.data = resp;
                 }
@@ -1581,29 +1634,28 @@
                 fn(message);
             }
 
-            function err(e) {
-                console.error(e);
-            }
-
             if (fn) {
                 if (fn.fetch === false) {
-                    callback();
+                    cb();
                     return;
                 }
 
                 // If record change, fetch new record
                 if (change === "create" || change === "update") {
-                    payload = {
-                        name: message.payload.data.table.toCamelCase(true),
-                        method: "GET",
-                        user: systemUser,
-                        id: message.payload.data.id
-                    };
-                    datasource.request(payload, true).then(callback).catch(err);
+                    pending.push({
+                        payload: {
+                            name: message.payload.data.table.toCamelCase(true),
+                            method: "GET",
+                            user: systemUser,
+                            id: message.payload.data.id
+                        },
+                        callback: cb
+                    });
+                    processFetch();
                     return;
                 }
 
-                callback();
+                cb();
             }
         }
 

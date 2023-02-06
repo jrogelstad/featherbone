@@ -579,7 +579,6 @@ formPage.viewModel = function (options) {
             now.getMinutes()
         );
 
-        console.log(file);
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
@@ -594,13 +593,34 @@ formPage.viewModel = function (options) {
                 window.location.hostname + ":" +
                 window.location.port + "/pdf/" + resp
             );
+            window.open(encodeURI(url));
+        }
 
-            window.open(url);
+        // Include both persistant and calculated values
+        function serialize(mdl) {
+            let ret = {};
+            Object.keys(mdl.data).forEach(function (key) {
+                if (Array.isArray(mdl.data[key]())) {
+                    ret[key] = mdl.data[key]().map(function (item) {
+                        if (item.isModel) {
+                            return serialize(item);
+                        }
+                        return item;
+                    });
+                    return;
+                }
+                ret[key] = (
+                    mdl.data[key].toJSON
+                    ? mdl.data[key].toJSON()
+                    : mdl.data[key]()
+                );
+            });
+            return ret;
         }
 
         let payload;
         let theBody = {
-            id: vm.model().id(),
+            data: serialize(vm.model()),
             form: form.name,
             filename: file
         };
@@ -642,7 +662,7 @@ formPage.viewModel = function (options) {
         ]);
         dlg.buttonOk().label("&Ok");
         dlg.buttonCancel().label("&Cancel");
-        dlg.style({width: "450px"});
+        dlg.style({width: "500px"});
     }
 
     // Check if we've already got a model instantiated
@@ -720,7 +740,7 @@ formPage.viewModel = function (options) {
         @method doApply
     */
     vm.doApply = function () {
-        vm.model().save().then(function () {
+        vm.model().save(vm).then(function () {
             callReceiver();
         });
     };
@@ -769,6 +789,11 @@ formPage.viewModel = function (options) {
         delete instances[id];
         delete formInstances[id];
         vm.model().copy();
+        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
+            if (!vm.model().subscribe()) {
+                vm.model().subscribe(true);
+            }
+        });
         id = vm.model().id();
         instances[id] = vm.model();
         formInstances[id] = inst;
@@ -880,6 +905,16 @@ formPage.viewModel = function (options) {
         @return {Model}
     */
     vm.model = function () {
+        return vm.formWidget().model();
+    };
+   /**
+        Returns model for compatibility with actions
+        with list actions.
+
+        @method selection
+        @return {Model}
+    */
+    vm.selection = function () {
         return vm.formWidget().model();
     };
    /**
@@ -1046,8 +1081,8 @@ formPage.viewModel = function (options) {
 
     vm.buttonCopy(f.createViewModel("Button", {
         onclick: vm.doCopy,
-        icon: "library_add",
-        title: "New copy",
+        icon: "copy_all",
+        title: "Copy",
         class: (
             toolbarButtonClass +
             " fb-toolbar-button-right" +
@@ -1299,6 +1334,17 @@ formPage.component = {
                 viewModel: vm.formWidget()
             })
         ]);
+    },
+    onremove: function (vnode) {
+        let frminstances = f.catalog().store().formInstances();
+        let key = vnode.attrs.key;
+        let existing = frminstances[key];
+
+        // Form widget unsubscribes, but if cached leave subscription
+        // because we're intended to come back here
+        if (existing) {
+            existing.model().subscribe(true);
+        }
     }
 };
 

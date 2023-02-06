@@ -48,7 +48,7 @@ childTable.viewModel = function (options) {
         let currentState = root.state().current()[0];
 
         if (
-            canAdd() &&
+            canAdd() !== false &&
             currentState !== "/Ready/Fetched/ReadOnly" &&
             currentState !== "/Locked"
         ) {
@@ -212,7 +212,7 @@ childTable.viewModel = function (options) {
     let theClass = "fb-toolbar-button fb-toolbar-button-right ";
     let btn;
     let validator = function (check) {
-        return !Boolean(check(vm.tableWidget().selections()));
+        return !Boolean(check(vm.tableWidget().selections(), vm));
     };
     let onClick = (act) => act(vm);
 
@@ -362,13 +362,8 @@ childTable.viewModel = function (options) {
     });
     canAdd = vm.tableWidget().models().canAdd;
 
-    root.state().resolve("/Ready/Fetched/ReadOnly").enter(function () {
-        vm.buttonAdd().disable();
-        vm.buttonOpen().disable();
-    });
-    root.state().resolve("/Ready/Fetched/ReadOnly").exit(toggleCanAdd);
-    root.state().resolve("/Locked").enter(vm.buttonAdd().disable);
-    root.state().resolve("/Locked").exit(toggleCanAdd);
+    root.state().resolve("/Ready").enter(canAdd);
+    root.state().resolve("/Locked").enter(canAdd);
     root.state().resolve("/Ready/Fetched/Clean").enter(vm.tableWidget().select);
     canAdd.state().resolve("/Changing").exit(toggleCanAdd);
     toggleCanAdd();

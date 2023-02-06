@@ -322,8 +322,17 @@ function buildFieldset(vm, attrs) {
 
 function resizeWidget(vm, vnode) {
     let e = document.getElementById(vnode.dom.id);
+    let maxHeight = vm.maxHeight();
+    if (maxHeight) {
+        e.style.maxHeight = maxHeight;
+        return;
+    }
     let bodyHeight = window.innerHeight;
     let eids = vm.outsideElementIds();
+
+    if (!e) {
+        return;
+    }
 
     eids.forEach(function (id) {
         let h = document.getElementById(id).clientHeight;
@@ -350,7 +359,7 @@ function buildGrid(grid, idx) {
     let vm = this;
     let className = "fb-tabbed-panes fb-tabbed-panes-form";
     let header;
-    let orient = vm.config().orientation || HORIZONTAL_TABS
+    let orient = vm.config().orientation || HORIZONTAL_TABS;
 
     if (orient === HORIZONTAL_TABS) {
         header = buildButtons(vm);
@@ -453,6 +462,14 @@ formWidget.viewModel = function (options) {
     */
     vm.selectedTab = f.prop(1);
     /**
+        Fixed max height of the form.
+
+        @method maxHeight
+        @param {String} [max height]
+        @return {String}
+    */
+    vm.maxHeight = f.prop(options.maxHeight);
+    /**
         @method model
         @param {Model} [model]
         @return {Model}
@@ -517,7 +534,15 @@ formWidget.viewModel = function (options) {
     });
 
     // Subscribe to external events
-    vm.model().subscribe(true);
+    if (vm.model().state().current()[0] === "/Ready/New") {
+        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
+            if (!vm.model().subscribe()) {
+                vm.model().subscribe(true);
+            }
+        });
+    } else {
+        vm.model().subscribe(true);
+    }
 
     return vm;
 };

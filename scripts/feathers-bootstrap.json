@@ -517,7 +517,7 @@
                 "description": "Home, work, other",
                 "type": "string",
                 "format": "enum",
-                "default": "H",
+                "default": "W",
                 "isRequired": true,
                 "dataList": [{
                     "value": "H",
@@ -566,6 +566,10 @@
                 "description": "Country",
                 "type": "string",
                 "isRequired": true
+            },
+            "phone": {
+                "description": "Phone",
+                "type": "string"
             }
         }
     },
@@ -660,7 +664,7 @@
                 "type": {
                     "relation": "Address",
                     "properties": ["type", "street", "unit",
-                        "city", "state", "postalCode", "country"
+                        "city", "state", "postalCode", "country", "phone"
                     ]
                 }
             },

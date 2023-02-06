@@ -83,6 +83,8 @@ relationWidget.viewModel = function (options) {
     let configId = f.createId();
     let blurVal;
     let theProps = options.list.columns.map((l) => l.attr);
+    let thefeather = options.feather || type.relation;
+
     if (theProps.indexOf(labelProperty) === -1) {
         theProps.unshift(labelProperty);
     }
@@ -139,6 +141,7 @@ relationWidget.viewModel = function (options) {
                 value: "^" + blurVal
             }];
             vm.fetch().then(function (resp) {
+                theFilter.criteria.length = 0;
                 if (resp && resp.length) {
                     vm.onchange(blurVal);
                 } else {
@@ -148,14 +151,14 @@ relationWidget.viewModel = function (options) {
         }
     }
 
-    modelList = f.createList(type.relation, {
+    modelList = f.createList(thefeather, {
         background: true,
         filter: mergeFilter(theFilter),
         fetch: false,
         isEditable: false
     });
     modelList.properties();
-    modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
+    modelList.fetch(mergeFilter(theFilter), false, true).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
     // recognized
@@ -185,7 +188,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        return vm.models().fetch(mergeFilter(theFilter), false);
+        return vm.models().fetch(mergeFilter(theFilter), false, false);
     };
     /**
         @method id
@@ -274,11 +277,14 @@ relationWidget.viewModel = function (options) {
         @method new
     */
     vm.new = function () {
+        let form = options.form || {};
+
         m.route.set("/edit/:feather/:key", {
-            feather: type.relation.toSpinalCase(),
+            feather: thefeather.toSpinalCase(),
             key: f.createId()
         }, {
             state: {
+                form: form.id,
                 receiver: registerReceiver(),
                 create: true
             }
@@ -311,7 +317,7 @@ relationWidget.viewModel = function (options) {
         f.catalog().register("config", configId, searchList);
 
         m.route.set("/search/:feather", {
-            feather: type.relation.toSpinalCase(),
+            feather: thefeather.toSpinalCase(),
             config: configId
         }, {
             state: {
@@ -533,7 +539,7 @@ relationWidget.viewModel = function (options) {
     vm.style(options.style || {});
 
     f.catalog().isAuthorized({
-        feather: type.relation,
+        feather: thefeather,
         action: "canCreate",
         background: true
     }).then(vm.canCreate).catch(function (err) {
@@ -576,6 +582,7 @@ relationWidget.component = {
                 labelProperty: options.labelProperty,
                 form: options.form,
                 list: options.list,
+                feather: options.feather,
                 filter: options.filter,
                 isCell: options.isCell,
                 id: options.id,
@@ -741,7 +748,7 @@ relationWidget.component = {
         }
 
         // Hack size to fit button.
-        if (theStyle.maxWidth) {
+        if (vm.isCell() && theStyle.maxWidth) {
             maxWidth = theStyle.maxWidth.replace("px", "");
             maxWidth = maxWidth - 35;
             maxWidth = (
@@ -750,6 +757,10 @@ relationWidget.component = {
                 : maxWidth
             );
             inputStyle.maxWidth = maxWidth + "px";
+        } else {
+            theStyle.width = "60%";
+            theStyle.maxWidth = "350px";
+            inputStyle = {width: "100%"};
         }
 
         // Build the view
@@ -772,6 +783,9 @@ relationWidget.component = {
                 },
                 oninput: (e) => vm.oninput(e.target.value),
                 value: vm.value(),
+                onclick: function (e) {
+                    e.redraw = false;
+                },
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 placeholder: vm.placeholder,

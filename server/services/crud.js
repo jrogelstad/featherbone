@@ -435,7 +435,8 @@
             let theAlias;
             let fp;
             let fk;
-            let where = filter.criteria.find((c) => c.property === prop);
+            let wheres = filter.criteria.filter((c) => c.property === prop);
+            let where;
             let whereArys = filter.criteria.filter(
                 (c) => (
                     Array.isArray(c.property) &&
@@ -450,41 +451,47 @@
 
             while (idx !== -1) {
                 fp = fthr.properties[attr];
-                if (fp.format === "money") { // Hard coded type
-                    where.operator = where.operator || "=";
-                    if (where.op === "IN") {
-                        part = [];
-                        if (where.value.length) {
-                            where.value.forEach(function (val) {
-                                params.push(val);
+                if (
+                    formats[fp.format] &&
+                    formats[fp.format].isMoney
+                ) { // Hard coded type
+                    while (wheres.length) {
+                        where = wheres.shift();
+                        where.operator = where.operator || "=";
+                        if (where.operator === "IN") {
+                            part = [];
+                            if (where.value.length) {
+                                where.value.forEach(function (val) {
+                                    params.push(val);
+                                    part.push("$" + p);
+                                    p += 1;
+                                });
+                                part = tools.resolvePath(
+                                    where.property,
+                                    ptokens
+                                ) + " IN (" + part.join(",") + ")";
+                            // If no values in array, then no result
+                            } else {
+                                params.push(false);
                                 part.push("$" + p);
                                 p += 1;
-                            });
+                            }
+                        } else {
+                            if (typeof where.value === "object") {
+                                where.property = where.property + ".id";
+                                where.value = where.value.id;
+                            }
+                            params.push(where.value);
                             part = tools.resolvePath(
                                 where.property,
                                 ptokens
-                            ) + " IN (" + part.join(",") + ")";
-                        // If no values in array, then no result
-                        } else {
-                            params.push(false);
-                            part.push("$" + p);
+                            ) + " " + where.operator + " $" + p;
                             p += 1;
                         }
-                    } else {
-                        if (typeof where.value === "object") {
-                            where.property = where.property + ".id";
-                            where.value = where.value.id;
-                        }
-                        params.push(where.value);
-                        part = tools.resolvePath(
-                            where.property,
-                            ptokens
-                        ) + " " + where.operator + " $" + p;
-                        p += 1;
-                    }
 
-                    joinArrays.parts.push(part);
-                    idx = -1;
+                        joinArrays.parts.push(part);
+                        idx = -1;
+                    }
                 } else {
                     // Join
                     theTable = fp.type.relation.toSnakeCase();
@@ -526,7 +533,8 @@
                     prop = prop.slice(idx + 1, prop.length);
                     idx = prop.indexOf(".");
                     if (idx === -1) { // done joining?
-                        if (where) {
+                        while (wheres.length) {
+                            where = wheres.shift();
                             p = appendWhere(
                                 {
                                     property: prop,
@@ -770,7 +778,16 @@
                     sql += " TO SAVEPOINT last_savepoint; COMMIT;";
                     savepoint = false;
                 }
-                client.query(sql).then(resolve).catch(reject);
+                client.query(sql).then(function () {
+                    let callbacks = client.rollbacks.slice();
+                    function next() {
+                        if (callbacks.length) {
+                            callbacks.shift()().then(next).catch(console.log);
+                        }
+                    }
+                    next();
+                    resolve();
+                }).then(resolve).catch(reject);
             });
         };
         /**
@@ -968,7 +985,6 @@
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
                         client: theClient,
-                        callback: afterDoSelect,
                         sanitize: false
                     }, true).then(afterDoSelect).catch(reject);
                 };
@@ -993,8 +1009,12 @@
                         oldRec && oldRec.lock &&
                         oldRec.lock[eventKey] !== obj.eventKey
                     ) {
-                        msg = "Record is locked by " + oldRec.lock.username;
-                        msg += " and cannot be updated.";
+                        msg = (
+                            "Record " + obj.id +
+                            " type " + oldRec.objectType +
+                            " is locked by " + oldRec.lock.username +
+                            " and cannot be deleted."
+                        );
                         reject(new Error(msg));
                         return;
                     }
@@ -1500,7 +1520,8 @@
                         /* Handle non-relational composites */
                         if (
                             prop.type === "object" &&
-                            prop.format === "money"
+                            formats[prop.format] &&
+                            formats[prop.format].isMoney
                         ) {
                             Object.keys(value || {}).forEach(function (attr) {
                                 args.push(col);
@@ -1624,6 +1645,11 @@
                 afterLog = function () {
                     // We're going to return the changes
                     result = jsonpatch.compare(obj.cache, result);
+
+                    // Update newRec for "trigger after" events
+                    if (obj.newRec) {
+                        jsonpatch.applyPatch(obj.newRec, result);
+                    }
 
                     // Report back result
                     resolve(result);
@@ -1777,7 +1803,10 @@
                 sql += " WHERE id = $1";
 
                 if (obj.isForUpdate) {
-                    sql += " FOR UPDATE";
+                    await theClient.query(
+                        "SELECT pg_advisory_xact_lock($1);",
+                        [key]
+                    );
                 }
 
                 result = await theClient.query(sql, [obj.id]);
@@ -1821,22 +1850,11 @@
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
 
-                if (obj.isForUpdate) {
-                    sql += " FOR UPDATE";
-                }
-
                 //console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                if (
-                    !obj.filter || (
-                        !obj.filter.criteria &&
-                        !obj.filter.limit
-                    )
-                ) {
-                    feathername = obj.name;
-                }
+                feathername = obj.name;
 
                 // Handle subscription
                 await events.subscribe(
@@ -1904,7 +1922,9 @@
                 let theClient = db.getClient(obj.client);
 
                 if (!patches.length) {
-                    resolve([]);
+                    crud.unlock(theClient, {
+                        id: obj.id
+                    }).then(resolve.bind(null, [])).catch(reject);
                     return;
                 }
 
@@ -2008,9 +2028,12 @@
                         resp && resp.lock &&
                         resp.lock[eventKey] !== obj.eventKey
                     ) {
-                        msg = "Record is locked by ";
-                        msg += resp.lock.username;
-                        msg += " and cannot be updated.";
+                        msg = (
+                            "Record " + resp.id +
+                            " object type " + resp.objectType +
+                            " is locked by " + resp.lock.username +
+                            " and cannot be updated."
+                        );
                         reject(new Error(msg));
                         return;
                     }
@@ -2268,7 +2291,8 @@
                         } else if (
                             updRec[key] !== oldRec[key] &&
                             props[key].type === "object" &&
-                            props[key].format === "money"
+                            formats[props[key].format] &&
+                            formats[props[key].format].isMoney
                         ) {
 
                             Object.keys(updRec[key]).forEach(
@@ -2420,6 +2444,11 @@
                 done = function () {
                     let ret = jsonpatch.compare(cacheRec, result);
 
+                    // Update newRec for "trigger after" use if applicable
+                    if (obj.newRec) {
+                        jsonpatch.applyPatch(obj.newRec, ret);
+                    }
+
                     ret = ret.filter(
                         (r) => r.path.slice(r.path.length - 5) !== "/lock"
                     );
@@ -2452,107 +2481,104 @@
             @param {String} [process] Description of lock reason
             @return {Promise} Resolves to `true` if successful.
         */
-        crud.lock = function (client, nodeid, id, username, eventkey, process) {
+        crud.lock = async function (
+            client,
+            nodeid,
+            id,
+            username,
+            eventkey,
+            process
+        ) {
+            let prcLock = Boolean(process);
             process = process || "Editing";
-            return new Promise(function (resolve, reject) {
-                let msg;
+            let msg;
 
-                if (!nodeid) {
-                    reject(new Error("Lock requires a node id."));
-                    return;
-                }
+            if (!nodeid) {
+                throw new Error("Lock requires a node id.");
+            }
 
-                if (!eventkey) {
-                    reject(new Error("Lock requires an eventkey."));
-                    return;
-                }
+            if (!eventkey) {
+                throw new Error("Lock requires an eventkey.");
+            }
 
-                if (!id) {
-                    reject(new Error("Lock requires an object id."));
-                    return;
-                }
+            if (!id) {
+                throw new Error("Lock requires an object id.");
+            }
 
-                if (!username) {
-                    reject(new Error("Lock requires a username."));
-                    return;
-                }
+            if (!username) {
+                throw new Error("Lock requires a username.");
+            }
 
-                function checkLock() {
-                    return new Promise(function (resolve, reject) {
-                        let sql = (
-                            "SELECT to_json(lock) AS lock " +
-                            "FROM object WHERE id = $1"
-                        );
+            let sql = (
+                "SELECT pg_advisory_xact_lock(_pk) " +
+                "FROM object WHERE id = $1"
+            );
 
-                        function callback(resp) {
-                            if (!resp.rows.length) {
-                                msg = "Record " + id + " not found.";
-                                reject(new Error(msg));
-                                return;
-                            }
+            // If process wait until other processes release advisory lock
+            if (prcLock) {
+                await client.query(sql, [id]);
+            }
 
-                            if (
-                                resp.rows[0].lock &&
-                                resp.rows[0].lock[ekey] !== eventkey
-                            ) {
-                                msg = "Record " + id + " is already locked.";
-                                reject(new Error(msg));
-                                return;
-                            }
+            // Now get application record lock
+            sql = (
+                "SELECT to_json(lock) AS lock," +
+                "tableoid::regclass::text AS object_type " +
+                "FROM object WHERE id = $1"
+            );
 
-                            resolve();
-                        }
+            let resp = await client.query(sql, [id]);
 
-                        client.query(sql, [id]).then(
-                            callback
-                        ).catch(
-                            reject
-                        );
-                    });
-                }
+            if (!resp.rows.length) {
+                msg = "Record " + id + " not found.";
+                throw new Error(msg);
+            }
 
-                function doLock() {
-                    return new Promise(function (resolve, reject) {
-                        let params;
-                        let sql;
-
-                        sql = (
-                            "UPDATE object " +
-                            "SET lock = ROW($1, now(), $2, $3, $4) " +
-                            "WHERE id = $5"
-                        );
-
-                        function callback() {
-                            resolve(true);
-                        }
-
-                        params = [
-                            username,
-                            nodeid,
-                            eventkey,
-                            process,
-                            id
-                        ];
-
-                        client.query(sql, params).then(
-                            callback
-                        ).catch(
-                            reject
-                        );
-                    });
-                }
-
-                Promise.resolve().then(
-                    checkLock
-                ).then(
-                    doLock
-                ).then(
-                    resolve
-                ).catch(
-                    reject
+            if (
+                resp.rows[0].lock &&
+                resp.rows[0].lock[ekey] !== eventkey
+            ) {
+                msg = (
+                    "Record " + id + " on " +
+                    resp.rows[0].object_type.toName() +
+                    " is already locked by " +
+                    resp.rows[0].lock.username
                 );
+                throw new Error(msg);
+            }
 
-            });
+            // Do lock
+            sql = (
+                "UPDATE object " +
+                "SET lock = ROW($1, now(), $2, $3, $4) " +
+                "WHERE id = $5"
+            );
+
+            let params = [
+                username,
+                nodeid,
+                eventkey,
+                process,
+                id
+            ];
+
+            // Auto unlock process based locks on error
+            if (prcLock) {
+                client.onRollback(async function processkUnlock() {
+                    let rconn = await db.connect();
+                    let rsql = (
+                        "UPDATE object " +
+                        "SET lock = null WHERE id = $1;"
+                    );
+                    await rconn.client.query(rsql, [id]);
+                    rconn.done();
+                });
+            }
+
+            // Always update outside of transaction so all see it
+            let conn = await db.connect();
+            await conn.client.query(sql, params);
+            conn.done();
+            return true;
         };
 
         /**
@@ -2644,19 +2670,20 @@
                 }
 
                 function nextVal(feather) {
-                    let pname = "properties";
+                    let pname = "overloads";
                     let attr = Object.keys(
-                        feather.properties
+                        feather.overloads
                     ).find(function (key) {
-                        return feather.properties[key].autonumber;
+                        return feather.overloads[key].autonumber;
                     });
-                    // Check overloads
+
+                    // Check regular properties
                     if (!attr) {
-                        pname = "overloads";
+                        pname = "properties";
                         attr = Object.keys(
-                            feather.overloads
+                            feather.properties
                         ).find(function (key) {
-                            return feather.overloads[key].autonumber;
+                            return feather.properties[key].autonumber;
                         });
                     }
 

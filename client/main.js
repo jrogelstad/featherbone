@@ -40,10 +40,26 @@ let loadWorkbooks;
 let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
+let addWbFromTemplateDlg;
+let deleteWbTemplateDlg;
 let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let initialized = false;
 let isSuper = false;
+
+// For workbook management
+const showMenuWorkbook = f.prop(false);
+const template = f.prop("");
+const newname = f.prop("");
+function templates() {
+    return Object.keys(workbooks).filter(
+        (k) => workbooks[k].data.isTemplate()
+    ).sort().map(function (t) {
+        return m("option", {
+            value: workbooks[t].id()
+        }, workbooks[t].data.name());
+    });
+}
 
 const preFetch = [];
 const fetchRequests = [];
@@ -52,6 +68,10 @@ const home = {
         Object.keys(workbooks).forEach(function (key) {
             let workbook = workbooks[key];
             let config = workbook.getConfig();
+
+            if (workbook.data.isTemplate()) {
+                return;
+            }
 
             vnode["go" + workbook.data.name()] = function () {
                 m.route.set("/workbook/:workbook/:key", {
@@ -71,16 +91,33 @@ const home = {
     },
     view: function () {
         let toolbarClass = "fb-toolbar";
-        let toolbarButtonClass = "fb-toolbar-button";
+        let menuButtonClass = (
+            "pure-button " +
+            "material-icons-outlined " +
+            "fb-menu-button fb-menu-button-right-side"
+        );
+        let dlgsClosed = (
+            addWorkbookViewModel.state().current()[0] ===
+            "/Display/Closed" &&
+            addWbFromTemplateDlg.state().current()[0] ===
+            "/Display/Closed" &&
+            deleteWbTemplateDlg.state().current()[0] ===
+            "/Display/Closed"
+        );
+        let menuAuthLinkClass = (
+            "pure-menu-link " + (
+                isSuper
+                ? ""
+                : " pure-menu-disabled"
+            )
+        );
 
         switch (f.currentUser().mode) {
         case "test":
             toolbarClass += " fb-toolbar-test";
-            toolbarButtonClass = " fb-toolbar-button-test";
             break;
         case "dev":
             toolbarClass += " fb-toolbar-dev";
-            toolbarButtonClass = " fb-toolbar-button-dev";
             break;
         }
 
@@ -96,35 +133,111 @@ const home = {
                 m(components.dialog, {
                     viewModel: addWorkbookViewModel
                 }),
+                m(components.dialog, {
+                    viewModel: addWbFromTemplateDlg
+                }),
+                m(components.dialog, {
+                    viewModel: deleteWbTemplateDlg
+                }),
                 m("span", {
                     class: toolbarClass + " fb-toolbar-home"
                 }, [
                     m("div", {
                         class: "fb-header-home"
                     }, "Home"),
-                    m("button", {
+                    m("div", {
+                        id: "wb-manage-div",
                         class: (
-                            toolbarButtonClass +
-                            " fb-toolbar-button " +
-                            " fb-toolbar-button-right-side" +
-                            " fb-toolbar-button-home " +
-                            (
-                                isSuper
-                                ? ""
-                                : "fb-button-disabled"
-                            )
+                            "pure-menu " +
+                            "custom-restricted-width " +
+                            "fb-menu fb-menu-setup"
                         ),
-                        title: (
-                            isSuper
-                            ? "Add workbook"
-                            : "Must be a super user to add a workbook"
-                        ),
-                        onclick: addWorkbookViewModel.show,
-                        disabled: !isSuper
+                        onclick: function (e) {
+                            if (
+                                dlgsClosed &&
+                                e.srcElement.nodeName !== "BUTTON" &&
+                                e.target.parentElement.nodeName !== "BUTTON"
+                            ) {
+                                showMenuWorkbook(true);
+                            }
+                        },
+                        onmouseout: function (ev) {
+                            if (
+                                !ev || !ev.relatedTarget ||
+                                !ev.relatedTarget.id ||
+                                ev.relatedTarget.id.indexOf(
+                                    "wb-manage"
+                                ) === -1
+                            ) {
+                                showMenuWorkbook(false);
+                            }
+                        }
                     }, [
-                        m("i", {
-                            class: "material-icons"
-                        }, "add")
+                        m("span", {
+                            id: "wb-manage-button",
+                            title: "Manage Workbooks",
+                            class: menuButtonClass
+                        }, "edit_notearrow_drop_down"),
+                        m("ul", {
+                            id: "wb-manage-list",
+                            class: (
+                                "pure-menu-list fb-menu-list " +
+                                "fb-menu-list-setup" + (
+                                    showMenuWorkbook()
+                                    ? " fb-menu-list-show"
+                                    : ""
+                                )
+                            )
+                        }, [
+                            m("li", {
+                                id: "wb-manage-add",
+                                class: menuAuthLinkClass,
+                                title: "Change password",
+                                onclick: function () {
+                                    if (isSuper) {
+                                        addWorkbookViewModel.show();
+                                    }
+                                }
+                            }, [m("i", {
+                                id: "wb-manage-add-icon",
+                                class: "material-icons fb-menu-list-icon"
+                            }, "add")], "Add Workbook"),
+                            m("li", {
+                                id: "wb-manage-from-template",
+                                class: menuAuthLinkClass,
+                                title: "Add workbook from template",
+                                onclick: function () {
+                                    if (isSuper) {
+                                        template("");
+                                        newname("");
+                                        addWbFromTemplateDlg.show();
+                                    }
+                                }
+                            }, [m("i", {
+                                id: "wb-manage-from-template-icon",
+                                class: (
+                                    "material-icons-outlined " +
+                                    "fb-menu-list-icon"
+                                )
+                            }, "copy")], "Copy From Template"),
+                            m("li", {
+                                id: "wb-manage-delete-template",
+                                class: menuAuthLinkClass,
+                                title: "Delete template",
+                                onclick: function () {
+                                    if (isSuper) {
+                                        template("");
+                                        deleteWbTemplateDlg.show();
+                                    }
+                                }
+                            }, [m("i", {
+                                id: "wb-manage-delete-template-icon",
+                                class: (
+                                    "material-icons-outlined " +
+                                    "fb-menu-list-icon"
+                                )
+                            }, "playlist_remove")], "Delete Template")
+                        ])
                     ]),
                     m(components.accountMenu)
                 ])
@@ -672,10 +785,131 @@ function initApp() {
         // View model for adding workbooks.
         addWorkbookViewModel = viewModels.formDialog({
             icon: "add",
-            title: "Add workbook",
+            title: "Add new workbook",
             model: addWorkbookModel(),
             config: addWorkbookConfig
         });
+
+        // View model for adding workbooks from template
+        let lastError = f.prop("");
+        let selId = f.createId();
+
+        function isValid(delOnly) {
+            let names = Object.keys(workbooks);
+            if (!template()) {
+                lastError("A template must be selected");
+                return false;
+            }
+            if (!delOnly) {
+                if (!newname()) {
+                    lastError("Name is required");
+                    return false;
+                }
+                if (names.some((n) => workbooks[n].data.name() === newname())) {
+                    lastError("Name is already used");
+                    return false;
+                }
+            }
+            lastError("");
+            return true;
+        }
+        addWbFromTemplateDlg = viewModels.dialog({
+            icon: "library_add",
+            title: "Add workbook using a template"
+        });
+        addWbFromTemplateDlg.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: selId
+                    }, "Template:"),
+                    m("select", {
+                        id: selId,
+                        onchange: (e) => template(e.target.value),
+                        value: template()
+                    }, templates())
+                ]),
+                m("div", {class: "pure-control-group"}, [
+                    m("label", {}, "Workbook Name:"),
+                    m("input", {
+                        onchange: (e) => newname(e.target.value),
+                        value: newname(),
+                        autocomplete: "off"
+                    })
+                ])
+            ]);
+        };
+        addWbFromTemplateDlg.onOk(async function () {
+            let name = template().toSpinalCase().toCamelCase();
+            let data = workbooks[name].toJSON();
+            data.id = f.createId();
+            data.name = newname();
+            data.label = "";
+            data.isTemplate = false;
+            let opts = {
+                workbook: data.name.toSpinalCase(),
+                key: data.defaultConfig[0].name.toSpinalCase()
+            };
+
+            // Instantiate copy
+            let newWb = f.catalog().store().models().workbook();
+            newWb.set(data);
+            // Save it to server
+            await newWb.save();
+            newWb.checkUpdate();
+            // Add to menu
+            registerWorkbook(data);
+            // Go there
+            m.route.set("/workbook/:workbook/:key", opts);
+        });
+        addWbFromTemplateDlg.buttonOk().isDisabled = () => !isValid();
+        addWbFromTemplateDlg.buttonOk().title = function () {
+            if (!isValid()) {
+                return lastError();
+            }
+        };
+
+        // View model for deleting workbook templates
+        deleteWbTemplateDlg = viewModels.dialog({
+            icon: "playlist_remove",
+            title: "Delete workbook template"
+        });
+        deleteWbTemplateDlg.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: selId
+                    }, "Template:"),
+                    m("select", {
+                        id: selId,
+                        onchange: (e) => template(e.target.value),
+                        value: template()
+                    }, templates())
+                ])
+            ]);
+        };
+        deleteWbTemplateDlg.onOk(async function () {
+            let name = template().toSpinalCase().toCamelCase();
+            await workbooks[name].delete(true);
+            f.catalog().unregister("workbooks", name);
+        });
+        deleteWbTemplateDlg.buttonOk().isDisabled = () => !isValid(true);
+        deleteWbTemplateDlg.buttonOk().title = function () {
+            if (!isValid(true)) {
+                return lastError();
+            }
+        };
+        deleteWbTemplateDlg.buttonOk().label("Delete");
+        deleteWbTemplateDlg.buttonOk().style().background = "red";
+        deleteWbTemplateDlg.buttonOk().class("fb-button-delete");
 
         // View model for sse error trapping
         sseErrorDialogViewModel = viewModels.dialog({
