@@ -1643,13 +1643,13 @@
                 };
 
                 afterLog = function () {
-                    // We're going to return the changes
-                    result = jsonpatch.compare(obj.cache, result);
-
                     // Update newRec for "trigger after" events
                     if (obj.newRec) {
-                        jsonpatch.applyPatch(obj.newRec, result);
+                        obj.newRec = result;
                     }
+
+                    // We're going to return the changes
+                    result = jsonpatch.compare(obj.cache, result);
 
                     // Report back result
                     resolve(result);
