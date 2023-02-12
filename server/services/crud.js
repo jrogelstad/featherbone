@@ -2446,7 +2446,7 @@
 
                     // Update newRec for "trigger after" use if applicable
                     if (obj.newRec) {
-                        jsonpatch.applyPatch(obj.newRec, ret);
+                        obj.newRec = result;
                     }
 
                     ret = ret.filter(
