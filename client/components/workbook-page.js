@@ -50,7 +50,7 @@ const editWorkbookConfig = {
     }, {
         attr: "authorizations",
         showLabel: false,
-        height: "98px",
+        height: "183px",
         grid: 2,
         columns: [{
             attr: "role"
@@ -88,22 +88,26 @@ const editSheetConfig = {
         attr: "form",
         grid: 1,
         label: "Drill down form"
-    }, {
+    }/*, { This is buggy on scroll
         attr: "drawerForm",
         label: "Drawer form",
         grid: 1
-    }, {
+    }*/, {
         attr: "isEditModeEnabled",
         label: "Enable edit mode",
         grid: 1
     }, {
+        attr: "helpLink",
+        grid: 1,
+        label: "Help Resource"
+    }/*, { This works, but overkill?
         attr: "isClearOnNoSearch",
         label: "Clear on no search",
         grid: 1
-    }, {
+    }*/, {
         attr: "columns",
         showLabel: false,
-        height: "219px",
+        height: "208px",
         grid: 2,
         columns: [{
             attr: "attr",
@@ -116,7 +120,7 @@ const editSheetConfig = {
     }, {
         attr: "actions",
         showLabel: false,
-        height: "219px",
+        height: "208px",
         grid: 3,
         columns: [{
             attr: "name",
@@ -346,7 +350,8 @@ workbookPage.viewModel = function (options) {
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
-            columns: sheet.list.columns || []
+            columns: sheet.list.columns || [],
+            helpLink: sheet.helpLink || ""
         };
 
         sheetEditModel.set(data, true, true);
@@ -365,6 +370,7 @@ workbookPage.viewModel = function (options) {
             sheet.list.columns.length = 0;
             sheet.actions = sheet.actions || [];
             sheet.actions.length = 0;
+            sheet.helpLink = data.helpLink;
             data.columns.forEach(function (d) {
                 if (d === undefined) { // Deleted
                     return;
@@ -1249,6 +1255,7 @@ workbookPage.viewModel = function (options) {
         config: editWorkbookConfig
     }));
     vm.editWorkbookDialog().style().width = "500px";
+    vm.editWorkbookDialog().style().height = "450px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(f.createViewModel("Button", {
@@ -1290,7 +1297,7 @@ workbookPage.viewModel = function (options) {
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
-    vm.sheetConfigureDialog().style().height = "485px";
+    vm.sheetConfigureDialog().style().height = "475px";
     vm.sheetConfigureDialog().state().resolve(
         "/Display/Showing"
     ).exit(() => sheetEditModel.state().send("clear"));
