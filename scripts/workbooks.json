@@ -3,8 +3,8 @@
 		"module": "Core",
 		"description": "Integrated development environment",
 		"icon": "architecture",
-        "isTemplate": true,
-        "label": "Develop",
+                "isTemplate": true,
+                "label": "Develop",
 		"authorizations": [],
 		"defaultConfig": [{
 				"name": "Modules",
@@ -46,13 +46,13 @@
 				"openInNewWindow": true,
 				"list": {
 					"columns": [{
+						"attr": "module"
+					}, {
 						"attr": "name"
 					}, {
 						"attr": "description"
 					}, {
 						"attr": "plural"
-					}, {
-						"attr": "module"
 					}, {
 						"attr": "inherits"
 					}, {
@@ -62,6 +62,9 @@
 					}],
 					"filter": {
 						"sort": [{
+							"property": "module",
+							"order": "ASC"
+						}, {
 							"property": "name",
 							"order": "ASC"
 						}]
@@ -74,13 +77,13 @@
 				"openInNewWindow": true,
 				"list": {
 					"columns": [{
+						"attr": "module"
+					}, {
 						"attr": "name"
 					}, {
 						"attr": "description"
 					}, {
 						"attr": "feather"
-					}, {
-						"attr": "module"
 					}, {
 						"attr": "updated"
 					}, {
@@ -88,6 +91,9 @@
 					}],
 					"filter": {
 						"sort": [{
+							"property": "module",
+							"order": "ASC"
+						}, {
 							"property": "name",
 							"order": "ASC"
 						}]
@@ -100,13 +106,13 @@
 				"openInNewWindow": false,
 				"list": {
 					"columns": [{
+						"attr": "module"
+					}, {
 						"attr": "name"
 					}, {
 						"attr": "description"
 					}, {
 						"attr": "feather"
-					}, {
-						"attr": "module"
 					}, {
 						"attr": "updated"
 					}, {
@@ -114,6 +120,9 @@
 					}],
 					"filter": {
 						"sort": [{
+							"property": "module",
+							"order": "ASC"
+						}, {
 							"property": "name",
 							"order": "ASC"
 						}]
@@ -127,9 +136,9 @@
 				"openInNewWindow": true,
 				"list": {
 					"columns": [{
-						"attr": "name"
-					}, {
 						"attr": "module"
+					}, {
+						"attr": "name"
 					}],
 					"filter": {
 						"sort": [{
@@ -169,6 +178,8 @@
 				"feather": "Style",
 				"list": {
 					"columns": [{
+						"attr": "module"
+					}, {
 						"attr": "name"
 					}, {
 						"attr": "description"
@@ -192,7 +203,34 @@
 					}],
 					"filter": {
 						"sort": [{
+							"property": "module",
+							"order": "ASC"
+						}, {
 							"property": "name",
+							"order": "ASC"
+						}]
+					}
+				}
+			},
+			{
+				"name": "HelpFiles",
+				"feather": "HelpLink",
+				"list": {
+					"columns": [{
+						"attr": "module"
+					}, {
+						"attr": "label"
+					}, {
+						"attr": "notes"
+					}, {
+						"attr": "resource"
+					}],
+					"filter": {
+						"sort": [{
+							"property": "module",
+							"order": "ASC"
+						}, {
+							"property": "label",
 							"order": "ASC"
 						}]
 					}
@@ -205,8 +243,8 @@
 		"module": "Core",
 		"description": "User account and role administration",
 		"icon": "manage_accounts",
-        "isTemplate": true,
-        "label": "Admin",
+                "isTemplate": true,
+                "label": "Admin",
 		"authorizations": [],
 		"defaultConfig": [{
 			"name": "UserAccounts",
@@ -253,8 +291,8 @@
 		"module": "Core",
 		"description": "Currency and exchange rate maintenance",
 		"icon": "payments",
-        "isTemplate": true,
-        "label": "Currency",
+                "isTemplate": true,
+                "label": "Currency",
 		"defaultConfig": [{
 				"name": "Conversions",
 				"feather": "CurrencyConversion",

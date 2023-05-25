@@ -148,6 +148,10 @@
             "hideLogo": {
                 "description": "When printing do not include the logo",
                 "type": "boolean"
+            },
+            "helpLink": {
+                "description": "Help file for form",
+                "type": "string"
             }
         }
     },
@@ -1219,6 +1223,20 @@
                 "description": "Internal notes",
                 "type": "string",
                 "format": "textArea"
+            }
+        }
+    },
+    {
+        "name": "HelpLink",
+        "plural": "HelpLinks",
+        "module": "Core",
+        "authorizations": [],
+        "description": "Help file links",
+        "inherits": "ResourceLink",
+        "properties": {
+            "module": {
+                "description": "Parent",
+                "type": "string"
             }
         }
     }
