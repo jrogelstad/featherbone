@@ -1,6 +1,6 @@
  /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -50,7 +50,7 @@ const editWorkbookConfig = {
     }, {
         attr: "authorizations",
         showLabel: false,
-        height: "98px",
+        height: "183px",
         grid: 2,
         columns: [{
             attr: "role"
@@ -88,22 +88,26 @@ const editSheetConfig = {
         attr: "form",
         grid: 1,
         label: "Drill down form"
-    }, {
+    }/*, { This is buggy on scroll
         attr: "drawerForm",
         label: "Drawer form",
         grid: 1
-    }, {
+    }*/, {
         attr: "isEditModeEnabled",
         label: "Enable edit mode",
         grid: 1
     }, {
+        attr: "helpLink",
+        grid: 1,
+        label: "Help Page"
+    }/*, { This works, but overkill?
         attr: "isClearOnNoSearch",
         label: "Clear on no search",
         grid: 1
-    }, {
+    }*/, {
         attr: "columns",
         showLabel: false,
-        height: "219px",
+        height: "208px",
         grid: 2,
         columns: [{
             attr: "attr",
@@ -116,7 +120,7 @@ const editSheetConfig = {
     }, {
         attr: "actions",
         showLabel: false,
-        height: "219px",
+        height: "208px",
         grid: 3,
         columns: [{
             attr: "name",
@@ -281,6 +285,12 @@ workbookPage.viewModel = function (options) {
     */
     vm.buttonFilter = f.prop();
     /**
+        @method buttonHelp
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonHelp = f.prop();
+    /**
         @method buttonNew
         @param {ViewModels.Button} button
         @return {ViewModels.Button}
@@ -346,7 +356,8 @@ workbookPage.viewModel = function (options) {
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
-            columns: sheet.list.columns || []
+            columns: sheet.list.columns || [],
+            helpLink: sheet.helpLink || ""
         };
 
         sheetEditModel.set(data, true, true);
@@ -365,6 +376,7 @@ workbookPage.viewModel = function (options) {
             sheet.list.columns.length = 0;
             sheet.actions = sheet.actions || [];
             sheet.actions.length = 0;
+            sheet.helpLink = data.helpLink;
             data.columns.forEach(function (d) {
                 if (d === undefined) { // Deleted
                     return;
@@ -1249,6 +1261,7 @@ workbookPage.viewModel = function (options) {
         config: editWorkbookConfig
     }));
     vm.editWorkbookDialog().style().width = "500px";
+    vm.editWorkbookDialog().style().height = "450px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(f.createViewModel("Button", {
@@ -1290,7 +1303,7 @@ workbookPage.viewModel = function (options) {
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
-    vm.sheetConfigureDialog().style().height = "485px";
+    vm.sheetConfigureDialog().style().height = "475px";
     vm.sheetConfigureDialog().state().resolve(
         "/Display/Showing"
     ).exit(() => sheetEditModel.state().send("clear"));
@@ -1414,6 +1427,20 @@ workbookPage.viewModel = function (options) {
         class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
 
+    vm.buttonHelp(f.createViewModel("Button", {
+        onclick: function () {
+            let link = vm.sheet().helpLink;
+
+            if (link && link.resource) {
+                window.open(link.resource);
+            }
+        },
+        icon: "help",
+        hotkey: "H",
+        title: "Open help page",
+        class: "fb-menu-button fb-menu-setup fb-toolbar-button-right-side"
+    }));
+
     // Bind button states to list statechart events
     listState = vm.tableWidget().models().state();
     listState.resolve("/Fetched").enter(function () {
@@ -1501,7 +1528,7 @@ workbookPage.viewModel = function (options) {
 function spinButtonView() {
     let vm = this.viewModel.buttonRefresh();
     let tw = this.viewModel.tableWidget();
-    let iclass = "material-icons-outlined fb-button-icon ";		
+    let iclass = "material-icons-outlined fb-button-icon ";
 
     if (tw.models().state().current()[0].slice(0, 5) === "/Busy") {
         iclass += "fb-spin";
@@ -1618,6 +1645,21 @@ workbookPage.component = {
             oninit: btn.oninit,
             view: spinButtonView
         };
+
+        let hbtn = vm.buttonHelp();
+        let setstyle = {};
+
+        if (!vm.sheet().helpLink || !vm.sheet().helpLink.resource) {
+            hbtn.disable();
+            hbtn.title("No help page assigned to this worksheet");
+            setstyle.borderTopRightRadius = "6px";
+            setstyle.borderBottomRightRadius = "6px";
+        } else {
+            hbtn.enable();
+            hbtn.title("Open help page (Alt+H)");
+            setstyle.borderTopRightRadius = "0px";
+            setstyle.borderBottomRightRadius = "0px";
+        }
 
         if (formWidget) {
             drawerForm = m("div", {
@@ -1802,6 +1844,9 @@ workbookPage.component = {
                         m(btn, {
                             viewModel: vm.buttonAggregate()
                         }),
+                        m(btn, {
+                            viewModel: vm.buttonHelp()
+                        }),
                         m("div", {
                             id: "nav-menu-div",
                             class: (
@@ -1819,8 +1864,9 @@ workbookPage.component = {
                                     "pure-button " +
                                     "material-icons-outlined " +
                                     menuButtonClass +
-                                    " fb-menu-button-right-side"
-                                )
+                                    " fb-menu-button-middle-side"
+                                ),
+                                style: setstyle
                             }, "settingsarrow_drop_down"),
                             m("ul", {
                                 id: "nav-menu-list",

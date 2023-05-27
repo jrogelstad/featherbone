@@ -634,6 +634,15 @@ textarea {
   margin-right: 4px !important;
 }
 
+.fb-menu-button-middle-side {
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+}
+
 .fb-menu-list {
   background-color: White;
   position: absolute;
