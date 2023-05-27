@@ -99,7 +99,7 @@ const editSheetConfig = {
     }, {
         attr: "helpLink",
         grid: 1,
-        label: "Help Resource"
+        label: "Help Page"
     }/*, { This works, but overkill?
         attr: "isClearOnNoSearch",
         label: "Clear on no search",
@@ -409,7 +409,6 @@ workbookPage.viewModel = function (options) {
             vm.tableWidget().isClearOnNoSearch(data.isClearOnNoSearch);
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
             handleDrawer();
-            handleHelp();
 
             vm.saveProfile();
             vm.refresh();
@@ -1438,22 +1437,9 @@ workbookPage.viewModel = function (options) {
         },
         icon: "help",
         hotkey: "H",
-        title: "Open help file",
+        title: "Open help page",
         class: "fb-menu-button fb-menu-setup fb-toolbar-button-right-side"
     }));
-
-    const handleHelp = function () {
-        let btn = vm.buttonHelp();
-        if (!vm.sheet().helpLink || !vm.sheet().helpLink.resource) {
-            btn.disable();
-            btn.title("No help link assigned to this worksheet");
-        } else {
-            btn.enable();
-            btn.title("Open help file (Alt+H)");
-        }
-    };
-
-    handleHelp();
 
     // Bind button states to list statechart events
     listState = vm.tableWidget().models().state();
@@ -1660,6 +1646,21 @@ workbookPage.component = {
             view: spinButtonView
         };
 
+        let hbtn = vm.buttonHelp();
+        let setstyle = {};
+
+        if (!vm.sheet().helpLink || !vm.sheet().helpLink.resource) {
+            hbtn.disable();
+            hbtn.title("No help page assigned to this worksheet");
+            setstyle.borderTopRightRadius = "6px";
+            setstyle.borderBottomRightRadius = "6px";
+        } else {
+            hbtn.enable();
+            hbtn.title("Open help page (Alt+H)");
+            setstyle.borderTopRightRadius = "0px";
+            setstyle.borderBottomRightRadius = "0px";
+        }
+
         if (formWidget) {
             drawerForm = m("div", {
                 id: formWidget.model().id() + "wrapper",
@@ -1864,7 +1865,8 @@ workbookPage.component = {
                                     "material-icons-outlined " +
                                     menuButtonClass +
                                     " fb-menu-button-middle-side"
-                                )
+                                ),
+                                style: setstyle
                             }, "settingsarrow_drop_down"),
                             m("ul", {
                                 id: "nav-menu-list",
