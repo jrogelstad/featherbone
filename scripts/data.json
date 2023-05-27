@@ -466,6 +466,14 @@
             "unit": 1,
             "dataList": "properties"
         }, {
+            "attr": "helpLink",
+            "columns": [],
+            "grid": 0,
+            "label": "",
+            "showLabel": true,
+            "unit": 1,
+            "dataList": ""
+        }, {
             "attr": "orientation",
             "columns": [],
             "grid": 2,

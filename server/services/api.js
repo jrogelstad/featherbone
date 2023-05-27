@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, devel*/
+/*jslint node, devel unordered*/
 /**
     API file generator methods called during installation.
     @module API

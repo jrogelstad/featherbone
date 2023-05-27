@@ -2,7 +2,7 @@
     "cipher": "",
     "clientPort": 80,
     "debug": true,
-    "fileUpload": true,
+    "fileUpload": false,
     "logLevel": "info",
     "logMaxFiles": "7d",
     "logMaxSize": "10m",

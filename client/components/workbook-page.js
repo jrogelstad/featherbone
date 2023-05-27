@@ -1,6 +1,6 @@
  /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -99,7 +99,7 @@ const editSheetConfig = {
     }, {
         attr: "helpLink",
         grid: 1,
-        label: "Help Resource"
+        label: "Help Page"
     }/*, { This works, but overkill?
         attr: "isClearOnNoSearch",
         label: "Clear on no search",
@@ -284,6 +284,12 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.Button}
     */
     vm.buttonFilter = f.prop();
+    /**
+        @method buttonHelp
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonHelp = f.prop();
     /**
         @method buttonNew
         @param {ViewModels.Button} button
@@ -1421,6 +1427,20 @@ workbookPage.viewModel = function (options) {
         class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
 
+    vm.buttonHelp(f.createViewModel("Button", {
+        onclick: function () {
+            let link = vm.sheet().helpLink;
+
+            if (link && link.resource) {
+                window.open(link.resource);
+            }
+        },
+        icon: "help",
+        hotkey: "H",
+        title: "Open help page",
+        class: "fb-menu-button fb-menu-setup fb-toolbar-button-right-side"
+    }));
+
     // Bind button states to list statechart events
     listState = vm.tableWidget().models().state();
     listState.resolve("/Fetched").enter(function () {
@@ -1508,7 +1528,7 @@ workbookPage.viewModel = function (options) {
 function spinButtonView() {
     let vm = this.viewModel.buttonRefresh();
     let tw = this.viewModel.tableWidget();
-    let iclass = "material-icons-outlined fb-button-icon ";		
+    let iclass = "material-icons-outlined fb-button-icon ";
 
     if (tw.models().state().current()[0].slice(0, 5) === "/Busy") {
         iclass += "fb-spin";
@@ -1625,6 +1645,21 @@ workbookPage.component = {
             oninit: btn.oninit,
             view: spinButtonView
         };
+
+        let hbtn = vm.buttonHelp();
+        let setstyle = {};
+
+        if (!vm.sheet().helpLink || !vm.sheet().helpLink.resource) {
+            hbtn.disable();
+            hbtn.title("No help page assigned to this worksheet");
+            setstyle.borderTopRightRadius = "6px";
+            setstyle.borderBottomRightRadius = "6px";
+        } else {
+            hbtn.enable();
+            hbtn.title("Open help page (Alt+H)");
+            setstyle.borderTopRightRadius = "0px";
+            setstyle.borderBottomRightRadius = "0px";
+        }
 
         if (formWidget) {
             drawerForm = m("div", {
@@ -1809,6 +1844,9 @@ workbookPage.component = {
                         m(btn, {
                             viewModel: vm.buttonAggregate()
                         }),
+                        m(btn, {
+                            viewModel: vm.buttonHelp()
+                        }),
                         m("div", {
                             id: "nav-menu-div",
                             class: (
@@ -1826,8 +1864,9 @@ workbookPage.component = {
                                     "pure-button " +
                                     "material-icons-outlined " +
                                     menuButtonClass +
-                                    " fb-menu-button-right-side"
-                                )
+                                    " fb-menu-button-middle-side"
+                                ),
+                                style: setstyle
                             }, "settingsarrow_drop_down"),
                             m("ul", {
                                 id: "nav-menu-list",
