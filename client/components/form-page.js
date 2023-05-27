@@ -501,6 +501,7 @@ formPage.viewModel = function (options) {
     let isRowAuth = f.catalog().getFeather(
         theFeather
     ).enableRowAuthorization;
+    let hasHelp = form.helpLink && form.helpLink.resource;
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -706,6 +707,12 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Button}
     */
     vm.buttonPdf = f.prop();
+    /**
+        @method buttonHelp
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonHelp = f.prop();
     /**
         @method buttonBack
         @param {ViewModels.Button} button
@@ -1071,10 +1078,12 @@ formPage.viewModel = function (options) {
             onclick: vm.editAuthDialog().show,
             icon: "key",
             title: "Edit Authorizations",
-            class: (
-                toolbarButtonClass +
-                " fb-toolbar-button-right" +
-                " fb-toolbar-button-right-side"
+            class: toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            (
+                hasHelp
+                ? " fb-toolbar-button-middle-side "
+                : " fb-toolbar-button-right-side"
             )
         }));
     }
@@ -1098,12 +1107,32 @@ formPage.viewModel = function (options) {
             toolbarButtonClass +
             " fb-toolbar-button-right" +
             (
-                isRowAuth
+                (isRowAuth || hasHelp)
                 ? " fb-toolbar-button-middle-side "
                 : " fb-toolbar-button-right-side"
             )
         )
     }));
+
+    vm.buttonHelp(f.createViewModel("Button", {
+        onclick: function () {
+            if (hasHelp) {
+                window.open(form.helpLink.resource);
+            }
+        },
+        icon: "help",
+        title: "Open help file",
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-right-side"
+        )
+    }));
+
+    if (!hasHelp) {
+        vm.buttonHelp().disable();
+        vm.buttonHelp().title("No help page assigned");
+    }
 
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
@@ -1290,6 +1319,7 @@ formPage.component = {
         }
 
         buttons = [
+            m(btn, {viewModel: vm.buttonHelp()}),
             buttonAuthView,
             m(btn, {viewModel: vm.buttonPdf()}),
             m(btn, {viewModel: vm.buttonCopy()})
