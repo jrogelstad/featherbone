@@ -1454,6 +1454,8 @@ f.types.resourceLink.tableData = function (obj, decorator) {
         return m("a", {href: rec, target: "_blank"}, icon, label);
     }
 };
+f.types.helpLink = {};
+f.types.helpLink.tableData = f.types.resourceLink.tableData;
 
 f.types.address = {};
 f.types.address.tableData = function (obj) {
