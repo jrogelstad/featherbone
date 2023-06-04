@@ -123,11 +123,70 @@
         "module": "Core",
         "authorizations": [],
         "description": "Help file links",
-        "inherits": "ResourceLink",
+        "inherits": "Document",
         "properties": {
             "module": {
                 "description": "Parent",
                 "type": "string"
+            },
+           "icon": {
+                "description": "Icon",
+                "type": "string",
+                "format": "icon",
+                "default": "open_in_new",
+                "dataList": [{
+                    "value": "article",
+                    "label": "Article"
+                }, {
+                    "value": "description",
+                    "label": "Description"
+                }, {
+                    "value": "folder_open",
+                    "label": "Folder open"
+                }, {
+                    "value": "image",
+                    "label": "Image"
+                }, {
+                    "value": "open_in_new",
+                    "label": "Open in new"
+                }, {
+                    "value": "photo_library",
+                    "label": "Photo library"
+                }, {
+                    "value": "picture_as_pdf",
+                    "label": "PDF"
+                }, {
+                    "value": "place",
+                    "label": "Place"
+                }, {
+                    "value": "table_view",
+                    "label": "Table view"
+                }],
+                "isAlwaysLoad": true
+            },
+            "displayValue": {
+                "description": "Displayed text",
+                "type": "string",
+                "isNaturalKey": true,
+                "isReadOnly": true
+            },
+            "label": {
+                "description": "Displayed text",
+                "type": "string",
+                "isAlwaysLoad": true
+            },
+            "resource": {
+                "description": "URI to the resource",
+                "type": "string",
+                "format": "url",
+                 "isRequired": true,
+                 "isAlwaysLoad": true,
+                "isLabelKey": true
+            },
+            "notes": {
+                "description": "Internal notes",
+                "type": "string",
+                "format": "textArea"
             }
         }
     },
