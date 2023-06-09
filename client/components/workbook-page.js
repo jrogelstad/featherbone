@@ -80,11 +80,11 @@ const editSheetConfig = {
     }, {
         attr: "feather",
         grid: 1
-    }, {
+    }/*, { Keep it simple
         attr: "openInNewWindow",
         label: "Open in new tab",
         grid: 1
-    }, {
+    }*/, {
         attr: "form",
         grid: 1,
         label: "Drill down form"
@@ -525,6 +525,7 @@ workbookPage.viewModel = function (options) {
         let url;
         let win;
 
+        /* Keep it simple
         if (vm.sheet().openInNewWindow) {
             url = (
                 window.location.protocol + "//" +
@@ -553,6 +554,7 @@ workbookPage.viewModel = function (options) {
             };
             return;
         }
+        */
 
         if (!vm.tableWidget().modelNew()) {
             m.route.set("/edit/:feather/:key", {
