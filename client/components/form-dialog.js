@@ -100,7 +100,7 @@ formDialog.viewModel = function (options) {
     substate.enter(function () {
         let ht = vm.style().height;
         if (ht) {
-            ht = ht.slice(0, height.length - 2);
+            ht = ht.slice(0, ht.length - 2);
             ht = ht - 160;
             ht = ht + "px";
         }
