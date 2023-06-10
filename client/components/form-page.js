@@ -801,6 +801,7 @@ formPage.viewModel = function (options) {
                 vm.model().subscribe(true);
             }
         });
+        pageIdx += 1;
         id = vm.model().id();
         instances[id] = vm.model();
         formInstances[id] = inst;
@@ -810,7 +811,7 @@ formPage.viewModel = function (options) {
         }, {
             state: {
                 form: options.form,
-                index: pageIdx + 1,
+                index: pageIdx,
                 create: false,
                 receiver: options.receiver
             }
