@@ -1409,7 +1409,7 @@ function createModel(data, feather) {
         if (autonum) {
             delete copy[nkey];
         } else {
-            copy[nkey] = "Copy of " + copy[nkey];
+            copy[nkey] = copy[nkey] + " (copy)";
         }
 
         model.clear();
