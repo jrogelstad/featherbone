@@ -93,11 +93,15 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
+                        if (!item.feather && item.key) {
+                            return;
+                        }
+
                         if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
                                 key: item.key
-                            }, {});
+                            }, {state: {form: item.formId}});
                         }
                     }
                 }
