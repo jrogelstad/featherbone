@@ -86,7 +86,7 @@ gantt.component = {
             chart.data = data;
             chart.render();
         } else if (data.length && !chart) {
-            chart = new Gantt.SVGGantt(
+            chart = new Gantt.CanvasGantt(
                 e,
                 data,
                 {
@@ -174,7 +174,7 @@ gantt.component = {
                     value: vm.showLinks()
                 })
             ]),
-            m("div", {
+            m("canvas", {
                 id: "gantt" + id,
                 key: "gantt" + id
             })
