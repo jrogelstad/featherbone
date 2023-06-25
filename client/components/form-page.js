@@ -1351,6 +1351,10 @@ formPage.component = {
                 }, icon),
                 m("label", vm.title())
             ]),
+            m("div", {
+                id: "snackbar",
+                class: f.snackbarClass()
+            }, f.snackbar()),
             m(dlg, {
                 viewModel: vm.confirmDialog()
             }),

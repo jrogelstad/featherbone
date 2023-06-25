@@ -1772,6 +1772,10 @@ workbookPage.component = {
             m("div", {
                 class: "fb-navigator-menu-container"
             }, [
+                m("div", {
+                    id: "snackbar",
+                    class: f.snackbarClass()
+                }, f.snackbar()),
                 m(nav, {
                     viewModel: vm.menu()
                 }),
