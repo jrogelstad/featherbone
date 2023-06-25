@@ -1858,6 +1858,59 @@ f.getStyle = function (name) {
 */
 f.prop = createProperty;
 
+let notes = [];
+
+/**
+    Notify user of an event.
+
+    @method notify
+    @param {String} message
+    @param {String} icon
+*/      
+f.notify = function (msg, opts) {
+    opts = opts || {};
+    msg = msg || "No message text provided";
+    let theId = f.createId();
+    notes.push({
+        id: theId,
+        message: msg,
+        icon: opts.icon || "info",
+        iconColor: opts.iconColor || "aqua"
+    });
+    f.snackbarClass("show");
+    m.redraw();
+};
+
+f.snackbarClass = f.prop("");
+
+/**
+    Hyperscript for snackbar notification.
+
+    @method snackbar
+    @return {object} hyperscript
+*/
+f.snackbar = function () {
+    return notes.map(function (note) {
+        return m("div", {class: "fb-snackbar-item"}, [
+            m("div", {class: "fb-snackbar-message"}, [
+                m("i", {
+                    style: {color: note.iconColor},
+                    class: "material-icons-outlined fb-dialog-icon",
+                }, note.icon),
+            ], note.message),
+            m("i", {
+                class: "material-icons-outlined fb-dialog-icon",
+                onclick: function () {
+                    notes.splice(notes.indexOf(note), 1);
+                    if (!notes.length) {
+                        f.snackbarClass("");
+                    }
+                }
+            }, "close"),
+        ]);
+    });
+}
+
 let holdEvents = false;
 let pending = [];
 
