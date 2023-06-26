@@ -217,7 +217,7 @@ function buildSelector(obj, opts) {
     let selectComponents = vm.selectComponents();
     let val = opts.prop();
     let values = obj.dataList.map((item) => item.value).join();
- 
+
     val = (
         val === ""
         ? undefined
@@ -1859,6 +1859,7 @@ f.getStyle = function (name) {
 f.prop = createProperty;
 
 let notes = [];
+let snackbarClass = f.prop("");
 
 /**
     Notify user of an event.
@@ -1866,7 +1867,7 @@ let notes = [];
     @method notify
     @param {String} message
     @param {String} icon
-*/      
+*/
 f.notify = function (msg, opts) {
     opts = opts || {};
     msg = msg || "No message text provided";
@@ -1877,11 +1878,29 @@ f.notify = function (msg, opts) {
         icon: opts.icon || "info",
         iconColor: opts.iconColor || "aqua"
     });
-    f.snackbarClass("show");
+    snackbarClass("show");
     m.redraw();
 };
 
-f.snackbarClass = f.prop("");
+function mapSnackbar(note) {
+    return m("div", {class: "fb-snackbar-item"}, [
+        m("div", {class: "fb-snackbar-message"}, [
+            m("i", {
+                style: {color: note.iconColor},
+                class: "material-icons-outlined fb-dialog-icon"
+            }, note.icon)
+        ], note.message),
+        m("i", {
+            class: "material-icons-outlined fb-dialog-icon",
+            onclick: function () {
+                notes.splice(notes.indexOf(note), 1);
+                if (!notes.length) {
+                    snackbarClass("");
+                }
+            }
+        }, "close")
+    ]);
+}
 
 /**
     Hyperscript for snackbar notification.
@@ -1890,26 +1909,11 @@ f.snackbarClass = f.prop("");
     @return {object} hyperscript
 */
 f.snackbar = function () {
-    return notes.map(function (note) {
-        return m("div", {class: "fb-snackbar-item"}, [
-            m("div", {class: "fb-snackbar-message"}, [
-                m("i", {
-                    style: {color: note.iconColor},
-                    class: "material-icons-outlined fb-dialog-icon",
-                }, note.icon),
-            ], note.message),
-            m("i", {
-                class: "material-icons-outlined fb-dialog-icon",
-                onclick: function () {
-                    notes.splice(notes.indexOf(note), 1);
-                    if (!notes.length) {
-                        f.snackbarClass("");
-                    }
-                }
-            }, "close"),
-        ]);
-    });
-}
+    return m("div", {
+        id: "snackbar",
+        class: snackbarClass()
+    }, notes.map(mapSnackbar));
+};
 
 let holdEvents = false;
 let pending = [];
