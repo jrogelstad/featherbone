@@ -363,7 +363,7 @@ function createModel(data, feather) {
     feather.inherits = feather.inherits || "Object";
 
     let model;
-    let subcriptionId;
+    let subscriptionId;
     let d;
     let doClear;
     let doDelete;
@@ -1300,24 +1300,24 @@ function createModel(data, feather) {
         let flag = args[0];
 
         if (!args.length) {
-            if (subcriptionId) {
-                return subcriptionId;
+            if (subscriptionId) {
+                return subscriptionId;
             }
             return false;
         }
 
         if (flag) {
-            subcriptionId = f.createId();
+            subscriptionId = f.createId();
 
             query = Qs.stringify({
                 id: model.id(),
                 subscription: {
-                    id: subcriptionId,
+                    id: subscriptionId,
                     eventKey: catalog.eventKey()
                 }
             });
 
-            catalog.register("subscriptions", subcriptionId, [model]);
+            catalog.register("subscriptions", subscriptionId, [model]);
 
             url = "/do/subscribe/" + query;
             payload = {
@@ -1327,13 +1327,13 @@ function createModel(data, feather) {
             };
 
             datasource.request(payload).catch(doError);
-        } else if (flag === false && subcriptionId) {
-            catalog.unregister("subscriptions", subcriptionId);
+        } else if (flag === false && subscriptionId) {
+            catalog.unregister("subscriptions", subscriptionId);
 
             // Let the server know we're unsubscribing
             query = {
                 subscription: {
-                    id: subcriptionId
+                    id: subscriptionId
                 }
             };
 
@@ -1347,7 +1347,7 @@ function createModel(data, feather) {
 
             datasource.request(payload).catch(doError);
 
-            subcriptionId = undefined;
+            subscriptionId = undefined;
             return false;
         }
     };

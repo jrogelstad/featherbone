@@ -1862,7 +1862,7 @@ let notes = [];
 let snackbarClass = f.prop("");
 
 /**
-    Notify user of an event.
+    Notify user of an event via snackbar.
 
     @method notify
     @param {String} message
@@ -1871,18 +1871,68 @@ let snackbarClass = f.prop("");
 f.notify = function (msg, opts) {
     opts = opts || {};
     msg = msg || "No message text provided";
-    let theId = f.createId();
-    notes.push({
-        id: theId,
-        message: msg,
-        icon: opts.icon || "info",
-        iconColor: opts.iconColor || "aqua"
-    });
+    let theId = opts.processId || f.createId();
+    let note = notes.find((n) => n.id === theId);
+    if (note) {
+        note.percentComplete = opts.percentComplete;
+        note.status = opts.status;
+    } else {
+        notes.push({
+            id: theId,
+            message: msg,
+            icon: opts.icon || "info",
+            iconColor: opts.iconColor || "aqua",
+            isProcess: Boolean(opts.processId),
+            percentComplete: opts.percentComplete
+        });
+    }
     snackbarClass("show");
     m.redraw();
 };
 
 function mapSnackbar(note) {
+    let ret;
+    let status;
+    if (note.isProcess) {
+        if (note.status === "P") {
+            status = "Processing";
+        } else if (note.status === "C") {
+            status = "Complete";
+        } else if (note.status === "E") {
+            status = "Error";
+        } else {
+            status = "Stopped";
+        }
+        ret = m("div", {class: "fb-snackbar-item"}, [
+            m("div", {class: "fb-snackbar-progress"}, [
+                /*
+                m("i", {
+                    style: {color: note.iconColor},
+                    class: "material-icons-outlined fb-dialog-icon"
+                }, note.icon),
+                */
+                m("label", {
+                    for: note.id
+                }, status + ": " + note.message),
+                m("progress", {
+                    id: note.id,
+                    max: 100,
+                    value: note.percentComplete
+                }, note.percentComplete + "%")
+            ]),
+            m("i", {
+                class: "material-icons-outlined fb-dialog-icon",
+                onclick: function () {
+                    notes.splice(notes.indexOf(note), 1);
+                    if (!notes.length) {
+                        snackbarClass("");
+                    }
+                }
+            }, "close")
+        ]);
+        return ret;
+    }
+
     return m("div", {class: "fb-snackbar-item"}, [
         m("div", {class: "fb-snackbar-message"}, [
             m("i", {
@@ -1992,6 +2042,16 @@ f.processEvent = function (obj) {
             );
         }
         return;
+    }
+
+    if (data.objectType === "ServerProcess") {
+        if (change === "create" || change === "update") {
+            f.notify(data.name, {
+                processId: data.id,
+                percentComplete: data.percentComplete,
+                status: data.status
+            });
+        }
     }
 
     subscriptionId = payload.message.subscription.subscriptionid;
