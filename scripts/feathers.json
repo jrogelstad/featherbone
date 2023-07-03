@@ -1306,5 +1306,51 @@
                 "type": "string"
             }
         }
+    },
+    {
+        "name": "ServerProcess",
+        "plural": "ServerProcesses",
+        "module": "Core",
+        "description": "Log of processes initiated on the server",
+        "properties": {
+            "name": {
+                "description": "Process name",
+                "type": "string"
+            },
+            "status": {
+                "type": "string",
+                "description": "State of completion",
+                "format": "enum",
+                "isRequired": true,
+                "default": "P",
+                "dataList": [{
+                    "value": "P",
+                    "label": "Processing"
+                }, {
+                    "value": "C",
+                    "label": "Complete"
+                }, {
+                    "value": "S",
+                    "label": "Stopped"
+                }, {
+                    "value": "E",
+                    "label": "Error"
+                }]
+            },
+            "percentComplete": {
+                "description": "percentage complete",
+                "type": "integer"
+            },
+            "completed": {
+                "description": "Process complete time",
+                "type": "string",
+                "default": "null",
+                "format": "dateTime"
+            },
+            "errorMessage": {
+                "description": "Error message if process failed",
+                "type": "string"
+            }
+        }
     }
 ]
