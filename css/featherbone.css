@@ -1053,6 +1053,9 @@ textarea {
   width: 100%;
 }
 
+.fb-snackbar-cancel {
+  color: red;
+}
 
 /* The snackbar - position it at the bottom and in the middle of the screen */
 #snackbar {

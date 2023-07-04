@@ -1323,6 +1323,7 @@
                 "format": "enum",
                 "isRequired": true,
                 "default": "P",
+                "isAlwaysLoad": true,
                 "dataList": [{
                     "value": "P",
                     "label": "Processing"
@@ -1350,6 +1351,10 @@
             "errorMessage": {
                 "description": "Error message if process failed",
                 "type": "string"
+            },
+            "processId": {
+                "description": "Postgres process ID. Needed if stopping process",
+                "type": "integer"
             }
         }
     }

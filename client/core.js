@@ -1883,7 +1883,8 @@ f.notify = function (msg, opts) {
             icon: opts.icon || "info",
             iconColor: opts.iconColor || "aqua",
             isProcess: Boolean(opts.processId),
-            percentComplete: opts.percentComplete
+            percentComplete: opts.percentComplete,
+            status: opts.status
         });
     }
     snackbarClass("show");
@@ -1893,9 +1894,29 @@ f.notify = function (msg, opts) {
 function mapSnackbar(note) {
     let ret;
     let status;
+    let icls = "close";
+    let iclass = "material-icons-outlined fb-dialog-icon";
+    let ititle = "Close notification";
+    let close = function () {
+        notes.splice(notes.indexOf(note), 1);
+        if (!notes.length) {
+            snackbarClass("");
+        }
+    };
+
     if (note.isProcess) {
         if (note.status === "P") {
             status = "Processing";
+            icls = "dangerous";
+            iclass += " fb-snackbar-cancel";
+            ititle = "Stop process";
+            close = function () {
+                f.datasource().request({
+                    method: "POST",
+                    path: "/do/stop-process",
+                    body: {id: note.id}
+                });
+            };
         } else if (note.status === "C") {
             status = "Complete";
         } else if (note.status === "E") {
@@ -1905,12 +1926,6 @@ function mapSnackbar(note) {
         }
         ret = m("div", {class: "fb-snackbar-item"}, [
             m("div", {class: "fb-snackbar-progress"}, [
-                /*
-                m("i", {
-                    style: {color: note.iconColor},
-                    class: "material-icons-outlined fb-dialog-icon"
-                }, note.icon),
-                */
                 m("label", {
                     for: note.id
                 }, status + ": " + note.message),
@@ -1921,14 +1936,10 @@ function mapSnackbar(note) {
                 }, note.percentComplete + "%")
             ]),
             m("i", {
-                class: "material-icons-outlined fb-dialog-icon",
-                onclick: function () {
-                    notes.splice(notes.indexOf(note), 1);
-                    if (!notes.length) {
-                        snackbarClass("");
-                    }
-                }
-            }, "close")
+                class: iclass,
+                title: ititle,
+                onclick: close
+            }, icls)
         ]);
         return ret;
     }
@@ -1942,13 +1953,9 @@ function mapSnackbar(note) {
         ], note.message),
         m("i", {
             class: "material-icons-outlined fb-dialog-icon",
-            onclick: function () {
-                notes.splice(notes.indexOf(note), 1);
-                if (!notes.length) {
-                    snackbarClass("");
-                }
-            }
-        }, "close")
+            onclick: close,
+            title: ititle
+        }, icls)
     ]);
 }
 
