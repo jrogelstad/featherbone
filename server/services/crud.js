@@ -1643,13 +1643,13 @@
                 };
 
                 afterLog = function () {
-                    // We're going to return the changes
-                    result = jsonpatch.compare(obj.cache, result);
-
                     // Update newRec for "trigger after" events
                     if (obj.newRec) {
-                        jsonpatch.applyPatch(obj.newRec, result);
+                        obj.newRec = result;
                     }
+
+                    // We're going to return the changes
+                    result = jsonpatch.compare(obj.cache, result);
 
                     // Report back result
                     resolve(result);
@@ -1854,14 +1854,7 @@
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                if (
-                    !obj.filter || (
-                        !obj.filter.criteria &&
-                        !obj.filter.limit
-                    )
-                ) {
-                    feathername = obj.name;
-                }
+                feathername = obj.name;
 
                 // Handle subscription
                 await events.subscribe(
@@ -2453,7 +2446,7 @@
 
                     // Update newRec for "trigger after" use if applicable
                     if (obj.newRec) {
-                        jsonpatch.applyPatch(obj.newRec, ret);
+                        obj.newRec = result;
                     }
 
                     ret = ret.filter(

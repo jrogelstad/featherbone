@@ -250,15 +250,6 @@ searchPage.component = {
     },
 
     /**
-        Cleanup method.
-        @method onremove
-        @param {Object} [vnode] Virtual node
-    */
-    onremove: function (vnode) {
-        delete f.catalog().register("config")[vnode.attrs.config];
-    },
-
-    /**
         @method view
         @return {Object} View
     */

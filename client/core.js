@@ -217,7 +217,7 @@ function buildSelector(obj, opts) {
     let selectComponents = vm.selectComponents();
     let val = opts.prop();
     let values = obj.dataList.map((item) => item.value).join();
-
+ 
     val = (
         val === ""
         ? undefined
@@ -1966,6 +1966,66 @@ f.processEvent = function (obj) {
         return;
     }
 
+    let filter = {};
+    // Handle if this is list array
+    if (ary.canFilter) {
+        filter = f.copy(ary.filter() || {});
+    } else {
+        ary.inFilter = () => true;
+    }
+    // Avoid resorting array driving DOM
+    // Make a copy to work with
+    let cary = ary.slice();
+    let at;
+    function doSort(a, b) {
+        let ret = 0;
+        let i = 0;
+        let item;
+        let aprop;
+        let bprop;
+
+        while (i < filter.sort.length && ret === 0) {
+            item = filter.sort[i];
+            aprop = f.resolveProperty(a, item.property);
+            bprop = f.resolveProperty(b, item.property);
+
+            if (item.order === "DESC") {
+                if (aprop() < bprop()) {
+                    ret = 1;
+                } else if (aprop() > bprop()) {
+                    ret = -1;
+                }
+            } else {
+                if (aprop() > bprop()) {
+                    ret = 1;
+                } else if (aprop() < bprop()) {
+                    ret = -1;
+                }
+            }
+            i += 1;
+        }
+
+        return ret;
+    }
+
+    // Add model to list if it should appear
+    // in filter
+    function addContingent() {
+        instance = ary.model();
+        instance.set(data, true, true);
+        instance.state().send("fetched");
+        if (ary.inFilter(instance)) {
+            if (filter.sort) {
+                cary.push(instance);
+                cary.sort(doSort);
+                at = cary.indexOf(instance);
+                ary.add(instance, true, at);
+            } else {
+                ary.add(instance);
+            }
+        }
+    }
+
     // Apply event to the catalog data;
     switch (change) {
     case "update":
@@ -1986,28 +2046,26 @@ f.processEvent = function (obj) {
                 instance.state().goto("Ready/Fetched/ReadOnly");
                 instance.set(data, true, true);
                 instance.state().goto("Ready/Fetched/Clean");
+                if (!ary.inFilter(instance)) {
+                    // New data state should no longer show
+                    ary.splice(ary.indexOf(instance), 1);
+                }
                 m.redraw();
             }
+        } else {
+            addContingent();
         }
         break;
     case "create":
-        ary.add(ary.model(data));
-        /*
-        instance = ary.model();
-        instance.set(data, true, true);
-        instance.state().send("fetched");
-        if (ary.inFilter(instance)) {
-            ary.add(instance);
-        }
-        */
+        addContingent();
         break;
     case "delete":
-        instance = ary.find(function (model) {
+        instance = ary.indexOf(function (model) {
             return model.id() === data;
         });
 
-        if (instance) {
-            ary.remove(instance);
+        if (instance !== -1) {
+            ary.splice(instance, 1);
         }
         break;
     case "lock":
@@ -2212,7 +2270,7 @@ f.sendMail = function (params, dialog) {
         };
 
         dialog.title("Send mail");
-        dialog.icon("envelope");
+        dialog.icon("send");
         dialog.onOk(onOk);
         dialog.onCancel(reject);
         dialog.style({

@@ -309,7 +309,7 @@ function createTableDataView(options, col) {
             let optKey;
             if (ev.shiftKey) {
                 optKey = "shiftKey";
-            } else if (ev.ctrlKey) {
+            } else if (ev.ctrlKey || ev.metaKey) {
                 optKey = "ctrlKey";
             }
             theVm.toggleSelection(
@@ -694,7 +694,7 @@ function createTableRow(options, pModel) {
         let optKey;
         if (ev.shiftKey) {
             optKey = "shiftKey";
-        } else if (ev.ctrlKey) {
+        } else if (ev.ctrlKey || ev.metaKey) {
             optKey = "ctrlKey";
         }
         theVm.toggleSelection(
@@ -1130,7 +1130,7 @@ tableWidget.viewModel = function (options) {
                     fattrs.push(attr);
                 } else if (
                     typeof fmt === "object" &&
-                    !fmt.childOf
+                    fmt.relation
                 ) {
                     props = f.catalog().getFeather(fmt.relation).properties;
                     nk = Object.keys(props).find(
@@ -1288,9 +1288,11 @@ tableWidget.viewModel = function (options) {
         let attrs;
         let props = [];
         let fp = vm.feather().properties;
+        let sort = vm.filter().sort || [];
 
         if (!vm.isLoadAllProperties() && !vm.isEditModeEnabled()) {
             attrs = vm.config().columns.map((col) => col.attr);
+            attrs = attrs.concat(sort.map((s) => s.property));
             // Purge dot notation
             attrs.forEach(function (a) {
                 let i = a.indexOf(".");
@@ -1420,6 +1422,8 @@ tableWidget.viewModel = function (options) {
     // Dialog gets modified by actions, so reset after any useage
     function doResetDialog() {
         let dlg = vm.confirmDialog();
+        let state = dlg.buttonOk().state();
+        let mode = state.resolve(state.resolve("/Mode").current()[0]);
 
         dlg.icon("help_outline");
         dlg.title("Confirmation");
@@ -1433,15 +1437,15 @@ tableWidget.viewModel = function (options) {
                 id: dlg.ids().content
             }, dlg.message());
         };
-        dlg.buttons([
-            dlg.buttonOk,
-            dlg.buttonCancel
-        ]);
+        dlg.buttons([dlg.buttonOk, dlg.buttonCancel]);
+        dlg.buttonOk().title("");
         dlg.buttonOk().label("&Ok");
+        dlg.buttonOk().isDisabled = function () {
+            return mode.isDisabled();
+        };
+        dlg.buttonCancel().title("");
         dlg.buttonCancel().label("&Cancel");
-        dlg.style({
-            width: "500px"
-        });
+        dlg.style({width: "500px"});
     }
 
     function selectionChanged() {
@@ -1706,6 +1710,7 @@ tableWidget.viewModel = function (options) {
         icon: "error",
         title: "Error"
     }));
+    vm.errorDialog().buttonCancel().hide();
     /**
         @method feather
         @param {Object} feather
@@ -2299,6 +2304,9 @@ tableWidget.viewModel = function (options) {
         setProperties();
         doFetch();
         doFetchAggregates();
+    }
+    if (vm.models().state) {
+        vm.models().state().resolve("/Unitialized").enter(vm.unselect);
     }
 
     // Bind refresh to filter change event

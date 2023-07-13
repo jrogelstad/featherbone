@@ -416,7 +416,7 @@
         if (!key) {
             return;
         }
-        cipherBuff = await pdf.readFile();
+        cipherBuff = await pdf.readFile(key);
     }
 
     function parseCipherKey() {
