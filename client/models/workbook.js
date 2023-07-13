@@ -201,6 +201,12 @@ const workbookDefaultConifg = {
             description: "Flags whether in edit mode",
             type: "boolean",
             default: false
+        },
+        helpLink: {
+            description: "Link to help file",
+            type: {
+                relation: "HelpLink"
+            }
         }
     }
 };
@@ -684,7 +690,7 @@ workbookChild.calculated = f.prop({});
 
     __Type:__ `Boolean`
 
-    @property data.isEditModeEnabled
+    @property data.ModeEnabled
     @type Property
 */
 /**
@@ -693,6 +699,14 @@ workbookChild.calculated = f.prop({});
     __Type:__ `Boolean`
 
     @property data.openInNewWindow
+    @type Property
+*/
+/**
+    Help file link.
+
+    __Type:__ `HelpLink`
+
+    @property data.helpLink
     @type Property
 */
 /**
@@ -820,6 +834,12 @@ const worksheet = {
             type: {
                 parentOf: "parent",
                 relation: "WorksheetAction"
+            }
+        },
+        helpLink: {
+            description: "Link to help file",
+            type: {
+                relation: "HelpLink"
             }
         }
     }

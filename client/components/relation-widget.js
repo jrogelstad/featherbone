@@ -158,7 +158,7 @@ relationWidget.viewModel = function (options) {
         isEditable: false
     });
     modelList.properties();
-    modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
+    modelList.fetch(mergeFilter(theFilter), false, true).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
     // recognized
@@ -188,7 +188,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        return vm.models().fetch(mergeFilter(theFilter), false);
+        return vm.models().fetch(mergeFilter(theFilter), false, false);
     };
     /**
         @method id

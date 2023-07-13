@@ -379,7 +379,7 @@
                     }
                     return (
                         Number.isNaN(result)
-                        ? null
+                        ? 0
                         : result
                     );
                 }

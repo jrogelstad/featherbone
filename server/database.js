@@ -85,9 +85,6 @@
         // Reslove connection string
         function setConfig(resp) {
             return new Promise(function (resolve) {
-
-
-
                 cache = {
                     postgres: {
                         host: resp.pgHost,
@@ -95,7 +92,8 @@
                         database: resp.pgDatabase,
                         user: resp.pgUser,
                         password: resp.pgPassword,
-                        ssl: sslConfig(resp)
+                        ssl: sslConfig(resp),
+                        max: resp.pgMaxConnections || 10
                     }
                 };
                 resolve(resp);
@@ -251,6 +249,10 @@
             @return {Promise}
         */
         that.connect = function (referenceOnly) {
+            // TODO reference only prevents SQL in scripts,
+            // but what if there is no other way? Commenting
+            // out for now.
+            referenceOnly = false;
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
 
@@ -259,6 +261,7 @@
                     return new Promise(function (resolve, reject) {
                         if (!pool) {
                             pool = new Pool(cache.postgres);
+                            pool.setMaxListeners(cache.postgres.max);
                         }
 
                         pool.connect(function (err, c, d) {
@@ -448,6 +451,7 @@
                 // Create pool
                 function doPool() {
                     pool = new Pool(cache.postgres);
+                    pool.setMaxListeners(cache.postgres.max);
                     resolve(pool);
                 }
 

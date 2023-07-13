@@ -27,7 +27,6 @@
     const readFileSync = "readFileSync"; // Lint dogma
     const f = require("../../common/core");
     const fs = require("fs");
-    const os = require("os");
     const {CRUD} = require("./crud");
     const {Tools} = require("./tools");
     const {Feathers} = require("./feathers");
@@ -35,8 +34,6 @@
     const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
     const {registerFont, createCanvas} = require("canvas");
     const defTextLabel = "Confidential";
-    const http = require("http");
-    const https = require("https");
     const formats = new Tools().formats;
 
     const fonts = {
@@ -639,9 +636,9 @@
                     break;
                 case "boolean":
                     if (value) {
-                        value = "True";
+                        value = "X";
                     } else {
-                        value = "False";
+                        value = "";
                     }
                     row.cell(fontMod(value), {
                         font: ovrFont,
@@ -927,13 +924,11 @@
                 }
             }
 
-/*          Some bug in footer fouls up alignment
             doc.footer().pageNumber(function (curr, total) {
                 return curr + " / " + total;
-            }, {
-                textAlign: "center"
-            });
-*/
+            }, {textAlign: "center"});
+            doc.cell("", {minHeight: 0.1 * pdf.cm});
+
             // Loop through data to build content
             function getRow() {
                 return rows.find((r) => r.id === currId);
@@ -999,32 +994,12 @@
     };
 
     function fetchBytes(url) {
-        let rex = new RegExp(
-            "^(http|https)://(localhost|"
-            + os.hostname() + ")"
-        );
         return new Promise(function (res2) {
-            if (url.match(rex) && url.match(/files\/upload/)) {
-                readFile(
-                    "./files/upload/" + url.slice(url.lastIndexOf("/") + 1)
-                ).then(function (bytes) {
-                    res2(bytes);
-                });
-            } else {
-                let svc = http;
-                if (url.match(/^https/gi)) {
-                    svc = https;
-                }
-                svc.get(url, function (res) {
-                    let data = [];
-                    res.on("data", function (chunk) {
-                        data.push(chunk);
-                    }).on("end", function () {
-                        let buffer = Buffer.concat(data);
-                        res2(buffer);
-                    });
-                });
-            }
+            readFile(
+                "./files/upload/" + url.slice(url.lastIndexOf("/") + 1)
+            ).then(function (bytes) {
+                res2(bytes);
+            });
         });
     }
 

@@ -501,6 +501,7 @@ formPage.viewModel = function (options) {
     let isRowAuth = f.catalog().getFeather(
         theFeather
     ).enableRowAuthorization;
+    let hasHelp = form.helpLink && form.helpLink.resource;
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -707,6 +708,12 @@ formPage.viewModel = function (options) {
     */
     vm.buttonPdf = f.prop();
     /**
+        @method buttonHelp
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonHelp = f.prop();
+    /**
         @method buttonBack
         @param {ViewModels.Button} button
         @return {ViewModels.Button}
@@ -789,6 +796,11 @@ formPage.viewModel = function (options) {
         delete instances[id];
         delete formInstances[id];
         vm.model().copy();
+        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
+            if (!vm.model().subscribe()) {
+                vm.model().subscribe(true);
+            }
+        });
         id = vm.model().id();
         instances[id] = vm.model();
         formInstances[id] = inst;
@@ -900,6 +912,16 @@ formPage.viewModel = function (options) {
         @return {Model}
     */
     vm.model = function () {
+        return vm.formWidget().model();
+    };
+   /**
+        Returns model for compatibility with actions
+        with list actions.
+
+        @method selection
+        @return {Model}
+    */
+    vm.selection = function () {
         return vm.formWidget().model();
     };
    /**
@@ -1056,10 +1078,12 @@ formPage.viewModel = function (options) {
             onclick: vm.editAuthDialog().show,
             icon: "key",
             title: "Edit Authorizations",
-            class: (
-                toolbarButtonClass +
-                " fb-toolbar-button-right" +
-                " fb-toolbar-button-right-side"
+            class: toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            (
+                hasHelp
+                ? " fb-toolbar-button-middle-side "
+                : " fb-toolbar-button-right-side"
             )
         }));
     }
@@ -1083,12 +1107,32 @@ formPage.viewModel = function (options) {
             toolbarButtonClass +
             " fb-toolbar-button-right" +
             (
-                isRowAuth
+                (isRowAuth || hasHelp)
                 ? " fb-toolbar-button-middle-side "
                 : " fb-toolbar-button-right-side"
             )
         )
     }));
+
+    vm.buttonHelp(f.createViewModel("Button", {
+        onclick: function () {
+            if (hasHelp) {
+                window.open(form.helpLink.resource);
+            }
+        },
+        icon: "help",
+        title: "Open help file",
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-right-side"
+        )
+    }));
+
+    if (!hasHelp) {
+        vm.buttonHelp().disable();
+        vm.buttonHelp().title("No help page assigned");
+    }
 
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
@@ -1275,6 +1319,7 @@ formPage.component = {
         }
 
         buttons = [
+            m(btn, {viewModel: vm.buttonHelp()}),
             buttonAuthView,
             m(btn, {viewModel: vm.buttonPdf()}),
             m(btn, {viewModel: vm.buttonCopy()})
@@ -1319,6 +1364,17 @@ formPage.component = {
                 viewModel: vm.formWidget()
             })
         ]);
+    },
+    onremove: function (vnode) {
+        let frminstances = f.catalog().store().formInstances();
+        let key = vnode.attrs.key;
+        let existing = frminstances[key];
+
+        // Form widget unsubscribes, but if cached leave subscription
+        // because we're intended to come back here
+        if (existing) {
+            existing.model().subscribe(true);
+        }
     }
 };
 
