@@ -80,11 +80,11 @@ const editSheetConfig = {
     }, {
         attr: "feather",
         grid: 1
-    }, {
+    }/*, { Keep it simple
         attr: "openInNewWindow",
         label: "Open in new tab",
         grid: 1
-    }, {
+    }*/, {
         attr: "form",
         grid: 1,
         label: "Drill down form"
@@ -522,37 +522,6 @@ workbookPage.viewModel = function (options) {
         let form = f.catalog().store().data().forms().find(function (frm) {
             return vm.sheet().form === frm.name;
         }) || {};
-        let url;
-        let win;
-
-        if (vm.sheet().openInNewWindow) {
-            url = (
-                window.location.protocol + "//" +
-                window.location.hostname + ":" +
-                window.location.port + "#!/edit/" +
-                theFeather.name.toSpinalCase() + "/" +
-                f.createId()
-            );
-
-            win = window.open(url);
-            win.options = {
-                form: form.id,
-                create: true,
-                isNewWindow: true
-            };
-            win.receiver = function (model) {
-                // If model came from other window now closed it's
-                // unstable, so rebuild it
-                let nmodel = f.createModel(model.name, model.toJSON());
-
-                nmodel.state().goto("/Ready/Fetched/Clean");
-                nmodel.checkDelete();
-                nmodel.checkUpdate();
-                vm.tableWidget().models().add(nmodel, true, true);
-                m.redraw();
-            };
-            return;
-        }
 
         if (!vm.tableWidget().modelNew()) {
             m.route.set("/edit/:feather/:key", {
@@ -1770,6 +1739,7 @@ workbookPage.component = {
             m("div", {
                 class: "fb-navigator-menu-container"
             }, [
+                f.snackbar(),
                 m(nav, {
                     viewModel: vm.menu()
                 }),

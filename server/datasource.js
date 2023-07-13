@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -137,9 +137,147 @@
         });
     }
 
+    /**
+        Return Process object.
+
+        @method Process
+        @param {Object} options
+        @param {String} options.name Process name
+        @param {Object} options.client
+        @param {Integer} [count] Count of items to process. Default 100
+        @param {Object} [subscription] Pass for client progress notification
+        @param {string} [subscription.id] id Subscription id
+        @param {string} [subscription.eventKey] eventKey Subscription event key
+        @return {Object}
+    */
+    function createProcess(obj) {
+        if (!obj.name) {
+            throw "Name is required";
+        }
+        if (!obj.client) {
+            throw "Client is required";
+        }
+
+        let pgProcessId = obj.client.processID;
+        let pUser = obj.client.currentUser();
+        let pId = f.createId();
+        let subscr = obj.subscription;
+        let datasource = this;
+        let p = {
+            id: pId,
+            name: obj.name,
+            user: obj.user
+        };
+        let maxPct = 100;
+        let cnt = obj.count || 100;
+        let incr = Math.round(maxPct.div(cnt));
+        let pct = incr;
+
+        p.start = async function () {
+            await f.datasource.request({
+                method: "POST",
+                name: "ServerProcess",
+                user: pUser, // Outside transaction
+                data: {
+                    id: pId,
+                    name: obj.name,
+                    processId: pgProcessId
+                }
+            }, true);
+
+            if (subscr) {
+                await datasource.request({
+                    method: "POST",
+                    name: "subscribe",
+                    id: pId,
+                    subscription: subscr,
+                    user: pUser // Outside transaction
+                });
+            }
+        };
+        p.next = async function () {
+            await datasource.request({
+                method: "PATCH",
+                name: "ServerProcess",
+                user: pUser, // Outside trans
+                id: pId,
+                data: [{
+                    op: "replace",
+                    path: "/percentComplete",
+                    value: pct
+                }]
+            }, true);
+            pct += incr;
+            pct = Math.min(pct, maxPct);
+        };
+        p.complete = async function () {
+            await datasource.request({
+                method: "PATCH",
+                name: "ServerProcess",
+                user: pUser,
+                id: pId,
+                data: [{
+                    op: "replace",
+                    path: "/percentComplete",
+                    value: 100
+                }, {
+                    op: "replace",
+                    path: "/status",
+                    value: "C"
+                }, {
+                    op: "replace",
+                    path: "/completed",
+                    value: f.now()
+                }]
+            }, true);
+
+            if (subscr) {
+                await datasource.request({
+                    method: "POST",
+                    name: "unsubscribe",
+                    subscription: subscr,
+                    user: pUser // Outside transaction
+                });
+            }
+        };
+        return Object.freeze(p);
+    }
+
+    /**
+        ...
+
+        @method stopProcess
+        @param {Object} options
+        @param {String} options.processId Server process ID
+        @return {Promise}
+    */
+    async function stopProcess(obj) {
+        let resp = await db.connect();
+        let processId = obj.data.id;
+        let sql1 = "SELECT process_id FROM server_process WHERE id=$1;";
+        let sql2 = "SELECT pg_cancel_backend($1);";
+        let sql3 = (
+            "UPDATE server_process SET " +
+            "  status = 'S', " +
+            "  completed = now() " +
+            "WHERE id = $1;"
+        );
+        let sql4 = "DELETE FROM \"$subscription\" WHERE objectid=$1;";
+        let ret = await resp.client.query(sql1, [processId]);
+
+        if (ret.rows.length) {
+            await resp.client.query(sql2, [ret.rows[0].process_id]);
+            await resp.client.query(sql3, [processId]);
+            await resp.client.query(sql4, [processId]);
+        }
+        resp.done();
+    }
+
     // ..........................................................
     // PUBLIC
     //
+    that.createProcess = createProcess.bind(that);
+
     /**
         @property TRIGGER_BEFORE
         @type Integer
@@ -2253,6 +2391,7 @@
         feathers.saveAuthorization
     );
     that.registerFunction("POST", "savePoint", crud.savePoint);
+    that.registerFunction("POST", "stopProcess", stopProcess);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(
