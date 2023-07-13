@@ -98,6 +98,13 @@ formDialog.viewModel = function (options) {
     };
     substate = vm.state().resolve("/Display/Showing");
     substate.enter(function () {
+        let ht = vm.style().height;
+        if (ht) {
+            ht = ht.slice(0, ht.length - 2);
+            ht = ht - 160;
+            ht = ht + "px";
+        }
+
         // Create dalog view models
         vm.formWidget(f.createViewModel("FormWidget", {
             model: options.model,
@@ -108,7 +115,8 @@ formDialog.viewModel = function (options) {
                 vm.ids().buttonOk
             ],
             containerId: vm.ids().dialog,
-            isScrollable: false
+            isScrollable: false,
+            height: ht
         }));
         delete vm.style().display;
     });

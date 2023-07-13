@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -214,6 +214,12 @@ f.catalog().register(
     resourceLinkRelation.viewModel
 );
 
+f.catalog().register(
+    "viewModels",
+    "helpLinkRelation",
+    resourceLinkRelation.viewModel
+);
+
 /**
     @class ResourceLinkRelation
     @uses Components.RelationWidget
@@ -268,5 +274,11 @@ resourceLinkRelation.component = {
 f.catalog().register(
     "components",
     "resourceLinkRelation",
+    resourceLinkRelation.component
+);
+
+f.catalog().register(
+    "components",
+    "helpLinkRelation",
     resourceLinkRelation.component
 );

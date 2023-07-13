@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -22,8 +22,8 @@
   Link Model
 */
 
-function resourceLink(data, feather) {
-    feather = feather || f.catalog().getFeather("ResourceLink");
+function resourceLink(name, data, feather) {
+    feather = feather || f.catalog().getFeather(name);
     let model = f.createModel(data, feather);
     let d = model.data;
 
@@ -103,4 +103,5 @@ function resourceLink(data, feather) {
     return model;
 }
 
-f.catalog().registerModel("ResourceLink", resourceLink);
+f.catalog().registerModel("ResourceLink", resourceLink.bind(null, "ResourceLink"));
+f.catalog().registerModel("HelpLink", resourceLink.bind(null,"HelpLink"));
