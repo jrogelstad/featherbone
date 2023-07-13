@@ -441,7 +441,11 @@
         },
         "overloads": {
             "module": {
-                "relation": "Module"
+                "type": {
+                    "type": "relation",
+                    "relation": "Module",
+                    "properties": []
+                }
             }
         }
     },

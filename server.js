@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1198,6 +1198,20 @@
         );
     }
 
+    function doStopProcess(req, res) {
+        let payload = {
+            method: "POST",
+            name: "stopProcess",
+            user: req.user.name,
+            data: req.body
+        };
+
+        logger.verbose(payload);
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
     function doWorkbookIsAuthorized(req, res) {
         let payload = {
             method: "GET",
@@ -1565,6 +1579,7 @@
         app.post("/do/change-password/", doChangePassword);
         app.post("/do/change-user-info/", doChangeUserInfo);
         app.post("/do/save-authorization", doSaveAuthorization);
+        app.post("/do/stop-process", doStopProcess);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/upload", doUpload);

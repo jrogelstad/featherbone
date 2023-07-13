@@ -69,6 +69,43 @@ gantt.component = {
         ];
     },
 
+    oncreate: function () {
+        let vm = this.viewModel;
+        let id = "gantt" + vm.id();
+        let e = document.getElementById(id);
+        let chart = vm.chart();
+        let data = vm.data().data;
+
+        if (!vm.showDetail()) {
+            data = data.filter((d) => Boolean(d.type));
+        }
+
+        if (data.length && !chart) {
+            chart = new Gantt.CanvasGantt(
+                e,
+                data,
+                {
+                    viewMode: vm.viewMode(),
+                    showLinks: vm.showLinks(),
+                    onClick: function (item) {
+                        if (!item.feather && item.key) {
+                            return;
+                        }
+
+                        if (item.feather && item.key) {
+                            m.route.set("/edit/:feather/:key", {
+                                feather: item.feather,
+                                key: item.key
+                            }, {state: {form: item.formId}});
+                        }
+                    }
+                }
+            );
+            this.viewModel.chart(chart);
+            chart.render();
+        }
+    },
+
     onupdate: function () {
         let vm = this.viewModel;
         let id = "gantt" + vm.id();
@@ -86,18 +123,22 @@ gantt.component = {
             chart.data = data;
             chart.render();
         } else if (data.length && !chart) {
-            chart = new Gantt.SVGGantt(
+            chart = new Gantt.CanvasGantt(
                 e,
                 data,
                 {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
+                        if (!item.feather && item.key) {
+                            return;
+                        }
+
                         if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
                                 key: item.key
-                            }, {});
+                            }, {state: {form: item.formId}});
                         }
                     }
                 }
@@ -174,7 +215,7 @@ gantt.component = {
                     value: vm.showLinks()
                 })
             ]),
-            m("div", {
+            m("canvas", {
                 id: "gantt" + id,
                 key: "gantt" + id
             })
