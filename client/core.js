@@ -217,7 +217,7 @@ function buildSelector(obj, opts) {
     let selectComponents = vm.selectComponents();
     let val = opts.prop();
     let values = obj.dataList.map((item) => item.value).join();
- 
+
     val = (
         val === ""
         ? undefined
@@ -1454,6 +1454,8 @@ f.types.resourceLink.tableData = function (obj, decorator) {
         return m("a", {href: rec, target: "_blank"}, icon, label);
     }
 };
+f.types.helpLink = {};
+f.types.helpLink.tableData = f.types.resourceLink.tableData;
 
 f.types.address = {};
 f.types.address.tableData = function (obj) {
@@ -1856,6 +1858,120 @@ f.getStyle = function (name) {
 */
 f.prop = createProperty;
 
+let notes = [];
+let snackbarClass = f.prop("");
+
+/**
+    Notify user of an event via snackbar.
+
+    @method notify
+    @param {String} message
+    @param {String} icon
+*/
+f.notify = function (msg, opts) {
+    opts = opts || {};
+    msg = msg || "No message text provided";
+    let theId = opts.processId || f.createId();
+    let note = notes.find((n) => n.id === theId);
+    if (note) {
+        note.percentComplete = opts.percentComplete;
+        note.status = opts.status;
+    } else {
+        notes.push({
+            id: theId,
+            message: msg,
+            icon: opts.icon || "info",
+            iconColor: opts.iconColor || "aqua",
+            isProcess: Boolean(opts.processId),
+            percentComplete: opts.percentComplete,
+            status: opts.status
+        });
+    }
+    snackbarClass("show");
+    m.redraw();
+};
+
+function mapSnackbar(note) {
+    let ret;
+    let status;
+    let icls = "close";
+    let iclass = "material-icons-outlined fb-dialog-icon";
+    let ititle = "Close notification";
+    let close = function () {
+        notes.splice(notes.indexOf(note), 1);
+        if (!notes.length) {
+            snackbarClass("");
+        }
+    };
+
+    if (note.isProcess) {
+        if (note.status === "P") {
+            status = "Processing";
+            icls = "dangerous";
+            iclass += " fb-snackbar-cancel";
+            ititle = "Stop process";
+            close = function () {
+                f.datasource().request({
+                    method: "POST",
+                    path: "/do/stop-process",
+                    body: {id: note.id}
+                });
+            };
+        } else if (note.status === "C") {
+            status = "Complete";
+        } else if (note.status === "E") {
+            status = "Error";
+        } else {
+            status = "Stopped";
+        }
+        ret = m("div", {class: "fb-snackbar-item"}, [
+            m("div", {class: "fb-snackbar-progress"}, [
+                m("label", {
+                    for: note.id
+                }, status + ": " + note.message),
+                m("progress", {
+                    id: note.id,
+                    max: 100,
+                    value: note.percentComplete
+                }, note.percentComplete + "%")
+            ]),
+            m("i", {
+                class: iclass,
+                title: ititle,
+                onclick: close
+            }, icls)
+        ]);
+        return ret;
+    }
+
+    return m("div", {class: "fb-snackbar-item"}, [
+        m("div", {class: "fb-snackbar-message"}, [
+            m("i", {
+                style: {color: note.iconColor},
+                class: "material-icons-outlined fb-dialog-icon"
+            }, note.icon)
+        ], note.message),
+        m("i", {
+            class: "material-icons-outlined fb-dialog-icon",
+            onclick: close,
+            title: ititle
+        }, icls)
+    ]);
+}
+
+/**
+    Hyperscript for snackbar notification.
+
+    @method snackbar
+    @return {object} hyperscript
+*/
+f.snackbar = function () {
+    return m("div", {
+        id: "snackbar",
+        class: snackbarClass()
+    }, notes.map(mapSnackbar));
+};
+
 let holdEvents = false;
 let pending = [];
 
@@ -1933,6 +2049,16 @@ f.processEvent = function (obj) {
             );
         }
         return;
+    }
+
+    if (data.objectType === "ServerProcess") {
+        if (change === "create" || change === "update") {
+            f.notify(data.name, {
+                processId: data.id,
+                percentComplete: data.percentComplete,
+                status: data.status
+            });
+        }
     }
 
     subscriptionId = payload.message.subscription.subscriptionid;
