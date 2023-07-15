@@ -17,6 +17,7 @@
 */
 /*jslint browser unordered*/
 /*global f*/
+const Qs = window.Qs;
 
 function module(data, feather) {
     feather = feather || f.catalog().getFeather("Module");
@@ -33,7 +34,12 @@ module.static = f.prop({
     install: function (viewModel) {
         let input = document.createElement("input");
         let dialog = viewModel.confirmDialog();
-
+        let query = Qs.stringify({
+            subscription: {
+                id: f.createId(),
+                eventKey: f.catalog().eventKey()
+            }
+        });
         function error(err) {
             dialog.message(err.message);
             dialog.title("Error");
@@ -50,7 +56,7 @@ module.static = f.prop({
             formData.append("package", file);
             payload = {
                 method: "POST",
-                path: "/module/install",
+                path: "/module/install/" + query,
                 body: formData
             };
 
