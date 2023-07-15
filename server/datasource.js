@@ -169,9 +169,10 @@
             user: obj.user
         };
         let maxPct = 100;
-        let cnt = obj.count || 100;
-        let incr = Math.round(maxPct.div(cnt));
-        let pct = incr;
+        let cnt;
+        let incr;
+        let pct;
+        let last;
 
         p.start = async function () {
             await f.datasource.request({
@@ -196,19 +197,23 @@
             }
         };
         p.next = async function () {
-            await datasource.request({
-                method: "PATCH",
-                name: "ServerProcess",
-                user: pUser, // Outside trans
-                id: pId,
-                data: [{
-                    op: "replace",
-                    path: "/percentComplete",
-                    value: pct
-                }]
-            }, true);
-            pct += incr;
-            pct = Math.min(pct, maxPct);
+            pct = Math.floor(last.plus(incr));
+
+            if (pct > last) {
+                pct = Math.min(pct, maxPct);
+                await datasource.request({
+                    method: "PATCH",
+                    name: "ServerProcess",
+                    user: pUser, // Outside trans
+                    id: pId,
+                    data: [{
+                        op: "replace",
+                        path: "/percentComplete",
+                        value: pct
+                    }]
+                }, true);
+            }
+            last = last.plus(incr);
         };
         p.complete = async function () {
             await datasource.request({
@@ -240,6 +245,13 @@
                 });
             }
         };
+        p.reset = function (count) {
+            cnt = count || 100;
+            incr = Math.round(maxPct.div(cnt));
+            pct = incr;
+            last = 0;
+        };
+        p.reset(obj.count);
         return Object.freeze(p);
     }
 
@@ -714,9 +726,10 @@
         @method install
         @param {String} Manifest filename.
         @param {String} User name.
+        @param {Object} [subscription] Subscription object for progress tracking
         @return {Object} Promise
     */
-    that.install = function (filename, username) {
+    that.install = function (filename, username, subscription) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doInstall(resp) {
@@ -730,7 +743,9 @@
                         that,
                         resp.client,
                         filename,
-                        username
+                        username,
+                        false,
+                        subscription
                     ).then(
                         callback
                     ).catch(

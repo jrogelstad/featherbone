@@ -722,6 +722,7 @@
     }
 
     function doInstall(req, res) {
+        let query = qs.parse(req.params.query);
         const DIR = "./files/" + "tmp_" + f.createId();
         const TEMPFILE = DIR + ".zip";
 
@@ -752,10 +753,12 @@
             zip.extractAllTo(DIR, true);
             datasource.install(
                 DIR,
-                req.user.name
-            ).then(cleanup).catch(
-                error.bind(res)
-            );
+                req.user.name,
+                query.subscription
+            ).then(cleanup).catch(function () {
+                error(res);
+                cleanup();
+            });
         });
     }
 
@@ -1591,7 +1594,7 @@
         app.post("/do/unlock", doUnlock);
         app.get("/feather/:name", doGetFeather);
         app.post("/module/package/:name", doPackageModule);
-        app.post("/module/install", doInstall);
+        app.post("/module/install/:query", doInstall);
         app.get("/profile", doGetProfile);
         app.put("/profile", doPutProfile);
         app.patch("/profile", doPatchProfile);
