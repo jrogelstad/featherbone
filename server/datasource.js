@@ -174,6 +174,32 @@
         let pct;
         let last;
 
+        obj.client.onRollback(async function (err) {
+            let msg = (
+                typeof err === "string"
+                ? err
+                : err.message
+            );
+
+            if (msg !== "canceling statement due to user request") {
+                await f.datasource.request({
+                    method: "PATCH",
+                    name: "ServerProcess",
+                    user: pUser,
+                    id: pId,
+                    data: [{
+                        op: "replace",
+                        path: "/status",
+                        value: "E"
+                    }, {
+                        op: "replace",
+                        path: "/errorMessage",
+                        value: msg
+                    }]
+                }, true);
+            }
+        });
+
         p.start = async function () {
             await f.datasource.request({
                 method: "POST",
@@ -271,7 +297,8 @@
         let sql3 = (
             "UPDATE server_process SET " +
             "  status = 'S', " +
-            "  completed = now() " +
+            "  completed = now(), " +
+            "  error_message = 'Stopped by user cancellation'" +
             "WHERE id = $1;"
         );
         let sql4 = "DELETE FROM \"$subscription\" WHERE objectid=$1;";
@@ -1357,7 +1384,10 @@
                 //console.log("ROLLBACK->", obj.name, obj.method);
 
                 if (theClient.wrapped()) {
-                    crud.rollback({client: theClient}).then(function () {
+                    crud.rollback({
+                        client: theClient,
+                        error: err
+                    }).then(function () {
                         //console.log("ROLLED BACK");
                         theClient.currentUser(undefined);
                         theClient.wrapped(false);
