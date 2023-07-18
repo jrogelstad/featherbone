@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -96,6 +96,7 @@
                 pClient.currentUser(pUser);
 
                 async function initProcess() {
+                    let pkgName;
                     function getCount(loc) {
                         return new Promise(function (resolve) {
                             async function handleCount(err, dat) {
@@ -104,6 +105,13 @@
                                     return;
                                 }
                                 let data = JSON.parse(dat);
+                                if (!pkgName) {
+                                    pkgName = (
+                                        "Install package " +
+                                        data.module + " v" +
+                                        data.version
+                                    );
+                                }
                                 let count = data.files.filter(
                                     (f) => f.type !== "install"
                                 ).length;
@@ -129,7 +137,7 @@
                     process = f.datasource.createProcess({
                         client: pClient,
                         count: pCount,
-                        name: "Install package",
+                        name: pkgName,
                         subscription: pSubscr
                     });
                     await process.start();
@@ -711,9 +719,12 @@
                 }
 
                 if (pIsSuper) {
-                    initProcess().then(
-                        registerNpmModules(true)
-                    ).then(doInstall);
+                    // Run from command line, so ignore process stuff
+                    process = {
+                        next: () => true,
+                        complete: () => true
+                    };
+                    registerNpmModules(true).then(doInstall);
                     return;
                 }
 

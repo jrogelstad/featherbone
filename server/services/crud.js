@@ -763,6 +763,7 @@
             @method rollback
             @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
+            @param {Object} payload.error Error
             @param {Object} payload.data Data options
             @param {Boolean} payload.data.toSavePoint
             Whether to rollback to last savepoint. Default true.
@@ -782,7 +783,9 @@
                     let callbacks = client.rollbacks.slice();
                     function next() {
                         if (callbacks.length) {
-                            callbacks.shift()().then(next).catch(console.log);
+                            callbacks.shift()(obj.error).then(
+                                next
+                            ).catch(console.log);
                         }
                     }
                     next();
