@@ -317,6 +317,20 @@
     //
     that.createProcess = createProcess.bind(that);
 
+    // For interrupted process cleanup after server restart
+    that.cleanupProcesses = async function () {
+        let resp = await db.connect();
+        let sql1 = (
+            "UPDATE server_process SET " +
+            "  status = 'S', " +
+            "  completed = now(), " +
+            "  error_message = 'Stopped by server restart'" +
+            "WHERE status = 'P';"
+        );
+        await resp.client.query(sql1);
+        resp.done();
+    };
+
     /**
         @property TRIGGER_BEFORE
         @type Integer

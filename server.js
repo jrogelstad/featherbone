@@ -257,6 +257,7 @@
             await datasource.getCatalog();
             routes = await datasource.getRoutes();
             await datasource.unsubscribe();
+            await datasource.cleanupProcesses();
             await datasource.unlock();
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
