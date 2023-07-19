@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1174,7 +1174,12 @@ tableWidget.viewModel = function (options) {
         function onOk() {
             let theUrl;
             let payload;
-            let theBody = {};
+            let theBody = {
+                subscription: {
+                    id: f.createId(),
+                    eventKey: f.catalog().eventKey()
+                }
+            };
             let fspec = vm.feather();
             let plural = fspec.plural || fspec.name;
 

@@ -862,6 +862,7 @@
         @param {String} dir Target directory
         @param {String} format `json`, `ods` or `xlsx`
         @param {String} username
+        @param {Object} [subscription] For progress tracking
         @return {Promise}
     */
     that.export = function (
@@ -870,7 +871,8 @@
         filter,
         dir,
         format,
-        username
+        username,
+        subscription
     ) {
         return new Promise(function (resolve, reject) {
             let formats = ["json", "ods", "xlsx"];
@@ -895,7 +897,8 @@
                         feather,
                         properties,
                         filter,
-                        dir
+                        dir,
+                        subscription
                     ).then(
                         callback
                     ).catch(

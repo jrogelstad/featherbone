@@ -774,7 +774,8 @@
             req.body.filter || {},
             "./files/downloads/",
             req.params.format,
-            req.user.name
+            req.user.name,
+            req.body.subscription
         ).then(
             respond.bind(res)
         ).catch(
