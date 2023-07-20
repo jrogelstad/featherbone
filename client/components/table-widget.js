@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, for, browser, unordered*/
-/*global f, m*/
+/*global f, m, Qs*/
 /**
     @module TableWidget
 */
@@ -1014,10 +1014,11 @@ tableWidget.viewModel = function (options) {
             if (resp) {
                 dlg.message(
                     "One or more errors were encountered during import. " +
-                    "Would you like to download the log?"
+                    "Click Ok to download the error log."
                 );
                 dlg.title("Error");
                 dlg.icon("error");
+                dlg.buttonCancel().hide();
                 dlg.onOk(doDownload.bind(null, target, resp));
                 dlg.show();
             }
@@ -1044,6 +1045,12 @@ tableWidget.viewModel = function (options) {
             let name = file.name.slice(0, file.name.indexOf("."));
             let feathers = f.catalog().feathers();
             let payload;
+            let query = Qs.stringify({
+                subscription: {
+                    id: f.createId(),
+                    eventKey: f.catalog().eventKey()
+                }
+            });
 
             if (name.indexOf(" ") !== -1) {
                 name = name.slice(0, name.indexOf(" "));
@@ -1068,7 +1075,7 @@ tableWidget.viewModel = function (options) {
             formData.append("import", file);
             payload = {
                 method: "POST",
-                path: "/do/import/" + format + "/" + name,
+                path: "/do/import/" + format + "/" + name + "/" + query,
                 body: formData
             };
 
@@ -1174,7 +1181,12 @@ tableWidget.viewModel = function (options) {
         function onOk() {
             let theUrl;
             let payload;
-            let theBody = {};
+            let theBody = {
+                subscription: {
+                    id: f.createId(),
+                    eventKey: f.catalog().eventKey()
+                }
+            };
             let fspec = vm.feather();
             let plural = fspec.plural || fspec.name;
 

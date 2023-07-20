@@ -257,6 +257,7 @@
             await datasource.getCatalog();
             routes = await datasource.getRoutes();
             await datasource.unsubscribe();
+            await datasource.cleanupProcesses();
             await datasource.unlock();
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
@@ -722,6 +723,7 @@
     }
 
     function doInstall(req, res) {
+        let query = qs.parse(req.params.query);
         const DIR = "./files/" + "tmp_" + f.createId();
         const TEMPFILE = DIR + ".zip";
 
@@ -752,10 +754,12 @@
             zip.extractAllTo(DIR, true);
             datasource.install(
                 DIR,
-                req.user.name
-            ).then(cleanup).catch(
-                error.bind(res)
-            );
+                req.user.name,
+                query.subscription
+            ).then(cleanup).catch(function () {
+                error(res);
+                cleanup();
+            });
         });
     }
 
@@ -770,7 +774,8 @@
             req.body.filter || {},
             "./files/downloads/",
             req.params.format,
-            req.user.name
+            req.user.name,
+            req.body.subscription
         ).then(
             respond.bind(res)
         ).catch(
@@ -815,6 +820,7 @@
         let format = req.params.format;
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
+        let query = qs.parse(req.params.query);
         const DIR = "./files/import/";
         const TEMPFILE = DIR + id + "." + format;
 
@@ -837,7 +843,8 @@
                 feather,
                 format,
                 TEMPFILE,
-                req.user.name
+                req.user.name,
+                query.subscription
             ).then(
                 respond.bind(res)
             ).catch(
@@ -1581,7 +1588,7 @@
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/stop-process", doStopProcess);
         app.post("/do/export/:format/:feather", doExport);
-        app.post("/do/import/:format/:feather", doImport);
+        app.post("/do/import/:format/:feather/:query", doImport);
         app.post("/do/upload", doUpload);
         app.post("/do/print-pdf/form/", doPrintPdfForm);
         app.post("/do/send-mail", doSendMail);
@@ -1591,7 +1598,7 @@
         app.post("/do/unlock", doUnlock);
         app.get("/feather/:name", doGetFeather);
         app.post("/module/package/:name", doPackageModule);
-        app.post("/module/install", doInstall);
+        app.post("/module/install/:query", doInstall);
         app.get("/profile", doGetProfile);
         app.put("/profile", doPutProfile);
         app.patch("/profile", doPatchProfile);
