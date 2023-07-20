@@ -24,14 +24,12 @@
     "use strict";
 
     const {CRUD} = require("./crud");
-    //const {Datasource} = require("../datasource");
     const {Feathers} = require("./feathers");
     const f = require("../../common/core");
     const XLSX = require("xlsx");
     const fs = require("fs");
     const crud = new CRUD();
     const feathers = new Feathers();
-    //const datasource = new Datasource();
 
     function commit(client) {
         return new Promise(function (resolve) {
@@ -240,7 +238,7 @@
                 let rel;
                 let prop;
                 let row;
-                let i = 1;
+                let i = 0;
 
                 while (i < d.length) {
                     row = d[i];
