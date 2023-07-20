@@ -169,9 +169,36 @@
             user: obj.user
         };
         let maxPct = 100;
-        let cnt = obj.count || 100;
-        let incr = Math.round(maxPct.div(cnt));
-        let pct = incr;
+        let cnt;
+        let incr;
+        let pct;
+        let last;
+
+        obj.client.onRollback(async function (err) {
+            let msg = (
+                typeof err === "string"
+                ? err
+                : err.message
+            );
+
+            if (msg !== "canceling statement due to user request") {
+                await f.datasource.request({
+                    method: "PATCH",
+                    name: "ServerProcess",
+                    user: pUser,
+                    id: pId,
+                    data: [{
+                        op: "replace",
+                        path: "/status",
+                        value: "E"
+                    }, {
+                        op: "replace",
+                        path: "/errorMessage",
+                        value: msg
+                    }]
+                }, true);
+            }
+        });
 
         p.start = async function () {
             await f.datasource.request({
@@ -196,19 +223,23 @@
             }
         };
         p.next = async function () {
-            await datasource.request({
-                method: "PATCH",
-                name: "ServerProcess",
-                user: pUser, // Outside trans
-                id: pId,
-                data: [{
-                    op: "replace",
-                    path: "/percentComplete",
-                    value: pct
-                }]
-            }, true);
-            pct += incr;
-            pct = Math.min(pct, maxPct);
+            pct = Math.floor(last.plus(incr));
+
+            if (pct > last) {
+                pct = Math.min(pct, maxPct);
+                await datasource.request({
+                    method: "PATCH",
+                    name: "ServerProcess",
+                    user: pUser, // Outside trans
+                    id: pId,
+                    data: [{
+                        op: "replace",
+                        path: "/percentComplete",
+                        value: pct
+                    }]
+                }, true);
+            }
+            last = last.plus(incr);
         };
         p.complete = async function () {
             await datasource.request({
@@ -240,6 +271,13 @@
                 });
             }
         };
+        p.reset = function (count) {
+            cnt = count || 100;
+            incr = Math.round(maxPct.div(cnt));
+            pct = incr;
+            last = 0;
+        };
+        p.reset(obj.count);
         return Object.freeze(p);
     }
 
@@ -259,7 +297,8 @@
         let sql3 = (
             "UPDATE server_process SET " +
             "  status = 'S', " +
-            "  completed = now() " +
+            "  completed = now(), " +
+            "  error_message = 'Stopped by user cancellation'" +
             "WHERE id = $1;"
         );
         let sql4 = "DELETE FROM \"$subscription\" WHERE objectid=$1;";
@@ -277,6 +316,20 @@
     // PUBLIC
     //
     that.createProcess = createProcess.bind(that);
+
+    // For interrupted process cleanup after server restart
+    that.cleanupProcesses = async function () {
+        let resp = await db.connect();
+        let sql1 = (
+            "UPDATE server_process SET " +
+            "  status = 'S', " +
+            "  completed = now(), " +
+            "  error_message = 'Stopped by server restart'" +
+            "WHERE status = 'P';"
+        );
+        await resp.client.query(sql1);
+        resp.done();
+    };
 
     /**
         @property TRIGGER_BEFORE
@@ -714,9 +767,10 @@
         @method install
         @param {String} Manifest filename.
         @param {String} User name.
+        @param {Object} [subscription] Subscription object for progress tracking
         @return {Object} Promise
     */
-    that.install = function (filename, username) {
+    that.install = function (filename, username, subscription) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doInstall(resp) {
@@ -730,7 +784,9 @@
                         that,
                         resp.client,
                         filename,
-                        username
+                        username,
+                        false,
+                        subscription
                     ).then(
                         callback
                     ).catch(
@@ -806,6 +862,7 @@
         @param {String} dir Target directory
         @param {String} format `json`, `ods` or `xlsx`
         @param {String} username
+        @param {Object} [subscription] For progress tracking
         @return {Promise}
     */
     that.export = function (
@@ -814,7 +871,8 @@
         filter,
         dir,
         format,
-        username
+        username,
+        subscription
     ) {
         return new Promise(function (resolve, reject) {
             let formats = ["json", "ods", "xlsx"];
@@ -839,7 +897,8 @@
                         feather,
                         properties,
                         filter,
-                        dir
+                        dir,
+                        subscription
                     ).then(
                         callback
                     ).catch(
@@ -872,7 +931,13 @@
         @param {String} username
         @return {Promise}
     */
-    that.import = function (feather, format, filename, username) {
+    that.import = function (
+        feather,
+        format,
+        filename,
+        username,
+        subscription
+    ) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doImport(resp) {
@@ -889,7 +954,8 @@
                         that,
                         resp.client,
                         feather,
-                        filename
+                        filename,
+                        subscription
                     ).then(
                         callback
                     ).catch(
@@ -1342,7 +1408,10 @@
                 //console.log("ROLLBACK->", obj.name, obj.method);
 
                 if (theClient.wrapped()) {
-                    crud.rollback({client: theClient}).then(function () {
+                    crud.rollback({
+                        client: theClient,
+                        error: err
+                    }).then(function () {
                         //console.log("ROLLED BACK");
                         theClient.currentUser(undefined);
                         theClient.wrapped(false);

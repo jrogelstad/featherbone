@@ -550,6 +550,7 @@ workbookPage.viewModel = function (options) {
         let url;
         let win;
 
+        /* Keep it simple
         if (vm.sheet().openInNewWindow) {
             url = (
                 window.location.protocol + "//" +
@@ -565,6 +566,7 @@ workbookPage.viewModel = function (options) {
             };
             return;
         }
+        */
 
         if (selection) {
             m.route.set("/edit/:feather/:key", {

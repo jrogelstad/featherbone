@@ -1350,7 +1350,8 @@
             },
             "errorMessage": {
                 "description": "Error message if process failed",
-                "type": "string"
+                "type": "string",
+                "isAlwaysLoad": true
             },
             "processId": {
                 "description": "Postgres process ID. Needed if stopping process",

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -67,9 +67,17 @@
             @param {String} dir Directory of manifest
             @param {String} user User name
             @param {Boolean} [isSuper] Force as super user
+            @param {Object} [subscription] Subscription for client progress bar
             @return {Promise}
         */
-        that.install = function (pDatasource, pClient, pDir, pUser, pIsSuper) {
+        that.install = function (
+            pDatasource,
+            pClient,
+            pDir,
+            pUser,
+            pIsSuper,
+            pSubscr
+        ) {
             return new Promise(function (resolve, reject) {
                 let manifest;
                 let processFile;
@@ -81,10 +89,59 @@
                     base: MANIFEST
                 });
                 let installedFeathers = false;
+                let process;
 
                 f.datasource = pDatasource;
                 isInstalling = true;
                 pClient.currentUser(pUser);
+
+                async function initProcess() {
+                    let pkgName;
+                    function getCount(loc) {
+                        return new Promise(function (resolve) {
+                            async function handleCount(err, dat) {
+                                if (err) {
+                                    console.error(err);
+                                    return;
+                                }
+                                let data = JSON.parse(dat);
+                                if (!pkgName) {
+                                    pkgName = (
+                                        "Install package " +
+                                        data.module + " v" +
+                                        data.version
+                                    );
+                                }
+                                let count = data.files.filter(
+                                    (f) => f.type !== "install"
+                                ).length;
+                                let installs = data.files.filter(
+                                    (f) => f.type === "install"
+                                );
+                                let install;
+                                while (installs.length) {
+                                    install = installs.shift();
+                                    count += await getCount(install.path);
+                                }
+                                resolve(count);
+                            }
+                            let cpath = path.format({
+                                root: "/",
+                                dir: pDir,
+                                base: loc
+                            });
+                            fs.readFile(cpath, "utf8", handleCount);
+                        });
+                    }
+                    let pCount = await getCount(MANIFEST);
+                    process = f.datasource.createProcess({
+                        client: pClient,
+                        count: pCount,
+                        name: pkgName,
+                        subscription: pSubscr
+                    });
+                    await process.start();
+                }
 
                 function registerNpmModules(isSuper) {
                     return new Promise(function (resolve) {
@@ -121,7 +178,6 @@
                 function rollback(err) {
                     pClient.query("ROLLBACK;", function () {
                         console.error(err);
-                        //console.log("ROLLBACK");
                         console.error("Installation failed.");
                         reject(err);
                     });
@@ -533,7 +589,7 @@
                                 pUser,
                                 pClient
                             );
-                        }).then(function () {
+                        }).then(process.complete).then(function () {
                             console.log("Installation completed!");
                             resolve();
                         });
@@ -561,7 +617,6 @@
 
                     // If we've processed all the files, wrap this up
                     if (!file) {
-                        //console.log("COMMIT");
                         handleFeathers().then(function () {
                             return new Promise(function (resolve) {
                                 pClient.query("COMMIT;").then(resolve);
@@ -597,6 +652,7 @@
                         content = data;
 
                         console.log("Installing " + filename);
+                        process.next();
 
                         try {
                             switch (file.type) {
@@ -663,15 +719,32 @@
                 }
 
                 if (pIsSuper) {
+                    // Run from command line, so ignore process stuff
+                    process = {
+                        next: () => true,
+                        complete: () => true
+                    };
                     registerNpmModules(true).then(doInstall);
                     return;
                 }
 
-                f.datasource.request({
-                    method: "GET",
-                    name: "isSuperUser",
-                    client: pClient
-                }).then(registerNpmModules).then(doInstall).catch(reject);
+                async function checkSuper() {
+                    let is = await f.datasource.request({
+                        method: "GET",
+                        name: "isSuperUser",
+                        client: pClient
+                    });
+                    return is;
+                }
+                initProcess().then(
+                    checkSuper
+                ).then(
+                    registerNpmModules
+                ).then(
+                    doInstall
+                ).catch(
+                    reject
+                );
             });
         };
 
