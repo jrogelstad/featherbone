@@ -53,7 +53,7 @@
                 property: "isBase",
                 value: true
             }], limit: 1}
-        });
+        }, true);
         if (!curr.length) {
             throw "No base currency found";
         }
@@ -556,7 +556,7 @@
                             name: feather,
                             id: item.id,
                             data: item
-                        }, true);
+                        });
                     } catch (e) {
                         error(e, feather, item);
                     }
@@ -593,8 +593,8 @@
                             await process.next();
                         }
                         await commit(pClient);
-                        await writeLog();
                         await process.complete();
+                        await writeLog();
                     } catch (e) {
                         await rollback();
                         fs.unlink(filename, reject.bind(null, e));
@@ -622,7 +622,7 @@
             pClient,
             feather,
             filename,
-            subscription
+            pSubscription
         ) {
             let log = [];
             let wb = XLSX.readFile(filename);
@@ -630,12 +630,42 @@
             let localFeathers = {};
             let memoize = {};
             let curr = await getBaseCurr(datasource, pClient);
+            let process;
+            let cnt = 0;
 
             wb.SheetNames.forEach(function (name) {
                 sheets[name] = XLSX.utils.sheet_to_json(
                     wb.Sheets[name]
                 );
+                cnt += sheets[name].length;
             });
+
+            process = datasource.createProcess({
+                client: pClient,
+                count: cnt,
+                name: (
+                    "Importing " +
+                    cnt.toLocaleString() + " " +
+                    feather + " records"
+                ),
+                subscription: pSubscription
+            });
+            await process.start();
+
+            function error(pError, pFeather, pData) {
+                if (typeof pError === "string") {
+                    pError = new Error(pError);
+                    pError.statusCode = 500;
+                }
+                log.push({
+                    feather: pFeather,
+                    error: {
+                        statusCode: pError.statusCode,
+                        message: pError.message
+                    },
+                    data: pData
+                });
+            }
 
             async function buildRow(feather, row) {
                 let ret = {};
@@ -770,36 +800,45 @@
             async function writeLog() {
                 let logname;
 
+                function appendFile() {
+                    return new Promise(function (resolve) {
+                        fs.appendFile(
+                            logname,
+                            JSON.stringify(log, null, 4),
+                            resolve
+                        );
+                    });
+                }
+
                 if (log.length) {
                     logname = (
                         "./files/downloads/" +
                         f.createId() + ".json"
                     );
-                    await fs.appendFile(
-                        logname,
-                        JSON.stringify(log, null, 4)
-                    );
+                    await appendFile();
 
-                    await fs.unlink(filename);
                     return logname;
                 }
-
-                await fs.unlink(filename);
             }
 
-            async function post(payload) {
+            async function post(item) {
                 try {
-                    await datasource.request(payload);
-                } catch (err) {
-                    log.push({
-                        feather: payload.feather,
-                        id: payload.id,
-                        error: {
-                            message: err.message,
-                            statusCode: err.statusCode
-                        }
+                    await datasource.request({
+                        method: "POST",
+                        client: pClient,
+                        name: feather,
+                        id: item.id,
+                        data: item
                     });
+                } catch (e) {
+                    error(e, feather, item);
                 }
+            }
+
+            function unlink() {
+                return new Promise(function (resolve) {
+                    fs.unlink(filename, resolve);
+                });
             }
 
             let row;
@@ -825,22 +864,18 @@
                     theData = await buildRow(feather, row);
 
                     console.log("adding row", row.Id);
-                    await post({
-                        client: pClient,
-                        data: theData,
-                        id: row.Id,
-                        method: "POST",
-                        name: feather,
-                        user: pClient.currentUser()
-                    });
+                    await post(theData);
+                    process.next();
                     n += 1;
                 }
 
                 await commit(pClient);
-                await writeLog();
             } catch (ignore) {
                 await rollback(pClient);
-                await fs.unlink.bind(filename);
+            } finally {
+                await unlink();
+                await process.complete();
+                return await writeLog();
             }
         };
 
