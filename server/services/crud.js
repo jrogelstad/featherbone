@@ -1242,7 +1242,7 @@
                                     value: unique.value
                                 }]
                             }
-                        }).then(afterUniqueCheck).catch(reject);
+                        }, true).then(afterUniqueCheck).catch(reject);
                         return;
                     }
 
