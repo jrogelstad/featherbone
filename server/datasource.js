@@ -931,7 +931,13 @@
         @param {String} username
         @return {Promise}
     */
-    that.import = function (feather, format, filename, username) {
+    that.import = function (
+        feather,
+        format,
+        filename,
+        username,
+        subscription
+    ) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doImport(resp) {
@@ -948,7 +954,8 @@
                         that,
                         resp.client,
                         feather,
-                        filename
+                        filename,
+                        subscription
                     ).then(
                         callback
                     ).catch(

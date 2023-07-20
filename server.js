@@ -820,6 +820,7 @@
         let format = req.params.format;
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
+        let query = qs.parse(req.params.query);
         const DIR = "./files/import/";
         const TEMPFILE = DIR + id + "." + format;
 
@@ -842,7 +843,8 @@
                 feather,
                 format,
                 TEMPFILE,
-                req.user.name
+                req.user.name,
+                query.subscription
             ).then(
                 respond.bind(res)
             ).catch(
@@ -1586,7 +1588,7 @@
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/stop-process", doStopProcess);
         app.post("/do/export/:format/:feather", doExport);
-        app.post("/do/import/:format/:feather", doImport);
+        app.post("/do/import/:format/:feather/:query", doImport);
         app.post("/do/upload", doUpload);
         app.post("/do/print-pdf/form/", doPrintPdfForm);
         app.post("/do/send-mail", doSendMail);

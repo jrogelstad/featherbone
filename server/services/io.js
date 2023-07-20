@@ -503,17 +503,23 @@
             pClient,
             feather,
             filename,
-            subscription
+            pSubscription
         ) {
             return new Promise(function (resolve, reject) {
-                let requests = [];
                 let log = [];
 
-                function error(err) {
+                function error(pError, pFeather, pData) {
+                    if (typeof pError === "string") {
+                        pError = new Error(pError);
+                        pError.statusCode = 500;
+                    }
                     log.push({
-                        feather: this.name,
-                        id: this.id,
-                        error: err
+                        feather: pFeather,
+                        error: {
+                            statusCode: pError.statusCode,
+                            message: pError.message
+                        },
+                        data: pData
                     });
                 }
 
@@ -542,43 +548,58 @@
                     fs.unlink(filename, resolve);
                 }
 
-                function callback(err, data) {
+                async function post(item) {
+                    try {
+                        await datasource.request({
+                            method: "POST",
+                            client: pClient,
+                            name: feather,
+                            id: item.id,
+                            data: item
+                        }, true);
+                    } catch (e) {
+                        error(e, feather, item);
+                    }
+                }
+
+                async function callback(err, data) {
                     if (err) {
                         console.error(err);
                         fs.unlink(filename, reject.bind(null, err));
                         return;
                     }
+                    let process;
+                    let item;
+                    let i = 0;
 
                     try {
                         data = JSON.parse(data);
-
-                        data.forEach(function (item) {
-                            let payload = {
-                                method: "POST",
-                                client: pClient,
-                                name: feather,
-                                id: item.id,
-                                data: item
-                            };
-
-                            requests.push(
-                                datasource.request(payload).catch(
-                                    error.bind(payload)
-                                )
-                            );
+                        process = datasource.createProcess({
+                            client: pClient,
+                            count: data.length,
+                            name: (
+                                "Importing " +
+                                data.length.toLocaleString() + " " +
+                                feather + " records"
+                            ),
+                            subscription: pSubscription
                         });
+                        await process.start();
+
+                        while (i < data.length) {
+                            item = data[i];
+                            i += 1;
+                            post(item);
+                            await process.next();
+                        }
+                        await commit(pClient);
+                        await writeLog();
+                        await process.complete();
                     } catch (e) {
+                        await rollback();
                         fs.unlink(filename, reject.bind(null, e));
                         return;
                     }
-
-                    Promise.all(requests).then(
-                        commit.bind(null, pClient)
-                    ).then(writeLog).catch(function (err) {
-                        rollback().then(function () {
-                            fs.unlink(filename, reject.bind(null, err));
-                        });
-                    });
                 }
 
                 fs.readFile(filename, "utf8", callback);
