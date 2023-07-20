@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, for, browser, unordered*/
-/*global f, m*/
+/*global f, m, Qs*/
 /**
     @module TableWidget
 */
@@ -35,7 +35,6 @@ const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
 const contextMenuStyle = f.prop({display: "none"});
-const Qs = window.Qs;
 
 document.onclick = function () {
     contextMenuStyle({display: "none"});
@@ -1015,10 +1014,11 @@ tableWidget.viewModel = function (options) {
             if (resp) {
                 dlg.message(
                     "One or more errors were encountered during import. " +
-                    "Would you like to download the log?"
+                    "Click Ok to download the error log."
                 );
                 dlg.title("Error");
                 dlg.icon("error");
+                dlg.buttonCancel().hide();
                 dlg.onOk(doDownload.bind(null, target, resp));
                 dlg.show();
             }
