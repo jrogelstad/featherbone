@@ -589,7 +589,7 @@
                         while (i < data.length) {
                             item = data[i];
                             i += 1;
-                            post(item);
+                            await post(item);
                             await process.next();
                         }
                         await commit(pClient);
