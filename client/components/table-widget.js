@@ -35,6 +35,7 @@ const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
 const contextMenuStyle = f.prop({display: "none"});
+const Qs = window.Qs;
 
 document.onclick = function () {
     contextMenuStyle({display: "none"});
@@ -1044,6 +1045,12 @@ tableWidget.viewModel = function (options) {
             let name = file.name.slice(0, file.name.indexOf("."));
             let feathers = f.catalog().feathers();
             let payload;
+            let query = Qs.stringify({
+                subscription: {
+                    id: f.createId(),
+                    eventKey: f.catalog().eventKey()
+                }
+            });
 
             if (name.indexOf(" ") !== -1) {
                 name = name.slice(0, name.indexOf(" "));
@@ -1068,7 +1075,7 @@ tableWidget.viewModel = function (options) {
             formData.append("import", file);
             payload = {
                 method: "POST",
-                path: "/do/import/" + format + "/" + name,
+                path: "/do/import/" + format + "/" + name + "/" + query,
                 body: formData
             };
 
