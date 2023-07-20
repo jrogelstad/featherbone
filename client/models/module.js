@@ -16,8 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser unordered*/
-/*global f*/
-const Qs = window.Qs;
+/*global f, Qs*/
 
 function module(data, feather) {
     feather = feather || f.catalog().getFeather("Module");
