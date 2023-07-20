@@ -756,8 +756,8 @@
                 DIR,
                 req.user.name,
                 query.subscription
-            ).then(cleanup).catch(function () {
-                error(res);
+            ).then(cleanup).catch(function (err) {
+                error.bind(res)(err);
                 cleanup();
             });
         });
