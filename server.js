@@ -729,7 +729,11 @@
 
         function cleanup() {
             rimraf(DIR); // Remove temp dir
-            fs.unlink(TEMPFILE, () => res.json(true)); // Remove zip
+            fs.unlink(TEMPFILE, function () { // Remove zip
+                if (!res.headersSent) {
+                    res.json(true);
+                }
+            });
         }
 
         fs[mkdirsync](DIR); // Create temp dir
@@ -756,10 +760,12 @@
                 DIR,
                 req.user.name,
                 query.subscription
-            ).then(cleanup).catch(function (err) {
-                error.bind(res)(err);
-                cleanup();
-            });
+            ).catch(function (err) {
+                return new Promise(function (resolve) {
+                    error.bind(res)(err);
+                    resolve();
+                });
+            }).finally(cleanup);
         });
     }
 
