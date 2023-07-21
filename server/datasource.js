@@ -223,44 +223,34 @@
             }
         };
         p.next = async function () {
+            let resp;
+            let sql1 = (
+                "UPDATE server_process SET " +
+                "  percent_complete = $1 " +
+                "WHERE id = $2;"
+            );
             pct = Math.floor(last.plus(incr));
 
             if (pct > last) {
                 pct = Math.min(pct, maxPct);
-                await datasource.request({
-                    method: "PATCH",
-                    name: "ServerProcess",
-                    user: pUser, // Outside trans
-                    id: pId,
-                    data: [{
-                        op: "replace",
-                        path: "/percentComplete",
-                        value: pct
-                    }]
-                }, true);
+                resp = await db.connect();
+                await resp.client.query(sql1, [pct, pId]);
+                resp.done();
             }
             last = last.plus(incr);
         };
         p.complete = async function () {
-            await datasource.request({
-                method: "PATCH",
-                name: "ServerProcess",
-                user: pUser,
-                id: pId,
-                data: [{
-                    op: "replace",
-                    path: "/percentComplete",
-                    value: 100
-                }, {
-                    op: "replace",
-                    path: "/status",
-                    value: "C"
-                }, {
-                    op: "replace",
-                    path: "/completed",
-                    value: f.now()
-                }]
-            }, true);
+            let resp = await db.connect();
+            let sql1 = (
+                "UPDATE server_process SET " +
+                "  percent_complete = 100, " +
+                "  status = 'C', " +
+                "  completed = CURRENT_DATE, " +
+                "  updated = NOW() " +
+                "WHERE id = $1;"
+            );
+            await resp.client.query(sql1, [pId]);
+            resp.done();
 
             if (subscr) {
                 await datasource.request({
@@ -273,7 +263,7 @@
         };
         p.reset = function (count) {
             cnt = count || 100;
-            incr = Math.round(maxPct.div(cnt));
+            incr = maxPct.div(cnt);
             pct = incr;
             last = 0;
         };
