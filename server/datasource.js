@@ -2367,6 +2367,30 @@
             }
         });
     };
+
+    /**
+        Load all tenant data into memory.
+
+        Applies when multiTenantEnabled = true in config file.
+
+        @method loadTenants
+        @return {Promise}
+    */
+    that.loadTenants = async function () {
+        let conf = await config.read();
+        let conn = await db.connect();
+        let pClient = db.getClient(conn.client);
+        let tenants = await that.request({
+            client: pClient,
+            method: "GET",
+            name: "Tenant",
+            properties: ["company","pgHost", "pgDatabase"],
+            user: conf.pgUser
+        }, true);
+        conn.done();
+        return tenants;
+    };
+
     /**
         Return a registered function. If trigger argument is passed
         an array of functions is returned;

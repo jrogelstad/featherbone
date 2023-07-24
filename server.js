@@ -119,6 +119,8 @@
     let thesecret;
     let systemUser;
     let logger;
+    let tenants = false;
+
     // Work around linter dogma
     let existssync = "existsSync";
     let lstatsync = "lstatSync";
@@ -262,6 +264,9 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+            if (Boolean(resp.multiTenantEnabled)) {
+                tenants = await datasource.loadTenants();
+            }
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
