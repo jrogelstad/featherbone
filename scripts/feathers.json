@@ -1358,5 +1358,55 @@
                 "type": "integer"
             }
         }
+    },
+    {
+        "name": "Tenant",
+        "plural": "Tenants",
+        "module": "Core",
+        "description": "Map of companies to their database",
+        "properties": {
+            "company": {
+                "description": "Full name of company",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "contact": {
+                "description": "Primary contact",
+                "type": {
+                    "relation": "Contact",
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "address",
+                        "phone"
+                    ]
+                },
+                "isRequired": true
+            },
+            "isActive": {
+                "type": "boolean",
+                "description": "Whether tennant is active",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "pgHost": {
+                "description": "Postgres host url",
+                "type": "string",
+                "alias": "Host",
+                "isRequired": true
+            },
+            "pgDatabase": {
+                "description": "Postgres database name",
+                "type": "string",
+                "alias": "Database",
+                "isRequired": true
+            },
+            "nodeServer": {
+                "description": "Node Application server url",
+                "type": "string"
+            }
+        }
     }
 ]
