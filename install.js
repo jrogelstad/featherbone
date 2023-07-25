@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -92,79 +92,72 @@
     }
 
     // Connect to postgres so we can inquire on db status
-    function start(confresp) {
+    async function start(confresp) {
         conf = confresp;
 
-        return new Promise(function (resolve, reject) {
-            let conn;
-            let sql;
+        let conn = (
+            "postgres://" +
+            (superuser || conf.pgUser) + ":" +
+            (superpwd || conf.pgPassword) + "@" +
+            conf.pgHost + ":" +
+            conf.pgPort + "/"
+        );
+        let sql;
 
-            // Deal with database inquiry
-            function handleDb(resp) {
-                let msg;
+        client = new Client({connectionString: conn + "postgres"});
+        await client.connect();
+        sql = (
+            "SELECT datname FROM pg_database " +
+            "WHERE datistemplate = false AND datname = $1"
+        );
 
-                // If database exists, initialize datasource
-                if (resp.rows.length === 1) {
-                    client.end().then(function () {
-                        // Check if this database has been initialized
-                        client = new Client({
-                            connectionString: conn + conf.pgDatabase
-                        });
-                        client.connect().then(function () {
-                            sql = (
-                                "SELECT * FROM pg_tables " +
-                                "WHERE tablename = '$settings';"
-                            );
-                            client.query(sql).then(function (resp) {
-                                if (resp.rows.length) {
-                                    datasource.getCatalog().then(resolve);
-                                    return;
-                                }
-                                resolve();
-                            }).catch(reject);
-                        });
-                    });
+        let resp = await client.query(
+            sql,
+            [conf.pgDatabase]
+        );
 
-                // Otherwise create database first
-                } else {
-                    msg = "Creating database \"";
-                    msg += conf.pgDatabase + "\"";
-                    console.log(msg);
+        // Deal with database inquiry
+        let msg;
 
-                    sql = "CREATE DATABASE %I;";
-                    sql = format(
-                        sql,
-                        conf.pgDatabase,
-                        conf.pgUser
-                    );
-
-                    client.query(sql).then(resolve);
-                }
+        // If database exists, initialize datasource
+        if (resp.rows.length === 1) {
+            await client.end();
+            // Check if this database has been initialized
+            client = new Client({
+                connectionString: conn + conf.pgDatabase
+            });
+            await client.connect();
+            sql = (
+                "SELECT * FROM pg_tables " +
+                "WHERE tablename = '$settings';"
+            );
+            resp = await client.query(sql);
+            if (resp.rows.length) {
+                await datasource.getCatalog();
             }
 
-            function callback() {
-                sql = (
-                    "SELECT datname FROM pg_database " +
-                    "WHERE datistemplate = false AND datname = $1"
-                );
+        // Otherwise create database first
+        } else {
+            msg = "Creating database \"";
+            msg += conf.pgDatabase + "\"";
+            console.log(msg);
 
-                client.query(
-                    sql,
-                    [conf.pgDatabase]
-                ).then(handleDb).catch(reject);
-            }
-
-            conn = (
-                "postgres://" +
-                (superuser || conf.pgUser) + ":" +
-                (superpwd || conf.pgPassword) + "@" +
-                conf.pgHost + ":" +
-                conf.pgPort + "/"
+            sql = "CREATE DATABASE %I;";
+            sql = format(
+                sql,
+                conf.pgDatabase,
+                conf.pgUser
             );
 
-            client = new Client({connectionString: conn + "postgres"});
-            client.connect().then(callback).catch(reject);
-        });
+            await client.query(sql);
+            await client.end();
+            client = new Client({
+                connectionString: conn + conf.pgDatabase
+            });
+            await client.connect();
+            sql = "CREATE EXTENSION IF NOT EXISTS pgcrypto;";
+            await client.query(sql);
+        }
     }
 
     function handleUser() {
