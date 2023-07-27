@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -202,7 +202,12 @@ accountMenu.viewModel = function () {
         onOk: function () {
             m.request({
                 method: "POST",
-                url: "do/change-password",
+                url: (
+                    location.pathname.slice(
+                        0,
+                        location.pathname.length - 1
+                    ) + "do/change-password"
+                ),
                 body: {
                     oldPassword: oldPwd(),
                     newPassword: newPwd()
@@ -230,7 +235,12 @@ accountMenu.viewModel = function () {
         onOk: function () {
             m.request({
                 method: "POST",
-                url: "do/change-user-info",
+                url: (
+                    location.pathname.slice(
+                        0,
+                        location.pathname.length - 1
+                    ) + "do/change-user-info"
+                ),
                 body: {
                     firstName: firstName(),
                     lastName: lastName(),
