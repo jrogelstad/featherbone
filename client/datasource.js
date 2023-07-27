@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -33,7 +33,16 @@ const datasource = {
     */
     baseUrl: function () {
         let l = window.location;
-        return location.protocol + "//" + l.hostname + ":" + l.port;
+        let port = (
+            l.port
+            ? ":" + l.port
+            : ""
+        );
+        return (
+            location.protocol + "//" +
+            l.hostname + port +
+            l.pathname.slice(0, l.pathname.length - 1)
+        );
     },
 
     /**

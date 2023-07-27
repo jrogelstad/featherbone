@@ -44,6 +44,7 @@
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
     const {webauthn} = require("./server/services/webauthn");
+    const dbRouter = new express.Router();
 
     const check = [
         "data",
@@ -264,9 +265,8 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
-            if (Boolean(resp.multiTenantEnabled)) {
-                tenants = await datasource.loadTenants();
-            }
+            tenants = await datasource.loadTenants();
+            console.log(tenants);
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -281,6 +281,9 @@
     }
 
     function resolveName(apiPath) {
+        apiPath = apiPath.slice(1);
+        apiPath = apiPath.slice(apiPath.indexOf("/"));
+        // Also remove database
         apiPath = apiPath.slice(1);
         apiPath = apiPath.slice(apiPath.indexOf("/"));
 
@@ -548,19 +551,22 @@
         let name = key.toSpinalCase();
         let catalog = settings.data.catalog.data;
 
-        if (catalog[key].isReadOnly) {
-            app.get("/data/" + name + "/:id", doRequest);
-        } else {
-            app.post("/data/" + name, doRequest);
-            app.get("/data/" + name + "/:id", doRequest);
-            app.patch("/data/" + name + "/:id", doRequest);
-            app.delete("/data/" + name + "/:id", doRequest);
-        }
+        tenants.forEach(function (tenant) {
+            let db = "/" + tenant.pgDatabase;
+            if (catalog[key].isReadOnly) {
+                app.get(db + "/data/" + name + "/:id", doRequest);
+            } else {
+                app.post(db + "/data/" + name, doRequest);
+                app.get(db + "/data/" + name + "/:id", doRequest);
+                app.patch(db + "/data/" + name + "/:id", doRequest);
+                app.delete(db + "/data/" + name + "/:id", doRequest);
+            }
 
-        if (catalog[key].plural) {
-            name = catalog[key].plural.toSpinalCase();
-            app.post("/data/" + name, doQueryRequest);
-        }
+            if (catalog[key].plural) {
+                name = catalog[key].plural.toSpinalCase();
+                app.post(db + "/data/" + name, doQueryRequest);
+            }
+        });
     }
 
     function registerDataRoutes() {
@@ -1466,13 +1472,48 @@
             "/node_modules/typeface-raleway/index.css",
             "/node_modules/gantt/dist/gantt.min.js"
         ];
+        let prefixes = [
+            "",
+            "client",
+            "common",
+            "css",
+            "files",
+            "fonts",
+            "node_modules"
+        ];
 
+        // Resolve database
+        dbRouter.param("db", function (req, ignore, next, id) {
+            if (prefixes.indexOf(id) !== -1) {
+                console.log("DIR->", id);
+                next();
+                return;
+            }
+            req.database = id;
+            console.log("DB->", id);
+            next();
+        });
+        dbRouter.get("/:db", function (req, res, next) {
+            let creds = tenants.find((t) => req.database === t.pgDatabase);
+            if (creds) {
+                next();
+                return;
+            }
+            res.sendStatus(404);
+            console.error(
+                "Database " +
+                req.database +
+                " is not a registered tenant"
+            );
+        });
+
+        // static pages
         // configure app to use bodyParser()
         // this will let us get the data from a POST
-        app.use(bodyParser.urlencoded({
+        dbRouter.use(bodyParser.urlencoded({
             extended: true
         }));
-        app.use(bodyParser.json({limit: "5mb"}));
+        dbRouter.use(bodyParser.json({limit: "5mb"}));
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
@@ -1509,8 +1550,8 @@
         });
 
         // Initialize passport
-        app.use(express.static("public"));
-        app.use(session({
+        dbRouter.use(express.static("public"));
+        dbRouter.use(session({
             store: new PgSession({
                 pool: pgPool,
                 tableName: "$session"
@@ -1525,17 +1566,23 @@
             },
             genid: () => f.createId()
         }));
-        app.use(bodyParser.urlencoded({extended: false}));
-        app.use(passport.initialize());
-        app.use(passport.session());
+        dbRouter.use(bodyParser.urlencoded({extended: false}));
+        dbRouter.use(passport.initialize());
+        dbRouter.use(passport.session());
 
-        app.post("/sign-in", doSignIn);
-        app.post("/sign-out", doSignOut);
+        tenants.forEach(function (tenant) {
+            let db = "/" + tenant.pgDatabase;
+            app.post(db + "/sign-in", doSignIn);
+            app.post(db + "/sign-out", doSignOut);
+        });
 
         // Block unauthorized requests to internal data
-        app.use(function (req, res, next) {
+        dbRouter.use(function (req, res, next) {
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
+            if (req.database) { // remove database
+                target = target.slice(req.database.length);
+            }
             target = target.slice(0, target.indexOf("/"));
             if (!req.user && check.indexOf(target) !== -1) {
                 res.status(401).json("Unauthorized session");
@@ -1560,17 +1607,18 @@
         // static pages
         app.get("/files/downloads/:sourcename", doGetDownload);
         app.get("/files/downloads/:sourcename/:targetname", doGetDownload);
-        app.get("/", doGetIndexFile);
+        dbRouter.get("/:db/", doGetIndexFile);
+        app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
         files.forEach((filename) => app.get(filename, doGetFile));
 
         // File upload
-        app.use(expressFileUpload());
+        dbRouter.use(expressFileUpload());
 
         // Uploaded files
         if (fileUpload) {
-            app.get("/files/upload/:filename", doRequestFile);
-            app.post("/files/upload/:filename", doProcessFile);
+            dbRouter.get("/files/upload/:filename", doRequestFile);
+            dbRouter.post("/files/upload/:filename", doProcessFile);
         }
 
         // Create routes for each catalog object
@@ -1578,49 +1626,59 @@
 
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
-        app.get("/webauthn/reg", webauthn.doWebAuthNRegister);
-        app.post("/webauthn/reg", webauthn.postWebAuthNRegister);
-        app.get("/webauthn/auth", webauthn.doWebAuthNAuthenticate);
-        app.post("/webauthn/auth", webauthn.postWebAuthNAuthenticate);
-        app.post("/connect", doConnect);
-        app.post("/data/user-accounts", doQueryRequest);
-        app.post("/data/user-account", doPostUserAccount);
-        app.get("/data/user-account/:id", doRequest);
-        app.get("/pdf/:file", doOpenPdf);
-        app.patch("/data/user-account/:id", doPatchUserAccount);
-        app.delete("/data/user-account/:id", doRequest);
-        app.get("/currency/base", doGetBaseCurrency);
-        app.get("/currency/convert", doConvertCurrency);
-        app.get("/do/is-authorized", doIsAuthorized);
-        app.post("/do/aggregate/", doAggregate);
-        app.post("/data/object-authorizations", doGetObjectAuthorizations);
-        app.post("/do/change-password/", doChangePassword);
-        app.post("/do/change-user-info/", doChangeUserInfo);
-        app.post("/do/save-authorization", doSaveAuthorization);
-        app.post("/do/stop-process", doStopProcess);
-        app.post("/do/export/:format/:feather", doExport);
-        app.post("/do/import/:format/:feather/:query", doImport);
-        app.post("/do/upload", doUpload);
-        app.post("/do/print-pdf/form/", doPrintPdfForm);
-        app.post("/do/send-mail", doSendMail);
-        app.post("/do/subscribe/:query", doSubscribe);
-        app.post("/do/unsubscribe/:query", doUnsubscribe);
-        app.post("/do/lock", doLock);
-        app.post("/do/unlock", doUnlock);
-        app.get("/feather/:name", doGetFeather);
-        app.post("/module/package/:name", doPackageModule);
-        app.post("/module/install/:query", doInstall);
-        app.get("/profile", doGetProfile);
-        app.put("/profile", doPutProfile);
-        app.patch("/profile", doPatchProfile);
-        app.get("/settings/:name", doGetSettingsRow);
-        app.put("/settings/:name", doSaveSettings);
-        app.get("/settings-definition", doGetSettingsDefinition);
-        app.get("/workbooks", doGetWorkbooks);
-        app.get("/workbook/is-authorized/:name", doWorkbookIsAuthorized);
-        app.get("/workbook/:name", doGetWorkbook);
-        app.put("/workbook/:name", doSaveWorkbook);
-        app.delete("/workbook/:name", doDeleteWorkbook);
+        tenants.forEach(function (tenant) {
+            let db = "/" + tenant.pgDatabase;
+            app.get(db + "/webauthn/reg", webauthn.doWebAuthNRegister);
+            app.post(db + "/webauthn/reg", webauthn.postWebAuthNRegister);
+            app.get(db + "/webauthn/auth", webauthn.doWebAuthNAuthenticate);
+            app.post(db + "/webauthn/auth", webauthn.postWebAuthNAuthenticate);
+            app.post(db + "/connect", doConnect);
+            app.post(db + "/data/user-accounts", doQueryRequest);
+            app.post(db + "/data/user-account", doPostUserAccount);
+            app.get(db + "/data/user-account/:id", doRequest);
+            app.get(db + "/pdf/:file", doOpenPdf);
+            app.patch(db + "/data/user-account/:id", doPatchUserAccount);
+            app.delete(db + "/data/user-account/:id", doRequest);
+            app.get(db + "/currency/base", doGetBaseCurrency);
+            app.get(db + "/currency/convert", doConvertCurrency);
+            app.get(db + "/do/is-authorized", doIsAuthorized);
+            app.post(db + "/do/aggregate/", doAggregate);
+            app.post(
+                db + "/data/object-authorizations",
+                doGetObjectAuthorizations
+            );
+            app.post(db + "/do/change-password/", doChangePassword);
+            app.post(db + "/do/change-user-info/", doChangeUserInfo);
+            app.post(db + "/do/save-authorization", doSaveAuthorization);
+            app.post(db + "/do/stop-process", doStopProcess);
+            app.post(db + "/do/export/:format/:feather", doExport);
+            app.post(db + "/do/import/:format/:feather/:query", doImport);
+            app.post(db + "/do/upload", doUpload);
+            app.post(db + "/do/print-pdf/form/", doPrintPdfForm);
+            app.post(db + "/do/send-mail", doSendMail);
+            app.post(db + "/do/subscribe/:query", doSubscribe);
+            app.post(db + "/do/unsubscribe/:query", doUnsubscribe);
+            app.post(db + "/do/lock", doLock);
+            app.post(db + "/do/unlock", doUnlock);
+            app.get(db + "/feather/:name", doGetFeather);
+            app.post(db + "/module/package/:name", doPackageModule);
+            app.post(db + "/module/install/:query", doInstall);
+            app.get(db + "/profile", doGetProfile);
+            app.put(db + "/profile", doPutProfile);
+            app.patch(db + "/profile", doPatchProfile);
+            app.get(db + "/settings/:name", doGetSettingsRow);
+            app.put(db + "/settings/:name", doSaveSettings);
+            app.get(db + "/settings-definition", doGetSettingsDefinition);
+            app.get(db + "/workbooks", doGetWorkbooks);
+            app.get(
+                db + "/workbook/is-authorized/:name",
+                doWorkbookIsAuthorized
+            );
+            app.get(db + "/workbook/:name", doGetWorkbook);
+            app.put(db + "/workbook/:name", doSaveWorkbook);
+            app.delete(db + "/workbook/:name", doDeleteWorkbook);
+        });
+
         let pending = [];
         let isFetching = false;
 
