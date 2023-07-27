@@ -1213,7 +1213,13 @@ tableWidget.viewModel = function (options) {
                 }];
             }
 
-            theUrl = "/do/export/" + format() + "/" + plural;
+            theUrl = (
+                location.pathname.slice(
+                    0,
+                    location.pathname.length - 1
+                ) + "/do/export/" +
+                format() + "/" + plural
+            );
             payload = {
                 method: "POST",
                 url: theUrl,
@@ -1387,7 +1393,12 @@ tableWidget.viewModel = function (options) {
         delete theBody.filter.sort;
         delete theBody.filter.offset;
 
-        theUrl = "/do/aggregate";
+        theUrl = (
+            location.pathname.slice(
+                0,
+                location.pathname.length - 1
+            ) + "/do/aggregate"
+        );
         payload = {
             method: "POST",
             url: theUrl,

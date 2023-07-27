@@ -44,7 +44,12 @@ function find(sLabel) {
 
     let payload = {
         method: "POST",
-        url: "/data/resource-links",
+        url: (
+            location.pathname.slice(
+                0,
+                location.pathname.length - 1
+            ) + "/data/resource-links"
+        ),
         body: {
             filter: {
                 properties: ["id"],
@@ -66,7 +71,12 @@ function createLink(id, sLabel, sUrl) {
     let nowIso = new Date().toISOString();
     let payload = {
         method: "POST",
-        url: "/data/resource-link",
+        url: (
+            location.pathname.slice(
+                0,
+                location.pathname.length - 1
+            ) + "/data/resource-link"
+        ),
         body: {
             "id": id,
             "created": nowIso,
@@ -103,7 +113,12 @@ function linkFiles(vm, files) {
             formData.append("dataFile", file);
             let payload = {
                 method: "POST",
-                url: "/do/upload",
+                url: (
+                    location.pathname.slice(
+                        0,
+                        location.pathname.length - 1
+                    ) + "/do/upload"
+                ),
                 body: formData
             };
             m.request(payload).then(function (v) {
