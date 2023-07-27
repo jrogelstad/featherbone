@@ -26,6 +26,7 @@ import State from "../state.js";
 const Qs = window.Qs;
 const m = window.m;
 const console = window.console;
+const l = location;
 
 const LIMIT = 20;
 
@@ -178,7 +179,10 @@ function createList(feather) {
                     merge: true
                 }
             });
-            theUrl = "/do/subscribe/" + query;
+            theUrl = (
+                l.pathname.slice(0, l.pathname.length - 1) +
+                "/do/subscribe/" + query
+            );
             payload = {
                 method: "POST",
                 url: theUrl
@@ -710,7 +714,10 @@ function createList(feather) {
             };
         }
 
-        theUrl = ary.path();
+        theUrl = (
+            l.pathname.slice(0, l.pathname.length - 1) +
+            ary.path()
+        );
         payload = {
             method: "POST",
             url: theUrl,

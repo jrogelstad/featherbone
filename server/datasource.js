@@ -66,6 +66,7 @@
     const workbooks = new Workbooks();
     const pdf = new PDF();
     const mail = new Mail();
+    const tenants = [];
 
     /**
         Server datasource class.
@@ -2380,14 +2381,44 @@
         let conf = await config.read();
         let conn = await db.connect();
         let pClient = db.getClient(conn.client);
-        let tenants = await that.request({
+        let tservices = await that.request({
+            client: pClient,
+            method: "GET",
+            name: "TenantService",
+            properties: [
+                "id",
+                "pgHost",
+                "pgPort",
+                "pgUser",
+                "pgPassword"
+            ],
+            user: conf.pgUser
+        }, true);
+        let pTenants = await that.request({
             client: pClient,
             method: "GET",
             name: "Tenant",
-            properties: ["company","pgHost", "pgDatabase"],
+            properties: ["company", "pgService", "pgDatabase"],
             user: conf.pgUser
         }, true);
         conn.done();
+        tenants.length = 0; // Clear previous global values
+        pTenants.forEach(function (tenant) {
+            let svc = tservices.find((s) => s.id === tenant.pgService.id);
+            tenant.pgService = svc;
+            tenants.push(tenant);
+        });
+        tenants.unshift({
+            company: "System default",
+            pgService: {
+                name: "Default service",
+                pgHost: conf.pgHost,
+                pgPort: conf.pgPort,
+                pgUser: conf.pgUser,
+                pgPassword: conf.pgPassword
+            },
+            pgDatabase: conf.pgDatabase
+        });
         return tenants;
     };
 
