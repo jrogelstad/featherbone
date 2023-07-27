@@ -550,24 +550,6 @@ workbookPage.viewModel = function (options) {
         let url;
         let win;
 
-        /* Keep it simple
-        if (vm.sheet().openInNewWindow) {
-            url = (
-                window.location.protocol + "//" +
-                window.location.hostname + ":" +
-                window.location.port + "#!/edit/" + type + "/" +
-                selection.id()
-            );
-
-            win = window.open(url);
-            win.options = {
-                form: form.id,
-                isNewWindow: true
-            };
-            return;
-        }
-        */
-
         if (selection) {
             m.route.set("/edit/:feather/:key", {
                 feather: type,

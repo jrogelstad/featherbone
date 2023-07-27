@@ -280,9 +280,10 @@
     }
 
     function resolveName(apiPath) {
+        //  Remove database from path
         apiPath = apiPath.slice(1);
         apiPath = apiPath.slice(apiPath.indexOf("/"));
-        // Also remove database
+        // Also remove verb
         apiPath = apiPath.slice(1);
         apiPath = apiPath.slice(apiPath.indexOf("/"));
 
@@ -1494,7 +1495,6 @@
                 return;
             }
             req.database = id;
-            console.log("DB->", id);
             next();
         });
         dbRouter.get("/:db", function (req, res, next) {
@@ -1514,10 +1514,10 @@
         // static pages
         // configure app to use bodyParser()
         // this will let us get the data from a POST
-        dbRouter.use(bodyParser.urlencoded({
+        app.use(bodyParser.urlencoded({
             extended: true
         }));
-        dbRouter.use(bodyParser.json({limit: "5mb"}));
+        app.use(bodyParser.json({limit: "5mb"}));
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
@@ -1554,8 +1554,8 @@
         });
 
         // Initialize passport
-        dbRouter.use(express.static("public"));
-        dbRouter.use(session({
+        app.use(express.static("public"));
+        app.use(session({
             store: new PgSession({
                 pool: pgPool,
                 tableName: "$session"
@@ -1570,9 +1570,9 @@
             },
             genid: () => f.createId()
         }));
-        dbRouter.use(bodyParser.urlencoded({extended: false}));
-        dbRouter.use(passport.initialize());
-        dbRouter.use(passport.session());
+        app.use(bodyParser.urlencoded({extended: false}));
+        app.use(passport.initialize());
+        app.use(passport.session());
 
         tenants.forEach(function (tenant) {
             let db = "/" + tenant.pgDatabase;
@@ -1581,7 +1581,7 @@
         });
 
         // Block unauthorized requests to internal data
-        dbRouter.use(function (req, res, next) {
+        app.use(function (req, res, next) {
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
             if (req.database) { // remove database
@@ -1617,12 +1617,12 @@
         files.forEach((filename) => app.get(filename, doGetFile));
 
         // File upload
-        dbRouter.use(expressFileUpload());
+        app.use(expressFileUpload());
 
         // Uploaded files
         if (fileUpload) {
-            dbRouter.get("/files/upload/:filename", doRequestFile);
-            dbRouter.post("/files/upload/:filename", doProcessFile);
+            app.get("/files/upload/:filename", doRequestFile);
+            app.post("/files/upload/:filename", doProcessFile);
         }
 
         // Create routes for each catalog object

@@ -355,7 +355,9 @@ function createTableDataView(options, col) {
                     url = (
                         window.location.protocol + "//" +
                         window.location.hostname + ":" +
-                        window.location.port + "#!/edit/" +
+                        window.location.port +
+                        window.location.pathname +
+                        "#!/edit/" +
                         type +
                         "/" + theProp().id()
                     );
