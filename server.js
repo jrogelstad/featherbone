@@ -266,7 +266,6 @@
             await datasource.loadNpmModules();
             await datasource.loadServices();
             tenants = await datasource.loadTenants();
-            console.log(tenants);
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -337,11 +336,16 @@
     }
 
     function registerRoute(route) {
-        let fullPath = "/" + route.module.toSpinalCase() + route.path;
-        let doPostRequest = postify.bind(route.function);
+        tenants.forEach(function (tenant) {
+            let fullPath = (
+                "/" + tenant.pgDatabase +
+                "/" + route.module.toSpinalCase() + route.path
+            );
+            let doPostRequest = postify.bind(route.function);
 
-        logger.info("Registering module route: " + fullPath);
-        app.post(fullPath, doPostRequest);
+            logger.info("Registering module route: " + fullPath);
+            app.post(fullPath, doPostRequest);
+        });
     }
 
     function doRequest(req, res) {
