@@ -1453,13 +1453,14 @@
             "/node_modules/tinymce/skins/content/document",
             "/node_modules/tinymce/skins/content/writer",
             "/node_modules/tinymce/themes/silver",
-            "/node_modules/tinymce/themes/mobile"
+            "/node_modules/tinymce/themes/mobile",
+            "/media"
         ];
 
         let files = [
             "/api.json",
             "/index.html",
-            "/featherbone.png",
+            "/media/featherbone.png",
             "/css/featherbone.css",
             "/css/print.css",
             "/node_modules/big.js/big.mjs",
@@ -1484,7 +1485,8 @@
             "css",
             "files",
             "fonts",
-            "node_modules"
+            "node_modules",
+            "media"
         ];
 
         // Resolve database
@@ -1495,6 +1497,7 @@
                 return;
             }
             req.database = id;
+            console.log("DB->", req.database);
             next();
         });
         dbRouter.get("/:db", function (req, res, next) {
