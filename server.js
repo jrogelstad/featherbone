@@ -1424,6 +1424,24 @@
         }, true);
     }
 
+    // Listen for changes to tenants, refresh if changed
+    async function subscribeToTenants() {
+        let sid = f.createId();
+        let eKey = f.createId();
+
+        // Reregister routes if something changes
+        eventSessions[eKey] = async function () {
+            tenants = await datasource.loadTenants();
+        };
+
+        await datasource.request({
+            name: "Tenant",
+            method: "GET",
+            user: systemUser,
+            subscription: {id: sid, eventKey: eKey}
+        }, true);
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -1809,6 +1827,8 @@
     //
 
     init().then(
+        subscribeToTenants
+    ).then(
         subscribeToFeathers
     ).then(
         subscribeToCatalog
