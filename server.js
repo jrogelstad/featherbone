@@ -337,16 +337,14 @@
     }
 
     function registerRoute(route) {
-        tenants.forEach(function (tenant) {
-            let fullPath = (
-                "/" + tenant.pgDatabase +
-                "/" + route.module.toSpinalCase() + route.path
-            );
-            let doPostRequest = postify.bind(route.function);
+        let fullPath = (
+            "/:db/" +
+            route.module.toSpinalCase() + route.path
+        );
+        let doPostRequest = postify.bind(route.function);
 
-            logger.info("Registering module route: " + fullPath);
-            app.post(fullPath, doPostRequest);
-        });
+        logger.info("Registering module route: " + fullPath);
+        dbRouter.post(fullPath, doPostRequest);
     }
 
     function doRequest(req, res) {
@@ -556,22 +554,20 @@
         let name = key.toSpinalCase();
         let catalog = settings.data.catalog.data;
 
-        tenants.forEach(function (tenant) {
-            let db = "/" + tenant.pgDatabase;
-            if (catalog[key].isReadOnly) {
-                app.get(db + "/data/" + name + "/:id", doRequest);
-            } else {
-                app.post(db + "/data/" + name, doRequest);
-                app.get(db + "/data/" + name + "/:id", doRequest);
-                app.patch(db + "/data/" + name + "/:id", doRequest);
-                app.delete(db + "/data/" + name + "/:id", doRequest);
-            }
+        if (catalog[key].isReadOnly) {
+            dbRouter.get("/:db/data/" + name + "/:id", doRequest);
+        } else {
+            dbRouter.post("/:db/data/" + name, doRequest);
+            dbRouter.get("/:db/data/" + name + "/:id", doRequest);
+            dbRouter.patch("/:db/data/" + name + "/:id", doRequest);
+            dbRouter.delete("/:db/data/" + name + "/:id", doRequest);
+        }
 
-            if (catalog[key].plural) {
-                name = catalog[key].plural.toSpinalCase();
-                app.post(db + "/data/" + name, doQueryRequest);
-            }
-        });
+        if (catalog[key].plural) {
+            name = catalog[key].plural.toSpinalCase();
+            dbRouter.post("/:db/data/" + name, doQueryRequest);
+        }
+
     }
 
     function registerDataRoutes() {
@@ -1497,7 +1493,7 @@
                 return;
             }
             req.database = id;
-            console.log("DB->", req.database);
+            //console.log("DB->", req.database);
             next();
         });
         dbRouter.get("/:db", function (req, res, next) {
@@ -1577,11 +1573,8 @@
         app.use(passport.initialize());
         app.use(passport.session());
 
-        tenants.forEach(function (tenant) {
-            let db = "/" + tenant.pgDatabase;
-            app.post(db + "/sign-in", doSignIn);
-            app.post(db + "/sign-out", doSignOut);
-        });
+        dbRouter.post("/:db/sign-in", doSignIn);
+        dbRouter.post("/:db/sign-out", doSignOut);
 
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
@@ -1633,58 +1626,55 @@
 
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
-        tenants.forEach(function (tenant) {
-            let db = "/" + tenant.pgDatabase;
-            app.get(db + "/webauthn/reg", webauthn.doWebAuthNRegister);
-            app.post(db + "/webauthn/reg", webauthn.postWebAuthNRegister);
-            app.get(db + "/webauthn/auth", webauthn.doWebAuthNAuthenticate);
-            app.post(db + "/webauthn/auth", webauthn.postWebAuthNAuthenticate);
-            app.post(db + "/connect", doConnect);
-            app.post(db + "/data/user-accounts", doQueryRequest);
-            app.post(db + "/data/user-account", doPostUserAccount);
-            app.get(db + "/data/user-account/:id", doRequest);
-            app.get(db + "/pdf/:file", doOpenPdf);
-            app.patch(db + "/data/user-account/:id", doPatchUserAccount);
-            app.delete(db + "/data/user-account/:id", doRequest);
-            app.get(db + "/currency/base", doGetBaseCurrency);
-            app.get(db + "/currency/convert", doConvertCurrency);
-            app.get(db + "/do/is-authorized", doIsAuthorized);
-            app.post(db + "/do/aggregate/", doAggregate);
-            app.post(
-                db + "/data/object-authorizations",
-                doGetObjectAuthorizations
-            );
-            app.post(db + "/do/change-password/", doChangePassword);
-            app.post(db + "/do/change-user-info/", doChangeUserInfo);
-            app.post(db + "/do/save-authorization", doSaveAuthorization);
-            app.post(db + "/do/stop-process", doStopProcess);
-            app.post(db + "/do/export/:format/:feather", doExport);
-            app.post(db + "/do/import/:format/:feather/:query", doImport);
-            app.post(db + "/do/upload", doUpload);
-            app.post(db + "/do/print-pdf/form/", doPrintPdfForm);
-            app.post(db + "/do/send-mail", doSendMail);
-            app.post(db + "/do/subscribe/:query", doSubscribe);
-            app.post(db + "/do/unsubscribe/:query", doUnsubscribe);
-            app.post(db + "/do/lock", doLock);
-            app.post(db + "/do/unlock", doUnlock);
-            app.get(db + "/feather/:name", doGetFeather);
-            app.post(db + "/module/package/:name", doPackageModule);
-            app.post(db + "/module/install/:query", doInstall);
-            app.get(db + "/profile", doGetProfile);
-            app.put(db + "/profile", doPutProfile);
-            app.patch(db + "/profile", doPatchProfile);
-            app.get(db + "/settings/:name", doGetSettingsRow);
-            app.put(db + "/settings/:name", doSaveSettings);
-            app.get(db + "/settings-definition", doGetSettingsDefinition);
-            app.get(db + "/workbooks", doGetWorkbooks);
-            app.get(
-                db + "/workbook/is-authorized/:name",
-                doWorkbookIsAuthorized
-            );
-            app.get(db + "/workbook/:name", doGetWorkbook);
-            app.put(db + "/workbook/:name", doSaveWorkbook);
-            app.delete(db + "/workbook/:name", doDeleteWorkbook);
-        });
+        dbRouter.get("/:db/webauthn/reg", webauthn.doWebAuthNRegister);
+        dbRouter.post("/:db/webauthn/reg", webauthn.postWebAuthNRegister);
+        dbRouter.get("/:db/webauthn/auth", webauthn.doWebAuthNAuthenticate);
+        dbRouter.post("/:db/webauthn/auth", webauthn.postWebAuthNAuthenticate);
+        dbRouter.post("/:db/connect", doConnect);
+        dbRouter.post("/:db/data/user-accounts", doQueryRequest);
+        dbRouter.post("/:db/data/user-account", doPostUserAccount);
+        dbRouter.get("/:db/data/user-account/:id", doRequest);
+        dbRouter.get("/:db/pdf/:file", doOpenPdf);
+        dbRouter.patch("/:db/data/user-account/:id", doPatchUserAccount);
+        dbRouter.delete("/:db/data/user-account/:id", doRequest);
+        dbRouter.get("/:db/currency/base", doGetBaseCurrency);
+        dbRouter.get("/:db/currency/convert", doConvertCurrency);
+        dbRouter.get("/:db/do/is-authorized", doIsAuthorized);
+        dbRouter.post("/:db/do/aggregate/", doAggregate);
+        dbRouter.post(
+            "/:db/data/object-authorizations",
+            doGetObjectAuthorizations
+        );
+        dbRouter.post("/:db/do/change-password/", doChangePassword);
+        dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
+        dbRouter.post("/:db/do/save-authorization", doSaveAuthorization);
+        dbRouter.post("/:db/do/stop-process", doStopProcess);
+        dbRouter.post("/:db/do/export/:format/:feather", doExport);
+        dbRouter.post("/:db/do/import/:format/:feather/:query", doImport);
+        dbRouter.post("/:db/do/upload", doUpload);
+        dbRouter.post("/:db/do/print-pdf/form/", doPrintPdfForm);
+        dbRouter.post("/:db/do/send-mail", doSendMail);
+        dbRouter.post("/:db/do/subscribe/:query", doSubscribe);
+        dbRouter.post("/:db/do/unsubscribe/:query", doUnsubscribe);
+        dbRouter.post("/:db/do/lock", doLock);
+        dbRouter.post("/:db/do/unlock", doUnlock);
+        dbRouter.get("/:db/feather/:name", doGetFeather);
+        dbRouter.post("/:db/module/package/:name", doPackageModule);
+        dbRouter.post("/:db/module/install/:query", doInstall);
+        dbRouter.get("/:db/profile", doGetProfile);
+        dbRouter.put("/:db/profile", doPutProfile);
+        dbRouter.patch("/:db/profile", doPatchProfile);
+        dbRouter.get("/:db/settings/:name", doGetSettingsRow);
+        dbRouter.put("/:db/settings/:name", doSaveSettings);
+        dbRouter.get("/:db/settings-definition", doGetSettingsDefinition);
+        dbRouter.get("/:db/workbooks", doGetWorkbooks);
+        dbRouter.get(
+            "/:db/workbook/is-authorized/:name",
+            doWorkbookIsAuthorized
+        );
+        dbRouter.get("/:db/workbook/:name", doGetWorkbook);
+        dbRouter.put("/:db/workbook/:name", doSaveWorkbook);
+        dbRouter.delete("/:db/workbook/:name", doDeleteWorkbook);
 
         let pending = [];
         let isFetching = false;
