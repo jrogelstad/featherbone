@@ -44,12 +44,7 @@ function find(sLabel) {
 
     let payload = {
         method: "POST",
-        url: (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/data/resource-links"
-        ),
+        url: pathname() + "/data/resource-links",
         body: {
             filter: {
                 properties: ["id"],
@@ -67,16 +62,15 @@ function find(sLabel) {
     return m.request(payload);
 }
 
+function pathname() {
+    return "/" + location.pathname.replaceAll("/", "");
+}
+
 function createLink(id, sLabel, sUrl) {
     let nowIso = new Date().toISOString();
     let payload = {
         method: "POST",
-        url: (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/data/resource-link"
-        ),
+        url: pathname() + "/data/resource-link",
         body: {
             "id": id,
             "created": nowIso,
@@ -113,12 +107,7 @@ function linkFiles(vm, files) {
             formData.append("dataFile", file);
             let payload = {
                 method: "POST",
-                url: (
-                    location.pathname.slice(
-                        0,
-                        location.pathname.length - 1
-                    ) + "/do/upload"
-                ),
+                url: pathname() + "/do/upload",
                 body: formData
             };
             m.request(payload).then(function (v) {

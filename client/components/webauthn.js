@@ -1,5 +1,9 @@
 /*jslint this, browser, unordered*/
 /*global m atob btoa console*/
+function pathname() {
+    return "/" + location.pathname.replaceAll("/", "");
+}
+
 function b64url_b64(inStr) {
     inStr = inStr.replace(
         /-/g,
@@ -85,12 +89,7 @@ function publicKeyCredentialRequestOptions(attestation) {
 async function authenticate() {
     let att = await m.request({
         method: "GET",
-        url: (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/webauthn/auth"
-        )
+        url: pathname() + "/webauthn/auth"
     });
     //console.log("Source Att", att);
     publicKeyCredentialRequestOptions(
@@ -104,12 +103,7 @@ async function authenticate() {
     let credOut = authenticatedCredential(cred);
     let resp = await m.request({
         method: "POST",
-        url: (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/webauthn/auth"
-        ),
+        url: pathname() + "/webauthn/auth",
         body: credOut
     });
     console.log(resp);
@@ -119,12 +113,7 @@ async function register() {
     //console.log("Register");
     let att = await m.request({
         method: "GET",
-        url: (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/webauthn/reg"
-        )
+        url: pathname() + "/webauthn/reg"
     });
     publicKeyCredentialCreationOptions(att);
     let cred = await navigator.credentials.create({
@@ -137,12 +126,7 @@ async function register() {
 
     let resp = await m.request({
         method: "POST",
-        url: (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/webauthn/reg"
-        ),
+        url: pathname() + "/webauthn/reg",
         body: credOut
     });
     console.log("Responded", resp);

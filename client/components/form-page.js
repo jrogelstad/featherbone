@@ -502,6 +502,7 @@ formPage.viewModel = function (options) {
         theFeather
     ).enableRowAuthorization;
     let hasHelp = form.helpLink && form.helpLink.resource;
+    let pathname = "/" + location.pathname.replaceAll("/", "");
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -593,8 +594,8 @@ formPage.viewModel = function (options) {
                 window.location.protocol + "//" +
                 window.location.hostname + ":" +
                 window.location.port +
-                window.location.pathname +
-                "pdf/" + resp
+                pathname +
+                "/pdf/" + resp
             );
             window.open(encodeURI(url));
         }
@@ -630,12 +631,7 @@ formPage.viewModel = function (options) {
 
         payload = {
             method: "POST",
-            url: (
-                location.pathname.slice(
-                    0,
-                    location.pathname.length - 1
-                ) + "/do/print-pdf/form/"
-            ),
+            url: pathname + "/do/print-pdf/form/",
             body: theBody
         };
 
