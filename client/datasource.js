@@ -33,6 +33,8 @@ const datasource = {
     */
     baseUrl: function () {
         let l = window.location;
+        let pathname = l.pathname.replaceAll("/", "");
+
         let port = (
             l.port
             ? ":" + l.port
@@ -40,8 +42,8 @@ const datasource = {
         );
         return (
             location.protocol + "//" +
-            l.hostname + port +
-            l.pathname.slice(0, l.pathname.length - 1)
+            l.hostname + port + "/" +
+            pathname
         );
     },
 

@@ -40,6 +40,7 @@ accountMenu.viewModel = function () {
     let email = f.prop(user.email);
     let pwdView;
     let infoView;
+    let pathname = "/" + location.pathname.replaceAll("/", "");
 
     /**
         @method showMenuAccount
@@ -202,12 +203,7 @@ accountMenu.viewModel = function () {
         onOk: function () {
             m.request({
                 method: "POST",
-                url: (
-                    location.pathname.slice(
-                        0,
-                        location.pathname.length - 1
-                    ) + "do/change-password"
-                ),
+                url: pathname + "/do/change-password",
                 body: {
                     oldPassword: oldPwd(),
                     newPassword: newPwd()
@@ -235,12 +231,7 @@ accountMenu.viewModel = function () {
         onOk: function () {
             m.request({
                 method: "POST",
-                url: (
-                    location.pathname.slice(
-                        0,
-                        location.pathname.length - 1
-                    ) + "do/change-user-info"
-                ),
+                url: pathname + "/do/change-user-info",
                 body: {
                     firstName: firstName(),
                     lastName: lastName(),

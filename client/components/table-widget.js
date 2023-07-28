@@ -989,6 +989,7 @@ tableWidget.viewModel = function (options) {
     let vm = {};
     let isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
     let fetchCount = 0;
+    let pathname = "/" + location.pathname.replaceAll("/", "");
 
     options.config.aggregates = options.config.aggregates || [];
 
@@ -1216,10 +1217,7 @@ tableWidget.viewModel = function (options) {
             }
 
             theUrl = (
-                location.pathname.slice(
-                    0,
-                    location.pathname.length - 1
-                ) + "/do/export/" +
+                pathname + "/do/export/" +
                 format() + "/" + plural
             );
             payload = {
@@ -1395,12 +1393,7 @@ tableWidget.viewModel = function (options) {
         delete theBody.filter.sort;
         delete theBody.filter.offset;
 
-        theUrl = (
-            location.pathname.slice(
-                0,
-                location.pathname.length - 1
-            ) + "/do/aggregate"
-        );
+        theUrl = pathname + "/do/aggregate";
         payload = {
             method: "POST",
             url: theUrl,
