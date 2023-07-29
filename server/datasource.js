@@ -109,7 +109,7 @@
 
     function subscribe(obj) {
         return new Promise(function (resolve, reject) {
-            let client = db.getClient(obj.client);
+            let client = obj.client;
 
             events.subscribe(
                 client,
@@ -125,7 +125,7 @@
 
     function unsubscribe(obj) {
         return new Promise(function (resolve, reject) {
-            let client = db.getClient(obj.client);
+            let client = obj.client;
 
             events.unsubscribe(
                 client,
@@ -196,7 +196,8 @@
                         op: "replace",
                         path: "/errorMessage",
                         value: msg
-                    }]
+                    }],
+                    tenant: obj.client.tenant()
                 }, true);
             }
         });
@@ -210,7 +211,8 @@
                     id: pId,
                     name: obj.name,
                     processId: pgProcessId
-                }
+                },
+                tenant: obj.client.tenant()
             }, true);
 
             if (subscr) {
@@ -219,6 +221,7 @@
                     name: "subscribe",
                     id: pId,
                     subscription: subscr,
+                    tenant: obj.client.tenant(),
                     user: pUser // Outside transaction
                 });
             }
@@ -234,14 +237,14 @@
 
             if (pct > last) {
                 pct = Math.min(pct, maxPct);
-                resp = await db.connect();
+                resp = await db.connect(obj.client.tenant());
                 await resp.client.query(sql1, [pct, pId]);
                 resp.done();
             }
             last = last.plus(incr);
         };
         p.complete = async function () {
-            let resp = await db.connect();
+            let resp = await db.connect(obj.client.tenant());
             let sql1 = (
                 "UPDATE server_process SET " +
                 "  percent_complete = 100, " +
@@ -258,6 +261,7 @@
                     method: "POST",
                     name: "unsubscribe",
                     subscription: subscr,
+                    tenant: obj.client.tenant(),
                     user: pUser // Outside transaction
                 });
             }
@@ -281,7 +285,7 @@
         @return {Promise}
     */
     async function stopProcess(obj) {
-        let resp = await db.connect();
+        let resp = await db.connect(obj.tenant);
         let processId = obj.data.id;
         let sql1 = "SELECT process_id FROM server_process WHERE id=$1;";
         let sql2 = "SELECT pg_cancel_backend($1);";
@@ -310,7 +314,7 @@
 
     // For interrupted process cleanup after server restart
     that.cleanupProcesses = async function () {
-        let resp = await db.connect();
+        let resp;
         let sql1 = (
             "UPDATE server_process SET " +
             "  status = 'S', " +
@@ -318,8 +322,15 @@
             "  error_message = 'Stopped by server restart'" +
             "WHERE status = 'P';"
         );
-        await resp.client.query(sql1);
-        resp.done();
+        let tenant;
+        let n = 0;
+        while (n < tenants.length) {
+            tenant = tenants[0];
+            n += 1;
+            resp = await db.connect(tenant);
+            await resp.client.query(sql1);
+            resp.done();
+        }
     };
 
     /**
@@ -356,7 +367,7 @@
 
         function begin(resp) {
             return new Promise(function (resolve) {
-                let client = db.getClient(resp.client);
+                let client = resp.client;
 
                 conn = resp;
                 client.query("BEGIN;").then(resolve);
@@ -365,7 +376,7 @@
 
         function commit() {
             return new Promise(function (resolve) {
-                let client = db.getClient(conn.client);
+                let client = conn.client;
                 client.query("COMMIT;").then(resolve);
                 conn.done();
             });
@@ -373,7 +384,7 @@
 
         function rollback() {
             return new Promise(function (resolve) {
-                let client = db.getClient(conn.client);
+                let client = conn.client;
                 client.query("ROLLBACK;").then(resolve);
                 conn.done();
                 resolve();
@@ -453,7 +464,7 @@
 
         return new Promise(function (resolve) {
             Promise.resolve().then(
-                db.connect.bind(null, true)
+                db.connect.bind(null, obj.tenant)
             ).then(
                 begin
             ).then(
@@ -553,9 +564,10 @@
 
         @method listen
         @param {Function} callback
+        @param {Object} [tenant]
         @return {Promise}
     */
-    that.listen = function (callback) {
+    that.listen = function (callback, tenant) {
         function doListen(resp) {
             return new Promise(function (resolve, reject) {
                 events.listen(
@@ -572,7 +584,7 @@
 
         return new Promise(function (resolve, reject) {
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doListen
             ).then(
@@ -589,42 +601,37 @@
         {{#crossLink "Services.Events/unsubscribe:method"}}{{/crossLink}}
         via datasource.
 
+        If tenant not provided, all tenants unsubscribe
+
         @method unsubscribe
         @param {String} id
         @param {String} type
+        @paranm {Object} [tenant]
         @return {Promise}
     */
-    that.unsubscribe = function (id, type) {
+    that.unsubscribe = async function (id, type, tenant) {
         return new Promise(function (resolve, reject) {
-            // Do the work
-            function doUnsubscribe(resp) {
-                return new Promise(function (resolve, reject) {
-                    function callback() {
-                        resp.done();
-                        resolve();
-                    }
-
-                    events.unsubscribe(
-                        resp.client,
-                        id || db.nodeId,
-                        type || "node"
-                    ).then(
-                        callback
-                    ).catch(
-                        reject
-                    );
-                });
+            let pTenants;
+            if (tenant) {
+                pTenants = [tenant];
+            } else {
+                pTenants = tenants;
             }
+            let t;
+            let n = 0;
+            let resp;
 
-            Promise.resolve().then(
-                db.connect
-            ).then(
-                doUnsubscribe
-            ).then(
-                resolve
-            ).catch(
-                reject
-            );
+            while (n < pTenants.length) {
+                t = pTenants[0];
+                n += 1;
+                resp = await db.connect(t);
+                await events.unsubscribe(
+                    resp.client,
+                    id || db.nodeId,
+                    type || "node"
+                );
+                resp.done();
+            }
         });
     };
 
@@ -639,9 +646,10 @@
         @param {String} eventKey Browser instance event key
         @param {String} [process] Description of lock reason
         @param {Object} [client] Client connection
+        @param {Object} [tenant] Tenant
         @return {Promise}
     */
-    that.lock = function (id, username, eventkey, process, client) {
+    that.lock = function (id, username, eventkey, pProcess, client, tenant) {
         return new Promise(function (resolve, reject) {
             if (client === undefined) {
                 reject(
@@ -668,7 +676,7 @@
                         id,
                         username,
                         eventkey,
-                        process
+                        pProcess
                     ).then(
                         callback
                     ).catch(
@@ -678,13 +686,13 @@
             }
 
             if (client) {
-                theClient = db.getClient(client);
+                theClient = client;
                 doLock({client: theClient}).then(resolve).catch(reject);
                 return;
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doLock
             ).then(
@@ -706,9 +714,10 @@
         @param {String} [criteria.username] User name
         @param {String} [criteria.eventKey] Event key
         @param {Object} [client] Client connection
+        @param {Object} [tenant] Tenant
         @return {Promise}
     */
-    that.unlock = function (criteria, client) {
+    that.unlock = function (criteria, client, tenant) {
         return new Promise(function (resolve, reject) {
             let theClient;
             criteria = criteria || {};
@@ -733,13 +742,13 @@
             }
 
             if (client) {
-                theClient = db.getClient(client);
+                theClient = client;
                 doUnlock({client: theClient}).then(resolve).catch(reject);
                 return;
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doUnlock
             ).then(
@@ -759,9 +768,10 @@
         @param {String} Manifest filename.
         @param {String} User name.
         @param {Object} [subscription] Subscription object for progress tracking
+        @param {Object} [tenant] Tenant
         @return {Object} Promise
     */
-    that.install = function (filename, username, subscription) {
+    that.install = function (filename, username, subscription, tenant) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doInstall(resp) {
@@ -787,7 +797,7 @@
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doInstall
             ).then(
@@ -806,9 +816,10 @@
         @method package
         @param {String} name Module name
         @param {String} username User name
+        @param {Object} [tenant] Tenant
         @return {Promise}
     */
-    that.package = function (name, username) {
+    that.package = function (name, username, tenant) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doPackage(resp) {
@@ -831,7 +842,7 @@
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doPackage
             ).then(
@@ -854,6 +865,7 @@
         @param {String} format `json`, `ods` or `xlsx`
         @param {String} username
         @param {Object} [subscription] For progress tracking
+        @param {Object} [tenant] Tenant
         @return {Promise}
     */
     that.export = function (
@@ -863,7 +875,8 @@
         dir,
         format,
         username,
-        subscription
+        subscription,
+        tenant
     ) {
         return new Promise(function (resolve, reject) {
             let formats = ["json", "ods", "xlsx"];
@@ -899,7 +912,7 @@
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doExport
             ).then(
@@ -920,6 +933,8 @@
         @param {String} format `json`, `ods` or `xlsx`
         @param {String} filename
         @param {String} username
+        @param {Object} [subscription] For progress tracking
+        @param {Object} [tenant] Tenant
         @return {Promise}
     */
     that.import = function (
@@ -927,7 +942,8 @@
         format,
         filename,
         username,
-        subscription
+        subscription,
+        tenant
     ) {
         return new Promise(function (resolve, reject) {
             // Do the work
@@ -956,7 +972,7 @@
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doImport
             ).then(
@@ -976,6 +992,7 @@
         @param {Object|String|Array} input data or ids
         @param {String} dir Target directory
         @param {String} username
+        @param {Object} [tenant] Tenant
         @return {Promise}
     */
     that.printPdfForm = function (
@@ -983,7 +1000,8 @@
         data,
         filename,
         username,
-        options
+        options,
+        tenant
     ) {
         return new Promise(function (resolve, reject) {
             // Do the work
@@ -1012,7 +1030,7 @@
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, tenant)
             ).then(
                 doPrint
             ).then(
@@ -2380,7 +2398,7 @@
     that.loadTenants = async function () {
         let conf = await config.read();
         let conn = await db.connect();
-        let pClient = db.getClient(conn.client);
+        let pClient = conn.client;
         let tservices = await that.request({
             client: pClient,
             method: "GET",
@@ -2392,7 +2410,11 @@
                 "pgUser",
                 "pgPassword"
             ],
-            user: conf.pgUser
+            user: conf.pgUser,
+            filter: {criteria: [{
+                property: "isActive"
+                value: true
+            }]}
         }, true);
         let pTenants = await that.request({
             client: pClient,
