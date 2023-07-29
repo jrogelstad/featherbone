@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -295,7 +295,7 @@
                 let fromCurr = obj.data.fromCurrency;
                 let fromAmount = obj.data.amount;
                 let msg;
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 // Advance date to next day so we get latest conversion for
                 // that day

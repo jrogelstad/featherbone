@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -96,7 +96,7 @@
                     ? "LOGIN"
                     : "NOLOGIN"
                 ) + ";";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([name]);
                 client.query(sql, function (err) {
@@ -126,7 +126,7 @@
                 let name = obj.data.name;
                 let pwd = obj.data.password;
                 let sql = "ALTER ROLE %I PASSWORD %L;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([name, pwd]);
                 client.query(sql, function (err) {
@@ -161,7 +161,7 @@
                     "SELECT * FROM pg_catalog.pg_roles " +
                     "WHERE rolname = $1;"
                 );
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 client.query(sql, [name]).then(function (resp) {
                     if (!resp.rows.length) {
@@ -207,7 +207,7 @@
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let sql = "DROP ROLE %I;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 function callback() {
                     client.query(
@@ -234,7 +234,7 @@
         that.grantMembership = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "GRANT %I TO %I;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([obj.data.fromRole, obj.data.toRole]);
                 client.query(sql).then(resolve).catch(reject);
@@ -254,7 +254,7 @@
         that.revokeMembership = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "REVOKE %I FROM %I;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([obj.data.fromRole, obj.data.toRole]);
                 client.query(sql).then(resolve).catch(reject);

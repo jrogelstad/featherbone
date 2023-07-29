@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -47,7 +47,7 @@ settings.data = {};
 settings.getSettings = function (obj) {
     return new Promise(function (resolve, reject) {
         let name = obj.data.name;
-        let theClient = db.getClient(obj.client);
+        let theClient = obj.client;
 
         function fetch() {
             let sql = (
@@ -143,7 +143,7 @@ settings.getSettings = function (obj) {
 settings.getSettingsDefinition = function (obj) {
     return new Promise(function (resolve, reject) {
         let sql;
-        let client = db.getClient(obj.client);
+        let client = obj.client;
 
         sql = "SELECT definition FROM \"$settings\" ";
         sql += "WHERE definition is NOT NULL";
@@ -208,7 +208,7 @@ settings.saveSettings = function (obj) {
         let d = obj.data.data;
         let tag = obj.etag || f.createId();
         let params = [name, d, tag, obj.client.currentUser()];
-        let client = db.getClient(obj.client);
+        let client = obj.client;
 
         function update(resp) {
             let msg;

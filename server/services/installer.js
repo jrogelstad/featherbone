@@ -760,7 +760,7 @@
         */
         that.deleteModule = function (obj) {
             return new Promise(function (resolve, reject) {
-                let vClient = db.getClient(obj.client);
+                let vClient = obj.client;
                 let name = obj.data.name;
                 let requests;
                 let sql = (
