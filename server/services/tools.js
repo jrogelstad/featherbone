@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -659,7 +659,7 @@
                     ? obj.client.currentUser()
                     : obj.user
                 );
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 client.query(sql, [user], function (err, resp) {
                     if (err) {
@@ -686,7 +686,7 @@
         */
         tools.getAuthorizations = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 let sql = (
                     "SELECT auth.role, auth.can_read, auth.can_update," +
                     "auth.can_delete, " +
@@ -797,7 +797,7 @@
                 let afterGetUser;
                 let afterUpsert;
                 let user = obj.user;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 afterCheckSuperUser = function (err, ok) {
                     if (err) {

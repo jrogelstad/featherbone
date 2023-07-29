@@ -710,7 +710,7 @@
         */
         crud.begin = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 client.query("BEGIN;").then(resolve).catch(reject);
             });
         };
@@ -725,7 +725,7 @@
         */
         crud.commit = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 client.query("COMMIT;").then(function () {
                     let callbacks = client.callbacks.slice();
                     function next() {
@@ -749,7 +749,7 @@
         */
         crud.savePoint = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 savepoint = true;
                 client.query(
                     "SAVEPOINT last_savepoint;"
@@ -771,7 +771,7 @@
         */
         crud.rollback = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 let sql = "ROLLBACK";
                 if (savepoint && (
                     !obj.data || obj.data.savePoint !== false
@@ -838,7 +838,7 @@
             let sql;
             let table;
             let tokens = [];
-            let theClient = db.getClient(obj.client);
+            let theClient = obj.client;
             let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
             let params = [];
             let sub = [];
@@ -943,7 +943,7 @@
                 let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
                 let clen = 1;
                 let c = 0;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 if (obj.isHard === true) {
                     sql = "DELETE FROM object WHERE id=$1;";
@@ -1154,7 +1154,7 @@
                 let clen = 1;
                 let c = 0;
                 let p = 2;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 payload = {
                     data: {
@@ -1697,7 +1697,7 @@
             let keys;
             let tokens = [];
             let cols = [];
-            let theClient = db.getClient(obj.client);
+            let theClient = obj.client;
             let feather;
             let attrs = [];
             let fp;
@@ -1922,7 +1922,7 @@
                 let children = [];
                 let p = 1;
                 let n = 0;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 if (!patches.length) {
                     crud.unlock(theClient, {
@@ -2654,7 +2654,7 @@
         */
         crud.autonumber = function (obj) {
             let prop;
-            let theClient = db.getClient(obj.client);
+            let theClient = obj.client;
 
             return new Promise(function (resolve, reject) {
                 function callback(err, resp) {

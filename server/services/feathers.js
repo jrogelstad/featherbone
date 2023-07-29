@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -624,7 +624,7 @@
                 );
                 let o = 0;
                 let c = 0;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 afterGetCatalog = function (resp) {
                     catalog = resp;
@@ -779,7 +779,7 @@
             return new Promise(function (resolve, reject) {
                 let callback;
                 let theName = obj.data.name;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 callback = function (catalog) {
                     let resultProps;
@@ -945,7 +945,7 @@
                 let id = obj.data.id;
                 let tokens = [];
                 let result = false;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 function callback(isSuper) {
                     if (isSuper) {
@@ -1111,7 +1111,7 @@
                 );
                 let actions = obj.data.actions || {};
                 let hasAuth = false;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 afterGetObjKey = function (resp) {
                     objPk = resp;
@@ -1450,7 +1450,7 @@
                 );
                 let c = 0;
                 let len = specs.length;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 function nextSpec() {
                     let sqlUpd;

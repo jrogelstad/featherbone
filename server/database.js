@@ -29,7 +29,6 @@
     const f = require("../common/core");
 
     const config = new Config();
-    const clients = {};
 
     function prop(store) {
         return function (...args) {
@@ -71,6 +70,18 @@
         return sslCfg;
     }
 
+    function resolveTenant(tenant) {
+        return tenant || {
+            pgDatabase: undefined,
+            pgService: {
+                id: undefined,
+                pgHost: undefined,
+                pgPassword: undefined,
+                pgPort: undefined
+            }
+        };
+    }
+
 
     /**
         Class for managing database connectivity functions.
@@ -79,7 +90,7 @@
     */
     exports.Database = function () {
         let cache;
-        let pool;
+        let pools = {};
         let that = {};
 
         // Reslove connection string
@@ -87,13 +98,13 @@
             return new Promise(function (resolve) {
                 cache = {
                     postgres: {
-                        host: resp.pgHost,
-                        port: resp.pgPort,
                         database: resp.pgDatabase,
-                        user: resp.pgUser,
+                        host: resp.pgHost,
+                        max: resp.pgMaxConnections || 10,
                         password: resp.pgPassword,
-                        ssl: sslConfig(resp),
-                        max: resp.pgMaxConnections || 10
+                        port: resp.pgPort,
+                        ssl: sslConfig(resp), // This doesn't look right
+                        user: resp.pgUser
                     }
                 };
                 resolve(resp);
@@ -117,23 +128,26 @@
             Note this function does not create a persistant client connection.
             All actual client connections are handled by the service account.
             @method authenticate
-            @param username
-            @param password
+            @param {String} username
+            @param {String} password
+            @param {Object} [tenant] Tenant
             @return {Promise}
         */
-        that.authenticate = function (username, pswd) {
+        that.authenticate = function (username, pswd, tenant) {
+            tenant = resolveTenant(tenant);
+
             return new Promise(function (resolve, reject) {
                 // Do connection
                 function doConnect(resp) {
                     return new Promise(function (resolve, reject) {
                         let login;
                         login = new Pool({
-                            host: resp.pgHost,
-                            database: resp.pgDatabase,
-                            user: username,
+                            database: tenant.pgDatabase || resp.pgDatabase,
+                            host: tenant.pgService.pgHost || resp.pgHost,
                             password: pswd,
-                            port: resp.pgPort,
-                            ssl: sslConfig(resp)
+                            port: tenant.pgService.pgPort || resp.pgPort,
+                            ssl: sslConfig(cache), // This doesn't look right
+                            user: username
                         });
 
                         login.connect(function (err, ignore, done) {
@@ -145,9 +159,10 @@
                                 return;
                             }
 
-                            that.deserializeUser(username).then(
-                                resolve
-                            ).catch(reject);
+                            that.deserializeUser(username).then(function () {
+                                login.end();
+                                resolve();
+                            }).catch(reject);
                         });
                     });
                 }
@@ -184,20 +199,6 @@
         /**
             Called when transaction is completed and returns client to the pool.
             @method done
-        */
-        /**
-            A Featherbone object which references a client connection created
-            by the <a href='https://node-postgres.com'>node-postgres</a> library
-            for handling postgres connectivity.
-            It also contains several properties for keeping track of
-            transaction state and the user account making requests.
-
-            Use {{#crossLink "Database/getClient:method"}}{{/crossLink}} to
-            resolve to an actual
-            <a href='https://node-postgres.com/api/client'>postgres client</a>
-            and execute SQL.
-            @class Client
-            @static
         */
         /**
             Unique id to reference which node-postgres client to use in a
@@ -245,23 +246,37 @@
             {{#crossLink "Services.Installer"}}{{/crossLink}}.
             @method connect
             @for Database
-            @param {Boolean} referenceOnly
+            @param {Object} [tenant] Tenant login credentials
             @return {Promise}
         */
-        that.connect = function (referenceOnly) {
-            // TODO reference only prevents SQL in scripts,
-            // but what if there is no other way? Commenting
-            // out for now.
-            referenceOnly = false;
+        that.connect = function (tenant) {
+            tenant = resolveTenant(tenant);
+
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
+                let db;
+                let pool;
 
                 // Do connection
                 function doConnect() {
                     return new Promise(function (resolve, reject) {
+                        db = tenant.pgDatabase || cache.pgDatabase;
+                        pool = pool[db];
                         if (!pool) {
-                            pool = new Pool(cache.postgres);
-                            pool.setMaxListeners(cache.postgres.max);
+                            if (tenant.pgDatabase) {
+                                pool = new Pool({
+                                    database: tenant.pgDatabase,
+                                    host: tenant.pgService.pgHost,
+                                    password: tenant.pgService.pgPassword,
+                                    port: tenant.pgService.pgPort,
+                                    ssl: sslConfig(cache), // Doesn't look right
+                                    user: tenant.pgService.pgUser
+                                });
+                            } else {
+                                pool = new Pool(cache.postgres);
+                            }
+                            pool.setMaxListeners(cache.postgres.max || 10);
+                            pools[db] = pool;
                         }
 
                         pool.connect(function (err, c, d) {
@@ -288,6 +303,11 @@
 
                             c.clientId = id;
                             c.currentUser = prop();
+                            c.tenant = prop(
+                                tenant.pgDatabase
+                                ? tenant
+                                : undefined
+                            );
                             c.isTriggering = prop(false);
                             c.wrapped = prop(false);
                             c.onCommit = doOnCommit;
@@ -295,24 +315,6 @@
                             c.callbacks = callbacks;
                             c.rollbacks = rollbacks;
                             clients[id] = c;
-
-                            if (referenceOnly) {
-                                resolve({
-                                    client: Object.freeze({
-                                        clientId: c.clientId,
-                                        currentUser: c.currentUser,
-                                        isTriggering: c.isTriggering,
-                                        wrapped: c.wrapped,
-                                        onCommit: doOnCommit,
-                                        onRollback: doOnRollback
-                                    }),
-                                    done: function () {
-                                        delete clients[id];
-                                        d();
-                                    }
-                                });
-                                return;
-                            }
 
                             resolve({
                                 client: c,
@@ -380,9 +382,10 @@
             @method deserializeUser
             @for Database
             @param {String} username User account or role name
+            @param {Object} tenant Tenant
             @return {User} User account info
         */
-        that.deserializeUser = function (username) {
+        that.deserializeUser = function (username, tenant) {
             return new Promise(function (resolve, reject) {
                 const sql = (
                     "SELECT name, is_super, " +
@@ -396,7 +399,7 @@
                     "WHERE name = $1;"
                 );
 
-                that.connect().then(function (obj) {
+                that.connect(tenant).then(function (obj) {
                     obj.client.query(sql, [username]).then(function (resp) {
                         let row;
 
@@ -424,25 +427,19 @@
         };
 
         /**
-            Resolve a reference {{#crossLink "Client"}}{{/crossLink}}
-            to an actual
-            <a href='https://node-postgres.com/api/client'>postgres client</a>
-            to execute SQL.
-            @method getClient
-            @param {Client} client
-            @return {Object}
-        */
-        that.getClient = (ref) => clients[ref.clientId];
-
-        /**
             Resolve to a
             <a href='https://node-postgres.com/api/pool'>connection pool</a>
             from which to request a connection.
             @method getPool
             @return {Promise}
         */
-        that.getPool = function () {
+        that.getPool = function (tenant) {
+            tenant = resolveTenant(tenant);
+
             return new Promise(function (resolve, reject) {
+                let db = tenant.pgDatabase || cache.pgDatabase;
+                let pool = pools[db];
+
                 if (pool) {
                     resolve(pool);
                     return;
@@ -450,8 +447,20 @@
 
                 // Create pool
                 function doPool() {
-                    pool = new Pool(cache.postgres);
+                    if (tenant.pgDatabase) {
+                        pool = new Pool({
+                            database: tenant.pgDatabase,
+                            host: tenant.pgService.pgHost,
+                            password: tenant.pgService.pgPassword,
+                            port: tenant.pgService.pgPort,
+                            ssl: sslConfig(cache), // This doesn't look right
+                            user: tenant.pgService.pgUser
+                        });
+                    } else {
+                        pool = new Pool(cache.postgres);
+                    }
                     pool.setMaxListeners(cache.postgres.max);
+                    pools[db] = pool;
                     resolve(pool);
                 }
 
