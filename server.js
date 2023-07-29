@@ -354,7 +354,8 @@
             user: req.user.name,
             eventKey: req.query.eventKey,
             id: req.params.id,
-            data: req.body || {}
+            data: req.body || {},
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -374,7 +375,8 @@
             user: req.user.name,
             eventKey: req.eventKey,
             id: req.params.id,
-            data: req.body || {}
+            data: req.body || {},
+            tenant: req.tenant
         };
         let log = f.copy(payload);
         log.data.password = "****";
@@ -396,7 +398,8 @@
             user: req.user.name,
             eventKey: req.query.eventKey,
             id: req.params.id,
-            data: req.body || []
+            data: req.body || [],
+            tenant: req.tenant
         };
         let log = f.copy(payload);
         log.data.forEach(function (item) {
@@ -431,6 +434,7 @@
         payload.method = "GET"; // Internally this is a select statement
         payload.user = req.user.name;
         payload.filter = payload.filter || {};
+        payload.tenant = req.tenant;
 
         if (payload.showDeleted) {
             payload.showDeleted = (
@@ -462,7 +466,8 @@
             method: "POST",
             name: "doAggregate",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -476,9 +481,8 @@
             method: "GET",
             name: fn,
             user: req.user.name,
-            data: {
-                name: req.params.name
-            }
+            data: {name: req.params.name},
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -496,9 +500,8 @@
             method: "GET",
             name: "baseCurrency",
             user: req.user.name,
-            data: {
-                effective: query.effective
-            }
+            data: {effective: query.effective},
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -518,7 +521,8 @@
                 amount: query.amount,
                 toCurrency: query.toCurrency,
                 effective: query.effective
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -608,7 +612,8 @@
                 name: req.params.name,
                 etag: req.body.etag,
                 data: req.body.data
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -627,9 +632,8 @@
             method: "DELETE",
             name: "deleteWorkbook",
             user: req.user.name,
-            data: {
-                name: req.params.name
-            }
+            data: {name: req.params.name},
+            tenant: req.tenant
         };
         if (req.isCamelCase) {
             payload.data.name = payload.data.name.toCamelCase(true);
@@ -651,7 +655,8 @@
             name: "subscribe",
             user: req.user.name,
             id: query.id,
-            subscription: query.subscription
+            subscription: query.subscription,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -670,7 +675,8 @@
             method: "POST",
             name: "unsubscribe",
             user: req.user.name,
-            subscription: query.subscription
+            subscription: query.subscription,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -692,7 +698,8 @@
             username,
             req.body.eventKey,
             undefined,
-            false
+            false,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -711,7 +718,9 @@
 
         logger.verbose("Unlock " + req.body.id);
         datasource.unlock(
-            criteria
+            criteria,
+            undefined,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -726,7 +735,8 @@
         logger.verbose("Package " + name);
         datasource.package(
             name,
-            username
+            username,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -771,7 +781,8 @@
             datasource.install(
                 DIR,
                 req.user.name,
-                query.subscription
+                query.subscription,
+                req.tenant
             ).catch(function (err) {
                 return new Promise(function (resolve) {
                     error.bind(res)(err);
@@ -793,7 +804,8 @@
             "./files/downloads/",
             req.params.format,
             req.user.name,
-            req.body.subscription
+            req.body.subscription,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -862,7 +874,8 @@
                 format,
                 TEMPFILE,
                 req.user.name,
-                query.subscription
+                query.subscription,
+                req.tenant
             ).then(
                 respond.bind(res)
             ).catch(
@@ -897,7 +910,8 @@
             req.body.id || req.body.ids || req.body.data,
             req.body.filename,
             req.user.name,
-            req.body.options
+            req.body.options,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -926,7 +940,8 @@
                     ids: req.body.pdf.id || req.body.pdf.ids,
                     filename: req.body.pdf.filename
                 }
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose("Send mail");
@@ -1122,7 +1137,8 @@
         let payload = {
             method: "GET",
             name: "getProfile",
-            user: req.user.name
+            user: req.user.name,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1136,7 +1152,8 @@
             method: "PUT",
             name: "saveProfile",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1150,7 +1167,8 @@
             method: "PATCH",
             name: "patchProfile",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1167,7 +1185,8 @@
             data: {
                 user: req.user.name,
                 action: req.query.action
-            }
+            },
+            tenant: req.tenant
         };
 
         if (req.query.id) {
@@ -1191,7 +1210,8 @@
             user: req.user.name,
             data: {
                 id: req.body.filter.criteria[0].value
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1212,7 +1232,8 @@
                 id: req.body.id,
                 role: req.body.role,
                 actions: req.body.actions
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1228,7 +1249,8 @@
             method: "POST",
             name: "stopProcess",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1246,7 +1268,8 @@
                 name: req.params.name,
                 user: req.user.name,
                 action: req.query.action
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1266,7 +1289,8 @@
                 name: req.user.name,
                 oldPassword: req.body.oldPassword,
                 newPassword: req.body.newPassword
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose("Change password for " + req.user.name);
@@ -1285,7 +1309,10 @@
         };
 
         logger.verbose("Change User Info", JSON.stringify(payload, null, 2));
-        datasource.changeUserInfo(payload).then(
+        datasource.changeUserInfo(
+            payload,
+            req.tenant
+        ).then(
             respond.bind(res)
         ).catch(
             error.bind(res)
@@ -1492,31 +1519,17 @@
             "/node_modules/typeface-raleway/index.css",
             "/node_modules/gantt/dist/gantt.min.js"
         ];
-        let prefixes = [
-            "",
-            "client",
-            "common",
-            "css",
-            "files",
-            "fonts",
-            "node_modules",
-            "media"
-        ];
 
         // Resolve database
         dbRouter.param("db", function (req, ignore, next, id) {
-            if (prefixes.indexOf(id) !== -1) {
-                console.log("DIR->", id);
-                next();
-                return;
-            }
             req.database = id;
             //console.log("DB->", req.database);
             next();
         });
         dbRouter.get("/:db", function (req, res, next) {
-            let creds = tenants.find((t) => req.database === t.pgDatabase);
-            if (creds) {
+            let tenant = tenants.find((t) => req.database === t.pgDatabase);
+            if (tenant) {
+                req.tenant = tenant;
                 next();
                 return;
             }
@@ -1765,7 +1778,7 @@
             }
         }
 
-        function handleEvents() {
+        function handleEvents(tenant) {
             // Instantiate event key for web socket connection
             wss.on("connection", function connection(ws) {
                 let eKey;
@@ -1795,7 +1808,7 @@
 
                 ws.on("close", function close() {
                     delete eventSessions[eKey];
-                    datasource.unsubscribe(eKey, "instance");
+                    datasource.unsubscribe(eKey, "instance", tenant);
                     datasource.unlock({
                         eventKey: eKey
                     });
@@ -1805,7 +1818,10 @@
             });
         }
 
-        datasource.listen(receiver).then(handleEvents).catch(console.error);
+        // TODO: What to do here when tenants change?
+        tenants.forEach(function (tenant) {
+            datasource.listen(receiver, tenant).then(handleEvents.bind(null, tenant)).catch(console.error);
+        });
 
         // REGISTER MODULE ROUTES
         routes.forEach(registerRoute);
