@@ -130,23 +130,19 @@
             @method authenticate
             @param {String} username
             @param {String} password
-            @param {Object} [tenant] Tenant
             @return {Promise}
         */
-        that.authenticate = function (username, pswd, tenant) {
-            tenant = resolveTenant(tenant);
-
+        that.authenticate = function (username, pswd) {
             return new Promise(function (resolve, reject) {
                 // Do connection
                 function doConnect(resp) {
                     return new Promise(function (resolve, reject) {
-                        let login;
-                        login = new Pool({
-                            database: tenant.pgDatabase || resp.pgDatabase,
-                            host: tenant.pgService.pgHost || resp.pgHost,
+                        let login = new Pool({
+                            database: resp.pgDatabase,
+                            host: resp.pgHost,
                             password: pswd,
-                            port: tenant.pgService.pgPort || resp.pgPort,
-                            ssl: sslConfig(cache), // This doesn't look right
+                            port: resp.pgPort,
+                            ssl: sslConfig(resp),
                             user: username
                         });
 
@@ -159,9 +155,9 @@
                                 return;
                             }
 
-                            that.deserializeUser(username).then(function () {
+                            that.deserializeUser(username).then(function (dat) {
                                 login.end();
-                                resolve();
+                                resolve(dat);
                             }).catch(reject);
                         });
                     });
@@ -261,7 +257,7 @@
                 function doConnect() {
                     return new Promise(function (resolve, reject) {
                         db = tenant.pgDatabase || cache.pgDatabase;
-                        pool = pool[db];
+                        pool = pools[db];
                         if (!pool) {
                             if (tenant.pgDatabase) {
                                 pool = new Pool({
@@ -314,14 +310,10 @@
                             c.onRollback = doOnRollback;
                             c.callbacks = callbacks;
                             c.rollbacks = rollbacks;
-                            clients[id] = c;
 
                             resolve({
                                 client: c,
-                                done: function () {
-                                    delete clients[id];
-                                    d();
-                                }
+                                done: d
                             });
                         });
                     });
