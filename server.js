@@ -1092,8 +1092,9 @@
         });
     }
 
-    function doSignIn(req, res) {
+    async function doSignIn(req, res) {
         let message;
+        let rows;
         req.flash = function (ignore, msg) {
             logger.verbose(msg);
             message = msg;
@@ -1108,7 +1109,27 @@
             req.user.mode = mode;
             res.json(req.user);
         }
+        rows = await datasource.request({
+            filter: {criteria: [{
+                property: "name",
+                value: req.body.username
+            }]},
+            method: "GET",
+            name: "UserAccount",
+            tenant: req.tenant,
+            user: req.body.username
+        }, true);
 
+        if (!rows.length) {
+            res.statusCode = 401;
+            message = (
+                "User " + req.body.username +
+                " does not exist on database " +
+                req.tenant.pgDatabase
+            );
+            next(true);
+            return;
+        }
         return authenticate(req, res, next);
     }
 
@@ -1523,10 +1544,6 @@
         // Resolve database
         dbRouter.param("db", function (req, ignore, next, id) {
             req.database = id;
-            //console.log("DB->", req.database);
-            next();
-        });
-        dbRouter.get("/:db", function (req, res, next) {
             let tenant = tenants.find((t) => req.database === t.pgDatabase);
             if (tenant) {
                 req.tenant = tenant;
@@ -1539,6 +1556,8 @@
                 req.database +
                 " is not a registered tenant"
             );
+            //console.log("DB->", req.database);
+            next();
         });
 
         // static pages
@@ -1820,7 +1839,9 @@
 
         // TODO: What to do here when tenants change?
         tenants.forEach(function (tenant) {
-            datasource.listen(receiver, tenant).then(handleEvents.bind(null, tenant)).catch(console.error);
+            datasource.listen(receiver, tenant).then(
+                handleEvents.bind(null, tenant)
+            ).catch(console.error);
         });
 
         // REGISTER MODULE ROUTES
