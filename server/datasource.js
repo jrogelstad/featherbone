@@ -360,9 +360,10 @@
         @param {String} payload.lastName
         @param {String} payload.email
         @param {String} payload.phone
+        @param {Object} [tenant]
         @return {Promise}
     */
-    that.changeUserInfo = function (obj) {
+    that.changeUserInfo = function (obj, pTenant) {
         let conn;
 
         function begin(resp) {
@@ -464,7 +465,7 @@
 
         return new Promise(function (resolve) {
             Promise.resolve().then(
-                db.connect.bind(null, obj.tenant)
+                db.connect.bind(null, pTenant)
             ).then(
                 begin
             ).then(
@@ -606,33 +607,31 @@
         @method unsubscribe
         @param {String} id
         @param {String} type
-        @paranm {Object} [tenant]
+        @paranm {Object} [tenant] All tenants if not specified
         @return {Promise}
     */
     that.unsubscribe = async function (id, type, tenant) {
-        return new Promise(function (resolve, reject) {
-            let pTenants;
-            if (tenant) {
-                pTenants = [tenant];
-            } else {
-                pTenants = tenants;
-            }
-            let t;
-            let n = 0;
-            let resp;
+        let pTenants;
+        if (tenant) {
+            pTenants = [tenant];
+        } else {
+            pTenants = tenants;
+        }
+        let t;
+        let n = 0;
+        let resp;
 
-            while (n < pTenants.length) {
-                t = pTenants[0];
-                n += 1;
-                resp = await db.connect(t);
-                await events.unsubscribe(
-                    resp.client,
-                    id || db.nodeId,
-                    type || "node"
-                );
-                resp.done();
-            }
-        });
+        while (n < pTenants.length) {
+            t = pTenants[0];
+            n += 1;
+            resp = await db.connect(t);
+            await events.unsubscribe(
+                resp.client,
+                id || db.nodeId,
+                type || "node"
+            );
+            resp.done();
+        }
     };
 
     /**
@@ -646,7 +645,7 @@
         @param {String} eventKey Browser instance event key
         @param {String} [process] Description of lock reason
         @param {Object} [client] Client connection
-        @param {Object} [tenant] Tenant
+        @param {Object} [tenant] Tenant if no client specified
         @return {Promise}
     */
     that.lock = function (id, username, eventkey, pProcess, client, tenant) {
@@ -714,7 +713,7 @@
         @param {String} [criteria.username] User name
         @param {String} [criteria.eventKey] Event key
         @param {Object} [client] Client connection
-        @param {Object} [tenant] Tenant
+        @param {Object} [tenant] Tenant if not client specified
         @return {Promise}
     */
     that.unlock = function (criteria, client, tenant) {
@@ -1937,7 +1936,7 @@
             }
 
             Promise.resolve().then(
-                db.connect.bind(null, true)
+                db.connect.bind(null, obj.tenant)
             ).then(
                 doRequest
             ).then(
@@ -2390,8 +2389,6 @@
     /**
         Load all tenant data into memory.
 
-        Applies when multiTenantEnabled = true in config file.
-
         @method loadTenants
         @return {Promise}
     */
@@ -2410,26 +2407,41 @@
                 "pgUser",
                 "pgPassword"
             ],
-            user: conf.pgUser,
-            filter: {criteria: [{
-                property: "isActive"
-                value: true
-            }]}
+            user: conf.pgUser
         }, true);
         let pTenants = await that.request({
             client: pClient,
+            filter: {criteria: [{
+                property: "isActive",
+                value: true
+            }]},
             method: "GET",
             name: "Tenant",
             properties: ["company", "pgService", "pgDatabase"],
             user: conf.pgUser
         }, true);
+        let tenant;
+        let n = 0;
+        let svc;
         conn.done();
         tenants.length = 0; // Clear previous global values
-        pTenants.forEach(function (tenant) {
-            let svc = tservices.find((s) => s.id === tenant.pgService.id);
+        while (n < pTenants.length) {
+            tenant = pTenants[n];
+            n += 1;
+            svc = tservices.find((s) => s.id === tenant.pgService.id);
             tenant.pgService = svc;
-            tenants.push(tenant);
-        });
+            try {
+                conn = await db.connect(tenant);
+                tenants.push(tenant);
+            } catch (e) {
+                console.error(
+                    "Could not connect to " +
+                    tenant.pgDatabase +
+                    ". Skipping."
+                );
+            }
+        }
+
         tenants.unshift({
             company: "System default",
             pgService: {
