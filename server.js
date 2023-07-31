@@ -1542,22 +1542,19 @@
         ];
 
         // Resolve database
-        dbRouter.param("db", function (req, ignore, next, id) {
-            req.database = id;
-            let tenant = tenants.find((t) => req.database === t.pgDatabase);
+        dbRouter.param("db", function (req, res, next, id) {
+            let tenant = tenants.find((t) => id === t.pgDatabase);
             if (tenant) {
+                req.database = id;
                 req.tenant = tenant;
                 next();
                 return;
             }
             res.sendStatus(404);
             console.error(
-                "Database " +
-                req.database +
+                "Database " + id +
                 " is not a registered tenant"
             );
-            //console.log("DB->", req.database);
-            next();
         });
 
         // static pages
