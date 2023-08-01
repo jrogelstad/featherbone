@@ -1269,545 +1269,493 @@
         Default false.
         @return {Promise}
     */
-    that.request = function (obj, isSuperUser) {
-        return new Promise(function (resolve, reject) {
-            isSuperUser = Boolean(isSuperUser);
+    that.request = async function (obj, isSuperUser) {
+        isSuperUser = Boolean(isSuperUser);
 
-            let theClient;
-            let done;
-            let transaction;
-            let isChild;
-            let catalog = (
-                settings.data.catalog
-                ? settings.data.catalog.data
-                : {}
-            );
-            let isExternalClient = false;
-            let wrap = false;
-            let isTriggering = (
-                obj.client
-                ? obj.client.isTriggering()
-                : false
-            );
+        let theClient;
+        let done;
+        let transaction;
+        let isChild;
+        let catalog = (
+            settings.data.catalog
+            ? settings.data.catalog.data
+            : {}
+        );
+        let isExternalClient = false;
+        let wrap = false;
+        let isTriggering = (
+            obj.client
+            ? obj.client.isTriggering()
+            : false
+        );
 
-            async function begin() {
-                if (!theClient.wrapped()) {
-                    await crud.begin({client: theClient});
-                    theClient.wrapped(true);
-                }
+        async function begin() {
+            if (!theClient.wrapped()) {
+                await crud.begin({client: theClient});
+                theClient.wrapped(true);
             }
+        }
 
-            // Add old/new record objects for convenience
-            async function doPrepareTrigger(obj) {
-                let result;
+        // Add old/new record objects for convenience
+        async function doPrepareTrigger(obj) {
+            let result;
 
-                if (!obj.newRec && !obj.oldRec) {
-                    switch (obj.method) {
-                    case "POST":
-                        obj.newRec = f.copy(obj.data);
-                        break;
-                    case "PATCH":
-                        obj.newRec = f.copy(obj.data);
-                        await begin();
-                        result = await getOld(theClient, obj);
-                        obj.oldRec = result;
-                        obj.newRec = f.copy(result);
-                        jsonpatch.applyPatch(obj.newRec, obj.data);
-                        break;
-                    case "DELETE":
-                        await begin();
-                        result = await getOld(theClient, obj);
-                        obj.oldRec = result;
-                        break;
-                    default:
-                        throw "Unknown trigger method " + obj.method;
-                    }
-
-                    return;
+            if (!obj.newRec && !obj.oldRec) {
+                switch (obj.method) {
+                case "POST":
+                    obj.newRec = f.copy(obj.data);
+                    break;
+                case "PATCH":
+                    obj.newRec = f.copy(obj.data);
+                    await begin();
+                    result = await getOld(theClient, obj);
+                    obj.oldRec = result;
+                    obj.newRec = f.copy(result);
+                    jsonpatch.applyPatch(obj.newRec, obj.data);
+                    break;
+                case "DELETE":
+                    await begin();
+                    result = await getOld(theClient, obj);
+                    obj.oldRec = result;
+                    break;
+                default:
+                    throw "Unknown trigger method " + obj.method;
                 }
-
-                theClient.isTriggering(true);
-            }
-
-            function close(resp) {
-                return new Promise(function (resolve) {
-                    //console.log("CLOSING");
-                    theClient.currentUser(undefined);
-                    done();
-                    resolve(resp);
-                });
-            }
-
-            function error(err) {
-                //console.log("ERROR->", obj.name, obj.method);
-                // Passed client will handle it's own connection
-                console.error(err);
-                if (typeof err === "string") {
-                    err = new Error(err);
-                }
-
-                if (!err.statusCode) {
-                    err.statusCode = 500;
-                }
-
-                if (!isExternalClient) {
-                    done();
-                }
-
-                return err;
-            }
-
-            async function commit(resp) {
-                // Forget about committing if recursive
-                if (isTriggering || isExternalClient) {
-                    return resp;
-                }
-
-                if (theClient.wrapped()) {
-                    //console.log("COMMIT->", obj.name, obj.method);
-                    try {
-                        await crud.commit({client: theClient});
-
-                        //console.log("COMMITED");
-                        return resp;
-                    } catch (err) {
-                        return Promise.reject(err);
-                    } finally {
-                        theClient.currentUser(undefined);
-                        theClient.wrapped(false);
-                    }
-                }
-
-                return resp;
-            }
-
-            function rollback(err, callback) {
-                // If external, let caller deal with transaction
-                if (isExternalClient) {
-                    callback(error(err));
-                    return;
-                }
-
-                //console.log("ROLLBACK->", obj.name, obj.method);
-
-                if (theClient.wrapped()) {
-                    crud.rollback({
-                        client: theClient,
-                        error: err
-                    }).then(function () {
-                        //console.log("ROLLED BACK");
-                        theClient.currentUser(undefined);
-                        theClient.wrapped(false);
-                        callback(error(err));
-                        return;
-                    });
-                    return;
-                }
-
-                callback(err);
 
                 return;
             }
 
-            async function doExecute() {
-                // console.log("EXECUTE->", obj.name, obj.method);
-                if (wrap && !isTriggering) {
-                    await begin();
-                    return await transaction(obj, false, isSuperUser);
-                }
+            theClient.isTriggering(true);
+        }
 
-                // Passed client must handle its own transaction wrapping
-                return await transaction(obj, isChild, isSuperUser);
+        function error(err) {
+            //console.log("ERROR->", obj.name, obj.method);
+            // Passed client will handle it's own connection
+            console.error(err);
+            if (typeof err === "string") {
+                err = new Error(err);
             }
 
-            async function doMethod(name, trigger) {
-                // console.log("METHOD->", obj.name, obj.method, name);
-                let transactions;
-                let resp;
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
 
-                wrap = !obj.client && obj.method !== "GET";
-                obj.data = obj.data || {};
-                obj.data.id = obj.data.id || obj.id;
-                obj.client = theClient;
-                transactions = (
-                    trigger
-                    ? registered[obj.method][name][trigger].slice()
-                    : [registered[obj.method][name]]
-                );
+            if (!isExternalClient) {
+                done();
+            }
 
-                while (transactions.length) {
-                    transaction = transactions.shift();
-                    resp = await doExecute();
-                }
+            return err;
+        }
 
+        async function commit(resp) {
+            // Forget about committing if recursive
+            if (isTriggering || isExternalClient) {
                 return resp;
             }
 
-            function clearTriggerStatus() {
-                if (!isTriggering) {
-                    theClient.isTriggering(false);
+            if (theClient.wrapped()) {
+                //console.log("COMMIT->", obj.name, obj.method);
+                try {
+                    await crud.commit({client: theClient});
+
+                    //console.log("COMMITED");
+                    return resp;
+                } catch (err) {
+                    return Promise.reject(err);
+                } finally {
+                    theClient.currentUser(undefined);
+                    theClient.wrapped(false);
                 }
             }
 
-            async function doTraverseAfter(name) {
-                // console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
-                let feather = settings.data.catalog.data[name];
-                let parent = feather.inherits || "Object";
+            return resp;
+        }
 
-                if (obj.noTrigger) {
+        async function rollback(err) {
+            // If external, let caller deal with transaction
+            if (isExternalClient) {
+                return;
+            }
+
+            //console.log("ROLLBACK->", obj.name, obj.method);
+
+            if (theClient.wrapped()) {
+                await crud.rollback({
+                    client: theClient,
+                    error: err
+                });
+                //console.log("ROLLED BACK");
+                theClient.currentUser(undefined);
+                theClient.wrapped(false);
+            }
+        }
+
+        async function doExecute() {
+            // console.log("EXECUTE->", obj.name, obj.method);
+            if (wrap && !isTriggering) {
+                await begin();
+                return await transaction(obj, false, isSuperUser);
+            }
+
+            // Passed client must handle its own transaction wrapping
+            return await transaction(obj, isChild, isSuperUser);
+        }
+
+        async function doMethod(name, trigger) {
+            // console.log("METHOD->", obj.name, obj.method, name);
+            let transactions;
+            let resp;
+
+            wrap = !obj.client && obj.method !== "GET";
+            obj.data = obj.data || {};
+            obj.data.id = obj.data.id || obj.id;
+            obj.client = theClient;
+            transactions = (
+                trigger
+                ? registered[obj.method][name][trigger].slice()
+                : [registered[obj.method][name]]
+            );
+
+            while (transactions.length) {
+                transaction = transactions.shift();
+                resp = await doExecute();
+            }
+
+            return resp;
+        }
+
+        function clearTriggerStatus() {
+            if (!isTriggering) {
+                theClient.isTriggering(false);
+            }
+        }
+
+        async function doTraverseAfter(name) {
+            // console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
+            let feather = settings.data.catalog.data[name];
+            let parent = feather.inherits || "Object";
+
+            if (obj.noTrigger) {
+                return await commit();
+            }
+
+            async function doTrigger() {
+                if (name === "Object") {
+                    await doMethod(name, TRIGGER_AFTER);
+                    clearTriggerStatus();
                     return await commit();
                 }
 
-                async function doTrigger() {
-                    if (name === "Object") {
-                        await doMethod(name, TRIGGER_AFTER);
-                        clearTriggerStatus();
-                        return await commit();
-                    }
-
-                    await doMethod(name, TRIGGER_AFTER);
-                    clearTriggerStatus();
-                    return await doTraverseAfter(parent);
-                }
-
-                // If business logic defined, do it
-                if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
-                    await doPrepareTrigger(obj);
-                    return await doTrigger();
-
-                // If traversal done, finish transaction
-                } else if (name === "Object") {
-                    return await commit(obj.response);
-
-                    // If no logic, but parent, traverse up the tree
-                } else {
-                    return doTraverseAfter(parent);
-                }
+                await doMethod(name, TRIGGER_AFTER);
+                clearTriggerStatus();
+                return await doTraverseAfter(parent);
             }
 
-            async function doQuery() {
-                // console.log("QUERY->", obj.name, obj.method);
-                obj.client = theClient;
-                isChild = false;
+            // If business logic defined, do it
+            if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
+                await doPrepareTrigger(obj);
+                return await doTrigger();
 
-                switch (obj.method) {
-                case "GET":
-                    return crud.doSelect(obj, false, isSuperUser);
-                case "POST":
-                    transaction = crud.doInsert;
-                    break;
-                case "PATCH":
-                    transaction = crud.doUpdate;
-                    break;
-                case "DELETE":
-                    transaction = crud.doDelete;
-                    break;
-                default:
-                    reject(error("method \"" + obj.method + "\" unknown"));
-                    return;
-                }
+            // If traversal done, finish transaction
+            } else if (name === "Object") {
+                return await commit(obj.response);
 
-                obj.response = await doExecute();
-                return await doTraverseAfter(obj.name);
+                // If no logic, but parent, traverse up the tree
+            } else {
+                return doTraverseAfter(parent);
+            }
+        }
+
+        async function doQuery() {
+            // console.log("QUERY->", obj.name, obj.method);
+            obj.client = theClient;
+            isChild = false;
+
+            switch (obj.method) {
+            case "GET":
+                return crud.doSelect(obj, false, isSuperUser);
+            case "POST":
+                transaction = crud.doInsert;
+                break;
+            case "PATCH":
+                transaction = crud.doUpdate;
+                break;
+            case "DELETE":
+                transaction = crud.doDelete;
+                break;
+            default:
+                return Promise.reject(error(
+                    "method \"" + obj.method + "\" unknown"
+                ));
             }
 
-            async function doTraverseBefore(name) {
-                // console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
-                let feather = settings.data.catalog.data[name];
-                let parent = feather.inherits || "Object";
+            obj.response = await doExecute();
+            return await doTraverseAfter(obj.name);
+        }
 
-                if (obj.noTrigger) {
-                    return doQuery();
-                }
+        async function doTraverseBefore(name) {
+            // console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
+            let feather = settings.data.catalog.data[name];
+            let parent = feather.inherits || "Object";
 
-                async function doTrigger() {
-                    if (name === "Object") {
-                        await doMethod(name, TRIGGER_BEFORE);
-                        clearTriggerStatus();
-                        return await doQuery();
-                    }
+            if (obj.noTrigger) {
+                return doQuery();
+            }
 
+            async function doTrigger() {
+                if (name === "Object") {
                     await doMethod(name, TRIGGER_BEFORE);
                     clearTriggerStatus();
-                    return await doTraverseBefore(parent);
+                    return await doQuery();
                 }
 
-                // If business logic defined, do it
-                if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
-                    await doPrepareTrigger(obj);
-                    return await doTrigger();
-
-                // Traversal done
-                } else if (name === "Object") {
-                    // Accept any changes made by triggers
-                    if (obj.newRec) {
-                        switch (obj.method) {
-                        case "POST":
-                            obj.data = obj.newRec;
-                            break;
-                        case "PATCH":
-                            obj.data = jsonpatch.compare(
-                                obj.oldRec,
-                                obj.newRec
-                            );
-                            break;
-                        }
-                    }
-
-                    return doQuery();
-
-                    // If no logic, but parent, traverse up the tree
-                } else {
-                    return doTraverseBefore(parent);
-                }
+                await doMethod(name, TRIGGER_BEFORE);
+                clearTriggerStatus();
+                return await doTraverseBefore(parent);
             }
 
-            async function resolveType() {
-                let resp;
-                let payload = {
-                    id: obj.id,
-                    name: obj.name,
-                    client: theClient,
-                    properties: ["objectType"]
-                };
+            // If business logic defined, do it
+            if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
+                await doPrepareTrigger(obj);
+                return await doTrigger();
 
-                resp = await crud.doSelect(payload, false, isSuperUser);
-                if (resp) {
-                    obj.name = resp.objectType;
-                }
-                return obj.name;
-            }
-
-            // Determine with POST with id is insert or update
-            async function doUpsert() {
-                let payload = {
-                    id: obj.id,
-                    name: obj.name,
-                    client: theClient
-                };
-                let resp;
-                let patch;
-
-                // Apply properties of a new record over the top of an
-                // existing record assuming not all feather properties
-                // may be present. This is so jsonpatch doesn't remove
-                // properties not specified
-                function overlay(newRec, oldRec) {
-                    let n;
-
-                    oldRec = f.copy(oldRec);
-
-                    Object.keys(oldRec).forEach(function (key) {
-                        if (Array.isArray(oldRec[key])) {
-                            if (
-                                newRec[key] === undefined ||
-                                newRec[key] === null
-                            ) {
-                                newRec[key] = oldRec[key];
-                                return;
-                            }
-
-                            if (!Array.isArray(newRec[key])) {
-                                throw new Error(
-                                    "Array expected for property \"" + key +
-                                    "\" on " + oldRec.objectType +
-                                    " record with id " +
-                                    oldRec.id
-                                );
-                            }
-
-                            // We want old array rows deleted if they
-                            // no longer exist in the new record
-                            if (oldRec.length > newRec.length) {
-                                oldRec.length = newRec.length;
-                            }
-
-                            // Update children in array
-                            n = 0;
-                            oldRec[key].forEach(function (oldChild) {
-                                if (
-                                    newRec[key][n] !== undefined &&
-                                    newRec[key][n] !== null
-                                ) {
-                                    overlay(newRec[key][n], oldChild);
-                                } else {
-                                    newRec[key][n] = null;
-                                }
-                                n += 1;
-                            });
-                        } else if (newRec[key] === undefined) {
-                            newRec[key] = oldRec[key];
-                        }
-                    });
-                }
-
-                resp = await crud.doSelect(payload, false, isSuperUser);
-                if (resp) {
-                    obj.name = resp.objectType;
-                    overlay(obj.data, resp);
-                    patch = jsonpatch.compare(
-                        resp,
-                        obj.data
-                    );
-                    obj.method = "PATCH";
-                    obj.data = patch;
-                    obj.cache = Object.freeze(f.copy(patch));
-                } else {
-                    // Cache original request that may get changed
-                    // by triggers
-                    if (obj.data) {
-                        obj.cache = Object.freeze(f.copy(obj.data));
-                    }
-                    obj.data.id = obj.id;
-                }
-            }
-
-            function doRequest(resp) {
-                if (!isExternalClient) {
-                    // Disallow SQL calls directly from db services by
-                    // making client simply a reference object.
-                    theClient = resp.client;
-                    done = resp.done;
-                }
-
-                //console.log("REQUEST->", obj.name, obj.method);
-                return new Promise(function (resolve, reject) {
-                    let msg;
-
-                    if (!theClient.currentUser() && !obj.user) {
-                        msg = "User undefined. " + obj.method + " " + obj.name;
-                        reject(msg);
-                        return;
-                    }
-
-                    if (!theClient.currentUser()) {
-                        theClient.currentUser(obj.user);
-                    }
-
-                    if (obj.subscription) {
-                        obj.subscription.nodeId = db.nodeId;
-                    }
-
-                    // If alter data, process it
-                    if (catalog[obj.name]) {
-                        if (obj.method === "GET") {
-                            doQuery().then(function (resp) {
-                                if (!theClient.wrapped()) {
-                                    theClient.currentUser(undefined);
-                                }
-                                resolve(resp);
-                            }).catch(reject);
-                        } else if (obj.method === "POST" && obj.id) {
-                            begin().then(
-                                doUpsert
-                            ).then(
-                                doTraverseBefore.bind(null, obj.name)
-                            ).then(
-                                resolve
-                            ).catch(
-                                function (err) {
-                                    rollback(err, reject);
-                                }
-                            );
-                        } else if (
-                            obj.method === "DELETE" || obj.method === "PATCH"
-                        ) {
-                            if (!obj.id) {
-                                throw new Error(
-                                    obj.method + " request requires an id"
-                                );
-                            }
-
-                            // Cache original request that may get changed by
-                            // triggers
-                            if (obj.data) {
-                                obj.cache = Object.freeze(f.copy(obj.data));
-                            }
-
-                            if (!isExternalClient) {
-                                wrap = true;
-                            }
-
-                            begin().then(
-                                resolveType // Make sure biz logic applied!
-                            ).then(
-                                doTraverseBefore
-                            ).then(
-                                resolve
-                            ).catch(
-                                function (err) {
-                                    rollback(err, reject);
-                                }
-                            );
-                        // Must be post new
-                        } else {
-                            // Cache original request that may get changed by
-                            // triggers
-                            if (obj.data) {
-                                obj.cache = Object.freeze(f.copy(obj.data));
-                            }
-
-                            if (!isExternalClient) {
-                                wrap = true;
-                            }
-
-                            doTraverseBefore(obj.name).then(
-                                resolve
-                            ).catch(
-                                function (err) {
-                                    rollback(err, reject);
-                                }
-                            );
-                        }
-
-                    // If function, execute it
-                    } else if (isRegistered(obj.method, obj.name)) {
-                        Promise.resolve().then(
-                            doMethod.bind(null, obj.name)
-                        ).then(
-                            commit
-                        ).then(
-                            resolve
-                        ).catch(
-                            function (err) {
-                                rollback(err, reject);
-                            }
+            // Traversal done
+            } else if (name === "Object") {
+                // Accept any changes made by triggers
+                if (obj.newRec) {
+                    switch (obj.method) {
+                    case "POST":
+                        obj.data = obj.newRec;
+                        break;
+                    case "PATCH":
+                        obj.data = jsonpatch.compare(
+                            obj.oldRec,
+                            obj.newRec
                         );
+                        break;
+                    }
+                }
 
-                    // Young fool, now you will die.
-                    } else {
-                        msg = "Function " + obj.method + " ";
-                        msg += obj.name + " is not registered.";
-                        throw new Error(msg);
+                return doQuery();
+
+                // If no logic, but parent, traverse up the tree
+            } else {
+                return doTraverseBefore(parent);
+            }
+        }
+
+        async function resolveType() {
+            let resp;
+            let payload = {
+                id: obj.id,
+                name: obj.name,
+                client: theClient,
+                properties: ["objectType"]
+            };
+
+            resp = await crud.doSelect(payload, false, isSuperUser);
+            if (resp) {
+                obj.name = resp.objectType;
+            }
+            return obj.name;
+        }
+
+        // Determine with POST with id is insert or update
+        async function doUpsert() {
+            let payload = {
+                id: obj.id,
+                name: obj.name,
+                client: theClient
+            };
+            let resp;
+            let patch;
+
+            // Apply properties of a new record over the top of an
+            // existing record assuming not all feather properties
+            // may be present. This is so jsonpatch doesn't remove
+            // properties not specified
+            function overlay(newRec, oldRec) {
+                let n;
+
+                oldRec = f.copy(oldRec);
+
+                Object.keys(oldRec).forEach(function (key) {
+                    if (Array.isArray(oldRec[key])) {
+                        if (
+                            newRec[key] === undefined ||
+                            newRec[key] === null
+                        ) {
+                            newRec[key] = oldRec[key];
+                            return;
+                        }
+
+                        if (!Array.isArray(newRec[key])) {
+                            throw new Error(
+                                "Array expected for property \"" + key +
+                                "\" on " + oldRec.objectType +
+                                " record with id " +
+                                oldRec.id
+                            );
+                        }
+
+                        // We want old array rows deleted if they
+                        // no longer exist in the new record
+                        if (oldRec.length > newRec.length) {
+                            oldRec.length = newRec.length;
+                        }
+
+                        // Update children in array
+                        n = 0;
+                        oldRec[key].forEach(function (oldChild) {
+                            if (
+                                newRec[key][n] !== undefined &&
+                                newRec[key][n] !== null
+                            ) {
+                                overlay(newRec[key][n], oldChild);
+                            } else {
+                                newRec[key][n] = null;
+                            }
+                            n += 1;
+                        });
+                    } else if (newRec[key] === undefined) {
+                        newRec[key] = oldRec[key];
                     }
                 });
             }
 
-            if (obj.client) {
-                isExternalClient = true;
-                theClient = obj.client;
-                Promise.resolve().then(
-                    doRequest
-                ).then(
-                    resolve
-                ).catch(
-                    reject
+            resp = await crud.doSelect(payload, false, isSuperUser);
+            if (resp) {
+                obj.name = resp.objectType;
+                overlay(obj.data, resp);
+                patch = jsonpatch.compare(
+                    resp,
+                    obj.data
                 );
-                return;
+                obj.method = "PATCH";
+                obj.data = patch;
+                obj.cache = Object.freeze(f.copy(patch));
+            } else {
+                // Cache original request that may get changed
+                // by triggers
+                if (obj.data) {
+                    obj.cache = Object.freeze(f.copy(obj.data));
+                }
+                obj.data.id = obj.id;
+            }
+        }
+
+        async function doRequest(resp) {
+            let resp2;
+            if (!isExternalClient) {
+                theClient = resp.client;
+                done = resp.done;
             }
 
-            Promise.resolve().then(
-                db.connect.bind(null, obj.tenant)
-            ).then(
-                doRequest
-            ).then(
-                close
-            ).then(
-                resolve
-            ).catch(
-                reject
-            );
-        });
+            //console.log("REQUEST->", obj.name, obj.method);
+            let msg;
+
+            if (!theClient.currentUser() && !obj.user) {
+                msg = "User undefined. " + obj.method + " " + obj.name;
+                return Promise.reject(msg);
+            }
+
+            if (!theClient.currentUser()) {
+                theClient.currentUser(obj.user);
+            }
+
+            if (obj.subscription) {
+                obj.subscription.nodeId = db.nodeId;
+            }
+
+            // If alter data, process it
+            if (catalog[obj.name]) {
+                if (obj.method === "GET") {
+                    resp2 = await doQuery();
+                    if (!theClient.wrapped()) {
+                        theClient.currentUser(undefined);
+                    }
+                    return resp2;
+                } else if (obj.method === "POST" && obj.id) {
+                    await begin();
+                    await doUpsert();
+                    return await doTraverseBefore(obj.name);
+                } else if (
+                    obj.method === "DELETE" || obj.method === "PATCH"
+                ) {
+                    if (!obj.id) {
+                        throw new Error(
+                            obj.method + " request requires an id"
+                        );
+                    }
+
+                    // Cache original request that may get changed by
+                    // triggers
+                    if (obj.data) {
+                        obj.cache = Object.freeze(f.copy(obj.data));
+                    }
+
+                    if (!isExternalClient) {
+                        wrap = true;
+                    }
+
+                    await begin();
+                    try {
+                        resp2 = await resolveType();
+                        return await doTraverseBefore(resp2);
+                    } catch (err) {
+                        await rollback(err);
+                        return Promise.reject(err);
+                    }
+                // Must be post new
+                } else {
+                    // Cache original request that may get changed by
+                    // triggers
+                    if (obj.data) {
+                        obj.cache = Object.freeze(f.copy(obj.data));
+                    }
+
+                    if (!isExternalClient) {
+                        wrap = true;
+                    }
+
+                    try {
+                        return await doTraverseBefore(obj.name);
+                    } catch (err) {
+                        await rollback(err);
+                        return Promise.reject(err);
+                    }
+                }
+
+            // If function, execute it
+            } else if (isRegistered(obj.method, obj.name)) {
+                try {
+                    resp2 = await doMethod(obj.name);
+                    await commit();
+                    return resp2;
+                } catch (err) {
+                    await rollback(err);
+                    return Promise.reject(err);
+                }
+
+            // Young fool, now you will die.
+            } else {
+                msg = "Function " + obj.method + " ";
+                msg += obj.name + " is not registered.";
+                return Promise.reject(msg);
+            }
+        }
+
+        if (obj.client) {
+            isExternalClient = true;
+            theClient = obj.client;
+            return await doRequest();
+        }
+
+        let resp = await db.connect(obj.tenant);
+        resp = await doRequest(resp);
+        theClient.currentUser(undefined);
+        done();
+        return resp;
     };
 
     /**
