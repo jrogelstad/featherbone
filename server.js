@@ -1652,15 +1652,14 @@
         });
 
         // static pages
-        app.get("/files/downloads/:sourcename", doGetDownload);
-        app.get("/files/downloads/:sourcename/:targetname", doGetDownload);
+        dbRouter.get("/:db/files/downloads/:sourcename", doGetDownload);
+        dbRouter.get("/:db/files/downloads/:sourcename/:targetname", doGetDownload);
+        // File upload
+        dbRouter.use(expressFileUpload());
         dbRouter.get("/:db/", doGetIndexFile);
         app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
         files.forEach((filename) => app.get(filename, doGetFile));
-
-        // File upload
-        app.use(expressFileUpload());
 
         // Uploaded files
         if (fileUpload) {
