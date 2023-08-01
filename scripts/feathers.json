@@ -1450,9 +1450,10 @@
                 "alias": "Database",
                 "isRequired": true
             },
-            "nodeServer": {
-                "description": "Node Application server url",
-                "type": "string"
+            "databaseInitialized": {
+                "description": "Flag whether database has been created",
+                "type": "boolean",
+                "isReadOnly": true
             }
         }
     }

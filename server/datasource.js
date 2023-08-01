@@ -2204,9 +2204,8 @@
     that.loadTenants = async function () {
         let conf = await config.read();
         let conn = await db.connect();
-        let pClient = conn.client;
         let tservices = await that.request({
-            client: pClient,
+            client: conn.client,
             method: "GET",
             name: "TenantService",
             properties: [
@@ -2219,9 +2218,12 @@
             user: conf.pgUser
         }, true);
         let pTenants = await that.request({
-            client: pClient,
+            client: conn.client,
             filter: {criteria: [{
                 property: "isActive",
+                value: true
+            }, {
+                property: "databaseInitialized",
                 value: true
             }]},
             method: "GET",
@@ -2229,9 +2231,19 @@
             properties: ["company", "pgService", "pgDatabase"],
             user: conf.pgUser
         }, true);
+        let acSettings = await that.request({
+            method: "GET",
+            name: "getSettings",
+            user: conf.pgUser,
+            data: {
+                name: "adminConsoleSettings",
+                force: true
+            }
+        });
         let tenant;
         let n = 0;
         let svc;
+        let mods;
         conn.done();
         tenants.length = 0; // Clear previous global values
         while (n < pTenants.length) {
@@ -2241,7 +2253,32 @@
             tenant.pgService = svc;
             try {
                 conn = await db.connect(tenant);
-                tenants.push(tenant);
+                mods = await that.request({
+                    client: conn.client,
+                    filter: {criteria: [{
+                        property: "name",
+                        value: acSettings.module
+                    }, {
+                        property: "version",
+                        value: acSettings.version
+                    }]},
+                    method: "GET",
+                    name: "Module",
+                    properties: ["id"],
+                    user: conf.pgUser
+                }, true);
+                conn.done();
+                if (mods.length) {
+                    tenants.push(tenant);
+                } else {
+                    console.error(
+                        "Database " +
+                        tenant.pgDatabase +
+                        " requires module " + acSettings.module +
+                        " version " + acSettings.version +
+                        " That is not installed. Skipping."
+                    );
+                }
             } catch (ignore) {
                 console.error(
                     "Could not connect to " +
