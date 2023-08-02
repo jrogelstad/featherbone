@@ -66,8 +66,11 @@
             @param {Object} client
             @param {String} dir Directory of manifest
             @param {String} user User name
-            @param {Boolean} [isSuper] Force as super user
-            @param {Object} [subscription] Subscription for client progress bar
+            @param {Object} [options]
+            @param {Boolean} [options.isSuper] Force as super user
+            @param {Object} [options.subscription] Subscription for client
+            progress bar
+            @param {String} [options.tenant] Target tenant
             @return {Promise}
         */
         that.install = function (
@@ -75,10 +78,10 @@
             pClient,
             pDir,
             pUser,
-            pIsSuper,
-            pSubscr
+            opts
         ) {
             return new Promise(function (resolve, reject) {
+                opts = opts || {};
                 let manifest;
                 let processFile;
                 let i = 0;
@@ -89,14 +92,27 @@
                     base: MANIFEST
                 });
                 let installedFeathers = false;
-                let process;
+                let pProcess;
+                let pIsSuper = opts.isSuper;
+                let pSubscr = opts.subscription;
+                let reqClient = pClient;
+                let conn;
 
                 f.datasource = pDatasource;
                 isInstalling = true;
-                pClient.currentUser(pUser);
 
-                async function initProcess() {
+                async function init() {
                     let pkgName;
+
+                    // If target database is other than requestor's,
+                    // connect to it
+                    if (opts.tenant) {
+                        conn = await db.connect(opts.tenant);
+                        pClient = conn.client;
+                    }
+
+                    pClient.currentUser(pUser);
+
                     function getCount(loc) {
                         return new Promise(function (resolve) {
                             async function handleCount(err, dat) {
@@ -111,6 +127,11 @@
                                         data.module + " v" +
                                         data.version
                                     );
+                                    if (opts.tenant) {
+                                        pkgName += (
+                                            " on " + opts.tenant.pgDatabase
+                                        );
+                                    }
                                 }
                                 let count = data.files.filter(
                                     (f) => f.type !== "install"
@@ -134,13 +155,13 @@
                         });
                     }
                     let pCount = await getCount(MANIFEST);
-                    process = f.datasource.createProcess({
-                        client: pClient,
+                    pProcess = f.datasource.createProcess({
+                        client: reqClient,
                         count: pCount,
                         name: pkgName,
                         subscription: pSubscr
                     });
-                    await process.start();
+                    await pProcess.start();
                 }
 
                 function registerNpmModules(isSuper) {
@@ -589,7 +610,32 @@
                                 pUser,
                                 pClient
                             );
-                        }).then(process.complete).then(function () {
+                        }).then(async function () {
+                            let tmods;
+                            if (opts.tenant) {
+                                tmods = await pDatasource({
+                                    client: pClient,
+                                    method: "GET",
+                                    name: "Module",
+                                    properties: ["name", "version"],
+                                    user: pUser
+                                });
+                                await pDatasource({
+                                    client: reqClient,
+                                    data: [{
+                                        op: "replace",
+                                        path: "/modules",
+                                        value: tmods
+                                    }],
+                                    method: "PATCH",
+                                    name: "Tennant",
+                                    user: pUser
+                                });
+                            }
+                        }).then(pProcess.complete).then(function () {
+                            if (conn) {
+                                conn.done();
+                            }
                             console.log("Installation completed!");
                             resolve();
                         });
@@ -652,7 +698,7 @@
                         content = data;
 
                         console.log("Installing " + filename);
-                        process.next();
+                        pProcess.next();
 
                         try {
                             switch (file.type) {
@@ -720,7 +766,7 @@
 
                 if (pIsSuper) {
                     // Run from command line, so ignore process stuff
-                    process = {
+                    pProcess = {
                         next: () => true,
                         complete: () => true
                     };
@@ -736,7 +782,8 @@
                     });
                     return is;
                 }
-                initProcess().then(
+
+                init().then(
                     checkSuper
                 ).then(
                     registerNpmModules

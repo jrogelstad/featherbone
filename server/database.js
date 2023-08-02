@@ -245,100 +245,85 @@
             @param {Object} [tenant] Tenant login credentials
             @return {Promise}
         */
-        that.connect = function (tenant) {
+        that.connect = async function (tenant) {
             tenant = resolveTenant(tenant);
 
-            return new Promise(function (resolve, reject) {
-                let id = f.createId();
-                let db;
-                let pool;
+            let id = f.createId();
+            let db;
+            let pool;
+            let resp;
 
-                // Do connection
-                function doConnect() {
-                    return new Promise(function (resolve, reject) {
-                        db = tenant.pgDatabase || cache.pgDatabase;
-                        pool = pools[db];
-                        if (!pool) {
-                            if (tenant.pgDatabase) {
-                                pool = new Pool({
-                                    database: tenant.pgDatabase,
-                                    host: tenant.pgService.pgHost,
-                                    password: tenant.pgService.pgPassword,
-                                    port: tenant.pgService.pgPort,
-                                    ssl: sslConfig(cache), // Doesn't look right
-                                    user: tenant.pgService.pgUser
-                                });
-                            } else {
-                                pool = new Pool(cache.postgres);
-                            }
-                            pool.setMaxListeners(cache.postgres.max || 10);
-                            pools[db] = pool;
-                        }
-
-                        pool.connect(function (err, c, d) {
-                            let callbacks = [];
-                            let rollbacks = [];
-
-                            function doOnCommit(callback) {
-                                callbacks.push(callback);
-                            }
-
-                            function doOnRollback(callback) {
-                                rollbacks.push(callback);
-                            }
-
-                            // handle an error from the connection
-                            if (err) {
-                                console.error(
-                                    "Could not connect to server",
-                                    err
-                                );
-                                reject(err);
-                                return;
-                            }
-
-                            c.clientId = id;
-                            c.currentUser = prop();
-                            c.tenant = prop(
-                                tenant.pgDatabase
-                                ? tenant
-                                : undefined
-                            );
-                            c.isTriggering = prop(false);
-                            c.wrapped = prop(false);
-                            c.onCommit = doOnCommit;
-                            c.onRollback = doOnRollback;
-                            c.callbacks = callbacks;
-                            c.rollbacks = rollbacks;
-
-                            resolve({
-                                client: c,
-                                done: d
-                            });
+            // Do connection
+            async function doConnect() {
+                db = tenant.pgDatabase || cache.pgDatabase;
+                pool = pools[db];
+                if (!pool) {
+                    if (tenant.pgDatabase) {
+                        pool = new Pool({
+                            database: tenant.pgDatabase,
+                            host: tenant.pgService.pgHost,
+                            password: tenant.pgService.pgPassword,
+                            port: tenant.pgService.pgPort,
+                            ssl: sslConfig(cache), // Doesn't look right
+                            user: tenant.pgService.pgUser
                         });
-                    });
+                    } else {
+                        pool = new Pool(cache.postgres);
+                    }
+                    pool.setMaxListeners(cache.postgres.max || 10);
+                    pools[db] = pool;
                 }
 
-                if (cache) {
-                    doConnect().then(resolve).catch(reject);
-                    return;
+                let callbacks = [];
+                let rollbacks = [];
+                let c;
+
+                function doOnCommit(callback) {
+                    callbacks.push(callback);
                 }
 
-                // If no config cache, go get it
-                Promise.resolve().then(
-                    config.read
-                ).then(
-                    setNodeId
-                ).then(
-                    setConfig
-                ).then(
-                    doConnect
-                ).then(
-                    resolve
-                ).catch(
-                    reject
-                );
-            });
+                function doOnRollback(callback) {
+                    rollbacks.push(callback);
+                }
+
+                try {
+                    c = await pool.connect();
+                    c.clientId = id;
+                    c.currentUser = prop();
+                    c.tenant = prop(
+                        tenant.pgDatabase
+                        ? tenant
+                        : undefined
+                    );
+                    c.isTriggering = prop(false);
+                    c.wrapped = prop(false);
+                    c.onCommit = doOnCommit;
+                    c.onRollback = doOnRollback;
+                    c.callbacks = callbacks;
+                    c.rollbacks = rollbacks;
+
+                    return {
+                        client: c,
+                        done: c.release
+                    };
+                } catch (err) {
+                    console.error(
+                        "Could not connect to server",
+                        err
+                    );
+                    return Promise.reject(err);
+                }
+            }
+
+            if (cache) {
+                return doConnect();
+            }
+
+            // If no config cache, go get it
+            resp = await config.read();
+            await setNodeId(resp);
+            await setConfig(resp);
+            return doConnect();
         };
         /**
             Object defining a user on the server side for passport management.

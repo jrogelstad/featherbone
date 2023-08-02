@@ -781,8 +781,11 @@
             datasource.install(
                 DIR,
                 req.user.name,
-                query.subscription,
-                req.tenant
+                {
+                    subscription: query.subscription,
+                    tenant: req.tenant,
+                    databases: query.databases
+                }
             ).catch(function (err) {
                 return new Promise(function (resolve) {
                     error.bind(res)(err);
@@ -1653,7 +1656,10 @@
 
         // static pages
         dbRouter.get("/:db/files/downloads/:sourcename", doGetDownload);
-        dbRouter.get("/:db/files/downloads/:sourcename/:targetname", doGetDownload);
+        dbRouter.get(
+            "/:db/files/downloads/:sourcename/:targetname",
+            doGetDownload
+        );
         // File upload
         dbRouter.use(expressFileUpload());
         dbRouter.get("/:db/", doGetIndexFile);
