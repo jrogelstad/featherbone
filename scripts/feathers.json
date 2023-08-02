@@ -1363,6 +1363,7 @@
         "name": "TenantService",
         "plural": "TenantServices",
         "module": "Core",
+        "inherits": "Document",
         "description": "Tennant postgres service",
         "properties": {
             "name": {
@@ -1403,6 +1404,7 @@
     {
         "name": "Tenant",
         "plural": "Tenants",
+        "inherits": "Document",
         "module": "Core",
         "description": "Map of companies to their database",
         "properties": {
@@ -1448,12 +1450,19 @@
                 "description": "Postgres database name",
                 "type": "string",
                 "alias": "Database",
-                "isRequired": true
+                "isRequired": true,
+                "isAlwaysLoad": true
             },
             "databaseInitialized": {
                 "description": "Flag whether database has been created",
                 "type": "boolean",
                 "isReadOnly": true
+            },
+            "modules": {
+                "description": "List of modules installed on tenant",
+                "type": "array",
+                "isReadOnly": true,
+                "isAlwaysLoad": true
             }
         }
     }

@@ -766,45 +766,55 @@
         @method install
         @param {String} Manifest filename.
         @param {String} User name.
-        @param {Object} [subscription] Subscription object for progress tracking
-        @param {Object} [tenant] Tenant
+        @param {Object} [options]
+        @param {Object} [options.subscription] Object for progress tracking
+        @param {Object} [options.tenant] Tenant making request
+        @param {Object} [options.databases] Target tenant databases
         @return {Object} Promise
     */
-    that.install = function (filename, username, subscription, tenant) {
-        return new Promise(function (resolve, reject) {
-            // Do the work
-            function doInstall(resp) {
-                return new Promise(function (resolve, reject) {
-                    function callback(filename) {
-                        resp.done();
-                        resolve(filename);
-                    }
+    that.install = async function (filename, username, opts) {
+        opts = opts || {};
+        let target;
+        let targets = [];
+        let resp;
+        let n = 0;
 
-                    installer.install(
-                        that,
-                        resp.client,
-                        filename,
-                        username,
-                        false,
-                        subscription
-                    ).then(
-                        callback
-                    ).catch(
-                        reject
+        if (opts.databases && opts.databases.length) {
+            while (n < opts.databases.length) {
+                target = tenants.find(
+                    (t) => t.pgDatabase === opts.databases[n]
+                );
+                if (!target) {
+                    throw (
+                        "Invalid target database " +
+                        opts.databases[n] +
+                        " passed"
                     );
-                });
+                }
+                n += 1;
+                targets.push(target);
             }
+        } else {
+            targets.push(undefined);
+        }
 
-            Promise.resolve().then(
-                db.connect.bind(null, tenant)
-            ).then(
-                doInstall
-            ).then(
-                resolve
-            ).catch(
-                reject
+        resp = await db.connect(opts.tenant);
+        // Do the work
+        while (targets.length) {
+            await installer.install(
+                that,
+                resp.client,
+                filename,
+                username,
+                {
+                    isSuper: false,
+                    subscription: opts.subscription,
+                    tenant: targets.shift()
+                }
             );
-        });
+        }
+        resp.done();
+        return filename;
     };
 
     /**
@@ -2251,41 +2261,7 @@
             n += 1;
             svc = tservices.find((s) => s.id === tenant.pgService.id);
             tenant.pgService = svc;
-            try {
-                conn = await db.connect(tenant);
-                mods = await that.request({
-                    client: conn.client,
-                    filter: {criteria: [{
-                        property: "name",
-                        value: acSettings.module
-                    }, {
-                        property: "version",
-                        value: acSettings.version
-                    }]},
-                    method: "GET",
-                    name: "Module",
-                    properties: ["id"],
-                    user: conf.pgUser
-                }, true);
-                conn.done();
-                if (mods.length) {
-                    tenants.push(tenant);
-                } else {
-                    console.error(
-                        "Database " +
-                        tenant.pgDatabase +
-                        " requires module " + acSettings.module +
-                        " version " + acSettings.version +
-                        " That is not installed. Skipping."
-                    );
-                }
-            } catch (ignore) {
-                console.error(
-                    "Could not connect to " +
-                    tenant.pgDatabase +
-                    ". Skipping."
-                );
-            }
+            tenants.push(tenant);
         }
 
         tenants.unshift({
