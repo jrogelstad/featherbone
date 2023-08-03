@@ -206,7 +206,13 @@
     }
 
     function install() {
-        return installer.install(datasource, client, dir, user, true);
+        return installer.install(
+            datasource,
+            client,
+            dir,
+            user,
+            {isSuper: true}
+        );
     }
 
     function done() {
