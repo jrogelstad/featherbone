@@ -1878,6 +1878,7 @@ f.notify = function (msg, opts) {
         note.status = opts.status;
     } else {
         notes.push({
+            canStop: opts.canStop,
             id: theId,
             message: msg,
             icon: opts.icon || "info",
@@ -1907,16 +1908,18 @@ function mapSnackbar(note) {
     if (note.isProcess) {
         if (note.status === "P") {
             status = "Processing";
-            icls = "dangerous";
-            iclass += " fb-snackbar-cancel";
-            ititle = "Stop process";
-            close = function () {
-                f.datasource().request({
-                    method: "POST",
-                    path: "/do/stop-process",
-                    body: {id: note.id}
-                });
-            };
+            if (note.canStop) {
+                icls = "dangerous";
+                iclass += " fb-snackbar-cancel";
+                ititle = "Stop process";
+                close = function () {
+                    f.datasource().request({
+                        method: "POST",
+                        path: "/do/stop-process",
+                        body: {id: note.id}
+                    });
+                };
+            }
         } else if (note.status === "C") {
             status = "Complete";
         } else if (note.status === "E") {
@@ -1925,11 +1928,12 @@ function mapSnackbar(note) {
             status = "Stopped";
         }
         ret = m("div", {class: "fb-snackbar-item"}, [
-            m("div", {class: "fb-snackbar-progress"}, [
+            m("div", {}, [
                 m("label", {
                     for: note.id
                 }, status + ": " + note.message),
                 m("progress", {
+                    class: "fb-snackbar-progress",
                     id: note.id,
                     max: 100,
                     value: note.percentComplete
@@ -2054,6 +2058,7 @@ f.processEvent = function (obj) {
     if (data.objectType === "ServerProcess") {
         if (change === "create" || change === "update") {
             f.notify(data.name, {
+                canStop: data.canStop,
                 processId: data.id,
                 percentComplete: data.percentComplete,
                 status: data.status
