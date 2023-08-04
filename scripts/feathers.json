@@ -1356,6 +1356,11 @@
             "processId": {
                 "description": "Postgres process ID. Needed if stopping process",
                 "type": "integer"
+            },
+            "canStop": {
+                "description": "Flag whether process can be stopped while processing",
+                "type": "boolean",
+                "default": true
             }
         }
     },
