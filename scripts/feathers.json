@@ -1417,7 +1417,8 @@
                 "description": "Full name of company",
                 "type": "string",
                 "isRequired": true,
-                "isAlwaysLoad": true
+                "isAlwaysLoad": true,
+                "isNaturalKey": true
             },
             "contact": {
                 "description": "Primary contact",
@@ -1456,12 +1457,8 @@
                 "type": "string",
                 "alias": "Database",
                 "isRequired": true,
-                "isAlwaysLoad": true
-            },
-            "databaseInitialized": {
-                "description": "Flag whether database has been created",
-                "type": "boolean",
-                "isReadOnly": true
+                "isAlwaysLoad": true,
+                "isLabelKey": true
             },
             "modules": {
                 "description": "List of modules installed on tenant",

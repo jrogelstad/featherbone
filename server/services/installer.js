@@ -33,6 +33,7 @@
     const path = require("path");
     const f = require("../../common/core");
     let isInstalling = false;
+    let isRemote = false;
 
     f.jsonpatch = require("fast-json-patch");
     f.isInstalling = () => isInstalling;
@@ -98,6 +99,7 @@
                 let reqClient = pClient;
                 let conn;
 
+                reqClient.currentUser(pUser);
                 f.datasource = pDatasource;
                 isInstalling = true;
 
@@ -109,9 +111,9 @@
                     if (opts.tenant) {
                         conn = await db.connect(opts.tenant);
                         pClient = conn.client;
+                        pClient.currentUser(pUser);
+                        isRemote = true;
                     }
-
-                    pClient.currentUser(pUser);
 
                     function getCount(loc) {
                         return new Promise(function (resolve) {
@@ -156,6 +158,7 @@
                     }
                     let pCount = await getCount(MANIFEST);
                     pProcess = f.datasource.createProcess({
+                        canStop: !isRemote,
                         client: reqClient,
                         count: pCount,
                         name: pkgName,
@@ -166,6 +169,10 @@
 
                 function registerNpmModules(isSuper) {
                     return new Promise(function (resolve) {
+                        if (isRemote) {
+                            resolve(isSuper);
+                        }
+
                         config.read().then(function (resp) {
                             let mods = resp.npmModules || [];
 
@@ -229,6 +236,11 @@
                     };
 
                     // Start processing
+                    if (isRemote) {
+                        Promise.resolve().then(nextItem).catch(rollback);
+                        return;
+                    }
+
                     pDatasource.loadServices(pUser, pClient).then(
                         nextItem
                     ).catch(
@@ -596,8 +608,61 @@
                     let name;
                     let npm;
 
+                    async function updateTenant() {
+                        let tmods;
+                        if (opts.tenant) {
+                            tmods = await pDatasource.request({
+                                client: pClient,
+                                method: "GET",
+                                name: "Module",
+                                properties: ["name", "version"],
+                                user: pUser
+                            }, true);
+                            let acSettings = await pDatasource.request({
+                                client: reqClient,
+                                method: "GET",
+                                name: "getSettings",
+                                user: pUser,
+                                data: {name: "adminConsoleSettings"}
+                            }, true);
+                            await pDatasource.request({
+                                data: [{
+                                    op: "replace",
+                                    path: "/modules",
+                                    value: tmods
+                                }],
+                                id: opts.tenant.id,
+                                method: "PATCH",
+                                name: "Tenant",
+                                user: pUser
+                            }, true);
+
+                            if (acSettings) {
+                                if (tmods.some(function (tmod) {
+                                    return (
+                                        tmod.name === acSettings.module &&
+                                        tmod.version === acSettings.version
+                                    );
+                                })) {
+                                    opts.tenant.hasValidModule = true;
+                                }
+                            }
+                        }
+                        conn.done();
+                    }
+
                     function complete() {
                         isInstalling = false;
+                        if (isRemote) {
+                            updateTenant().then(
+                                pProcess.complete
+                            ).then(function () {
+                                console.log("Remote installation completed!");
+                                resolve();
+                            });
+                            return;
+                        }
+
                         // Some services won't initialize while installing
                         // so do it again now to make sure they're started
                         console.log("Applying npm packages...");
@@ -610,32 +675,7 @@
                                 pUser,
                                 pClient
                             );
-                        }).then(async function () {
-                            let tmods;
-                            if (opts.tenant) {
-                                tmods = await pDatasource({
-                                    client: pClient,
-                                    method: "GET",
-                                    name: "Module",
-                                    properties: ["name", "version"],
-                                    user: pUser
-                                });
-                                await pDatasource({
-                                    client: reqClient,
-                                    data: [{
-                                        op: "replace",
-                                        path: "/modules",
-                                        value: tmods
-                                    }],
-                                    method: "PATCH",
-                                    name: "Tennant",
-                                    user: pUser
-                                });
-                            }
                         }).then(pProcess.complete).then(function () {
-                            if (conn) {
-                                conn.done();
-                            }
                             console.log("Installation completed!");
                             resolve();
                         });
