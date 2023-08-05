@@ -68,6 +68,8 @@
     const mail = new Mail();
     const tenants = [];
 
+    settings.data = {};
+
     /**
         Server datasource class.
 
@@ -145,10 +147,11 @@
         @param {Object} options
         @param {String} options.name Process name
         @param {Object} options.client
-        @param {Integer} [count] Count of items to process. Default 100
-        @param {Object} [subscription] Pass for client progress notification
-        @param {string} [subscription.id] id Subscription id
-        @param {string} [subscription.eventKey] eventKey Subscription event key
+        @param {Boolean} [options.canStop] Whether process can be stopped.
+        @param {Integer} [options.count] Count of items to process. Default 100
+        @param {Object} [options.subscription] Pass for client progress notification
+        @param {string} [options.subscription.id] id Subscription id
+        @param {string} [options.subscription.eventKey] eventKey Subscription event key
         @return {Object}
     */
     function createProcess(obj) {
@@ -208,6 +211,7 @@
                 name: "ServerProcess",
                 user: pUser, // Outside transaction
                 data: {
+                    canStop: obj.canStop,
                     id: pId,
                     name: obj.name,
                     processId: pgProcessId
@@ -249,7 +253,7 @@
                 "UPDATE server_process SET " +
                 "  percent_complete = 100, " +
                 "  status = 'C', " +
-                "  completed = CURRENT_DATE, " +
+                "  completed = NOW(), " +
                 "  updated = NOW() " +
                 "WHERE id = $1;"
             );
@@ -494,24 +498,20 @@
         @method getCatalog
         @return {Promise}
     */
-    that.getCatalog = function () {
-        return new Promise(function (resolve, reject) {
-            function callback(resp) {
-                let payload = {
-                    method: "GET",
-                    name: "getSettings",
-                    user: resp.pgUser,
-                    data: {
-                        name: "catalog",
-                        force: true
-                    }
-                };
-
-                that.request(payload).then(resolve).catch(reject);
+    that.getCatalog = async function () {
+        let resp = await config.read();
+        let dat = await that.request({
+            method: "GET",
+            name: "getSettings",
+            user: resp.pgUser,
+            data: {
+                name: "catalog",
+                force: true
             }
-
-            config.read().then(callback);
         });
+
+        settings.data.catalog = {data: dat};
+        return dat;
     };
 
     /**
@@ -2232,13 +2232,10 @@
             filter: {criteria: [{
                 property: "isActive",
                 value: true
-            }, {
-                property: "databaseInitialized",
-                value: true
             }]},
             method: "GET",
             name: "Tenant",
-            properties: ["company", "pgService", "pgDatabase"],
+            properties: ["id", "company", "pgService", "pgDatabase"],
             user: conf.pgUser
         }, true);
         let acSettings = await that.request({
@@ -2261,6 +2258,31 @@
             n += 1;
             svc = tservices.find((s) => s.id === tenant.pgService.id);
             tenant.pgService = svc;
+            try {
+                conn = await db.connect(tenant);
+                mods = await that.request({
+                    client: conn.client,
+                    filter: {criteria: [{
+                        property: "name",
+                        value: acSettings.module
+                    }, {
+                        property: "version",
+                        value: acSettings.version
+                    }]},
+                    method: "GET",
+                    name: "Module",
+                    properties: ["id"],
+                    user: conf.pgUser
+                }, true);
+                conn.done();
+                tenant.hasValidModule = Boolean(mods.length);
+            } catch (ignore) {
+                console.error(
+                    "Could not connect to " +
+                    tenant.pgDatabase +
+                    ". Skipping."
+                );
+            }
             tenants.push(tenant);
         }
 

@@ -17,13 +17,11 @@
 */
 /*jslint node*/
 const settings = {};
-const {Database} = require("../database");
 const {Events} = require("./events");
 const f = require("../../common/core");
-const db = new Database();
 const events = new Events();
+const dbsettings = {};
 
-settings.data = {};
 /**
     @module Settings
 */
@@ -48,6 +46,10 @@ settings.getSettings = function (obj) {
     return new Promise(function (resolve, reject) {
         let name = obj.data.name;
         let theClient = obj.client;
+        let db = theClient.database;
+        if (!dbsettings[db]) {
+            dbsettings[db] = {data: {}};
+        }
 
         function fetch() {
             let sql = (
@@ -62,27 +64,27 @@ settings.getSettings = function (obj) {
                 // If we found something, cache it
                 if (resp.rows.length) {
                     rec = resp.rows[0];
-                    if (!settings.data[name]) {
-                        settings.data[name] = {data: {}};
+                    if (!dbsettings[db].data[name]) {
+                        dbsettings[db].data[name] = {data: {}};
                     }
-                    settings.data[name].id = rec.id;
-                    settings.data[name].etag = rec.etag;
+                    dbsettings[db].data[name].id = rec.id;
+                    dbsettings[db].data[name].etag = rec.etag;
                     // Careful not to break pre-existing pointer
                     // First clear old properties
                     Object.keys(
-                        settings.data[name].data
+                        dbsettings[db].data[name].data
                     ).forEach(function (key) {
-                        delete settings.data[name].data[key];
+                        delete dbsettings[db].data[name].data[key];
                     });
                     // Populate new properties
                     Object.keys(rec.data || []).forEach(function (key) {
-                        settings.data[name].data[key] = rec.data[key];
+                        dbsettings[db].data[name].data[key] = rec.data[key];
                     });
                 }
 
                 // Send back the settings if any were found, otherwise
                 // "false"
-                if (settings.data[name]) {
+                if (dbsettings[db].data[name]) {
                     // Handle subscription
                     if (obj.subscription) {
                         events.subscribe(
@@ -90,13 +92,13 @@ settings.getSettings = function (obj) {
                             obj.subscription,
                             [rec.id]
                         ).then(
-                            resolve.bind(null, settings.data[name].data)
+                            resolve.bind(null, dbsettings[db].data[name].data)
                         ).catch(
                             reject
                         );
                         return;
                     }
-                    resolve(settings.data[name].data);
+                    resolve(dbsettings[db].data[name].data);
                     return;
                 }
 
@@ -109,21 +111,21 @@ settings.getSettings = function (obj) {
             return;
         }
 
-        if (settings.data[name]) {
+        if (dbsettings[db].data[name]) {
             // Handle subscription
             if (obj.subscription) {
                 events.subscribe(
                     theClient,
                     obj.subscription,
-                    [settings.data[name].id]
+                    [dbsettings[db].data[name].id]
                 ).then(
-                    resolve.bind(null, settings.data[name].data)
+                    resolve.bind(null, dbsettings[db].data[name].data)
                 ).catch(
                     reject
                 );
                 return;
             }
-            resolve(settings.data[name].data);
+            resolve(dbsettings[db].data[name].data);
             return;
         }
 
@@ -172,11 +174,12 @@ settings.getSettingsDefinition = function (obj) {
 settings.getSettingsRow = function (obj) {
     return new Promise(function (resolve, reject) {
         let ret = {};
+        let db = obj.client.database;
 
         function callback(resp) {
             if (resp !== false) {
-                ret.etag = settings.data[obj.data.name].etag;
-                ret.data = settings.data[obj.data.name].data;
+                ret.etag = dbsettings[db].data[obj.data.name].etag;
+                ret.data = dbsettings[db].data[obj.data.name].data;
                 resolve(ret);
                 return;
             }
@@ -209,17 +212,22 @@ settings.saveSettings = function (obj) {
         let tag = obj.etag || f.createId();
         let params = [name, d, tag, obj.client.currentUser()];
         let client = obj.client;
+        let db = obj.client.database;
+
+        if (!dbsettings[db]) {
+            dbsettings[db] = {data: {}};
+        }
 
         function update(resp) {
             let msg;
 
             function done() {
-                if (!settings.data[name]) {
-                    settings.data[name] = {};
+                if (!dbsettings[db].data[name]) {
+                    dbsettings[db].data[name] = {};
                 }
-                settings.data[name].id = name;
-                settings.data[name].data = d;
-                settings.data[name].etag = tag;
+                dbsettings[db].data[name].id = name;
+                dbsettings[db].data[name].data = d;
+                dbsettings[db].data[name].etag = tag;
                 resolve(true);
             }
 
@@ -228,8 +236,8 @@ settings.saveSettings = function (obj) {
                 row = resp.rows[0];
 
                 if (
-                    settings.data[name] &&
-                    settings.data[name].etag !== row.etag
+                    dbsettings[db].data[name] &&
+                    dbsettings[db].data[name].etag !== row.etag
                 ) {
                     msg = "Settings for \"" + name;
                     msg += "\" changed by another user. Save failed.";
