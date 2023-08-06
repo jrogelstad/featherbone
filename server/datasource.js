@@ -149,9 +149,11 @@
         @param {Object} options.client
         @param {Boolean} [options.canStop] Whether process can be stopped.
         @param {Integer} [options.count] Count of items to process. Default 100
-        @param {Object} [options.subscription] Pass for client progress notification
+        @param {Object} [options.subscription] Pass for client progress
+        notification
         @param {string} [options.subscription.id] id Subscription id
-        @param {string} [options.subscription.eventKey] eventKey Subscription event key
+        @param {string} [options.subscription.eventKey] eventKey Subscription
+        event key
         @return {Object}
     */
     function createProcess(obj) {
@@ -2133,6 +2135,17 @@
                 f[pname] = require(pkg.package);
             });
         });
+    };
+
+     /**
+        Load the postgres encryption key into the crud instance.
+
+        @method loadCryptoKey
+        @return {Promise}
+    */
+    that.loadCryptoKey = async function () {
+        let conf = await config.read();
+        crud.cryptoKey(conf.pgCryptoKey);
     };
 
     /**
