@@ -972,7 +972,10 @@ function connect() {
 }
 
 // Make sure the path has a slash at the end
-if (window.location.pathname.slice(window.location.pathname.length - 1, window.location.pathname.length) !== "/") {
+if (window.location.pathname.slice(
+    window.location.pathname.length - 1,
+    window.location.pathname.length
+) !== "/") {
     let theUrl = (
         window.location.protocol + "//" +
         window.location.hostname + ":" +
@@ -1044,7 +1047,7 @@ if (window.location.pathname.slice(window.location.pathname.length - 1, window.l
                 goSignIn();
             }
         }
-        });
+    });
 }
 
 // Let displays handle their own overflow locally
