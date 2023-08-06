@@ -705,14 +705,11 @@
 
             @method begin
             @param {Object} payload Request payload
-            @param {String | Object} payload.client Database client
+            @param {Object} payload.client Database client
             @return {Promise}
         */
-        crud.begin = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let client = obj.client;
-                client.query("BEGIN;").then(resolve).catch(reject);
-            });
+        crud.begin = async function (obj) {
+            return await obj.client.query("BEGIN;");
         };
 
         /**
@@ -720,23 +717,21 @@
 
             @method commit
             @param {Object} payload Request payload
-            @param {String | Object} payload.client Database client
+            @param {Object} payload.client Database client
             @return {Promise}
         */
-        crud.commit = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let client = obj.client;
-                client.query("COMMIT;").then(function () {
-                    let callbacks = client.callbacks.slice();
-                    function next() {
-                        if (callbacks.length) {
-                            callbacks.shift()().then(next).catch(console.log);
-                        }
-                    }
-                    next();
-                    resolve();
-                }).catch(reject);
-            });
+        crud.commit = async function (obj) {
+            let client = obj.client;
+            let callbacks = client.callbacks.slice();
+
+            try {
+                await client.query("COMMIT;");
+                while (callbacks.length) {
+                    await callbacks.shift()();
+                }
+            } catch (err) {
+                return Promise.reject(err);
+            }
         };
 
         /**
