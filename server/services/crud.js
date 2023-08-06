@@ -40,6 +40,7 @@
     const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
+    let pgCryptoKey;
 
     function noJoin(w) {
         return !w.table && w.property.indexOf(".") === -1;
@@ -700,6 +701,22 @@
         // ..........................................................
         // PUBLIC
         //
+        /**
+            Get or set the postgres encryption key.
+
+            @method pgCryptoKey
+            @param {Object} payload Request payload
+            @param {Object} payload.client Database client
+            @return {Promise}
+        */
+        crud.cryptoKey = function (...args) {
+            if (args.length) {
+                pgCryptoKey = args[0];
+            }
+
+            return pgCryptoKey;
+        };
+
         /**
             Begin a transaction block.
 
@@ -1773,8 +1790,19 @@
             });
 
             keys.forEach(function (key) {
-                tokens.push("%I");
-                cols.push(key.toSnakeCase());
+                if (fp[key].isEncrypted) {
+                    tokens.push("%s");
+                    cols.push(
+                        "pgp_sym_decrypt(" +
+                        key.toSnakeCase() +
+                        "::BYTEA, '" +
+                        pgCryptoKey +
+                        "')"
+                    );
+                } else {
+                    tokens.push("%I");
+                    cols.push(key.toSnakeCase());
+                }
             });
 
             cols.push(table);
@@ -2320,10 +2348,21 @@
                                 updRec[key] = JSON.stringify(updRec[key]);
                             }
 
-                            tokens.push(key.toSnakeCase());
-                            ary.push("%I = $" + p);
-                            params.push(updRec[key]);
+                            if (props[key].isEncrypted) {
+                                ary.push(
+                                    "%I = pgp_sym_encrypt($" + p + ", $" +
+                                    (p + 1) + ")"
+                                );
+                                p += 1;
+                                params.push(updRec[key]);
+                                params.push(pgCryptoKey);
+                            } else {
+                                ary.push("%I = $" + p);
+                                params.push(updRec[key]);
+                            }
+
                             p += 1;
+                            tokens.push(key.toSnakeCase());
                         }
 
                         nextProp();

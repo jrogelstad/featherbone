@@ -257,6 +257,7 @@
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
 
+            await datasource.loadCryptoKey();
             await datasource.getCatalog();
             routes = await datasource.getRoutes();
             await datasource.unsubscribe();
