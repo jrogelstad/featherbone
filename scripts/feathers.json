@@ -1402,7 +1402,8 @@
                 "type": "string",
                 "alias": "Password",
                 "format": "password",
-                "isRequired": true
+                "isRequired": true,
+                "isEncrypted": true
             }
         }
     },
