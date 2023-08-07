@@ -107,6 +107,28 @@ module.static = f.prop({
             selections.length === 1 &&
             !selections.some((sel) => sel.naturalKey() === "Core")
         );
+    },
+    upgrade: function (viewModel) {
+        let dialog = viewModel.confirmDialog();
+        let query = Qs.stringify({
+            subscription: {
+                id: f.createId(),
+                eventKey: f.catalog().eventKey()
+            }
+        });
+
+        function error(err) {
+            dialog.message(err.message);
+            dialog.title("Error");
+            dialog.icon("error");
+            dialog.buttonCancel().hide();
+            dialog.show();
+        }
+
+        f.datasource().request({
+            method: "POST",
+            path: "/do/upgrade/" + query
+        }).catch(error);
     }
 });
 
