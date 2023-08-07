@@ -796,6 +796,27 @@
         });
     }
 
+    async function doUpgrade(req, res) {
+        let query = qs.parse(req.params.query);
+        const DIR = "./";
+
+        logger.verbose("Upgrade");
+
+        try {
+            await datasource.install(
+                DIR,
+                req.user.name,
+                {
+                    subscription: query.subscription,
+                    tenant: req.tenant,
+                    databases: query.databases
+                }
+            );
+        } catch (err) {
+            error.bind(res)(err);
+        }
+    }
+
     function doExport(req, res) {
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
@@ -1714,6 +1735,7 @@
         dbRouter.get("/:db/feather/:name", doGetFeather);
         dbRouter.post("/:db/module/package/:name", doPackageModule);
         dbRouter.post("/:db/module/install/:query", doInstall);
+        dbRouter.post("/:db/do/upgrade/:query", doUpgrade);
         dbRouter.get("/:db/profile", doGetProfile);
         dbRouter.put("/:db/profile", doPutProfile);
         dbRouter.patch("/:db/profile", doPatchProfile);
