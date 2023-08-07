@@ -592,6 +592,9 @@ function initPromises() {
                 } else {
                     module.dependencies = [];
                 }
+                if (module.name === "Core") {
+                    f.version(module.version);
+                }
             });
 
             mapped = moduleData.map(function (mod) {

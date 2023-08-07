@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -2499,13 +2499,18 @@ appState.goto();
 f.state = function () {
     return appState;
 };
-
 /**
     State constructor.
     @method State
     @return {State}
 */
 f.State = State;
+/**
+    Current software version.
+    @method version
+    @return {String}
+*/
+f.version = createProperty();
 f.TABLE_MIN_HEIGHT = 200;
 f.TABLE_COLUMN_WIDTH_DEFAULT = 150;
 
