@@ -143,7 +143,7 @@
     /**
         Return Process object.
 
-        @method Process
+        @method createProcess
         @param {Object} options
         @param {String} options.name Process name
         @param {Object} options.client
@@ -317,6 +317,85 @@
     // PUBLIC
     //
     that.createProcess = createProcess.bind(that);
+
+    /**
+        Create a new tenant database based on a template.
+
+        @method createDatabase
+        @param {Object} client Postgres client
+        @param {String} database Database name
+        @param {String} template Database template name
+        @return {Object} Promise
+    */
+    that.createDatabase = async function (pClient, dbName, template) {
+        let sql = "CREATE DATABASE %I TEMPLATE %I;";
+        let conn1 = await db.connect();
+        let conn2;
+        let tenant;
+        let mods;
+        let isSuper;
+
+        sql = sql.format([dbName, template]);
+
+        try {
+            isSuper = tools.isSuperUser({
+                client: conn1.client,
+                user: pClient.currentUser()
+            });
+
+            if (!isSuper) {
+                return Promise.reject(
+                    "User must be a super user to create databases"
+                );
+            }
+
+            // Create the datbase
+            await conn1.client.query(sql);
+
+            // Need to update tenant with modules in new db
+            tenant = await that.request({
+                client: pClient,
+                method: "GET",
+                name: "Tenant",
+                filter: {criteria: [{
+                    property: "pgDatabase",
+                    value: dbName
+                }]}
+            }, true);
+
+            conn2 = await db.connect(tenant);
+
+            mods = await that.request({
+                client: conn2.client,
+                method: "GET",
+                name: "Module",
+                properties: ["name", "version"],
+                user: pClient.currentUser()
+            }, true);
+
+            await that.request({
+                client: pClient,
+                id: tenant[0].id,
+                method: "PATCH",
+                name: "Tenant",
+                data: [{
+                    op: "replace",
+                    path: "/modules",
+                    value: mods
+                }],
+                user: pClient.currentUser()
+            }, true);
+        } catch (err) {
+            sql = "DROP DATABASE IF EXISTS %I";
+            sql = sql.format([dbName]);
+            conn1.client.query(sql);
+            return Promise.reject(err);
+        } finally {
+            conn1.done();
+            conn2.done();
+        }
+
+    };
 
     // For interrupted process cleanup after server restart
     that.cleanupProcesses = async function () {

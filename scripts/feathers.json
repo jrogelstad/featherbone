@@ -1408,6 +1408,27 @@
         }
     },
     {
+        "name": "Edition",
+        "plural": "Editions",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Software edition installed",
+        "properties": {
+            "name": {
+                "description": "Name of edition",
+                "type": "string",
+                "isRequired": true,
+                "isNaturalKey": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            }
+        }
+    },
+    {
         "name": "Tenant",
         "plural": "Tenants",
         "inherits": "Document",
@@ -1466,6 +1487,20 @@
                 "type": "array",
                 "isReadOnly": true,
                 "isAlwaysLoad": true
+            },
+            "edition": {
+                "description": "Edition of software used",
+                "type": {
+                    "relation": "Edition",
+                    "properties": [
+                        "name",
+                        "description"
+                    ]
+                }
+            },
+            "isDemo": {
+                "description": "Flag whether demo database",
+                "type": "boolean"
             }
         }
     }
