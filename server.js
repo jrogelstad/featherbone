@@ -812,6 +812,7 @@
                     databases: query.databases
                 }
             );
+            respond.bind(res)();
         } catch (err) {
             error.bind(res)(err);
         }

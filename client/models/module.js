@@ -108,7 +108,7 @@ module.static = f.prop({
             !selections.some((sel) => sel.naturalKey() === "Core")
         );
     },
-    upgrade: function (viewModel) {
+    upgrade: async function (viewModel) {
         let dialog = viewModel.confirmDialog();
         let query = Qs.stringify({
             subscription: {
@@ -116,6 +116,7 @@ module.static = f.prop({
                 eventKey: f.catalog().eventKey()
             }
         });
+        let mods;
 
         function error(err) {
             dialog.message(err.message);
@@ -125,10 +126,26 @@ module.static = f.prop({
             dialog.show();
         }
 
-        f.datasource().request({
-            method: "POST",
-            path: "/do/upgrade/" + query
-        }).catch(error);
+        try {
+            await f.datasource().request({
+                method: "POST",
+                path: "/do/upgrade/" + query
+            });
+            mods = await f.datasource().request({
+                method: "POST",
+                path: "/data/modules",
+                body: {
+                    properties: ["id", "version"],
+                    filter: {criteria: [{
+                        property: "name",
+                        value: "Core"
+                    }]}
+                }
+            });
+            f.version(mods[0].version);
+        } catch (err) {
+            error(err);
+        }
     }
 });
 
