@@ -1554,7 +1554,16 @@
                         args.push(col);
                         tokens.push("%I");
                         values.push(value);
-                        params.push("$" + p);
+
+                        if (prop.isEncrypted) {
+                            params.push(
+                                "pgp_sym_encrypt($" + p +
+                                ", '" + pgCryptoKey + "')"
+                            );
+                        } else {
+                            params.push("$" + p);
+                        }
+
                         p += 1;
                     }
 
