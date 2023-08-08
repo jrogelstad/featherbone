@@ -350,7 +350,11 @@ function input(pType, options) {
         onfocus: options.onFocus,
         onblur: options.onBlur,
         value: prop(),
-        autocomplete: "off"
+        autocomplete: (
+            options.id === "password"
+            ? "new-password"
+            : "off"
+        )
     };
 
     if (opts.class) {
