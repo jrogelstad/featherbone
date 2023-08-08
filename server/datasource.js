@@ -1923,6 +1923,8 @@
           {{/crossLink}}
           * {{#crossLink "Services.Role/changeRoleLogin:method"}}
           {{/crossLink}}
+          * {{#crossLink "Services.Role/changeRoleCreateDb:method"}}
+          {{/crossLink}}
           * {{#crossLink "Services.Role/changeRolePassword:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/createRole:method"}}
@@ -2327,7 +2329,7 @@
             }]},
             method: "GET",
             name: "Tenant",
-            properties: ["id", "company", "pgService", "pgDatabase"],
+            properties: ["id", "name", "pgService", "pgDatabase"],
             user: conf.pgUser
         }, true);
         let acSettings = await that.request({
@@ -2379,7 +2381,7 @@
         }
 
         tenants.unshift({
-            company: "System default",
+            name: "System default",
             pgService: {
                 name: "Default service",
                 pgHost: conf.pgHost,
@@ -2459,6 +2461,11 @@
     that.registerFunction("POST", "autoNumber", crud.autonumber);
     that.registerFunction("POST", "changeOwnPassword", role.changeOwnPassword);
     that.registerFunction("POST", "changeRoleLogin", role.changeRoleLogin);
+    that.registerFunction(
+        "POST",
+        "changeRoleCreateDb",
+        role.changeRoleCreateDb
+    );
     that.registerFunction(
         "POST",
         "changeRolePassword",

@@ -1311,6 +1311,21 @@ function updateUserAccount(obj) {
                 ));
             }
 
+            if (obj.newRec.isSuper !== obj.oldRec.isSuper) {
+                requests.push(f.datasource.request(
+                    {
+                        method: "POST",
+                        name: "changeRoleCreateDb",
+                        client: obj.client,
+                        data: {
+                            name: obj.newRec.name.toLowerCase(),
+                            isLogin: obj.newRec.isSuper
+                        }
+                    },
+                    true
+                ));
+            }
+
             Promise.all(requests).then(unlock).catch(reject);
         }
 
@@ -1336,6 +1351,7 @@ function createUserAccount(obj) {
             obj.roleOptions = {
                 name: obj.newRec.name.toLowerCase(),
                 isLogin: obj.newRec.isActive,
+                isSuper: obj.newRec.isSuper,
                 password: obj.newRec.password,
                 isInherits: false
             };
