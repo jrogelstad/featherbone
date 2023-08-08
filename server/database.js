@@ -442,7 +442,7 @@
                 }
 
                 if (cache) {
-                    doPool().then(resolve).catch(reject);
+                    doPool();
                     return;
                 }
 
@@ -459,6 +459,26 @@
                     reject
                 );
             });
+        };
+
+        /**
+            Terminate pool and all connections.
+
+            @method endPool
+            @return {Promise}
+        */
+        that.endPool = async function (tenant) {
+            let pool = await that.getPool(tenant);
+            let db = (
+                tenant
+                ? tenant.pgDatabase
+                : cache.pgDatabase
+            );
+
+            if (pool) {
+                await pool.end();
+                delete pools[db];
+            }
         };
 
         return that;

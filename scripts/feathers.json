@@ -1496,7 +1496,8 @@
                         "name",
                         "description"
                     ]
-                }
+                },
+                "isReadOnly": false
             },
             "isDemo": {
                 "description": "Flag whether demo database",
