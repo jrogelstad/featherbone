@@ -1865,7 +1865,7 @@
 
         // TODO: What to do here when tenants change?
         tenants.forEach(function (tenant) {
-            datasource.listen(receiver, tenant).then(
+            datasource.listen(tenant, receiver).then(
                 handleEvents.bind(null, tenant)
             ).catch(console.error);
         });

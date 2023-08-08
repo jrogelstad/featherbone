@@ -44,6 +44,7 @@
     const {Config} = require("./config");
     const {PDF} = require("./services/pdf");
     const {Mail} = require("./services/mailer");
+    const {Client} = require("pg");
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -323,8 +324,8 @@
 
         @method createDatabase
         @param {Object} client Postgres client
-        @param {String} database Database name
-        @param {String} template Database template name
+        @param {String} database Target database name
+        @param {String} template Template Database name
         @return {Object} Promise
     */
     that.createDatabase = async function (pClient, dbName, template) {
@@ -395,6 +396,63 @@
             conn2.done();
         }
 
+    };
+
+    /**
+        Create template databasefrom existing. No connections must
+        exist on source database.
+
+        @method createTemplateDatabase
+        @param {String} superuser Postgres super user name
+        @param {String} password Postgres super user password
+        @param {String} database Source database name
+        @param {String} template Template database name
+        @return {Object} Promise
+    */
+    that.createTemplateDatabase = async function (
+        superuser,
+        superpwd,
+        dbName,
+        template
+    ) {
+        let sql1 = "DROP DATABASE IF EXISTS %I";
+        let sql2 = "CREATE DATABASE %I TEMPLATE %I;";
+        let sql3 = (
+            "UPDATE pg_database " +
+            "  SET datistemplate = $2 " +
+            "WHERE datname = $1;"
+        );
+        let conf = await config.read();
+        let tenant = tenants.find((t) => t.pgDatabase === dbName);
+
+        // End all connections to the source database
+        tenant.listenerConn.done();
+        delete tenant.listenerConn;
+        await db.endPool(tenant);
+
+        const client = new Client({
+            host: conf.pgHost,
+            password: superpwd,
+            port: conf.pgPort || 80,
+            user: superuser
+        });
+
+        sql1 = sql1.format([template]);
+        sql2 = sql2.format([template, dbName]);
+
+        try {
+            await client.connect();
+            await client.query(sql3, [template, false]);
+            await client.query(sql1);
+            await client.query(sql2);
+            await client.query(sql3, [template, true]);
+        } catch (err) {
+            return Promise.reject(err);
+        } finally {
+            client.end();
+            // Resume listening to events on tenant db
+            that.listen(tenant);
+        }
     };
 
     // For interrupted process cleanup after server restart
@@ -644,37 +702,42 @@
         Exposes {{#crossLink "Services.Events/listen:method"}}{{/crossLink}}
         via datasource.
 
+        If unlisten is called on a tenant, listen can be called
+        again without a callback and it will resume listening against
+        the original callback.
+
         @method listen
-        @param {Function} callback
-        @param {Object} [tenant]
+        @param {Object} tenant
+        @param {Function} [callback]
         @return {Promise}
     */
-    that.listen = function (callback, tenant) {
-        function doListen(resp) {
-            return new Promise(function (resolve, reject) {
-                events.listen(
-                    resp.client,
-                    db.nodeId,
-                    callback
-                ).then(
-                    resolve
-                ).catch(
-                    reject
-                );
-            });
-        }
+    that.listen = async function (tenant, callback) {
+        try {
+            let resp = tenant.listenerConn;
 
-        return new Promise(function (resolve, reject) {
-            Promise.resolve().then(
-                db.connect.bind(null, tenant)
-            ).then(
-                doListen
-            ).then(
-                resolve
-            ).catch(
-                reject
+            if (!resp) {
+                resp = await db.connect(tenant);
+                tenant.listenerConn = resp;
+                tenant.listenerCallback = (
+                    tenant.listenerCallback || callback
+                );
+            }
+
+            if (!tenant.listenerCallback) {
+                return Promise.reject(
+                    "Callback must be passed on " +
+                    "first listen of tenant"
+                );
+            }
+
+            await events.listen(
+                resp.client,
+                db.nodeId,
+                tenant.listenerCallback
             );
-        });
+        } catch (err) {
+            return Promise.reject(err);
+        }
     };
 
     /**
