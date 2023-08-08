@@ -1435,8 +1435,8 @@
         "module": "Core",
         "description": "Map of companies to their database",
         "properties": {
-            "company": {
-                "description": "Full name of company",
+            "name": {
+                "description": "Name of company or instance",
                 "type": "string",
                 "isRequired": true,
                 "isAlwaysLoad": true,
