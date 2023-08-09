@@ -1369,7 +1369,8 @@
     function doConnect(req, res) {
         let key = f.createId();
         eventKeys[key] = {
-            sessionID: req.sessionID
+            sessionID: req.sessionID,
+            tenant: req.tenant
         };
 
         respond.bind(res)({
@@ -1572,7 +1573,7 @@
 
     function handleEvents() {
         // Instantiate event key for web socket connection
-        wss.on("connection", function connection(ws) {
+        wss.on("connection", function connection(ws, req) {
             let eKey;
 
             ws.on("message", function incoming(key) {
@@ -1599,8 +1600,10 @@
             });
 
             ws.on("close", function close() {
+                let db = req.url.replaceAll("/", "");
+                let tenant = tenants.find((t) => t.pgDatabase === db);
                 delete eventSessions[eKey];
-                datasource.unsubscribe(eKey, "instance");
+                datasource.unsubscribe(eKey, "instance", tenant);
                 datasource.unlock({
                     eventKey: eKey
                 });
@@ -1619,7 +1622,6 @@
                 tenant = tenants[n];
                 if (!tenant.listenerConn) {
                     await datasource.listen(tenant, receiver);
-                    //handleEvents(tenant);
                 }
                 n += 1;
             }

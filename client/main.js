@@ -998,7 +998,8 @@ if (window.location.pathname.slice(
         function listen() {
             const wsurl = (
                 wp + window.location.hostname +
-                ":" + window.location.port
+                ":" + window.location.port +
+                window.location.pathname
             );
             const evsubscr = new WebSocket(wsurl);
 
