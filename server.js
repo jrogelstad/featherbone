@@ -260,13 +260,13 @@
             await datasource.loadCryptoKey();
             await datasource.getCatalog();
             routes = await datasource.getRoutes();
-            await datasource.unsubscribe();
             await datasource.unlock();
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
             tenants = await datasource.loadTenants();
             await datasource.cleanupProcesses();
+            await datasource.unsubscribe();
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
