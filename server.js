@@ -1531,7 +1531,7 @@
         }
     }
 
-    function receiver(message) {
+    function receiver(message, pTenant) {
         let eventKey = message.payload.subscription.eventkey;
         let change = message.payload.subscription.change;
         let fn = eventSessions[eventKey];
@@ -1557,7 +1557,8 @@
                         name: message.payload.data.table.toCamelCase(true),
                         method: "GET",
                         user: systemUser,
-                        id: message.payload.data.id
+                        id: message.payload.data.id,
+                        tenant: pTenant
                     },
                     callback: cb
                 });
@@ -1569,7 +1570,7 @@
         }
     }
 
-    function handleEvents(tenant) {
+    function handleEvents() {
         // Instantiate event key for web socket connection
         wss.on("connection", function connection(ws) {
             let eKey;
@@ -1599,7 +1600,7 @@
 
             ws.on("close", function close() {
                 delete eventSessions[eKey];
-                datasource.unsubscribe(eKey, "instance", tenant);
+                datasource.unsubscribe(eKey, "instance");
                 datasource.unlock({
                     eventKey: eKey
                 });

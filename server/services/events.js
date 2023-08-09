@@ -24,6 +24,7 @@
 
     const {Tools} = require("./tools");
     const tools = new Tools();
+    const f = require("../../common/core");
 
     /**
         Event management services.
@@ -53,10 +54,11 @@
         */
         events.listen = function (client, channel, callback) {
             return new Promise(function (resolve, reject) {
+                let tenant = f.copy(client.tenant());
                 client.on("notification", function (msg) {
                     msg.payload = JSON.parse(msg.payload);
                     msg.payload = tools.sanitize(msg.payload);
-                    callback(msg);
+                    callback(msg, tenant);
                 });
 
                 client.query("LISTEN " + channel).then(resolve).catch(reject);
