@@ -766,7 +766,7 @@
         let resp;
 
         while (n < pTenants.length) {
-            t = pTenants[0];
+            t = pTenants[n];
             n += 1;
             resp = await db.connect(t);
             await events.unsubscribe(
