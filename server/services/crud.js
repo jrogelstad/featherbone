@@ -2621,7 +2621,7 @@
             }
 
             // Always update outside of transaction so all see it
-            let conn = await db.connect();
+            let conn = await db.connect(client.tenant());
             await conn.client.query(sql, params);
             conn.done();
             return true;
