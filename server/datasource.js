@@ -2395,65 +2395,51 @@
             properties: ["id", "name", "pgService", "pgDatabase"],
             user: conf.pgUser
         }, true);
-        let acSettings = await that.request({
-            method: "GET",
-            name: "getSettings",
-            user: conf.pgUser,
-            data: {
-                name: "adminConsoleSettings",
-                force: true
-            }
-        });
         let tenant;
         let n = 0;
         let svc;
-        let mods;
+        let found;
         conn.done();
-        tenants.length = 0; // Clear previous global values
+
         while (n < pTenants.length) {
             tenant = pTenants[n];
             n += 1;
-            svc = tservices.find((s) => s.id === tenant.pgService.id);
-            tenant.pgService = svc;
-            try {
-                conn = await db.connect(tenant);
-                mods = await that.request({
-                    client: conn.client,
-                    filter: {criteria: [{
-                        property: "name",
-                        value: acSettings.module
-                    }, {
-                        property: "version",
-                        value: acSettings.version
-                    }]},
-                    method: "GET",
-                    name: "Module",
-                    properties: ["id"],
-                    user: conf.pgUser
-                }, true);
-                conn.done();
-                tenant.hasValidModule = Boolean(mods.length);
-            } catch (ignore) {
-                console.error(
-                    "Could not connect to " +
-                    tenant.pgDatabase +
-                    ". Skipping."
-                );
+            found = tenants.find((t) => t.id === tenant.id);
+
+            if (!found) {
+                svc = tservices.find((s) => s.id === tenant.pgService.id);
+                tenant.pgService = svc;
+
+                try {
+                    // Test connection
+                    conn = await db.connect(tenant);
+                    conn.done();
+                } catch (ignore) {
+                    console.error(
+                        "Could not connect to " +
+                        tenant.pgDatabase +
+                        ". Skipping."
+                    );
+                }
+
+                tenants.push(tenant);
             }
-            tenants.push(tenant);
         }
 
-        tenants.unshift({
-            name: "System default",
-            pgService: {
-                name: "Default service",
-                pgHost: conf.pgHost,
-                pgPort: conf.pgPort,
-                pgUser: conf.pgUser,
-                pgPassword: conf.pgPassword
-            },
-            pgDatabase: conf.pgDatabase
-        });
+        if (!tenants.find((t) => t.id === "-1")) {
+            tenants.unshift({
+                id: "-1",
+                name: "System default",
+                pgService: {
+                    name: "Default service",
+                    pgHost: conf.pgHost,
+                    pgPort: conf.pgPort,
+                    pgUser: conf.pgUser,
+                    pgPassword: conf.pgPassword
+                },
+                pgDatabase: conf.pgDatabase
+            });
+        }
         return tenants;
     };
 

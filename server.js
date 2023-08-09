@@ -1498,6 +1498,135 @@
         }, true);
     }
 
+    // HANDLE PUSH NOTIFICATION -------------------------------
+    // Receiver callback for all events, sends only to applicable instance.
+    let pending = [];
+    let isFetching = false;
+
+    function processFetch() {
+        if (!isFetching && pending.length) {
+            isFetching = true;
+            let job = pending[0];
+            let jobId = job.payload.id;
+            let jobName = job.payload.name;
+            datasource.request(job.payload, true).then(function (resp) {
+                // Group together any other responses for the same
+                // record to reduce duplicate queries
+                let jobs = pending.filter(
+                    (p) => (
+                        p.payload.id === jobId &&
+                        p.payload.name === jobName
+                    )
+                );
+                jobs.forEach(function (thejob) {
+                    let idx = pending.indexOf(thejob);
+                    pending.splice(idx, 1);
+                    thejob.callback(resp);
+                });
+                isFetching = false;
+                processFetch();
+            }).catch(function (e) {
+                console.error(e);
+            });
+        }
+    }
+
+    function receiver(message) {
+        let eventKey = message.payload.subscription.eventkey;
+        let change = message.payload.subscription.change;
+        let fn = eventSessions[eventKey];
+
+        function cb(resp) {
+            if (resp) {
+                message.payload.data = resp;
+            }
+
+            fn(message);
+        }
+
+        if (fn) {
+            if (fn.fetch === false) {
+                cb();
+                return;
+            }
+
+            // If record change, fetch new record
+            if (change === "create" || change === "update") {
+                pending.push({
+                    payload: {
+                        name: message.payload.data.table.toCamelCase(true),
+                        method: "GET",
+                        user: systemUser,
+                        id: message.payload.data.id
+                    },
+                    callback: cb
+                });
+                processFetch();
+                return;
+            }
+
+            cb();
+        }
+    }
+
+    function handleEvents(tenant) {
+        // Instantiate event key for web socket connection
+        wss.on("connection", function connection(ws) {
+            let eKey;
+
+            ws.on("message", function incoming(key) {
+                let sessionID;
+
+                eKey = key;
+
+                if (eventKeys[key]) {
+                    sessionID = eventKeys[key].sessionID;
+                } else {
+                    ws.send("Invalid event key " + key);
+                    return;
+                }
+
+                eventSessions[eKey] = function (message) {
+                    let data = JSON.stringify({
+                        message: message.payload
+                    });
+                    ws.send(data);
+                };
+                eventSessions[eKey].sessionID = sessionID;
+
+                logger.verbose("Listening for events " + eKey);
+            });
+
+            ws.on("close", function close() {
+                delete eventSessions[eKey];
+                datasource.unsubscribe(eKey, "instance", tenant);
+                datasource.unlock({
+                    eventKey: eKey
+                });
+
+                logger.info("Closed instance " + eKey);
+            });
+        });
+    }
+
+    async function listenToTenants() {
+        let tenant;
+        let n = 0;
+
+        try {
+            while (n < tenants.length) {
+                tenant = tenants[n];
+                if (!tenant.listenerConn) {
+                    await datasource.listen(tenant, receiver);
+                    //handleEvents(tenant);
+                }
+                n += 1;
+            }
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+
     // Listen for changes to tenants, refresh if changed
     async function subscribeToTenants() {
         let sid = f.createId();
@@ -1506,6 +1635,7 @@
         // Reregister routes if something changes
         eventSessions[eKey] = async function () {
             tenants = await datasource.loadTenants();
+            await listenToTenants();
         };
 
         await datasource.request({
@@ -1516,7 +1646,7 @@
         }, true);
     }
 
-    function start() {
+    async function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
             "/client",
@@ -1752,123 +1882,8 @@
         dbRouter.put("/:db/workbook/:name", doSaveWorkbook);
         dbRouter.delete("/:db/workbook/:name", doDeleteWorkbook);
 
-        let pending = [];
-        let isFetching = false;
-
-        function processFetch() {
-            if (!isFetching && pending.length) {
-                isFetching = true;
-                let job = pending[0];
-                let jobId = job.payload.id;
-                let jobName = job.payload.name;
-                datasource.request(job.payload, true).then(function (resp) {
-                    // Group together any other responses for the same
-                    // record to reduce duplicate queries
-                    let jobs = pending.filter(
-                        (p) => (
-                            p.payload.id === jobId &&
-                            p.payload.name === jobName
-                        )
-                    );
-                    jobs.forEach(function (thejob) {
-                        let idx = pending.indexOf(thejob);
-                        pending.splice(idx, 1);
-                        thejob.callback(resp);
-                    });
-                    isFetching = false;
-                    processFetch();
-                }).catch(function (e) {
-                    console.error(e);
-                });
-            }
-        }
-
-        // HANDLE PUSH NOTIFICATION -------------------------------
-        // Receiver callback for all events, sends only to applicable instance.
-        function receiver(message) {
-            let eventKey = message.payload.subscription.eventkey;
-            let change = message.payload.subscription.change;
-            let fn = eventSessions[eventKey];
-
-            function cb(resp) {
-                if (resp) {
-                    message.payload.data = resp;
-                }
-
-                fn(message);
-            }
-
-            if (fn) {
-                if (fn.fetch === false) {
-                    cb();
-                    return;
-                }
-
-                // If record change, fetch new record
-                if (change === "create" || change === "update") {
-                    pending.push({
-                        payload: {
-                            name: message.payload.data.table.toCamelCase(true),
-                            method: "GET",
-                            user: systemUser,
-                            id: message.payload.data.id
-                        },
-                        callback: cb
-                    });
-                    processFetch();
-                    return;
-                }
-
-                cb();
-            }
-        }
-
-        function handleEvents(tenant) {
-            // Instantiate event key for web socket connection
-            wss.on("connection", function connection(ws) {
-                let eKey;
-
-                ws.on("message", function incoming(key) {
-                    let sessionID;
-
-                    eKey = key;
-
-                    if (eventKeys[key]) {
-                        sessionID = eventKeys[key].sessionID;
-                    } else {
-                        ws.send("Invalid event key " + key);
-                        return;
-                    }
-
-                    eventSessions[eKey] = function (message) {
-                        let data = JSON.stringify({
-                            message: message.payload
-                        });
-                        ws.send(data);
-                    };
-                    eventSessions[eKey].sessionID = sessionID;
-
-                    logger.verbose("Listening for events " + eKey);
-                });
-
-                ws.on("close", function close() {
-                    delete eventSessions[eKey];
-                    datasource.unsubscribe(eKey, "instance", tenant);
-                    datasource.unlock({
-                        eventKey: eKey
-                    });
-
-                    logger.info("Closed instance " + eKey);
-                });
-            });
-        }
-
-        // TODO: What to do here when tenants change?
-        tenants.forEach(function (tenant) {
-            datasource.listen(tenant, receiver).then(
-                handleEvents.bind(null, tenant)
-            ).catch(console.error);
-        });
+        await listenToTenants();
+        handleEvents();
 
         // REGISTER MODULE ROUTES
         routes.forEach(registerRoute);
