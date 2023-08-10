@@ -646,7 +646,8 @@
             data: {
                 name: "catalog",
                 force: true
-            }
+            },
+            tenant: false
         });
 
         settings.data.catalog = {data: dat};
@@ -659,20 +660,18 @@
         @method getServices
         @return {Promise}
     */
-    that.getServices = function () {
-        return new Promise(function (resolve, reject) {
-            function callback(resp) {
-                let payload = {
-                    method: "GET",
-                    name: "getServices",
-                    user: resp.pgUser
-                };
-
-                that.request(payload).then(resolve).catch(reject);
-            }
-
-            config.read().then(callback);
-        });
+    that.getServices = async function () {
+        try {
+            let resp = await config.read();
+            return await that.request({
+                method: "GET",
+                name: "getServices",
+                user: resp.pgUser,
+                tenant: false
+            });
+        } catch (err) {
+            return Promise.reject(err);
+        }
     };
 
     /**
@@ -687,7 +686,8 @@
                 let payload = {
                     method: "GET",
                     name: "getRoutes",
-                    user: resp.pgUser
+                    user: resp.pgUser,
+                    tenant: false
                 };
 
                 that.request(payload).then(resolve).catch(reject);
@@ -1419,6 +1419,7 @@
         @param {Filter} [payload.filter] Filter for `GET` requests
         @param {Client} [payload.client] Database client. If undefined one
         will be intialized by default and wrapped in a transaction if necessary.
+        @param {Client} [payload.tenant] Must be provided if no client provided.
         @param {Boolean} [isSuperUser] Bypass authorization checks.
         Default false.
         @return {Promise}
@@ -1899,17 +1900,29 @@
             }
         }
 
-        if (obj.client) {
-            isExternalClient = true;
-            theClient = obj.client;
-            return await doRequest();
-        }
+        try {
+            if (obj.client) {
+                isExternalClient = true;
+                theClient = obj.client;
+                return await doRequest();
+            }
 
-        let resp = await db.connect(obj.tenant);
-        resp = await doRequest(resp);
-        theClient.currentUser(undefined);
-        done();
-        return resp;
+            if (obj.tenant === undefined) {
+                return Promise.reject(
+                    "Either a client or tenant value must be " +
+                    "included in the " + obj.method + " request for " +
+                    obj.name
+                );
+            }
+
+            let resp = await db.connect(obj.tenant);
+            resp = await doRequest(resp);
+            theClient.currentUser(undefined);
+            done();
+            return resp;
+        } catch (err) {
+            Promise.reject(err);
+        }
     };
 
     /**
@@ -2263,7 +2276,8 @@
             name: "Module",
             user: pUser || conf.pgUser,
             client: pClient,
-            properties: ["id", "npm"]
+            properties: ["id", "npm"],
+            tenant: false
         }, true);
 
         // Instantiate npm packages listed on modules
@@ -2304,62 +2318,66 @@
         @param {Object} [client]
         @return {Promise}
     */
-    that.loadServices = function (pUser, pClient) {
-        return new Promise(function (resolve, reject) {
-            function unregisterTriggers() {
-                function clearTriggers(fn, trigger) {
-                    if (
-                        fn[trigger] &&
-                        fn[trigger].length
-                    ) {
-                        fn[trigger].length = 0;
-                    }
-                }
+    that.loadServices = async function (pUser, pClient) {
+        let res;
 
-                Object.keys(registered).forEach(function (method) {
-                    Object.keys(registered[method]).forEach(function (fn) {
-                        let func = registered[method][fn];
-                        clearTriggers(func, TRIGGER_BEFORE);
-                        clearTriggers(func, TRIGGER_AFTER);
-                    });
-                });
+        function unregisterTriggers() {
+            function clearTriggers(fn, trigger) {
+                if (
+                    fn[trigger] &&
+                    fn[trigger].length
+                ) {
+                    fn[trigger].length = 0;
+                }
             }
 
-            function doLoadServices(resp) {
-                let err;
-                unregisterTriggers();
-
-                resp.every(function (service) {
-                    try {
-                        new Function(
-                            "f",
-                            "\"use strict\";" + service.script
-                        )(f);
-                    } catch (e) {
-                        err = e;
-                        return false;
-                    }
-                    return true;
+            Object.keys(registered).forEach(function (method) {
+                Object.keys(registered[method]).forEach(function (fn) {
+                    let func = registered[method][fn];
+                    clearTriggers(func, TRIGGER_BEFORE);
+                    clearTriggers(func, TRIGGER_AFTER);
                 });
+            });
+        }
 
-                if (err) {
-                    reject(err);
-                    return;
+        function doLoadServices(resp) {
+            let err;
+            unregisterTriggers();
+
+            resp.every(function (service) {
+                try {
+                    new Function(
+                        "f",
+                        "\"use strict\";" + service.script
+                    )(f);
+                } catch (e) {
+                    err = e;
+                    return false;
                 }
-                resolve();
-            }
+                return true;
+            });
 
+            if (err) {
+                return Promise.reject(err);
+            }
+        }
+
+        try {
             if (pUser && pClient) {
-                that.request({
+                res = await that.request({
                     method: "GET",
                     name: "getServices",
                     user: pUser,
                     client: pClient
-                }, true).then(doLoadServices);
+                }, true);
+                doLoadServices(res);
             } else {
-                that.getServices().then(doLoadServices);
+                res = await that.getServices();
+                doLoadServices(res);
             }
-        });
+        } catch (err) {
+            return Promise.reject(err);
+        }
     };
 
     /**

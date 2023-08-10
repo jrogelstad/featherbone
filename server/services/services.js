@@ -19,9 +19,6 @@
 (function (exports) {
     "use strict";
 
-    const {Database} = require("../database");
-    const db = new Database();
-
     function getSortedModules(client) {
         return new Promise(function (resolve, reject) {
             let sql = (
@@ -111,35 +108,32 @@
             @param {Client} payload.client Database client
             @return {Promise}
         */
-        that.getServices = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let client = obj.client;
+        that.getServices = async function (obj) {
+            try {
                 let sql = (
                     "SELECT name, module, script " +
                     "FROM data_service WHERE NOT is_deleted;"
                 );
+                let srvc;
+                let mods;
+                let ret = [];
 
-                function callback(res) {
-                    let srvc = res[0].rows;
-                    let mods = res[1].map((mod) => mod.name);
-                    let ret = [];
-
-                    mods.forEach(function (mod) {
-                        srvc.forEach(function (srv) {
-                            if (mod === srv.module) {
-                                ret.push(srv);
-                            }
-                        });
+                srvc = await obj.client.query(sql);
+                srvc = srvc.rows;
+                mods = await getSortedModules(obj.client);
+                mods = mods.map((mod) => mod.name);
+                mods.forEach(function (mod) {
+                    srvc.forEach(function (srv) {
+                        if (mod === srv.module) {
+                            ret.push(srv);
+                        }
                     });
+                });
 
-                    resolve(ret);
-                }
-
-                Promise.all([
-                    client.query(sql),
-                    getSortedModules(client)
-                ]).then(callback).catch(reject);
-            });
+                return ret;
+            } catch (err) {
+                return Promise.reject(err);
+            }
         };
 
         return that;
