@@ -324,7 +324,8 @@
             method: "POST",
             name: this,
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: false
         };
 
         logger.info(payload);
@@ -590,7 +591,8 @@
             user: req.user.name,
             data: {
                 specs: req.body
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1393,7 +1395,8 @@
                 subscription: {
                     id: sid,
                     eventKey: eKey
-                }
+                },
+                tenant: false
             };
 
             function changeCallback(resp) {
@@ -1433,7 +1436,8 @@
                         user: systemUser,
                         data: {
                             name: message.payload.data.name
-                        }
+                        },
+                        tenant: false
                     }, true).then(changeCallback).catch(reject);
                 } else if (message.payload.subscription.change === "delete") {
                      // Update all clients
@@ -1476,7 +1480,8 @@
             method: "GET",
             user: systemUser,
             subscription: {id: f.createId(), eventKey: eKey},
-            data: {name: "catalog"}
+            data: {name: "catalog"},
+            tenant: false
         }, true);
     }
 
@@ -1495,7 +1500,8 @@
             name: "Route",
             method: "GET",
             user: systemUser,
-            subscription: {id: sid, eventKey: eKey}
+            subscription: {id: sid, eventKey: eKey},
+            tenant: false
         }, true);
     }
 
@@ -1645,7 +1651,8 @@
             name: "Tenant",
             method: "GET",
             user: systemUser,
-            subscription: {id: sid, eventKey: eKey}
+            subscription: {id: sid, eventKey: eKey},
+            tenant: false
         }, true);
     }
 
