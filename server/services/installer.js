@@ -634,7 +634,8 @@
                                 id: opts.tenant.id,
                                 method: "PATCH",
                                 name: "Tenant",
-                                user: pUser
+                                user: pUser,
+                                tenant: false
                             }, true);
 
                             if (acSettings) {
