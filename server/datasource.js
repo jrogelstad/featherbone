@@ -1547,13 +1547,17 @@
 
         async function doExecute() {
             // console.log("EXECUTE->", obj.name, obj.method);
-            if (wrap && !isTriggering) {
-                await begin();
-                return await transaction(obj, false, isSuperUser);
-            }
+            try {
+                if (wrap && !isTriggering) {
+                    await begin();
+                    return await transaction(obj, false, isSuperUser);
+                }
 
-            // Passed client must handle its own transaction wrapping
-            return await transaction(obj, isChild, isSuperUser);
+                // Passed client must handle its own transaction wrapping
+                return await transaction(obj, isChild, isSuperUser);
+            } catch (e) {
+                return Promise.reject(e);
+            }
         }
 
         async function doMethod(name, trigger) {
@@ -1590,34 +1594,42 @@
             let feather = settings.data.catalog.data[name];
             let parent = feather.inherits || "Object";
 
-            if (obj.noTrigger) {
-                return await commit();
-            }
-
             async function doTrigger() {
-                if (name === "Object") {
+                try {
+                    if (name === "Object") {
+                        await doMethod(name, TRIGGER_AFTER);
+                        clearTriggerStatus();
+                        return await commit();
+                    }
+
                     await doMethod(name, TRIGGER_AFTER);
                     clearTriggerStatus();
+                    return await doTraverseAfter(parent);
+                } catch (e) {
+                    return Promise.reject(e);
+                }
+            }
+
+            try {
+                if (obj.noTrigger) {
                     return await commit();
                 }
 
-                await doMethod(name, TRIGGER_AFTER);
-                clearTriggerStatus();
-                return await doTraverseAfter(parent);
-            }
+                // If business logic defined, do it
+                if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
+                    await doPrepareTrigger(obj);
+                    return await doTrigger();
 
-            // If business logic defined, do it
-            if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
-                await doPrepareTrigger(obj);
-                return await doTrigger();
+                // If traversal done, finish transaction
+                } else if (name === "Object") {
+                    return await commit(obj.response);
 
-            // If traversal done, finish transaction
-            } else if (name === "Object") {
-                return await commit(obj.response);
-
-                // If no logic, but parent, traverse up the tree
-            } else {
-                return doTraverseAfter(parent);
+                    // If no logic, but parent, traverse up the tree
+                } else {
+                    return doTraverseAfter(parent);
+                }
+            } catch (e) {
+                return Promise.reject(e);
             }
         }
 
@@ -1644,8 +1656,12 @@
                 ));
             }
 
-            obj.response = await doExecute();
-            return await doTraverseAfter(obj.name);
+            try {
+                obj.response = await doExecute();
+                return await doTraverseAfter(obj.name);
+            } catch (e) {
+                return Promise.reject(e);
+            }
         }
 
         async function doTraverseBefore(name) {
@@ -1658,44 +1674,52 @@
             }
 
             async function doTrigger() {
-                if (name === "Object") {
+                try {
+                    if (name === "Object") {
+                        await doMethod(name, TRIGGER_BEFORE);
+                        clearTriggerStatus();
+                        return await doQuery();
+                    }
+
                     await doMethod(name, TRIGGER_BEFORE);
                     clearTriggerStatus();
-                    return await doQuery();
+                    return await doTraverseBefore(parent);
+                } catch (e) {
+                    return Promise.reject(e);
                 }
-
-                await doMethod(name, TRIGGER_BEFORE);
-                clearTriggerStatus();
-                return await doTraverseBefore(parent);
             }
 
-            // If business logic defined, do it
-            if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
-                await doPrepareTrigger(obj);
-                return await doTrigger();
+            try {
+                // If business logic defined, do it
+                if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
+                    await doPrepareTrigger(obj);
+                    return await doTrigger();
 
-            // Traversal done
-            } else if (name === "Object") {
-                // Accept any changes made by triggers
-                if (obj.newRec) {
-                    switch (obj.method) {
-                    case "POST":
-                        obj.data = obj.newRec;
-                        break;
-                    case "PATCH":
-                        obj.data = jsonpatch.compare(
-                            obj.oldRec,
-                            obj.newRec
-                        );
-                        break;
+                // Traversal done
+                } else if (name === "Object") {
+                    // Accept any changes made by triggers
+                    if (obj.newRec) {
+                        switch (obj.method) {
+                        case "POST":
+                            obj.data = obj.newRec;
+                            break;
+                        case "PATCH":
+                            obj.data = jsonpatch.compare(
+                                obj.oldRec,
+                                obj.newRec
+                            );
+                            break;
+                        }
                     }
+
+                    return doQuery();
+
+                    // If no logic, but parent, traverse up the tree
+                } else {
+                    return doTraverseBefore(parent);
                 }
-
-                return doQuery();
-
-                // If no logic, but parent, traverse up the tree
-            } else {
-                return doTraverseBefore(parent);
+            } catch (e) {
+                return Promise.reject(e);
             }
         }
 
@@ -1921,7 +1945,7 @@
             done();
             return resp;
         } catch (err) {
-            Promise.reject(err);
+            return Promise.reject(err);
         }
     };
 
