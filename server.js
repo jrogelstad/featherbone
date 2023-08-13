@@ -821,7 +821,7 @@
     }
 
     function doExport(req, res) {
-        let apiPath = req.url.slice(10);
+        let apiPath = req.url.replace("/do/export", "");
         let feather = resolveName(apiPath);
         logger.verbose("Export", feather, req.params.format);
 
