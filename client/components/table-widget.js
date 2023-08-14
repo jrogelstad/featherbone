@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, for, browser, unordered*/
-/*global f, m, Qs*/
+/*global f, m, Qs, printJS*/
 /**
     @module TableWidget
 */
@@ -1301,6 +1301,123 @@ tableWidget.viewModel = function (options) {
         dlg.show();
     }
 
+    async function doPrintList() {
+        let dlg = vm.confirmDialog();
+
+        function error(err) {
+            dlg.message(err.message);
+            dlg.title("Error");
+            dlg.icon("error");
+            dlg.buttonCancel().hide();
+            dlg.show();
+        }
+
+        let theUrl;
+        let payload;
+        let theBody = {};
+        let fspec = vm.feather();
+
+        function notCalculated(p) {
+            return (
+                p.indexOf(".") !== -1 || // path ok
+                !fspec.properties[p].isCalculated
+            );
+        }
+
+        theBody.properties = vm.config().columns.map((col) => col.attr);
+        theBody.properties = theBody.properties.filter(notCalculated);
+
+        theBody.filter = getFilter();
+        delete theBody.filter.limit;
+
+        theUrl = (
+            pathname + "/data/" + fspec.plural.toSpinalCase()
+        );
+        payload = {
+            method: "POST",
+            url: theUrl,
+            body: theBody
+        };
+
+        let dat = await m.request(payload);
+
+        function formatRow(row, col) {
+            let theProp = fspec.properties[col];
+            let format = theProp.format || theProp.type;
+            let content;
+            let dataList = theProp.dataList;
+            let tableData;
+            let relation;
+            let theValue = row[col];
+
+            if (typeof format === "object" && row[col] === null) {
+                row[col] = "";
+                return;
+            } else if (typeof format === "object" && row[col]) {
+                relation = theProp.type.relation.toCamelCase();
+                if (f.types[relation] && f.types[relation].tableData) {
+                    tableData = f.types[relation].tableData;
+                } else {
+                    tableData = function () {
+                        let rel;
+                        let keys;
+                        let type = "";
+
+                        // If relation, use feather natural key to
+                        // find value to display
+                        rel = f.catalog().getFeather(format.relation);
+                        keys = Object.keys(rel.properties);
+                        rel = (
+                            keys.find((key) => rel.properties[key].isNaturalKey) ||
+                            keys.find((key) => rel.properties[key].isLabelKey)
+                        );
+
+                        if (rel) {
+                            row[col] = row[col][rel];
+                            return;
+                        }
+                    };
+                }
+            } else if (theProp.format && f.formats()[theProp.format].tableData) {
+                tableData = f.formats()[theProp.format].tableData;
+            } else if (f.types[theProp.type] && f.types[theProp.type].tableData) {
+                tableData = f.types[theProp.type].tableData;
+            } else {
+                tableData = (obj) => obj.value;
+            }
+
+            if (dataList) {
+                theValue = dataList.find((i) => i.value === theValue) || {};
+                theValue = theValue.label;
+            }
+
+            content = tableData({
+                value: theValue,
+                options: {style: {}},
+                prop: () => theValue
+            });
+
+            if (typeof content === "string") {
+                row[col] = content;
+            }
+        }
+
+        dat = dat.map(function (row) {
+            theBody.properties.forEach(function (col) {
+                formatRow(row, col);
+            });
+            return row;
+        });
+        console.log(dat);
+
+        printJS({
+            printable: dat,
+            properties: theBody.properties,
+            header: fspec.plural.toName(), // tab name?
+            type: "json"
+        });
+    }
+
     function setProperties() {
         let list = vm.models();
         let attrs;
@@ -1541,10 +1658,10 @@ tableWidget.viewModel = function (options) {
         });
 
         o = {
-            id: "nav-actions-import",
+            id: "nav-actions-print-list",
             class: "pure-menu-link",
-            title: "Import data",
-            onclick: doImport
+            title: "Print entire list",
+            onclick: doPrintList
         };
 
         if (menu.length) {
@@ -1553,9 +1670,9 @@ tableWidget.viewModel = function (options) {
 
         menu.push(
             m("li", o, [m("i", {
-                id: "nav-actions-import-icon",
+                id: "nav-actions-print-list-icon",
                 class: "material-icons-outlined fb-menu-list-icon"
-            }, "file_upload")], "Import")
+            }, "print")], "Print List")
         );
 
         menu.push(
@@ -1568,6 +1685,18 @@ tableWidget.viewModel = function (options) {
                 id: "nav-actions-export-icon",
                 class: "material-icons-outlined fb-menu-list-icon"
             }, "file_download")], "Export")
+        );
+
+        menu.push(
+            m("li", {
+                id: "nav-actions-import",
+                class: "pure-menu-link",
+                title: "Import data",
+                onclick: doImport
+            }, [m("i", {
+                id: "nav-actions-import-icon",
+                class: "material-icons-outlined fb-menu-list-icon"
+            }, "file_upload")], "Import")
         );
 
         return menu;
