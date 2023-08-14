@@ -1308,6 +1308,10 @@ tableWidget.viewModel = function (options) {
         let theBody = {};
         let fspec = vm.feather();
         let pModel = f.createModel(fspec.name);
+        let theCols;
+        let aggs = {};
+        let aggRow = {};
+        let theProperties;
 
         function resolveColumn(attr) {
             let theCol = cols.find((c) => c.attr === attr);
@@ -1353,6 +1357,54 @@ tableWidget.viewModel = function (options) {
             let tableData;
             let relation;
             let theValue = theProp();
+            let agg = aggs[col.attr];
+            let aggVal = theValue;
+
+            if (theProp.format === "money") {
+                agg = aggs[col.attr + ".amount"];
+            }
+
+            if (agg) {
+                if (theProp.format === "money") {
+                    aggVal = theProp.toJSON().amount;
+                    agg.currency = theProp().currency;
+                }
+
+                if (!agg.property) {
+                    agg.property = colName;
+                    if (
+                        agg.method === "MIN" ||
+                        agg.method === "MAX"
+                    ) {
+                        agg.value = aggVal;
+                    } else {
+                        agg.value = 0;
+                    }
+                }
+
+                switch (agg.method) {
+                case "SUM":
+                    agg.value = agg.value.plus(aggVal);
+                    break;
+                case "COUNT":
+                    agg.value = agg.value.plus(1);
+                    break;
+                case "MAX":
+                    if (aggVal > agg.value) {
+                        agg.value = aggVal;
+                    }
+                    break;
+                case "MIN":
+                    if (aggVal < agg.value) {
+                        agg.value = aggVal;
+                    }
+                    break;
+                case "AVG":
+                    agg.sum = agg.sum.plus(aggVal);
+                    agg.count = agg.count.plus(1);
+                    break;
+                }
+            }
 
             if (typeof format === "object" && row[colName] === null) {
                 row[colName] = "";
@@ -1417,7 +1469,16 @@ tableWidget.viewModel = function (options) {
             }
         }
 
-        let theCols = theBody.properties;
+        theCols = theBody.properties;
+
+        vm.config().aggregates.forEach(function (agg) {
+            aggs[agg.property] = {
+                sum: 0,
+                count: 0,
+                method: agg.method
+            };
+        });
+
         dat = dat.map(function (row) {
             pModel.set(row, true, true);
             theCols.forEach(function (prop) {
@@ -1427,19 +1488,44 @@ tableWidget.viewModel = function (options) {
             return row;
         });
 
+        theProperties = theCols.map(resolveColumn);
+
+        if (vm.config().aggregates.length) {
+            theProperties.forEach(function (p) {
+                aggRow[p] = "";
+            });
+            Object.keys(aggs).forEach(function (key) {
+                if (aggs[key].method === "AVG") {
+                    aggs[key].value = aggs[key].sum.div(aggs[key].count);
+                }
+                if (aggs[key].currency) {
+                    aggs[key].value = f.formats().money.tableData({
+                        options: {style: {}},
+                        value: {
+                            currency: aggs[key].currency,
+                            amount: aggs[key].value
+                        }
+                    });
+                }
+                aggRow[aggs[key].property] = aggs[key].value;
+            });
+            dat.push(aggRow);
+        }
+
         printJS({
             printable: dat,
-            properties: theCols.map(resolveColumn),
+            properties: theProperties,
             header: (
-                '<h1 class="custom-h1">' +
+                "<h1 class=\"custom-h1\">" +
                 (options.printTitle || fspec.plural.toName()) +
-                '</h1>'
+                "</h1>"
             ),
-            style: (
-                '.custom-h1 { font-family: sans-serif; }'
-            ),
+            style: ".custom-h1 { font-family: sans-serif; }",
             documentTitle: fspec.plural.toName(),
-            gridHeaderStyle: 'font-family: sans-serif; border: 1px solid lightgray;',
+            gridHeaderStyle: (
+                "font-family: sans-serif; " +
+                "border: 1px solid lightgray;"
+            ),
             gridStyle: (
                 "font-family: sans-serif; " +
                 "border: 1px solid lightgray; " +
@@ -1554,7 +1640,6 @@ tableWidget.viewModel = function (options) {
 
     function doFetch(refresh) {
         let list = vm.models();
-        let crit = getFilter().criteria || [];
 
         if (refresh) {
             doFetchAggregates();
