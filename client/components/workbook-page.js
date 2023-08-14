@@ -1114,13 +1114,13 @@ workbookPage.viewModel = function (options) {
         actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
-        isClearOnNoSearch: vm.sheet().isClearOnNoSearch,
         feather: vm.sheet().feather,
         search: vm.searchInput().value,
         ondblclick: vm.modelOpen,
         subscribe: true,
         footerId: vm.footerId(),
-        loadAllProperties: hasDrawer()
+        loadAllProperties: hasDrawer(),
+        printTitle: vm.sheet().name.toName()
     }));
     vm.actions = function () {
         let acts = vm.tableWidget().actions();
