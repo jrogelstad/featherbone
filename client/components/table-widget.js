@@ -1312,7 +1312,7 @@ tableWidget.viewModel = function (options) {
         function resolveColumn(attr) {
             let theCol = cols.find((c) => c.attr === attr);
             if (theCol.label) {
-                return theCol.label;
+                return theCol.label.replace(".", "");
             }
             if (theCol.attr.indexOf(".") !== -1) {
                 return theCol.attr.slice(theCol.attr.lastIndexOf(".") + 1);
@@ -1430,7 +1430,22 @@ tableWidget.viewModel = function (options) {
         printJS({
             printable: dat,
             properties: theCols.map(resolveColumn),
-            header: fspec.plural.toName(), // tab name?
+            header: (
+                '<h1 class="custom-h1">' +
+                (options.printTitle || fspec.plural.toName()) +
+                '</h1>'
+            ),
+            style: (
+                '.custom-h1 { font-family: sans-serif; }'
+            ),
+            documentTitle: fspec.plural.toName(),
+            gridHeaderStyle: 'font-family: sans-serif; border: 1px solid lightgray;',
+            gridStyle: (
+                "font-family: sans-serif; " +
+                "border: 1px solid lightgray; " +
+                "padding-left: 10px;" +
+                "padding-right: 10px;"
+            ),
             type: "json"
         });
     }
@@ -1540,14 +1555,6 @@ tableWidget.viewModel = function (options) {
     function doFetch(refresh) {
         let list = vm.models();
         let crit = getFilter().criteria || [];
-
-        if (
-            vm.isClearOnNoSearch() &&
-            !crit.length
-        ) {
-            list.reset();
-            return;
-        }
 
         if (refresh) {
             doFetchAggregates();
@@ -1793,15 +1800,6 @@ tableWidget.viewModel = function (options) {
         @return {Boolean}
     */
     vm.isMultiSelectEnabled = f.prop(true);
-    /**
-        If true no query results are shown unless
-        a filter criteria exist.
-
-        @method isClearOnNoSearch
-        @param {Boolean} flag Default false
-        @return {Boolean}
-    */
-    vm.isClearOnNoSearch = f.prop(Boolean(options.isClearOnNoSearch));
     /**
         If false then only shown properties
         are loaded, which helps with performance.
