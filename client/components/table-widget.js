@@ -1302,20 +1302,23 @@ tableWidget.viewModel = function (options) {
     }
 
     async function doPrintList() {
-        let dlg = vm.confirmDialog();
-
-        function error(err) {
-            dlg.message(err.message);
-            dlg.title("Error");
-            dlg.icon("error");
-            dlg.buttonCancel().hide();
-            dlg.show();
-        }
-
+        let cols = vm.config().columns;
         let theUrl;
         let payload;
         let theBody = {};
         let fspec = vm.feather();
+        let pModel = f.createModel(fspec.name);
+
+        function resolveColumn(attr) {
+            let theCol = cols.find((c) => c.attr === attr);
+            if (theCol.label) {
+                return theCol.label;
+            }
+            if (theCol.attr.indexOf(".") !== -1) {
+                return theCol.attr.slice(theCol.attr.lastIndexOf(".") + 1);
+            }
+            return theCol.attr;
+        }
 
         function notCalculated(p) {
             return (
@@ -1324,7 +1327,7 @@ tableWidget.viewModel = function (options) {
             );
         }
 
-        theBody.properties = vm.config().columns.map((col) => col.attr);
+        theBody.properties = cols.map((col) => col.attr);
         theBody.properties = theBody.properties.filter(notCalculated);
 
         theBody.filter = getFilter();
@@ -1342,18 +1345,21 @@ tableWidget.viewModel = function (options) {
         let dat = await m.request(payload);
 
         function formatRow(row, col) {
-            let theProp = fspec.properties[col];
+            let colName = resolveColumn(col.attr);
+            let theProp = f.resolveProperty(pModel, col.attr);
             let format = theProp.format || theProp.type;
             let content;
             let dataList = theProp.dataList;
             let tableData;
             let relation;
-            let theValue = row[col];
+            let theValue = theProp();
 
-            if (typeof format === "object" && row[col] === null) {
-                row[col] = "";
+            if (typeof format === "object" && row[colName] === null) {
+                row[colName] = "";
                 return;
-            } else if (typeof format === "object" && row[col]) {
+            }
+
+            if (typeof format === "object" && theProp()) {
                 relation = theProp.type.relation.toCamelCase();
                 if (f.types[relation] && f.types[relation].tableData) {
                     tableData = f.types[relation].tableData;
@@ -1361,26 +1367,35 @@ tableWidget.viewModel = function (options) {
                     tableData = function () {
                         let rel;
                         let keys;
-                        let type = "";
 
                         // If relation, use feather natural key to
                         // find value to display
                         rel = f.catalog().getFeather(format.relation);
                         keys = Object.keys(rel.properties);
                         rel = (
-                            keys.find((key) => rel.properties[key].isNaturalKey) ||
-                            keys.find((key) => rel.properties[key].isLabelKey)
+                            keys.find(
+                                (key) => rel.properties[key].isNaturalKey
+                            ) ||
+                            keys.find(
+                                (key) => rel.properties[key].isLabelKey
+                            )
                         );
 
                         if (rel) {
-                            row[col] = row[col][rel];
+                            row[colName] = theProp().data[rel]();
                             return;
                         }
                     };
                 }
-            } else if (theProp.format && f.formats()[theProp.format].tableData) {
+            } else if (
+                theProp.format &&
+                f.formats()[theProp.format].tableData
+            ) {
                 tableData = f.formats()[theProp.format].tableData;
-            } else if (f.types[theProp.type] && f.types[theProp.type].tableData) {
+            } else if (
+                f.types[theProp.type] &&
+                f.types[theProp.type].tableData
+            ) {
                 tableData = f.types[theProp.type].tableData;
             } else {
                 tableData = (obj) => obj.value;
@@ -1398,21 +1413,23 @@ tableWidget.viewModel = function (options) {
             });
 
             if (typeof content === "string") {
-                row[col] = content;
+                row[colName] = content;
             }
         }
 
+        let theCols = theBody.properties;
         dat = dat.map(function (row) {
-            theBody.properties.forEach(function (col) {
+            pModel.set(row, true, true);
+            theCols.forEach(function (prop) {
+                let col = cols.find((c) => c.attr === prop);
                 formatRow(row, col);
             });
             return row;
         });
-        console.log(dat);
 
         printJS({
             printable: dat,
-            properties: theBody.properties,
+            properties: theCols.map(resolveColumn),
             header: fspec.plural.toName(), // tab name?
             type: "json"
         });
