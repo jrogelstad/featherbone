@@ -260,11 +260,11 @@
             await datasource.loadCryptoKey();
             await datasource.getCatalog();
             routes = await datasource.getRoutes();
-            await datasource.unlock();
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
             tenants = await datasource.loadTenants();
+            await datasource.unlock();
             await datasource.cleanupProcesses();
             await datasource.unsubscribe();
 
@@ -325,7 +325,7 @@
             name: this,
             user: req.user.name,
             data: req.body,
-            tenant: false
+            tenant: req.tenant
         };
 
         logger.info(payload);
