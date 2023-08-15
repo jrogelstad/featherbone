@@ -1313,15 +1313,12 @@ tableWidget.viewModel = function (options) {
         let aggRow = {};
         let theProperties;
 
-        function resolveColumn(attr) {
+        function resolveColumn(attr, prop) {
             let theCol = cols.find((c) => c.attr === attr);
             if (theCol.label) {
                 return theCol.label.replace(".", "");
             }
-            if (theCol.attr.indexOf(".") !== -1) {
-                return theCol.attr.slice(theCol.attr.lastIndexOf(".") + 1);
-            }
-            return theCol.attr;
+            return prop.alias();
         }
 
         function notCalculated(p) {
@@ -1349,8 +1346,8 @@ tableWidget.viewModel = function (options) {
         let dat = await m.request(payload);
 
         function formatRow(row, col) {
-            let colName = resolveColumn(col.attr);
             let theProp = f.resolveProperty(pModel, col.attr);
+            let colName = resolveColumn(col.attr, theProp);
             let format = theProp.format || theProp.type;
             let content;
             let dataList = theProp.dataList;
@@ -1488,7 +1485,10 @@ tableWidget.viewModel = function (options) {
             return row;
         });
 
-        theProperties = theCols.map(resolveColumn);
+        theProperties = theCols.map(function (attr) {
+            let theProp = f.resolveProperty(pModel, attr);
+            return resolveColumn(attr, theProp);
+        });
 
         if (vm.config().aggregates.length) {
             theProperties.forEach(function (p) {
