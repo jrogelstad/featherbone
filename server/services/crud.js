@@ -1151,8 +1151,6 @@
                 let afterHandleRelations;
                 let insertChildren;
                 let afterInsert;
-                let afterDoSelect;
-                let afterLog;
                 let afterUniqueCheck;
                 let feather;
                 let payload;
@@ -1163,8 +1161,6 @@
                 let params = [];
                 let values = [];
                 let unique = false;
-                let clen = 1;
-                let c = 0;
                 let p = 2;
                 let theClient = obj.client;
 
@@ -1175,8 +1171,9 @@
                     client: theClient
                 };
 
-                afterGetFeather = function (resp) {
+                afterGetFeather = async function (resp) {
                     let ovr;
+                    let res;
 
                     if (!resp) {
                         reject("Class \"" + name + "\" not found");
@@ -1216,13 +1213,20 @@
                         return;
                     }
 
-                    tools.getKey({
-                        id: data.id,
-                        client: theClient
-                    }, true).then(afterIdCheck).catch(reject);
+                    try {
+                        res = await tools.getKey({
+                            id: data.id,
+                            client: theClient
+                        }, true);
+                        afterIdCheck(res);
+                    } catch (e) {
+                        reject(e);
+                    }
                 };
 
-                afterIdCheck = function (id) {
+                afterIdCheck = async function (id) {
+                    let res;
+
                     if (id !== undefined) {
                         data.id = f.createId();
                     }
@@ -1245,23 +1249,30 @@
                     });
 
                     if (unique && !isChild) {
-                        tools.getKeys({
-                            client: theClient,
-                            name: unique.feather,
-                            filter: {
-                                criteria: [{
-                                    property: unique.prop,
-                                    value: unique.value
-                                }]
-                            }
-                        }, true).then(afterUniqueCheck).catch(reject);
+                        try {
+                            res = await tools.getKeys({
+                                client: theClient,
+                                name: unique.feather,
+                                filter: {
+                                    criteria: [{
+                                        property: unique.prop,
+                                        value: unique.value
+                                    }]
+                                }
+                            }, true);
+                            afterUniqueCheck(res);
+                        } catch (e) {
+                            reject(e);
+                        }
                         return;
                     }
 
                     afterUniqueCheck();
                 };
 
-                afterUniqueCheck = function (resp) {
+                afterUniqueCheck = async function (resp) {
+                    let res;
+
                     if (resp && resp.length) {
                         msg = "Value '" + unique.value + "' assigned to ";
                         msg += unique.label.toName() + " on ";
@@ -1273,20 +1284,27 @@
                     }
 
                     if (!isChild && isSuperUser === false) {
-                        feathers.isAuthorized({
-                            client: theClient,
-                            data: {
-                                feather: name,
-                                action: "canCreate"
-                            }
-                        }).then(afterAuthorized).catch(reject);
+                        try {
+                            res = await feathers.isAuthorized({
+                                client: theClient,
+                                data: {
+                                    feather: name,
+                                    action: "canCreate"
+                                }
+                            });
+                            afterAuthorized(res);
+                        } catch (e) {
+                            reject(e);
+                        }
                         return;
                     }
 
                     afterAuthorized(true);
                 };
 
-                afterAuthorized = function (authorized) {
+                afterAuthorized = async function (authorized) {
+                    let res;
+
                     if (!authorized) {
                         msg = "Not authorized to create \"";
                         msg += obj.name + "\"";
@@ -1307,15 +1325,15 @@
 
                     // Get primary key
                     sql = "select nextval('object__pk_seq')";
-                    theClient.query(sql, afterNextVal);
+                    try {
+                        res = await theClient.query(sql);
+                        afterNextVal(res);
+                    } catch (e) {
+                        reject(e);
+                    }
                 };
 
-                afterNextVal = function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
+                afterNextVal = function (resp) {
                     pkey = resp.rows[0].nextval;
                     values.push(pkey);
 
@@ -1325,8 +1343,8 @@
                     buildInsert();
                 };
 
-                buildInsert = function () {
-                    let callback;
+                buildInsert = async function () {
+                    let res;
 
                     if (n < len) {
                         key = fkeys[n];
@@ -1375,16 +1393,20 @@
                                 if (value !== -1) {
                                     if (prop.type.isChild) {
                                         /* Insert child relation on the fly */
-                                        crud.doInsert({
-                                            name: prop.type.relation,
-                                            data: data[key],
-                                            client: theClient
-                                        }, true, true).then(function () {
-                                            tools.getKey({
+                                        try {
+                                            await crud.doInsert({
+                                                name: prop.type.relation,
+                                                data: data[key],
+                                                client: theClient
+                                            }, true, true);
+                                            res = await tools.getKey({
                                                 id: data[key].id,
                                                 client: theClient
-                                            }).then(afterGetPk).catch(reject);
-                                        }).catch(reject);
+                                            });
+                                            afterGetPk(res);
+                                        } catch (e) {
+                                            reject(e);
+                                        }
                                         return;
                                     }
 
@@ -1392,10 +1414,15 @@
                                     if (prop.type.childOf && obj.pk) {
                                         afterGetPk(obj.pk);
                                     } else {
-                                        tools.getKey({
-                                            id: data[key].id,
-                                            client: theClient
-                                        }).then(afterGetPk).catch(reject);
+                                        try {
+                                            res = await tools.getKey({
+                                                id: data[key].id,
+                                                client: theClient
+                                            });
+                                            afterGetPk(res);
+                                        } catch (e) {
+                                            reject(e);
+                                        }
                                     }
                                     return;
                                 }
@@ -1426,25 +1453,20 @@
                                 !value &&
                                 prop.autonumber
                             ) {
-                                callback = function (err, resp) {
-                                    let seq = resp.rows[0].seq - 0;
-
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
+                                try {
+                                    res = await theClient.query(
+                                        "SELECT nextval($1) AS seq",
+                                        [prop.autonumber.sequence]
+                                    );
+                                    let seq = res.rows[0].seq - 0;
 
                                     value = prop.autonumber.prefix || "";
                                     value += seq.pad(prop.autonumber.length);
                                     value += prop.autonumber.suffix || "";
                                     afterHandleRelations();
-                                };
-
-                                theClient.query(
-                                    "SELECT nextval($1) AS seq",
-                                    [prop.autonumber.sequence],
-                                    callback
-                                );
+                                } catch (e) {
+                                    reject(e);
+                                }
                                 return;
                             }
 
@@ -1473,14 +1495,13 @@
                                     value = f[value.replace(/\(\)$/, "")]();
 
                                     if (value.constructor.name === "Promise") {
-                                        Promise.all([value]).then(
-                                            function (resp) {
-                                                value = resp[0];
-                                                afterHandleRelations();
-                                            }
-                                        ).catch(
-                                            reject
-                                        );
+                                        try {
+                                            res = await Promise.all([value]);
+                                            value = res[0];
+                                            afterHandleRelations();
+                                        } catch (e) {
+                                            reject(e);
+                                        }
                                         return;
                                     }
                                 }
@@ -1570,8 +1591,11 @@
                     buildInsert();
                 };
 
-                insertChildren = function (err) {
+                insertChildren = async function (err) {
                     let ckeys;
+                    let ckey;
+                    let row;
+                    let i = 0;
 
                     if (err) {
                         reject(err);
@@ -1586,97 +1610,70 @@
                             props[key].type.parentOf &&
                             data[key] !== undefined
                         ) {
-                            clen += data[key].length;
                             return true;
                         }
                     });
 
                     // Insert children recursively
-                    ckeys.forEach(function (key) {
-                        let rel = props[key].type.relation;
-
-                        data[key].forEach(function (row) {
-                            row[props[key].type.parentOf] = {
-                                id: data.id
-                            };
-                            crud.doInsert({
-                                pk: pkey,
-                                name: rel,
-                                data: row,
-                                client: theClient
-                            }, true).then(afterInsert).catch(reject);
-                        });
-                    });
+                    let rel;
+                    try {
+                        while (ckeys.length) {
+                            rel = props[key].type.relation;
+                            ckey = ckeys.shift();
+                            while (i < data[ckey].length) {
+                                row = data[ckey][i];
+                                i += 1;
+                                row[props[ckey].type.parentOf] = {
+                                    id: data.id
+                                };
+                                await crud.doInsert({
+                                    pk: pkey,
+                                    name: rel,
+                                    data: row,
+                                    client: theClient
+                                }, true);
+                            }
+                        }
+                    } catch (e) {
+                        reject(e);
+                    }
 
                     afterInsert();
                 };
 
-                afterInsert = function () {
-                    function afterParentInsert() {
+                afterInsert = async function () {
+                    let res;
+
+                    // Perform the parent insert
+                    try {
+                        await theClient.query(sql, values);
+
                         // We're done here if child
                         if (isChild) {
                             resolve(result);
                             return;
                         }
 
-                        // Otherwise move on to log the change
-                        crud.doSelect({
+                        // Otherwise move on to process the change
+                        res = await crud.doSelect({
                             name: obj.name,
                             id: data.id,
                             client: theClient
-                        }).then(afterDoSelect).catch(reject);
+                        });
+                        result = res;
+                        // Update newRec for "trigger after" events
+                        if (obj.newRec) {
+                            obj.newRec = result;
+                        }
+
+                        // We're going to return the changes
+                        result = jsonpatch.compare(obj.cache, result);
+
+                        // Report back result
+                        resolve(result);
+                    } catch (e) {
+                        reject(e);
                     }
-
-                    // Done only when all callbacks report back
-                    c += 1;
-                    if (c < clen) {
-                        return;
-                    }
-
-                    // Perform the parent insert
-                    theClient.query(sql, values).then(
-                        afterParentInsert
-                    ).catch(
-                        reject
-                    );
-                };
-
-                afterDoSelect = function (resp) {
-                    result = resp;
-                    afterLog();
-                    return;
-
-                    // Won't get here because of above
-                    // TODO: make logging optional
-                    /* Handle change log */
-                    /*
-                    crud.doInsert({
-                        name: "Log",
-                        data: {
-                            objectId: data.id,
-                            action: "POST",
-                            created: data.created,
-                            createdBy: data.createdBy,
-                            updated: data.updated,
-                            updatedBy: data.updatedBy,
-                            change: f.copy(result)
-                        },
-                        client: theClient
-                    }, true).then(afterLog).catch(reject);
-                    */
-                };
-
-                afterLog = function () {
-                    // Update newRec for "trigger after" events
-                    if (obj.newRec) {
-                        obj.newRec = result;
-                    }
-
-                    // We're going to return the changes
-                    result = jsonpatch.compare(obj.cache, result);
-
-                    // Report back result
-                    resolve(result);
                 };
 
                 // Kick off query by getting feather, the rest falls
