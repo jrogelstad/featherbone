@@ -860,46 +860,45 @@
         @param {Object} [tenant] Tenant if not client specified
         @return {Promise}
     */
-    that.unlock = function (criteria, client, tenant) {
-        return new Promise(function (resolve, reject) {
-            let theClient;
-            criteria = criteria || {};
-            criteria.nodeId = db.nodeId;
+    that.unlock = async function (criteria, client, tenant) {
+        let theClient;
+        let i = 0;
+        criteria = criteria || {};
+        criteria.nodeId = db.nodeId;
 
-            // Do the work
-            function doUnlock(resp) {
-                return new Promise(function (resolve, reject) {
-                    function callback(ids) {
-                        if (resp.done) {
-                            resp.done();
-                        }
-                        resolve(ids);
-                    }
-
-                    crud.unlock(resp.client, criteria).then(
-                        callback
-                    ).catch(
-                        reject
-                    );
-                });
+        // Do the work
+        async function doUnlock(resp) {
+            try {
+                let ids = await crud.unlock(resp.client, criteria);
+                if (resp.done) {
+                    resp.done();
+                }
+                return ids;
+            } catch (e) {
+                return Promise.reject(e);
             }
+        }
 
+        try {
             if (client) {
                 theClient = client;
-                doUnlock({client: theClient}).then(resolve).catch(reject);
-                return;
+                return await doUnlock({client: theClient});
             }
 
-            Promise.resolve().then(
-                db.connect.bind(null, tenant)
-            ).then(
-                doUnlock
-            ).then(
-                resolve
-            ).catch(
-                reject
-            );
-        });
+            if (tenant) {
+                theClient = await db.connect(tenant);
+                return await doUnlock(theClient);
+            }
+
+            while (i < tenants.length) {
+                tenant = tenants[i];
+                i += 1;
+                theClient = await db.connect(tenant);
+                await doUnlock(theClient);
+            }
+        } catch (e) {
+            return Promise.reject(e);
+        }
     };
 
     /**
