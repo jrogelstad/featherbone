@@ -473,7 +473,10 @@
         };
 
         logger.verbose(payload);
-        datasource.request(payload).then(respond.bind(res)).catch(
+        datasource.request(
+            payload,
+            req.user.isSuper
+        ).then(respond.bind(res)).catch(
             error.bind(res)
         );
     }
