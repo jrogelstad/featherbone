@@ -1931,6 +1931,7 @@
                 let feather;
                 let tokens;
                 let afterGetKey;
+                let afterDoSelect;
                 let afterUpdate;
                 let afterSelectUpdated;
                 let done;
@@ -1974,28 +1975,19 @@
                     }
                 }
 
-                async function afterAuthorization(authorized) {
-                    let res;
-
+                function afterAuthorization(authorized) {
                     if (!authorized) {
                         reject("Not authorized to update \"" + theId + "\"");
                         return;
                     }
 
-                    try {
-                        res = await tools.getKey({
-                            id: theId,
-                            client: theClient
-                        });
-                        afterGetKey(res);
-                    } catch (e) {
-                        reject(e);
-                    }
+                    tools.getKey({
+                        id: theId,
+                        client: theClient
+                    }).then(afterGetKey).catch(reject);
                 }
 
-                async function afterGetFeather(resp) {
-                    let res;
-
+                function afterGetFeather(resp) {
                     if (!resp) {
                         reject("Feather \"" + obj.name + "\" not found.");
                         return;
@@ -2006,18 +1998,13 @@
                     props = feather.properties;
 
                     if (isSuperUser === false) {
-                        try {
-                            res = await feathers.isAuthorized({
-                                client: theClient,
-                                data: {
-                                    id: theId,
-                                    action: "canUpdate"
-                                }
-                            });
-                            afterAuthorization(res);
-                        } catch (e) {
-                            reject(e);
-                        }
+                        feathers.isAuthorized({
+                            client: theClient,
+                            data: {
+                                id: theId,
+                                action: "canUpdate"
+                            }
+                        }).then(afterAuthorization).catch(reject);
                         return;
                     }
 
@@ -2027,12 +2014,18 @@
                 afterGetKey = function (resp) {
                     pk = resp;
                     keys = Object.keys(props);
-                    let theProps = keys.filter(noChildProps);
-                    oldRec = {};
-                    theProps.forEach(function (p) {
-                        oldRec[p] = obj.oldRec[p];
-                    });
 
+                    // Get existing record
+                    crud.doSelect({
+                        name: obj.name,
+                        id: obj.id,
+                        properties: keys.filter(noChildProps),
+                        client: theClient,
+                        sanitize: false
+                    }, isChild).then(afterDoSelect).catch(reject);
+                };
+
+                afterDoSelect = function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -2076,6 +2069,8 @@
                         reject(new Error(msg));
                         return;
                     }
+
+                    oldRec = tools.sanitize(resp);
 
                     if (!Object.keys(oldRec).length || oldRec.isDeleted) {
                         resolve(false);
@@ -2209,8 +2204,7 @@
                                                     name: relation,
                                                     id: cid,
                                                     data: cpatches,
-                                                    client: theClient,
-                                                    oldRec: cOldRec
+                                                    client: theClient
                                                 }
                                             });
                                         }
