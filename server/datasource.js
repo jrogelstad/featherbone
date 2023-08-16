@@ -1724,16 +1724,14 @@
 
         async function resolveType() {
             let resp;
-            let payload = {
-                id: obj.id,
-                name: obj.name,
-                client: theClient,
-                properties: ["objectType"]
-            };
+            let sql = (
+                "SELECT tableoid::regclass::text AS object_type " +
+                "FROM object WHERE id = $1;"
+            );
 
-            resp = await crud.doSelect(payload, false, isSuperUser);
-            if (resp) {
-                obj.name = resp.objectType;
+            resp = await theClient.query(sql, [obj.id]);
+            if (resp.rows.length) {
+                obj.name = resp.rows[0].object_type.toCamelCase(true);
             }
             return obj.name;
         }
