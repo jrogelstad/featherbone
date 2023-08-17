@@ -1569,12 +1569,16 @@
                 : [registered[obj.method][name]]
             );
 
-            while (transactions.length) {
-                transaction = transactions.shift();
-                resp = await doExecute();
-            }
+            try {
+                while (transactions.length) {
+                    transaction = transactions.shift();
+                    resp = await doExecute();
+                }
 
-            return resp;
+                return resp;
+            } catch (e) {
+                return Promise.reject(e);
+            }
         }
 
         function clearTriggerStatus() {

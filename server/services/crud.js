@@ -741,11 +741,15 @@
             let client = obj.client;
             let callbacks = client.callbacks.slice();
 
+            async function doPostProcessing() {
+                while (callbacks.length) {
+                    await callbacks.shift()();
+                }
+            }
+
             try {
                 await client.query("COMMIT;");
-                while (callbacks.length) {
-                    callbacks.shift()();
-                }
+                doPostProcessing(); // Happens in the background
             } catch (err) {
                 return Promise.reject(err);
             }
