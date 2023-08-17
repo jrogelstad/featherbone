@@ -1452,25 +1452,20 @@
 
         // Add old/new record objects for convenience
         async function doPrepareTrigger(obj) {
-            let result;
-
             if (!obj.newRec && !obj.oldRec) {
                 switch (obj.method) {
                 case "POST":
                     obj.newRec = f.copy(obj.data);
                     break;
                 case "PATCH":
-                    obj.newRec = f.copy(obj.data);
                     await begin();
-                    result = await getOld(theClient, obj);
-                    obj.oldRec = result;
-                    obj.newRec = f.copy(result);
+                    obj.oldRec = await getOld(theClient, obj);
+                    obj.newRec = f.copy(obj.oldRec);
                     jsonpatch.applyPatch(obj.newRec, obj.data);
                     break;
                 case "DELETE":
                     await begin();
-                    result = await getOld(theClient, obj);
-                    obj.oldRec = result;
+                    obj.oldRec = await getOld(theClient, obj);
                     break;
                 default:
                     throw "Unknown trigger method " + obj.method;
