@@ -1771,8 +1771,8 @@
 
                         // We want old array rows deleted if they
                         // no longer exist in the new record
-                        if (oldRec.length > newRec.length) {
-                            oldRec.length = newRec.length;
+                        if (oldRec[key].length > newRec[key].length) {
+                            oldRec[key].length = newRec[key].length;
                         }
 
                         // Update children in array
