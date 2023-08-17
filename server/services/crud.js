@@ -1618,8 +1618,8 @@
                     let rel;
                     try {
                         while (ckeys.length) {
-                            rel = props[key].type.relation;
                             ckey = ckeys.shift();
+                            rel = props[ckey].type.relation;
                             while (i < data[ckey].length) {
                                 row = data[ckey][i];
                                 i += 1;
