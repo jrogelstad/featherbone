@@ -744,7 +744,7 @@
             try {
                 await client.query("COMMIT;");
                 while (callbacks.length) {
-                    await callbacks.shift()();
+                    callbacks.shift()();
                 }
             } catch (err) {
                 return Promise.reject(err);
