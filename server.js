@@ -1549,6 +1549,11 @@
         function cb(resp) {
             if (resp) {
                 message.payload.data = resp;
+            } else if (
+                change === "update" ||
+                change === "create"
+            ) {
+                return; // Record deleted
             }
 
             fn(message);
