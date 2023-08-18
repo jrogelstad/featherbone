@@ -2539,6 +2539,7 @@
             let prcLock = Boolean(process);
             process = process || "Editing";
             let msg;
+            let tenant = client.tenant();
 
             if (!nodeid) {
                 throw new Error("Lock requires a node id.");
@@ -2610,8 +2611,8 @@
 
             // Auto unlock process based locks on error
             if (prcLock) {
-                client.onRollback(async function processkUnlock() {
-                    let rconn = await db.connect();
+                client.onRollback(async function processUnlock() {
+                    let rconn = await db.connect(tenant);
                     let rsql = (
                         "UPDATE object " +
                         "SET lock = null WHERE id = $1;"
@@ -2622,7 +2623,7 @@
             }
 
             // Always update outside of transaction so all see it
-            let conn = await db.connect(client.tenant());
+            let conn = await db.connect(tenant);
             await conn.client.query(sql, params);
             conn.done();
             return true;
