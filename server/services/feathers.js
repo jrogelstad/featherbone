@@ -21,12 +21,10 @@
 (function (exports) {
     "use strict";
 
-    const {Database} = require("../database");
     const {Tools} = require("./tools");
     const {Settings} = require("./settings");
     const f = require("../../common/core");
 
-    const db = new Database();
     const settings = new Settings();
     const tools = new Tools();
     const formats = tools.formats;
@@ -775,79 +773,85 @@
                 or not. Default = true.
             @return {Promise} Resoloves to feather definition object.
         */
-        that.getFeather = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let callback;
-                let theName = obj.data.name;
-                let theClient = obj.client;
+        that.getFeather = async function (obj) {
+            let theName = obj.data.name;
+            let theClient = obj.client;
+            let catalog;
+            let overloads;
 
-                callback = function (catalog) {
-                    let resultProps;
-                    let featherProps;
-                    let keys;
-                    let appendParent;
-                    let result = {name: theName, inherits: "Object"};
+            function appendParent(child, parent) {
+                let feather = catalog[parent];
+                let parentProps = feather.properties;
+                let childProps = child.properties;
+                let ckeys = Object.keys(parentProps);
 
-                    appendParent = function (child, parent) {
-                        let feather = catalog[parent];
-                        let parentProps = feather.properties;
-                        let childProps = child.properties;
-                        let ckeys = Object.keys(parentProps);
+                if (parent !== "Object") {
+                    appendParent(child, feather.inherits || "Object");
+                }
 
-                        if (parent !== "Object") {
-                            appendParent(child, feather.inherits || "Object");
-                        }
-
-                        ckeys.forEach(function (key) {
-                            if (childProps[key] === undefined) {
-                                childProps[key] = parentProps[key];
-                                childProps[key].inheritedFrom = parent;
-                            }
-                        });
-
-                        return child;
-                    };
-
-                    /* Validation */
-                    if (!catalog[theName]) {
-                        resolve(false);
-                        return;
+                ckeys.forEach(function (key) {
+                    if (childProps[key] === undefined) {
+                        childProps[key] = parentProps[key];
+                        childProps[key].inheritedFrom = parent;
                     }
+                });
 
-                    /* Add other attributes after name */
-                    keys = Object.keys(catalog[theName]);
-                    keys.forEach(function (key) {
-                        result[key] = catalog[theName][key];
-                    });
+                return child;
+            }
 
-                    /* Want inherited properties before class properties */
-                    if (
-                        obj.data.includeInherited !== false &&
-                        theName !== "Object"
-                    ) {
-                        result.properties = {};
-                        result = appendParent(result, result.inherits);
-                    } else {
-                        delete result.inherits;
-                    }
-
-                    /* Now add local properties back in */
-                    featherProps = catalog[theName].properties;
-                    resultProps = result.properties;
-                    keys = Object.keys(featherProps);
-                    keys.forEach(function (key) {
-                        resultProps[key] = featherProps[key];
-                    });
-
-                    resolve(result);
-                };
-
+            try {
                 /* First, get catalog */
-                settings.getSettings({
+                catalog = await settings.getSettings({
                     client: theClient,
                     data: {name: "catalog"}
-                }).then(callback).catch(reject);
-            });
+                });
+                let theFeather = catalog[theName];
+                let resultProps;
+                let featherProps;
+                let result = {name: theName, inherits: "Object"};
+
+                /* Validation */
+                if (!theFeather) {
+                    return false;
+                }
+
+                /* Add other attributes after name */
+                Object.keys(theFeather).forEach(function (key) {
+                    result[key] = theFeather[key];
+                });
+
+                /* Want inherited properties before class properties */
+                if (
+                    obj.data.includeInherited !== false &&
+                    theName !== "Object"
+                ) {
+                    result.properties = {};
+                    result = appendParent(result, result.inherits);
+                } else {
+                    delete result.inherits;
+                }
+
+                /* Now add local properties back in */
+                featherProps = theFeather.properties;
+                resultProps = result.properties;
+                Object.keys(featherProps).forEach(function (key) {
+                    resultProps[key] = featherProps[key];
+                });
+                // Apply overload default values
+                overloads = theFeather.overloads;
+                if (overloads) {
+                    Object.keys(overloads).forEach(function (key) {
+                        if (overloads[key].default !== undefined) {
+                            resultProps[key].default =
+                            overloads[key].default;
+                        }
+                    });
+                }
+
+                return result;
+            } catch (e) {
+                return Promise.reject(e);
+            }
         };
 
         /**
