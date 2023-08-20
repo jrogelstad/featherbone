@@ -307,7 +307,7 @@ function createList(feather) {
                 case "<=":
                     return val <= crit.value;
                 case "IN":
-                    return crit.value.indexOf(val) !== 1;
+                    return crit.value.indexOf(val) !== -1;
                 }
                 return true;
             });
