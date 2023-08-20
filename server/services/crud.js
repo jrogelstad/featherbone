@@ -1935,7 +1935,6 @@
                 let feather;
                 let tokens;
                 let afterGetKey;
-                let afterDoSelect;
                 let afterUpdate;
                 let afterSelectUpdated;
                 let done;
@@ -2015,21 +2014,19 @@
                     afterAuthorization(true);
                 }
 
-                afterGetKey = function (resp) {
+                afterGetKey = async function (resp) {
                     pk = resp;
                     keys = Object.keys(props);
 
                     // Get existing record
-                    crud.doSelect({
+                    resp = await crud.doSelect({
                         name: obj.name,
                         id: obj.id,
                         properties: keys.filter(noChildProps),
                         client: theClient,
                         sanitize: false
-                    }, isChild).then(afterDoSelect).catch(reject);
-                };
+                    }, isChild);
 
-                afterDoSelect = function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -2070,15 +2067,13 @@
                             " is locked by " + resp.lock.username +
                             " and cannot be updated."
                         );
-                        reject(new Error(msg));
-                        return;
+                        return Promise.reject(new Error(msg));
                     }
 
                     oldRec = tools.sanitize(resp);
 
                     if (!Object.keys(oldRec).length || oldRec.isDeleted) {
-                        resolve(false);
-                        return;
+                        return false;
                     }
 
                     newRec = f.copy(oldRec);
@@ -2111,13 +2106,12 @@
 
                     // Check required properties
                     if (keys.some(requiredIsNull)) {
-                        reject("\"" + key + "\" is required.");
-                        return;
+                        return Promise.reject("\"" + key + "\" is required.");
                     }
 
                     // Check unique properties
                     if (keys.some(uniqueChanged)) {
-                        tools.getKeys({
+                        resp = await tools.getKeys({
                             client: theClient,
                             name: unique.feather,
                             filter: {
@@ -2126,7 +2120,8 @@
                                     value: unique.value
                                 }]
                             }
-                        }).then(afterUniqueCheck).catch(reject);
+                        });
+                        afterUniqueCheck(resp);
                         return;
                     }
 
