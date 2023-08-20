@@ -841,7 +841,10 @@
                 overloads = theFeather.overloads;
                 if (overloads) {
                     Object.keys(overloads).forEach(function (key) {
-                        if (overloads[key].default !== undefined) {
+                        if (
+                            resultProps[key] &&
+                            overloads[key].default !== undefined
+                        ) {
                             resultProps[key].default =
                             overloads[key].default;
                         }
