@@ -742,8 +742,13 @@
             let callbacks = client.callbacks.slice();
 
             async function doPostProcessing() {
-                while (callbacks.length) {
-                    await callbacks.shift()();
+                try {
+                    while (callbacks.length) {
+                        await callbacks.shift()();
+                    }
+                } catch (e) {
+                    console.error(e);
+                    return Promise.reject(err);
                 }
             }
 
