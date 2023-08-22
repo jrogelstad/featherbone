@@ -40,7 +40,6 @@
     const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
-    let pgCryptoKey;
 
     function noJoin(w) {
         return !w.table && w.property.indexOf(".") === -1;
@@ -702,22 +701,6 @@
         // PUBLIC
         //
         /**
-            Get or set the postgres encryption key.
-
-            @method pgCryptoKey
-            @param {Object} payload Request payload
-            @param {Object} payload.client Database client
-            @return {Promise}
-        */
-        crud.cryptoKey = function (...args) {
-            if (args.length) {
-                pgCryptoKey = args[0];
-            }
-
-            return pgCryptoKey;
-        };
-
-        /**
             Begin a transaction block.
 
             @method begin
@@ -748,7 +731,7 @@
                     }
                 } catch (e) {
                     console.error(e);
-                    return Promise.reject(err);
+                    return Promise.reject(e);
                 }
             }
 
@@ -1588,7 +1571,7 @@
                         if (prop.isEncrypted) {
                             params.push(
                                 "pgp_sym_encrypt($" + p +
-                                ", '" + pgCryptoKey + "')"
+                                ", '" + db.cryptoKey() + "')"
                             );
                         } else {
                             params.push("$" + p);
@@ -1811,7 +1794,7 @@
                         "pgp_sym_decrypt(" +
                         key.toSnakeCase() +
                         "::BYTEA, '" +
-                        pgCryptoKey +
+                        db.cryptoKey() +
                         "')"
                     );
                 } else {
@@ -2365,7 +2348,7 @@
                                 );
                                 p += 1;
                                 params.push(updRec[key]);
-                                params.push(pgCryptoKey);
+                                params.push(db.cryptoKey());
                             } else {
                                 ary.push("%I = $" + p);
                                 params.push(updRec[key]);
