@@ -2323,7 +2323,7 @@
     */
     that.loadCryptoKey = async function () {
         let conf = await config.read();
-        crud.cryptoKey(conf.pgCryptoKey);
+        db.cryptoKey(conf.pgCryptoKey);
     };
 
     /**

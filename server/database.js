@@ -29,6 +29,7 @@
     const f = require("../common/core");
 
     const config = new Config();
+    let pgCryptoKey;
 
     function prop(store) {
         return function (...args) {
@@ -324,6 +325,21 @@
             await setNodeId(resp);
             await setConfig(resp);
             return doConnect();
+        };
+        /**
+            Get or set the postgres encryption key.
+
+            @method pgCryptoKey
+            @param {Object} payload Request payload
+            @param {Object} payload.client Database client
+            @return {Promise}
+        */
+        that.cryptoKey = function (...args) {
+            if (args.length) {
+                pgCryptoKey = args[0];
+            }
+
+            return pgCryptoKey;
         };
         /**
             Object defining a user on the server side for passport management.
