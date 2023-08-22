@@ -203,71 +203,74 @@ settings.getSettingsRow = function (obj) {
     @param {Object} payload.client Database client
     @return {Promise}
 */
-settings.saveSettings = function (obj) {
-    return new Promise(function (resolve, reject) {
-        let row;
-        let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
-        let name = obj.data.name;
-        let d = obj.data.data;
-        let tag = obj.etag || f.createId();
-        let params = [name, d, tag, obj.client.currentUser()];
-        let client = obj.client;
-        let db = obj.client.database;
+settings.saveSettings = async function (obj) {
+    let row;
+    let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
+    let name = obj.data.name;
+    let d = obj.data.data;
+    let tag = obj.etag || f.createId();
+    let params = [name, d, tag, obj.client.currentUser()];
+    let client = obj.client;
+    let db = obj.client.database;
+    let msg;
+    let resp;
 
-        if (!dbsettings[db]) {
-            dbsettings[db] = {data: {}};
+    if (!dbsettings[db]) {
+        dbsettings[db] = {data: {}};
+    }
+
+    function done() {
+        if (!dbsettings[db].data[name]) {
+            dbsettings[db].data[name] = {};
         }
+        dbsettings[db].data[name].id = name;
+        dbsettings[db].data[name].data = d;
+        dbsettings[db].data[name].etag = tag;
+    }
 
-        function update(resp) {
-            let msg;
+    try {
+        resp = await client.query(sql, [name]);
 
-            function done() {
-                if (!dbsettings[db].data[name]) {
-                    dbsettings[db].data[name] = {};
-                }
-                dbsettings[db].data[name].id = name;
-                dbsettings[db].data[name].data = d;
-                dbsettings[db].data[name].etag = tag;
-                resolve(true);
+        // If found existing, update
+        if (resp.rows.length) {
+            row = resp.rows[0];
+
+            if (
+                dbsettings[db].data[name] &&
+                dbsettings[db].data[name].etag !== row.etag
+            ) {
+                msg = "Settings for \"" + name;
+                msg += "\" changed by another user. Save failed.";
+                return Promise.reject(msg);
             }
 
-            // If found existing, update
-            if (resp.rows.length) {
-                row = resp.rows[0];
-
-                if (
-                    dbsettings[db].data[name] &&
-                    dbsettings[db].data[name].etag !== row.etag
-                ) {
-                    msg = "Settings for \"" + name;
-                    msg += "\" changed by another user. Save failed.";
-                    reject(msg);
-                    return;
-                }
-
-                sql = "UPDATE \"$settings\" SET ";
-                sql += " data = $2, etag = $3, ";
-                sql += " updated = now(), updated_by = $4 ";
-                sql += "WHERE name = $1;";
-                client.query(sql, params, done);
-                return;
-            }
-
-            // otherwise create new
-            sql = "INSERT INTO \"$settings\" (name, data, etag, id, ";
-            sql += " created, created_by, updated, updated_by, ";
-            sql += "is_deleted) VALUES ";
-            sql += "($1, $2, $3, $1, now(), $4, now(), $4, false);";
-
-            client.query(sql, params).then(done).catch(reject);
+            sql = (
+                "UPDATE \"$settings\" SET " +
+                " data = $2, etag = $3, " +
+                " updated = now(), updated_by = $4 " +
+                "WHERE name = $1;"
+            );
+            await client.query(sql, params);
+            done();
+            return true;
         }
 
-        client.query(sql, [name]).then(
-            update
-        ).catch(
-            reject
+        // otherwise create new
+        sql = (
+            "INSERT INTO \"$settings\" (name, data, etag, id, " +
+            " created, created_by, updated, updated_by, " +
+            "is_deleted) VALUES " +
+            "($1, $2, $3, $1, now(), $4, now(), $4, false);"
         );
-    });
+
+        await client.query(sql, params);
+
+        done();
+
+        return true;
+    } catch (e) {
+        return Promise.reject(e);
+    }
 };
 
 (function (exports) {
