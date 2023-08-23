@@ -224,8 +224,9 @@ settings.saveSettings = async function (obj) {
     let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
     let name = obj.data.name;
     let d = obj.data.data;
+    let edat = f.copy(d);
     let tag = obj.etag || f.createId();
-    let params = [name, d, tag, obj.client.currentUser()];
+    let params = [name, edat, tag, obj.client.currentUser()];
     let client = obj.client;
     let db = obj.client.database;
     let msg;
@@ -255,18 +256,20 @@ settings.saveSettings = async function (obj) {
             row = resp.rows[0];
 
             // Handle encryption where applicable
-            pkeys = Object.keys(row.definition.properties);
-            sql = "SELECT pgp_sym_encrypt($1, $2)::TEXT AS value;";
-            while (i < pkeys.length) {
-                p = row.definition.properties[pkeys[i]];
-                if (p.isEncrypted) {
-                    resp = await client.query(sql, [
-                        d[pkeys[i]],
-                        pgdb.cryptoKey()
-                    ]);
-                    d[pkeys[i]] = resp.rows[0].value;
+            if (row.definition) {
+                pkeys = Object.keys(row.definition.properties);
+                sql = "SELECT pgp_sym_encrypt($1, $2)::TEXT AS value;";
+                while (i < pkeys.length) {
+                    p = row.definition.properties[pkeys[i]];
+                    if (p.isEncrypted) {
+                        resp = await client.query(sql, [
+                            edat[pkeys[i]],
+                            pgdb.cryptoKey()
+                        ]);
+                        edat[pkeys[i]] = resp.rows[0].value;
+                    }
+                    i += 1;
                 }
-                i += 1;
             }
 
             if (
