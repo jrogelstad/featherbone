@@ -1,6 +1,6 @@
 ﻿/**
     Framework for building object relational database apps
-    Copyright (C) 2020  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1047,6 +1047,10 @@ textarea {
   width: 400px;
   display: flex;
   border-radius: 2px; 
+}
+
+.fb-snackbar-progress {
+  margin-left: 20px;
 }
 
 .fb-snackbar-message {

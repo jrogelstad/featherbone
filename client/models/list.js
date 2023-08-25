@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -53,6 +53,7 @@ function createList(feather) {
     let dirty = [];
     let sid = f.createId();
     let isBackground = false;
+    let pathname = "/" + location.pathname.replaceAll("/", "");
 
     // ..........................................................
     // PUBLIC
@@ -178,7 +179,7 @@ function createList(feather) {
                     merge: true
                 }
             });
-            theUrl = "/do/subscribe/" + query;
+            theUrl = pathname + "/do/subscribe/" + query;
             payload = {
                 method: "POST",
                 url: theUrl
@@ -306,7 +307,7 @@ function createList(feather) {
                 case "<=":
                     return val <= crit.value;
                 case "IN":
-                    return crit.value.indexOf(val) !== 1;
+                    return crit.value.indexOf(val) !== -1;
                 }
                 return true;
             });
@@ -534,7 +535,7 @@ function createList(feather) {
                     };
 
                     query = Qs.stringify(query);
-                    theUrl = "/do/unsubscribe/" + query;
+                    theUrl = pathname + "/do/unsubscribe/" + query;
                     payload = {
                         method: "POST",
                         url: theUrl
@@ -710,7 +711,7 @@ function createList(feather) {
             };
         }
 
-        theUrl = ary.path();
+        theUrl = pathname + ary.path();
         payload = {
             method: "POST",
             url: theUrl,
