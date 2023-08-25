@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser unordered*/
-/*global f*/
+/*global f, Qs*/
 
 function module(data, feather) {
     feather = feather || f.catalog().getFeather("Module");
@@ -33,7 +33,12 @@ module.static = f.prop({
     install: function (viewModel) {
         let input = document.createElement("input");
         let dialog = viewModel.confirmDialog();
-
+        let query = Qs.stringify({
+            subscription: {
+                id: f.createId(),
+                eventKey: f.catalog().eventKey()
+            }
+        });
         function error(err) {
             dialog.message(err.message);
             dialog.title("Error");
@@ -50,7 +55,7 @@ module.static = f.prop({
             formData.append("package", file);
             payload = {
                 method: "POST",
-                path: "/module/install",
+                path: "/module/install/" + query,
                 body: formData
             };
 
@@ -102,6 +107,45 @@ module.static = f.prop({
             selections.length === 1 &&
             !selections.some((sel) => sel.naturalKey() === "Core")
         );
+    },
+    upgrade: async function (viewModel) {
+        let dialog = viewModel.confirmDialog();
+        let query = Qs.stringify({
+            subscription: {
+                id: f.createId(),
+                eventKey: f.catalog().eventKey()
+            }
+        });
+        let mods;
+
+        function error(err) {
+            dialog.message(err.message);
+            dialog.title("Error");
+            dialog.icon("error");
+            dialog.buttonCancel().hide();
+            dialog.show();
+        }
+
+        try {
+            await f.datasource().request({
+                method: "POST",
+                path: "/do/upgrade/" + query
+            });
+            mods = await f.datasource().request({
+                method: "POST",
+                path: "/data/modules",
+                body: {
+                    properties: ["id", "version"],
+                    filter: {criteria: [{
+                        property: "name",
+                        value: "Core"
+                    }]}
+                }
+            });
+            f.version(mods[0].version);
+        } catch (err) {
+            error(err);
+        }
     }
 });
 

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -51,7 +51,7 @@
                     "SELECT module, path, function FROM \"_route\" " +
                     "WHERE NOT is_deleted;"
                 );
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 // Query routes
                 client.query(sql, function (err, resp) {

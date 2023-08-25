@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, for, browser, unordered*/
-/*global f, m*/
+/*global f, m, Qs, printJS*/
 /**
     @module TableWidget
 */
@@ -355,7 +355,9 @@ function createTableDataView(options, col) {
                     url = (
                         window.location.protocol + "//" +
                         window.location.hostname + ":" +
-                        window.location.port + "#!/edit/" +
+                        window.location.port +
+                        window.location.pathname +
+                        "#!/edit/" +
                         type +
                         "/" + theProp().id()
                     );
@@ -987,6 +989,7 @@ tableWidget.viewModel = function (options) {
     let vm = {};
     let isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
     let fetchCount = 0;
+    let pathname = "/" + location.pathname.replaceAll("/", "");
 
     options.config.aggregates = options.config.aggregates || [];
 
@@ -1014,10 +1017,11 @@ tableWidget.viewModel = function (options) {
             if (resp) {
                 dlg.message(
                     "One or more errors were encountered during import. " +
-                    "Would you like to download the log?"
+                    "Click Ok to download the error log."
                 );
                 dlg.title("Error");
                 dlg.icon("error");
+                dlg.buttonCancel().hide();
                 dlg.onOk(doDownload.bind(null, target, resp));
                 dlg.show();
             }
@@ -1044,6 +1048,12 @@ tableWidget.viewModel = function (options) {
             let name = file.name.slice(0, file.name.indexOf("."));
             let feathers = f.catalog().feathers();
             let payload;
+            let query = Qs.stringify({
+                subscription: {
+                    id: f.createId(),
+                    eventKey: f.catalog().eventKey()
+                }
+            });
 
             if (name.indexOf(" ") !== -1) {
                 name = name.slice(0, name.indexOf(" "));
@@ -1068,7 +1078,7 @@ tableWidget.viewModel = function (options) {
             formData.append("import", file);
             payload = {
                 method: "POST",
-                path: "/do/import/" + format + "/" + name,
+                path: "/do/import/" + format + "/" + name + "/" + query,
                 body: formData
             };
 
@@ -1174,7 +1184,12 @@ tableWidget.viewModel = function (options) {
         function onOk() {
             let theUrl;
             let payload;
-            let theBody = {};
+            let theBody = {
+                subscription: {
+                    id: f.createId(),
+                    eventKey: f.catalog().eventKey()
+                }
+            };
             let fspec = vm.feather();
             let plural = fspec.plural || fspec.name;
 
@@ -1201,7 +1216,10 @@ tableWidget.viewModel = function (options) {
                 }];
             }
 
-            theUrl = "/do/export/" + format() + "/" + plural;
+            theUrl = (
+                pathname + "/do/export/" +
+                format() + "/" + plural
+            );
             payload = {
                 method: "POST",
                 url: theUrl,
@@ -1281,6 +1299,241 @@ tableWidget.viewModel = function (options) {
             width: "550px"
         });
         dlg.show();
+    }
+
+    async function doPrintList() {
+        let cols = vm.config().columns;
+        let theUrl;
+        let payload;
+        let theBody = {};
+        let fspec = vm.feather();
+        let pModel = f.createModel(fspec.name);
+        let theCols;
+        let aggs = {};
+        let aggRow = {};
+        let theProperties;
+
+        function resolveColumn(attr, prop) {
+            let theCol = cols.find((c) => c.attr === attr);
+            if (theCol.label) {
+                return theCol.label.replace(".", "");
+            }
+            return prop.alias();
+        }
+
+        function notCalculated(p) {
+            return (
+                p.indexOf(".") !== -1 || // path ok
+                !fspec.properties[p].isCalculated
+            );
+        }
+
+        theBody.properties = cols.map((col) => col.attr);
+        theBody.properties = theBody.properties.filter(notCalculated);
+
+        theBody.filter = getFilter();
+        delete theBody.filter.limit;
+
+        theUrl = (
+            pathname + "/data/" + fspec.plural.toSpinalCase()
+        );
+        payload = {
+            method: "POST",
+            url: theUrl,
+            body: theBody
+        };
+
+        let dat = await m.request(payload);
+
+        function formatRow(row, col) {
+            let theProp = f.resolveProperty(pModel, col.attr);
+            let colName = resolveColumn(col.attr, theProp);
+            let format = theProp.format || theProp.type;
+            let content;
+            let dataList = theProp.dataList;
+            let tableData;
+            let relation;
+            let theValue = theProp();
+            let agg = aggs[col.attr];
+            let aggVal = theValue;
+
+            if (theProp.format === "money") {
+                agg = aggs[col.attr + ".amount"];
+            }
+
+            if (agg) {
+                if (theProp.format === "money") {
+                    aggVal = theProp.toJSON().amount;
+                    agg.currency = theProp().currency;
+                }
+
+                if (!agg.property) {
+                    agg.property = colName;
+                    if (
+                        agg.method === "MIN" ||
+                        agg.method === "MAX"
+                    ) {
+                        agg.value = aggVal;
+                    } else {
+                        agg.value = 0;
+                    }
+                }
+
+                switch (agg.method) {
+                case "SUM":
+                    agg.value = agg.value.plus(aggVal);
+                    break;
+                case "COUNT":
+                    agg.value = agg.value.plus(1);
+                    break;
+                case "MAX":
+                    if (aggVal > agg.value) {
+                        agg.value = aggVal;
+                    }
+                    break;
+                case "MIN":
+                    if (aggVal < agg.value) {
+                        agg.value = aggVal;
+                    }
+                    break;
+                case "AVG":
+                    agg.sum = agg.sum.plus(aggVal);
+                    agg.count = agg.count.plus(1);
+                    break;
+                }
+            }
+
+            if (typeof format === "object" && row[colName] === null) {
+                row[colName] = "";
+                return;
+            }
+
+            if (typeof format === "object" && theProp()) {
+                relation = theProp.type.relation.toCamelCase();
+                if (f.types[relation] && f.types[relation].tableData) {
+                    tableData = f.types[relation].tableData;
+                } else {
+                    tableData = function () {
+                        let rel;
+                        let keys;
+
+                        // If relation, use feather natural key to
+                        // find value to display
+                        rel = f.catalog().getFeather(format.relation);
+                        keys = Object.keys(rel.properties);
+                        rel = (
+                            keys.find(
+                                (key) => rel.properties[key].isNaturalKey
+                            ) ||
+                            keys.find(
+                                (key) => rel.properties[key].isLabelKey
+                            )
+                        );
+
+                        if (rel) {
+                            row[colName] = theProp().data[rel]();
+                            return;
+                        }
+                    };
+                }
+            } else if (
+                theProp.format &&
+                f.formats()[theProp.format].tableData
+            ) {
+                tableData = f.formats()[theProp.format].tableData;
+            } else if (
+                f.types[theProp.type] &&
+                f.types[theProp.type].tableData
+            ) {
+                tableData = f.types[theProp.type].tableData;
+            } else {
+                tableData = (obj) => obj.value;
+            }
+
+            if (dataList) {
+                theValue = dataList.find((i) => i.value === theValue) || {};
+                theValue = theValue.label;
+            }
+
+            content = tableData({
+                value: theValue,
+                options: {style: {}},
+                prop: () => theValue
+            });
+
+            if (typeof content === "string") {
+                row[colName] = content;
+            }
+        }
+
+        theCols = theBody.properties;
+
+        vm.config().aggregates.forEach(function (agg) {
+            aggs[agg.property] = {
+                sum: 0,
+                count: 0,
+                method: agg.method
+            };
+        });
+
+        dat = dat.map(function (row) {
+            pModel.set(row, true, true);
+            theCols.forEach(function (prop) {
+                let col = cols.find((c) => c.attr === prop);
+                formatRow(row, col);
+            });
+            return row;
+        });
+
+        theProperties = theCols.map(function (attr) {
+            let theProp = f.resolveProperty(pModel, attr);
+            return resolveColumn(attr, theProp);
+        });
+
+        if (vm.config().aggregates.length) {
+            theProperties.forEach(function (p) {
+                aggRow[p] = "";
+            });
+            Object.keys(aggs).forEach(function (key) {
+                if (aggs[key].method === "AVG") {
+                    aggs[key].value = aggs[key].sum.div(aggs[key].count);
+                }
+                if (aggs[key].currency) {
+                    aggs[key].value = f.formats().money.tableData({
+                        options: {style: {}},
+                        value: {
+                            currency: aggs[key].currency,
+                            amount: aggs[key].value
+                        }
+                    });
+                }
+                aggRow[aggs[key].property] = aggs[key].value;
+            });
+            dat.push(aggRow);
+        }
+
+        printJS({
+            printable: dat,
+            properties: theProperties,
+            header: (
+                "<h1 class=\"custom-h1\">" +
+                (options.printTitle || fspec.plural.toName()) +
+                "</h1>"
+            ),
+            style: ".custom-h1 { font-family: sans-serif; }",
+            documentTitle: fspec.plural.toName(),
+            gridHeaderStyle: (
+                "font-family: sans-serif; " +
+                "border: 1px solid lightgray;"
+            ),
+            gridStyle: (
+                "font-family: sans-serif; " +
+                "border: 1px solid lightgray; " +
+                "padding-left: 10px;" +
+                "padding-right: 10px;"
+            ),
+            type: "json"
+        });
     }
 
     function setProperties() {
@@ -1375,7 +1628,7 @@ tableWidget.viewModel = function (options) {
         delete theBody.filter.sort;
         delete theBody.filter.offset;
 
-        theUrl = "/do/aggregate";
+        theUrl = pathname + "/do/aggregate";
         payload = {
             method: "POST",
             url: theUrl,
@@ -1387,15 +1640,6 @@ tableWidget.viewModel = function (options) {
 
     function doFetch(refresh) {
         let list = vm.models();
-        let crit = getFilter().criteria || [];
-
-        if (
-            vm.isClearOnNoSearch() &&
-            !crit.length
-        ) {
-            list.reset();
-            return;
-        }
 
         if (refresh) {
             doFetchAggregates();
@@ -1523,10 +1767,10 @@ tableWidget.viewModel = function (options) {
         });
 
         o = {
-            id: "nav-actions-import",
+            id: "nav-actions-print-list",
             class: "pure-menu-link",
-            title: "Import data",
-            onclick: doImport
+            title: "Print entire list",
+            onclick: doPrintList
         };
 
         if (menu.length) {
@@ -1535,9 +1779,9 @@ tableWidget.viewModel = function (options) {
 
         menu.push(
             m("li", o, [m("i", {
-                id: "nav-actions-import-icon",
+                id: "nav-actions-print-list-icon",
                 class: "material-icons-outlined fb-menu-list-icon"
-            }, "file_upload")], "Import")
+            }, "print")], "Print List")
         );
 
         menu.push(
@@ -1550,6 +1794,18 @@ tableWidget.viewModel = function (options) {
                 id: "nav-actions-export-icon",
                 class: "material-icons-outlined fb-menu-list-icon"
             }, "file_download")], "Export")
+        );
+
+        menu.push(
+            m("li", {
+                id: "nav-actions-import",
+                class: "pure-menu-link",
+                title: "Import data",
+                onclick: doImport
+            }, [m("i", {
+                id: "nav-actions-import-icon",
+                class: "material-icons-outlined fb-menu-list-icon"
+            }, "file_upload")], "Import")
         );
 
         return menu;
@@ -1629,15 +1885,6 @@ tableWidget.viewModel = function (options) {
         @return {Boolean}
     */
     vm.isMultiSelectEnabled = f.prop(true);
-    /**
-        If true no query results are shown unless
-        a filter criteria exist.
-
-        @method isClearOnNoSearch
-        @param {Boolean} flag Default false
-        @return {Boolean}
-    */
-    vm.isClearOnNoSearch = f.prop(Boolean(options.isClearOnNoSearch));
     /**
         If false then only shown properties
         are loaded, which helps with performance.
@@ -2557,14 +2804,6 @@ tableWidget.component = {
         let dlg = f.getComponent("Dialog");
         let aggs = theVm.aggregates();
         let tableBodyClass = "fb-table-body";
-        let watermarkStyle = {display: "none"};
-
-        if (
-            theVm.isClearOnNoSearch() &&
-            theVm.models().state().current()[0] === "/Unitialized"
-        ) {
-            watermarkStyle.display = "block";
-        }
 
         // Build header
         header = (function () {
@@ -2682,18 +2921,6 @@ tableWidget.component = {
             m("table", {
                 class: "pure-table fb-table"
             }, [
-                m("div", {
-                    class: "fb-search-watermark",
-                    id: "search-watermark",
-                    style: watermarkStyle
-                }, [
-                    m("div", {
-                        class: "fb-search-watermark-icon material-icons"
-                    }, "search"),
-                    m("div", {
-                        class: "fb-search-watermark-text"
-                    }, "Ready to Search")
-                ]),
                 m("thead", {
                     ondragover: theVm.ondragover,
                     draggable: true,

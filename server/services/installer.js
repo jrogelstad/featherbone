@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -33,6 +33,7 @@
     const path = require("path");
     const f = require("../../common/core");
     let isInstalling = false;
+    let isRemote = false;
 
     f.jsonpatch = require("fast-json-patch");
     f.isInstalling = () => isInstalling;
@@ -66,11 +67,22 @@
             @param {Object} client
             @param {String} dir Directory of manifest
             @param {String} user User name
-            @param {Boolean} [isSuper] Force as super user
+            @param {Object} [options]
+            @param {Boolean} [options.isSuper] Force as super user
+            @param {Object} [options.subscription] Subscription for client
+            progress bar
+            @param {String} [options.tenant] Target tenant
             @return {Promise}
         */
-        that.install = function (pDatasource, pClient, pDir, pUser, pIsSuper) {
+        that.install = function (
+            pDatasource,
+            pClient,
+            pDir,
+            pUser,
+            opts
+        ) {
             return new Promise(function (resolve, reject) {
+                opts = opts || {};
                 let manifest;
                 let processFile;
                 let i = 0;
@@ -81,13 +93,86 @@
                     base: MANIFEST
                 });
                 let installedFeathers = false;
+                let pProcess;
+                let pIsSuper = opts.isSuper;
+                let pSubscr = opts.subscription;
+                let reqClient = pClient;
+                let conn;
 
+                reqClient.currentUser(pUser);
                 f.datasource = pDatasource;
                 isInstalling = true;
-                pClient.currentUser(pUser);
+
+                async function init() {
+                    let pkgName;
+
+                    // If target database is other than requestor's,
+                    // connect to it
+                    if (opts.tenant) {
+                        conn = await db.connect(opts.tenant);
+                        pClient = conn.client;
+                        pClient.currentUser(pUser);
+                        isRemote = true;
+                    }
+
+                    function getCount(loc) {
+                        return new Promise(function (resolve) {
+                            async function handleCount(err, dat) {
+                                if (err) {
+                                    console.error(err);
+                                    return;
+                                }
+                                let data = JSON.parse(dat);
+                                if (!pkgName) {
+                                    pkgName = (
+                                        "Install package " +
+                                        data.module + " v" +
+                                        data.version
+                                    );
+                                    if (opts.tenant) {
+                                        pkgName += (
+                                            " on " + opts.tenant.pgDatabase
+                                        );
+                                    }
+                                }
+                                let count = data.files.filter(
+                                    (f) => f.type !== "install"
+                                ).length;
+                                let installs = data.files.filter(
+                                    (f) => f.type === "install"
+                                );
+                                let install;
+                                while (installs.length) {
+                                    install = installs.shift();
+                                    count += await getCount(install.path);
+                                }
+                                resolve(count);
+                            }
+                            let cpath = path.format({
+                                root: "/",
+                                dir: pDir,
+                                base: loc
+                            });
+                            fs.readFile(cpath, "utf8", handleCount);
+                        });
+                    }
+                    let pCount = await getCount(MANIFEST);
+                    pProcess = f.datasource.createProcess({
+                        canStop: !isRemote,
+                        client: reqClient,
+                        count: pCount,
+                        name: pkgName,
+                        subscription: pSubscr
+                    });
+                    await pProcess.start();
+                }
 
                 function registerNpmModules(isSuper) {
                     return new Promise(function (resolve) {
+                        if (isRemote) {
+                            resolve(isSuper);
+                        }
+
                         config.read().then(function (resp) {
                             let mods = resp.npmModules || [];
 
@@ -121,7 +206,6 @@
                 function rollback(err) {
                     pClient.query("ROLLBACK;", function () {
                         console.error(err);
-                        //console.log("ROLLBACK");
                         console.error("Installation failed.");
                         reject(err);
                     });
@@ -152,6 +236,11 @@
                     };
 
                     // Start processing
+                    if (isRemote) {
+                        Promise.resolve().then(nextItem).catch(rollback);
+                        return;
+                    }
+
                     pDatasource.loadServices(pUser, pClient).then(
                         nextItem
                     ).catch(
@@ -519,8 +608,62 @@
                     let name;
                     let npm;
 
+                    async function updateTenant() {
+                        let tmods;
+                        if (opts.tenant) {
+                            tmods = await pDatasource.request({
+                                client: pClient,
+                                method: "GET",
+                                name: "Module",
+                                properties: ["name", "version"],
+                                user: pUser
+                            }, true);
+                            let acSettings = await pDatasource.request({
+                                client: reqClient,
+                                method: "GET",
+                                name: "getSettings",
+                                user: pUser,
+                                data: {name: "adminConsoleSettings"}
+                            }, true);
+                            await pDatasource.request({
+                                data: [{
+                                    op: "replace",
+                                    path: "/modules",
+                                    value: tmods
+                                }],
+                                id: opts.tenant.id,
+                                method: "PATCH",
+                                name: "Tenant",
+                                user: pUser,
+                                tenant: false
+                            }, true);
+
+                            if (acSettings) {
+                                if (tmods.some(function (tmod) {
+                                    return (
+                                        tmod.name === acSettings.module &&
+                                        tmod.version === acSettings.version
+                                    );
+                                })) {
+                                    opts.tenant.hasValidModule = true;
+                                }
+                            }
+                        }
+                        conn.done();
+                    }
+
                     function complete() {
                         isInstalling = false;
+                        if (isRemote) {
+                            updateTenant().then(
+                                pProcess.complete
+                            ).then(function () {
+                                console.log("Remote installation completed!");
+                                resolve();
+                            });
+                            return;
+                        }
+
                         // Some services won't initialize while installing
                         // so do it again now to make sure they're started
                         console.log("Applying npm packages...");
@@ -533,7 +676,7 @@
                                 pUser,
                                 pClient
                             );
-                        }).then(function () {
+                        }).then(pProcess.complete).then(function () {
                             console.log("Installation completed!");
                             resolve();
                         });
@@ -561,7 +704,6 @@
 
                     // If we've processed all the files, wrap this up
                     if (!file) {
-                        //console.log("COMMIT");
                         handleFeathers().then(function () {
                             return new Promise(function (resolve) {
                                 pClient.query("COMMIT;").then(resolve);
@@ -597,6 +739,7 @@
                         content = data;
 
                         console.log("Installing " + filename);
+                        pProcess.next();
 
                         try {
                             switch (file.type) {
@@ -663,15 +806,33 @@
                 }
 
                 if (pIsSuper) {
+                    // Run from command line, so ignore process stuff
+                    pProcess = {
+                        next: () => true,
+                        complete: () => true
+                    };
                     registerNpmModules(true).then(doInstall);
                     return;
                 }
 
-                f.datasource.request({
-                    method: "GET",
-                    name: "isSuperUser",
-                    client: pClient
-                }).then(registerNpmModules).then(doInstall).catch(reject);
+                async function checkSuper() {
+                    let is = await f.datasource.request({
+                        method: "GET",
+                        name: "isSuperUser",
+                        client: pClient
+                    });
+                    return is;
+                }
+
+                init().then(
+                    checkSuper
+                ).then(
+                    registerNpmModules
+                ).then(
+                    doInstall
+                ).catch(
+                    reject
+                );
             });
         };
 
@@ -687,7 +848,7 @@
         */
         that.deleteModule = function (obj) {
             return new Promise(function (resolve, reject) {
-                let vClient = db.getClient(obj.client);
+                let vClient = obj.client;
                 let name = obj.data.name;
                 let requests;
                 let sql = (
