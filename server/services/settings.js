@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -20,10 +20,10 @@ const settings = {};
 const {Database} = require("../database");
 const {Events} = require("./events");
 const f = require("../../common/core");
-const db = new Database();
 const events = new Events();
+const pgdb = new Database();
+const dbsettings = {};
 
-settings.data = {};
 /**
     @module Settings
 */
@@ -44,92 +44,110 @@ settings.data = {};
     @param {Object} [payload.subscription] subscribe to changes
     @return {Promise}
 */
-settings.getSettings = function (obj) {
-    return new Promise(function (resolve, reject) {
-        let name = obj.data.name;
-        let theClient = db.getClient(obj.client);
+settings.getSettings = async function (obj) {
+    let name = obj.data.name;
+    let theClient = obj.client;
+    let db = theClient.database;
+    if (!dbsettings[db]) {
+        dbsettings[db] = {data: {}};
+    }
 
-        function fetch() {
-            let sql = (
-                "SELECT id, etag, data FROM \"$settings\"" +
-                "WHERE name = $1"
-            );
+    async function fetch() {
+        let sql = (
+            "SELECT id, etag, data, definition FROM \"$settings\"" +
+            "WHERE name = $1"
+        );
+        let rec;
+        let pkeys;
+        let p;
+        let i = 0;
+
+        try {
 
             // If here, need to query for the current settings
-            theClient.query(sql, [name]).then(function (resp) {
-                let rec;
+            let resp = await theClient.query(sql, [name]);
 
-                // If we found something, cache it
-                if (resp.rows.length) {
-                    rec = resp.rows[0];
-                    if (!settings.data[name]) {
-                        settings.data[name] = {data: {}};
+            // If we found something, cache it
+            if (resp.rows.length) {
+                rec = resp.rows[0];
+
+                // Handle decryption
+                if (rec.definition) {
+                    sql = "SELECT pgp_sym_decrypt($1::BYTEA, $2) AS value;";
+                    pkeys = Object.keys(rec.definition.properties);
+                    while (i < pkeys.length) {
+                        p = rec.definition.properties[pkeys[i]];
+                        if (p.isEncrypted) {
+                            resp = await theClient.query(sql, [
+                                rec.data[pkeys[i]],
+                                pgdb.cryptoKey()
+                            ]);
+                            rec.data[pkeys[i]] = resp.rows[0].value;
+                        }
+                        i += 1;
                     }
-                    settings.data[name].id = rec.id;
-                    settings.data[name].etag = rec.etag;
-                    // Careful not to break pre-existing pointer
-                    // First clear old properties
-                    Object.keys(
-                        settings.data[name].data
-                    ).forEach(function (key) {
-                        delete settings.data[name].data[key];
-                    });
-                    // Populate new properties
-                    Object.keys(rec.data || []).forEach(function (key) {
-                        settings.data[name].data[key] = rec.data[key];
-                    });
                 }
 
-                // Send back the settings if any were found, otherwise
-                // "false"
-                if (settings.data[name]) {
-                    // Handle subscription
-                    if (obj.subscription) {
-                        events.subscribe(
-                            theClient,
-                            obj.subscription,
-                            [rec.id]
-                        ).then(
-                            resolve.bind(null, settings.data[name].data)
-                        ).catch(
-                            reject
-                        );
-                        return;
-                    }
-                    resolve(settings.data[name].data);
-                    return;
+                if (!dbsettings[db].data[name]) {
+                    dbsettings[db].data[name] = {data: {}};
                 }
+                dbsettings[db].data[name].id = rec.id;
+                dbsettings[db].data[name].etag = rec.etag;
+                // Careful not to break pre-existing pointer
+                // First clear old properties
+                Object.keys(
+                    dbsettings[db].data[name].data
+                ).forEach(function (key) {
+                    delete dbsettings[db].data[name].data[key];
+                });
+                // Populate new properties
+                Object.keys(rec.data || []).forEach(function (key) {
+                    dbsettings[db].data[name].data[key] = rec.data[key];
+                });
+            }
 
-                resolve(false);
-            }).catch(reject);
+            // Send back the settings if any were found, otherwise
+            // "false"
+            if (dbsettings[db].data[name]) {
+                // Handle subscription
+                if (obj.subscription) {
+                    await events.subscribe(
+                        theClient,
+                        obj.subscription,
+                        [rec.id]
+                    );
+                }
+                return dbsettings[db].data[name].data;
+            }
+
+            Promise.reject(false);
+        } catch (e) {
+            return Promise.reject(e);
         }
+    }
 
+    try {
         if (obj.data.force) {
-            fetch();
-            return;
+            return await fetch();
         }
 
-        if (settings.data[name]) {
+        if (dbsettings[db].data[name]) {
             // Handle subscription
             if (obj.subscription) {
-                events.subscribe(
+                await events.subscribe(
                     theClient,
                     obj.subscription,
-                    [settings.data[name].id]
-                ).then(
-                    resolve.bind(null, settings.data[name].data)
-                ).catch(
-                    reject
+                    [dbsettings[db].data[name].id]
                 );
-                return;
             }
-            resolve(settings.data[name].data);
-            return;
+            return dbsettings[db].data[name].data;
         }
 
         // Request the settings from the database
-        fetch();
-    });
+        return await fetch();
+    } catch (e) {
+        return Promise.reject(e);
+    }
 };
 
 /**
@@ -143,7 +161,7 @@ settings.getSettings = function (obj) {
 settings.getSettingsDefinition = function (obj) {
     return new Promise(function (resolve, reject) {
         let sql;
-        let client = db.getClient(obj.client);
+        let client = obj.client;
 
         sql = "SELECT definition FROM \"$settings\" ";
         sql += "WHERE definition is NOT NULL";
@@ -172,11 +190,12 @@ settings.getSettingsDefinition = function (obj) {
 settings.getSettingsRow = function (obj) {
     return new Promise(function (resolve, reject) {
         let ret = {};
+        let db = obj.client.database;
 
         function callback(resp) {
             if (resp !== false) {
-                ret.etag = settings.data[obj.data.name].etag;
-                ret.data = settings.data[obj.data.name].data;
+                ret.etag = dbsettings[db].data[obj.data.name].etag;
+                ret.data = dbsettings[db].data[obj.data.name].data;
                 resolve(ret);
                 return;
             }
@@ -200,66 +219,95 @@ settings.getSettingsRow = function (obj) {
     @param {Object} payload.client Database client
     @return {Promise}
 */
-settings.saveSettings = function (obj) {
-    return new Promise(function (resolve, reject) {
-        let row;
-        let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
-        let name = obj.data.name;
-        let d = obj.data.data;
-        let tag = obj.etag || f.createId();
-        let params = [name, d, tag, obj.client.currentUser()];
-        let client = db.getClient(obj.client);
+settings.saveSettings = async function (obj) {
+    let row;
+    let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
+    let name = obj.data.name;
+    let d = obj.data.data;
+    let edat = f.copy(d);
+    let tag = obj.etag || f.createId();
+    let params = [name, edat, tag, obj.client.currentUser()];
+    let client = obj.client;
+    let db = obj.client.database;
+    let msg;
+    let resp;
+    let pkeys;
+    let p;
+    let i = 0;
 
-        function update(resp) {
-            let msg;
+    if (!dbsettings[db]) {
+        dbsettings[db] = {data: {}};
+    }
 
-            function done() {
-                if (!settings.data[name]) {
-                    settings.data[name] = {};
+    function done() {
+        if (!dbsettings[db].data[name]) {
+            dbsettings[db].data[name] = {};
+        }
+        dbsettings[db].data[name].id = name;
+        dbsettings[db].data[name].data = d;
+        dbsettings[db].data[name].etag = tag;
+    }
+
+    try {
+        resp = await client.query(sql, [name]);
+
+        // If found existing, update
+        if (resp.rows.length) {
+            row = resp.rows[0];
+
+            // Handle encryption where applicable
+            if (row.definition) {
+                pkeys = Object.keys(row.definition.properties);
+                sql = "SELECT pgp_sym_encrypt($1, $2)::TEXT AS value;";
+                while (i < pkeys.length) {
+                    p = row.definition.properties[pkeys[i]];
+                    if (p.isEncrypted) {
+                        resp = await client.query(sql, [
+                            edat[pkeys[i]],
+                            pgdb.cryptoKey()
+                        ]);
+                        edat[pkeys[i]] = resp.rows[0].value;
+                    }
+                    i += 1;
                 }
-                settings.data[name].id = name;
-                settings.data[name].data = d;
-                settings.data[name].etag = tag;
-                resolve(true);
             }
 
-            // If found existing, update
-            if (resp.rows.length) {
-                row = resp.rows[0];
-
-                if (
-                    settings.data[name] &&
-                    settings.data[name].etag !== row.etag
-                ) {
-                    msg = "Settings for \"" + name;
-                    msg += "\" changed by another user. Save failed.";
-                    reject(msg);
-                    return;
-                }
-
-                sql = "UPDATE \"$settings\" SET ";
-                sql += " data = $2, etag = $3, ";
-                sql += " updated = now(), updated_by = $4 ";
-                sql += "WHERE name = $1;";
-                client.query(sql, params, done);
-                return;
+            if (
+                dbsettings[db].data[name] &&
+                dbsettings[db].data[name].etag !== row.etag
+            ) {
+                msg = "Settings for \"" + name;
+                msg += "\" changed by another user. Save failed.";
+                return Promise.reject(msg);
             }
 
-            // otherwise create new
-            sql = "INSERT INTO \"$settings\" (name, data, etag, id, ";
-            sql += " created, created_by, updated, updated_by, ";
-            sql += "is_deleted) VALUES ";
-            sql += "($1, $2, $3, $1, now(), $4, now(), $4, false);";
-
-            client.query(sql, params).then(done).catch(reject);
+            sql = (
+                "UPDATE \"$settings\" SET " +
+                " data = $2, etag = $3, " +
+                " updated = now(), updated_by = $4 " +
+                "WHERE name = $1;"
+            );
+            await client.query(sql, params);
+            done();
+            return true;
         }
 
-        client.query(sql, [name]).then(
-            update
-        ).catch(
-            reject
+        // otherwise create new
+        sql = (
+            "INSERT INTO \"$settings\" (name, data, etag, id, " +
+            " created, created_by, updated, updated_by, " +
+            "is_deleted) VALUES " +
+            "($1, $2, $3, $1, now(), $4, now(), $4, false);"
         );
-    });
+
+        await client.query(sql, params);
+
+        done();
+
+        return true;
+    } catch (e) {
+        return Promise.reject(e);
+    }
 };
 
 (function (exports) {

@@ -350,6 +350,9 @@
         }, {
             "attr": "isAlwaysLoad",
             "unit": 1
+        }, {
+            "attr": "isEncrypted",
+            "unit": 1
         }]
     }
 }, {

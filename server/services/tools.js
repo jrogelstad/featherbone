@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -23,11 +23,9 @@
     "use strict";
 
     const f = require("../../common/core");
-    const {Database} = require("../database");
     const ops = Object.keys(f.operators);
     const format = require("pg-format");
 
-    const db = new Database();
     const tools = {};
     const formats = {
         integer: {
@@ -573,27 +571,14 @@
             @param {Boolean} [flag] Request as super user. Default false.
             @return {Promise}
         */
-        tools.getKey = function (obj, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let payload;
-
-                payload = {
-                    name: obj.name || "Object",
-                    filter: {criteria: [{property: "id", value: obj.id}]},
-                    client: obj.client,
-                    showDeleted: obj.showDeleted
-                };
-
-                function callback(keys) {
-                    resolve(keys[0]);
-                }
-
-                tools.getKeys(payload, isSuperUser).then(
-                    callback
-                ).catch(
-                    reject
-                );
-            });
+        tools.getKey = async function (obj, isSuperUser) {
+            let keys = await tools.getKeys({
+                name: obj.name || "Object",
+                filter: {criteria: [{property: "id", value: obj.id}]},
+                client: obj.client,
+                showDeleted: obj.showDeleted
+            }, isSuperUser);
+            return keys[0];
         };
         /**
             Get an array of primary keys for a given feather and filter
@@ -608,25 +593,17 @@
             @param {Boolean} [flag] Request as super user. Default true.
             @return {Promise}
         */
-        tools.getKeys = function (obj, isSuperUser) {
+        tools.getKeys = async function (obj, isSuperUser) {
             isSuperUser = isSuperUser !== false;
-            return new Promise(function (resolve, reject) {
-                let sql = "SELECT _pk FROM %I";
-                let params = [];
+            let sql = "SELECT _pk FROM %I";
+            let params = [];
+            let resp;
 
-                sql = sql.format(["_" + obj.name.toSnakeCase()]);
-                sql += tools.buildWhere(obj, params, isSuperUser, obj.rowAuth);
+            sql = sql.format(["_" + obj.name.toSnakeCase()]);
+            sql += tools.buildWhere(obj, params, isSuperUser, obj.rowAuth);
 
-                function callback(resp) {
-                    let keys = resp.rows.map(function (rec) {
-                        return rec[tools.PKCOL];
-                    });
-
-                    resolve(keys);
-                }
-
-                obj.client.query(sql, params).then(callback).catch(reject);
-            });
+            resp = await obj.client.query(sql, params);
+            return resp.rows.map((rec) => rec[tools.PKCOL]);
         };
 
         /**
@@ -651,29 +628,21 @@
             @param {Client} payload.client Database client
             @return {Promise}
         */
-        tools.isSuperUser = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let sql = "SELECT is_super FROM user_account WHERE name=$1;";
-                let user = (
-                    obj.user === undefined
-                    ? obj.client.currentUser()
-                    : obj.user
-                );
-                let client = db.getClient(obj.client);
+        tools.isSuperUser = async function (obj) {
+            let sql = "SELECT is_super FROM user_account WHERE name=$1;";
+            let user = (
+                obj.user === undefined
+                ? obj.client.currentUser()
+                : obj.user
+            );
+            let client = obj.client;
 
-                client.query(sql, [user], function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    resolve(
-                        resp.rows.length
-                        ? resp.rows[0].is_super
-                        : false
-                    );
-                });
-            });
+            let resp = await client.query(sql, [user]);
+            return (
+                resp.rows.length
+                ? resp.rows[0].is_super
+                : false
+            );
         };
 
         /**
@@ -685,20 +654,17 @@
             @return Promise
         */
         tools.getAuthorizations = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
-                let sql = (
-                    "SELECT auth.role, auth.can_read, auth.can_update," +
-                    "auth.can_delete, " +
-                    "'object_authorization' AS object_type " +
-                    "FROM object, \"$auth\" AS auth " +
-                    "WHERE id=$1 AND object._pk=auth.object_pk;"
-                );
+            let client = obj.client;
+            let sql = (
+                "SELECT auth.role, auth.can_read, auth.can_update," +
+                "auth.can_delete, " +
+                "'object_authorization' AS object_type " +
+                "FROM object, \"$auth\" AS auth " +
+                "WHERE id=$1 AND object._pk=auth.object_pk;"
+            );
 
-                client.query(sql, [obj.data.id]).then(function (resp) {
-                    resolve(tools.sanitize(resp.rows));
-                }).catch(reject);
-            });
+            let resp = client.query(sql, [obj.data.id]);
+            return tools.sanitize(resp.rows);
         };
 
         /**
@@ -797,7 +763,7 @@
                 let afterGetUser;
                 let afterUpsert;
                 let user = obj.user;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 afterCheckSuperUser = function (err, ok) {
                     if (err) {

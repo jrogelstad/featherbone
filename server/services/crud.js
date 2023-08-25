@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -705,14 +705,11 @@
 
             @method begin
             @param {Object} payload Request payload
-            @param {String | Object} payload.client Database client
+            @param {Object} payload.client Database client
             @return {Promise}
         */
-        crud.begin = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
-                client.query("BEGIN;").then(resolve).catch(reject);
-            });
+        crud.begin = async function (obj) {
+            return await obj.client.query("BEGIN;");
         };
 
         /**
@@ -720,23 +717,30 @@
 
             @method commit
             @param {Object} payload Request payload
-            @param {String | Object} payload.client Database client
+            @param {Object} payload.client Database client
             @return {Promise}
         */
-        crud.commit = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
-                client.query("COMMIT;").then(function () {
-                    let callbacks = client.callbacks.slice();
-                    function next() {
-                        if (callbacks.length) {
-                            callbacks.shift()().then(next).catch(console.log);
-                        }
+        crud.commit = async function (obj) {
+            let client = obj.client;
+            let callbacks = client.callbacks.slice();
+
+            async function doPostProcessing() {
+                try {
+                    while (callbacks.length) {
+                        await callbacks.shift()();
                     }
-                    next();
-                    resolve();
-                }).catch(reject);
-            });
+                } catch (e) {
+                    console.error(e);
+                    return Promise.reject(e);
+                }
+            }
+
+            try {
+                await client.query("COMMIT;");
+                doPostProcessing(); // Happens in the background
+            } catch (err) {
+                return Promise.reject(err);
+            }
         };
 
         /**
@@ -749,7 +753,7 @@
         */
         crud.savePoint = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 savepoint = true;
                 client.query(
                     "SAVEPOINT last_savepoint;"
@@ -763,6 +767,7 @@
             @method rollback
             @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
+            @param {Object} payload.error Error
             @param {Object} payload.data Data options
             @param {Boolean} payload.data.toSavePoint
             Whether to rollback to last savepoint. Default true.
@@ -770,7 +775,7 @@
         */
         crud.rollback = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let client = obj.client;
                 let sql = "ROLLBACK";
                 if (savepoint && (
                     !obj.data || obj.data.savePoint !== false
@@ -782,7 +787,9 @@
                     let callbacks = client.rollbacks.slice();
                     function next() {
                         if (callbacks.length) {
-                            callbacks.shift()().then(next).catch(console.log);
+                            callbacks.shift()(obj.error).then(
+                                next
+                            ).catch(console.log);
                         }
                     }
                     next();
@@ -835,7 +842,7 @@
             let sql;
             let table;
             let tokens = [];
-            let theClient = db.getClient(obj.client);
+            let theClient = obj.client;
             let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
             let params = [];
             let sub = [];
@@ -940,7 +947,7 @@
                 let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
                 let clen = 1;
                 let c = 0;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 if (obj.isHard === true) {
                     sql = "DELETE FROM object WHERE id=$1;";
@@ -1136,8 +1143,6 @@
                 let afterHandleRelations;
                 let insertChildren;
                 let afterInsert;
-                let afterDoSelect;
-                let afterLog;
                 let afterUniqueCheck;
                 let feather;
                 let payload;
@@ -1148,10 +1153,8 @@
                 let params = [];
                 let values = [];
                 let unique = false;
-                let clen = 1;
-                let c = 0;
                 let p = 2;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 payload = {
                     data: {
@@ -1160,8 +1163,9 @@
                     client: theClient
                 };
 
-                afterGetFeather = function (resp) {
+                afterGetFeather = async function (resp) {
                     let ovr;
+                    let res;
 
                     if (!resp) {
                         reject("Class \"" + name + "\" not found");
@@ -1201,13 +1205,20 @@
                         return;
                     }
 
-                    tools.getKey({
-                        id: data.id,
-                        client: theClient
-                    }, true).then(afterIdCheck).catch(reject);
+                    try {
+                        res = await tools.getKey({
+                            id: data.id,
+                            client: theClient
+                        }, true);
+                        afterIdCheck(res);
+                    } catch (e) {
+                        reject(e);
+                    }
                 };
 
-                afterIdCheck = function (id) {
+                afterIdCheck = async function (id) {
+                    let res;
+
                     if (id !== undefined) {
                         data.id = f.createId();
                     }
@@ -1230,23 +1241,30 @@
                     });
 
                     if (unique && !isChild) {
-                        tools.getKeys({
-                            client: theClient,
-                            name: unique.feather,
-                            filter: {
-                                criteria: [{
-                                    property: unique.prop,
-                                    value: unique.value
-                                }]
-                            }
-                        }).then(afterUniqueCheck).catch(reject);
+                        try {
+                            res = await tools.getKeys({
+                                client: theClient,
+                                name: unique.feather,
+                                filter: {
+                                    criteria: [{
+                                        property: unique.prop,
+                                        value: unique.value
+                                    }]
+                                }
+                            }, true);
+                            afterUniqueCheck(res);
+                        } catch (e) {
+                            reject(e);
+                        }
                         return;
                     }
 
                     afterUniqueCheck();
                 };
 
-                afterUniqueCheck = function (resp) {
+                afterUniqueCheck = async function (resp) {
+                    let res;
+
                     if (resp && resp.length) {
                         msg = "Value '" + unique.value + "' assigned to ";
                         msg += unique.label.toName() + " on ";
@@ -1258,20 +1276,27 @@
                     }
 
                     if (!isChild && isSuperUser === false) {
-                        feathers.isAuthorized({
-                            client: theClient,
-                            data: {
-                                feather: name,
-                                action: "canCreate"
-                            }
-                        }).then(afterAuthorized).catch(reject);
+                        try {
+                            res = await feathers.isAuthorized({
+                                client: theClient,
+                                data: {
+                                    feather: name,
+                                    action: "canCreate"
+                                }
+                            });
+                            afterAuthorized(res);
+                        } catch (e) {
+                            reject(e);
+                        }
                         return;
                     }
 
                     afterAuthorized(true);
                 };
 
-                afterAuthorized = function (authorized) {
+                afterAuthorized = async function (authorized) {
+                    let res;
+
                     if (!authorized) {
                         msg = "Not authorized to create \"";
                         msg += obj.name + "\"";
@@ -1292,15 +1317,15 @@
 
                     // Get primary key
                     sql = "select nextval('object__pk_seq')";
-                    theClient.query(sql, afterNextVal);
+                    try {
+                        res = await theClient.query(sql);
+                        afterNextVal(res);
+                    } catch (e) {
+                        reject(e);
+                    }
                 };
 
-                afterNextVal = function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
+                afterNextVal = function (resp) {
                     pkey = resp.rows[0].nextval;
                     values.push(pkey);
 
@@ -1310,8 +1335,8 @@
                     buildInsert();
                 };
 
-                buildInsert = function () {
-                    let callback;
+                buildInsert = async function () {
+                    let res;
 
                     if (n < len) {
                         key = fkeys[n];
@@ -1360,16 +1385,20 @@
                                 if (value !== -1) {
                                     if (prop.type.isChild) {
                                         /* Insert child relation on the fly */
-                                        crud.doInsert({
-                                            name: prop.type.relation,
-                                            data: data[key],
-                                            client: theClient
-                                        }, true, true).then(function () {
-                                            tools.getKey({
+                                        try {
+                                            await crud.doInsert({
+                                                name: prop.type.relation,
+                                                data: data[key],
+                                                client: theClient
+                                            }, true, true);
+                                            res = await tools.getKey({
                                                 id: data[key].id,
                                                 client: theClient
-                                            }).then(afterGetPk).catch(reject);
-                                        }).catch(reject);
+                                            });
+                                            afterGetPk(res);
+                                        } catch (e) {
+                                            reject(e);
+                                        }
                                         return;
                                     }
 
@@ -1377,10 +1406,15 @@
                                     if (prop.type.childOf && obj.pk) {
                                         afterGetPk(obj.pk);
                                     } else {
-                                        tools.getKey({
-                                            id: data[key].id,
-                                            client: theClient
-                                        }).then(afterGetPk).catch(reject);
+                                        try {
+                                            res = await tools.getKey({
+                                                id: data[key].id,
+                                                client: theClient
+                                            });
+                                            afterGetPk(res);
+                                        } catch (e) {
+                                            reject(e);
+                                        }
                                     }
                                     return;
                                 }
@@ -1411,25 +1445,20 @@
                                 !value &&
                                 prop.autonumber
                             ) {
-                                callback = function (err, resp) {
-                                    let seq = resp.rows[0].seq - 0;
-
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
+                                try {
+                                    res = await theClient.query(
+                                        "SELECT nextval($1) AS seq",
+                                        [prop.autonumber.sequence]
+                                    );
+                                    let seq = res.rows[0].seq - 0;
 
                                     value = prop.autonumber.prefix || "";
                                     value += seq.pad(prop.autonumber.length);
                                     value += prop.autonumber.suffix || "";
                                     afterHandleRelations();
-                                };
-
-                                theClient.query(
-                                    "SELECT nextval($1) AS seq",
-                                    [prop.autonumber.sequence],
-                                    callback
-                                );
+                                } catch (e) {
+                                    reject(e);
+                                }
                                 return;
                             }
 
@@ -1458,14 +1487,13 @@
                                     value = f[value.replace(/\(\)$/, "")]();
 
                                     if (value.constructor.name === "Promise") {
-                                        Promise.all([value]).then(
-                                            function (resp) {
-                                                value = resp[0];
-                                                afterHandleRelations();
-                                            }
-                                        ).catch(
-                                            reject
-                                        );
+                                        try {
+                                            res = await Promise.all([value]);
+                                            value = res[0];
+                                            afterHandleRelations();
+                                        } catch (e) {
+                                            reject(e);
+                                        }
                                         return;
                                     }
                                 }
@@ -1539,15 +1567,27 @@
                         args.push(col);
                         tokens.push("%I");
                         values.push(value);
-                        params.push("$" + p);
+
+                        if (prop.isEncrypted) {
+                            params.push(
+                                "pgp_sym_encrypt($" + p +
+                                ", '" + db.cryptoKey() + "')"
+                            );
+                        } else {
+                            params.push("$" + p);
+                        }
+
                         p += 1;
                     }
 
                     buildInsert();
                 };
 
-                insertChildren = function (err) {
+                insertChildren = async function (err) {
                     let ckeys;
+                    let ckey;
+                    let row;
+                    let i = 0;
 
                     if (err) {
                         reject(err);
@@ -1562,97 +1602,70 @@
                             props[key].type.parentOf &&
                             data[key] !== undefined
                         ) {
-                            clen += data[key].length;
                             return true;
                         }
                     });
 
                     // Insert children recursively
-                    ckeys.forEach(function (key) {
-                        let rel = props[key].type.relation;
-
-                        data[key].forEach(function (row) {
-                            row[props[key].type.parentOf] = {
-                                id: data.id
-                            };
-                            crud.doInsert({
-                                pk: pkey,
-                                name: rel,
-                                data: row,
-                                client: theClient
-                            }, true).then(afterInsert).catch(reject);
-                        });
-                    });
+                    let rel;
+                    try {
+                        while (ckeys.length) {
+                            ckey = ckeys.shift();
+                            rel = props[ckey].type.relation;
+                            while (i < data[ckey].length) {
+                                row = data[ckey][i];
+                                i += 1;
+                                row[props[ckey].type.parentOf] = {
+                                    id: data.id
+                                };
+                                await crud.doInsert({
+                                    pk: pkey,
+                                    name: rel,
+                                    data: row,
+                                    client: theClient
+                                }, true);
+                            }
+                        }
+                    } catch (e) {
+                        reject(e);
+                    }
 
                     afterInsert();
                 };
 
-                afterInsert = function () {
-                    function afterParentInsert() {
+                afterInsert = async function () {
+                    let res;
+
+                    // Perform the parent insert
+                    try {
+                        await theClient.query(sql, values);
+
                         // We're done here if child
                         if (isChild) {
                             resolve(result);
                             return;
                         }
 
-                        // Otherwise move on to log the change
-                        crud.doSelect({
+                        // Otherwise move on to process the change
+                        res = await crud.doSelect({
                             name: obj.name,
                             id: data.id,
                             client: theClient
-                        }).then(afterDoSelect).catch(reject);
+                        });
+                        result = res;
+                        // Update newRec for "trigger after" events
+                        if (obj.newRec) {
+                            obj.newRec = result;
+                        }
+
+                        // We're going to return the changes
+                        result = jsonpatch.compare(obj.cache, result);
+
+                        // Report back result
+                        resolve(result);
+                    } catch (e) {
+                        reject(e);
                     }
-
-                    // Done only when all callbacks report back
-                    c += 1;
-                    if (c < clen) {
-                        return;
-                    }
-
-                    // Perform the parent insert
-                    theClient.query(sql, values).then(
-                        afterParentInsert
-                    ).catch(
-                        reject
-                    );
-                };
-
-                afterDoSelect = function (resp) {
-                    result = resp;
-                    afterLog();
-                    return;
-
-                    // Won't get here because of above
-                    // TODO: make logging optional
-                    /* Handle change log */
-                    /*
-                    crud.doInsert({
-                        name: "Log",
-                        data: {
-                            objectId: data.id,
-                            action: "POST",
-                            created: data.created,
-                            createdBy: data.createdBy,
-                            updated: data.updated,
-                            updatedBy: data.updatedBy,
-                            change: f.copy(result)
-                        },
-                        client: theClient
-                    }, true).then(afterLog).catch(reject);
-                    */
-                };
-
-                afterLog = function () {
-                    // Update newRec for "trigger after" events
-                    if (obj.newRec) {
-                        obj.newRec = result;
-                    }
-
-                    // We're going to return the changes
-                    result = jsonpatch.compare(obj.cache, result);
-
-                    // Report back result
-                    resolve(result);
                 };
 
                 // Kick off query by getting feather, the rest falls
@@ -1694,7 +1707,7 @@
             let keys;
             let tokens = [];
             let cols = [];
-            let theClient = db.getClient(obj.client);
+            let theClient = obj.client;
             let feather;
             let attrs = [];
             let fp;
@@ -1775,8 +1788,19 @@
             });
 
             keys.forEach(function (key) {
-                tokens.push("%I");
-                cols.push(key.toSnakeCase());
+                if (fp[key].isEncrypted) {
+                    tokens.push("%s");
+                    cols.push(
+                        "pgp_sym_decrypt(" +
+                        key.toSnakeCase() +
+                        "::BYTEA, '" +
+                        db.cryptoKey() +
+                        "')"
+                    );
+                } else {
+                    tokens.push("%I");
+                    cols.push(key.toSnakeCase());
+                }
             });
 
             cols.push(table);
@@ -1899,7 +1923,6 @@
                 let feather;
                 let tokens;
                 let afterGetKey;
-                let afterDoSelect;
                 let afterUpdate;
                 let afterSelectUpdated;
                 let done;
@@ -1919,7 +1942,7 @@
                 let children = [];
                 let p = 1;
                 let n = 0;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 if (!patches.length) {
                     crud.unlock(theClient, {
@@ -1979,21 +2002,19 @@
                     afterAuthorization(true);
                 }
 
-                afterGetKey = function (resp) {
+                afterGetKey = async function (resp) {
                     pk = resp;
                     keys = Object.keys(props);
 
                     // Get existing record
-                    crud.doSelect({
+                    resp = await crud.doSelect({
                         name: obj.name,
                         id: obj.id,
                         properties: keys.filter(noChildProps),
                         client: theClient,
                         sanitize: false
-                    }, isChild).then(afterDoSelect).catch(reject);
-                };
+                    }, isChild);
 
-                afterDoSelect = function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -2034,15 +2055,13 @@
                             " is locked by " + resp.lock.username +
                             " and cannot be updated."
                         );
-                        reject(new Error(msg));
-                        return;
+                        return Promise.reject(new Error(msg));
                     }
 
                     oldRec = tools.sanitize(resp);
 
                     if (!Object.keys(oldRec).length || oldRec.isDeleted) {
-                        resolve(false);
-                        return;
+                        return false;
                     }
 
                     newRec = f.copy(oldRec);
@@ -2075,13 +2094,12 @@
 
                     // Check required properties
                     if (keys.some(requiredIsNull)) {
-                        reject("\"" + key + "\" is required.");
-                        return;
+                        return Promise.reject("\"" + key + "\" is required.");
                     }
 
                     // Check unique properties
                     if (keys.some(uniqueChanged)) {
-                        tools.getKeys({
+                        resp = await tools.getKeys({
                             client: theClient,
                             name: unique.feather,
                             filter: {
@@ -2090,7 +2108,8 @@
                                     value: unique.value
                                 }]
                             }
-                        }).then(afterUniqueCheck).catch(reject);
+                        });
+                        afterUniqueCheck(resp);
                         return;
                     }
 
@@ -2322,10 +2341,21 @@
                                 updRec[key] = JSON.stringify(updRec[key]);
                             }
 
-                            tokens.push(key.toSnakeCase());
-                            ary.push("%I = $" + p);
-                            params.push(updRec[key]);
+                            if (props[key].isEncrypted) {
+                                ary.push(
+                                    "%I = pgp_sym_encrypt($" + p + ", $" +
+                                    (p + 1) + ")"
+                                );
+                                p += 1;
+                                params.push(updRec[key]);
+                                params.push(db.cryptoKey());
+                            } else {
+                                ary.push("%I = $" + p);
+                                params.push(updRec[key]);
+                            }
+
                             p += 1;
+                            tokens.push(key.toSnakeCase());
                         }
 
                         nextProp();
@@ -2492,6 +2522,7 @@
             let prcLock = Boolean(process);
             process = process || "Editing";
             let msg;
+            let tenant = client.tenant();
 
             if (!nodeid) {
                 throw new Error("Lock requires a node id.");
@@ -2563,8 +2594,8 @@
 
             // Auto unlock process based locks on error
             if (prcLock) {
-                client.onRollback(async function processkUnlock() {
-                    let rconn = await db.connect();
+                client.onRollback(async function processUnlock() {
+                    let rconn = await db.connect(tenant);
                     let rsql = (
                         "UPDATE object " +
                         "SET lock = null WHERE id = $1;"
@@ -2575,7 +2606,7 @@
             }
 
             // Always update outside of transaction so all see it
-            let conn = await db.connect();
+            let conn = await db.connect(tenant);
             await conn.client.query(sql, params);
             conn.done();
             return true;
@@ -2651,7 +2682,7 @@
         */
         crud.autonumber = function (obj) {
             let prop;
-            let theClient = db.getClient(obj.client);
+            let theClient = obj.client;
 
             return new Promise(function (resolve, reject) {
                 function callback(err, resp) {
