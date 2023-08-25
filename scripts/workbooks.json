@@ -23,8 +23,14 @@
 					"method": "package",
 					"authorization": "PackageModules",
 					"validator": "packageCheck"
+				}, {
+					"name": "Upgrade",
+					"title": "Upgrade core software",
+					"icon": "upgrade",
+					"method": "upgrade",
+					"authorization": "InstallModules",
+					"hasSeparator": true
 				}],
-				"openInNewWindow": true,
 				"list": {
 					"columns": [{
 						"attr": "name"

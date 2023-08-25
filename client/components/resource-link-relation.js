@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -44,7 +44,7 @@ function find(sLabel) {
 
     let payload = {
         method: "POST",
-        url: "/data/resource-links",
+        url: pathname() + "/data/resource-links",
         body: {
             filter: {
                 properties: ["id"],
@@ -62,11 +62,15 @@ function find(sLabel) {
     return m.request(payload);
 }
 
+function pathname() {
+    return "/" + location.pathname.replaceAll("/", "");
+}
+
 function createLink(id, sLabel, sUrl) {
     let nowIso = new Date().toISOString();
     let payload = {
         method: "POST",
-        url: "/data/resource-link",
+        url: pathname() + "/data/resource-link",
         body: {
             "id": id,
             "created": nowIso,
@@ -103,7 +107,7 @@ function linkFiles(vm, files) {
             formData.append("dataFile", file);
             let payload = {
                 method: "POST",
-                url: "/do/upload",
+                url: pathname() + "/do/upload",
                 body: formData
             };
             m.request(payload).then(function (v) {
@@ -214,6 +218,12 @@ f.catalog().register(
     resourceLinkRelation.viewModel
 );
 
+f.catalog().register(
+    "viewModels",
+    "helpLinkRelation",
+    resourceLinkRelation.viewModel
+);
+
 /**
     @class ResourceLinkRelation
     @uses Components.RelationWidget
@@ -268,5 +278,11 @@ resourceLinkRelation.component = {
 f.catalog().register(
     "components",
     "resourceLinkRelation",
+    resourceLinkRelation.component
+);
+
+f.catalog().register(
+    "components",
+    "helpLinkRelation",
     resourceLinkRelation.component
 );

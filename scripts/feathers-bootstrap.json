@@ -207,6 +207,11 @@
                 "description": "Always load this attribute, even on non-editable models",
                 "type": "boolean",
                 "default": false
+            },
+            "isEncrypted": {
+                "description": "Encrypt value in the database",
+                "type": "boolean",
+                "default": false
             }
         }
     },
@@ -441,7 +446,11 @@
         },
         "overloads": {
             "module": {
-                "relation": "Module"
+                "type": {
+                    "type": "relation",
+                    "relation": "Module",
+                    "properties": []
+                }
             }
         }
     },

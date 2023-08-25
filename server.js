@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -44,6 +44,7 @@
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
     const {webauthn} = require("./server/services/webauthn");
+    const dbRouter = new express.Router();
 
     const check = [
         "data",
@@ -119,6 +120,8 @@
     let thesecret;
     let systemUser;
     let logger;
+    let tenants = false;
+
     // Work around linter dogma
     let existssync = "existsSync";
     let lstatsync = "lstatSync";
@@ -254,13 +257,16 @@
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
 
+            await datasource.loadCryptoKey();
             await datasource.getCatalog();
             routes = await datasource.getRoutes();
-            await datasource.unsubscribe();
-            await datasource.unlock();
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+            tenants = await datasource.loadTenants();
+            await datasource.unlock();
+            await datasource.cleanupProcesses();
+            await datasource.unsubscribe();
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -275,6 +281,10 @@
     }
 
     function resolveName(apiPath) {
+        //  Remove database from path
+        apiPath = apiPath.slice(1);
+        apiPath = apiPath.slice(apiPath.indexOf("/"));
+        // Also remove verb
         apiPath = apiPath.slice(1);
         apiPath = apiPath.slice(apiPath.indexOf("/"));
 
@@ -314,7 +324,8 @@
             method: "POST",
             name: this,
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.info(payload);
@@ -328,11 +339,14 @@
     }
 
     function registerRoute(route) {
-        let fullPath = "/" + route.module.toSpinalCase() + route.path;
+        let fullPath = (
+            "/:db/" +
+            route.module.toSpinalCase() + route.path
+        );
         let doPostRequest = postify.bind(route.function);
 
         logger.info("Registering module route: " + fullPath);
-        app.post(fullPath, doPostRequest);
+        dbRouter.post(fullPath, doPostRequest);
     }
 
     function doRequest(req, res) {
@@ -342,7 +356,8 @@
             user: req.user.name,
             eventKey: req.query.eventKey,
             id: req.params.id,
-            data: req.body || {}
+            data: req.body || {},
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -362,7 +377,8 @@
             user: req.user.name,
             eventKey: req.eventKey,
             id: req.params.id,
-            data: req.body || {}
+            data: req.body || {},
+            tenant: req.tenant
         };
         let log = f.copy(payload);
         log.data.password = "****";
@@ -384,7 +400,8 @@
             user: req.user.name,
             eventKey: req.query.eventKey,
             id: req.params.id,
-            data: req.body || []
+            data: req.body || [],
+            tenant: req.tenant
         };
         let log = f.copy(payload);
         log.data.forEach(function (item) {
@@ -419,6 +436,7 @@
         payload.method = "GET"; // Internally this is a select statement
         payload.user = req.user.name;
         payload.filter = payload.filter || {};
+        payload.tenant = req.tenant;
 
         if (payload.showDeleted) {
             payload.showDeleted = (
@@ -450,11 +468,15 @@
             method: "POST",
             name: "doAggregate",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
-        datasource.request(payload).then(respond.bind(res)).catch(
+        datasource.request(
+            payload,
+            req.user.isSuper
+        ).then(respond.bind(res)).catch(
             error.bind(res)
         );
     }
@@ -464,9 +486,8 @@
             method: "GET",
             name: fn,
             user: req.user.name,
-            data: {
-                name: req.params.name
-            }
+            data: {name: req.params.name},
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -484,9 +505,8 @@
             method: "GET",
             name: "baseCurrency",
             user: req.user.name,
-            data: {
-                effective: query.effective
-            }
+            data: {effective: query.effective},
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -506,7 +526,8 @@
                 amount: query.amount,
                 toCurrency: query.toCurrency,
                 effective: query.effective
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -543,18 +564,19 @@
         let catalog = settings.data.catalog.data;
 
         if (catalog[key].isReadOnly) {
-            app.get("/data/" + name + "/:id", doRequest);
+            dbRouter.get("/:db/data/" + name + "/:id", doRequest);
         } else {
-            app.post("/data/" + name, doRequest);
-            app.get("/data/" + name + "/:id", doRequest);
-            app.patch("/data/" + name + "/:id", doRequest);
-            app.delete("/data/" + name + "/:id", doRequest);
+            dbRouter.post("/:db/data/" + name, doRequest);
+            dbRouter.get("/:db/data/" + name + "/:id", doRequest);
+            dbRouter.patch("/:db/data/" + name + "/:id", doRequest);
+            dbRouter.delete("/:db/data/" + name + "/:id", doRequest);
         }
 
         if (catalog[key].plural) {
             name = catalog[key].plural.toSpinalCase();
-            app.post("/data/" + name, doQueryRequest);
+            dbRouter.post("/:db/data/" + name, doQueryRequest);
         }
+
     }
 
     function registerDataRoutes() {
@@ -572,7 +594,8 @@
             user: req.user.name,
             data: {
                 specs: req.body
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -595,7 +618,8 @@
                 name: req.params.name,
                 etag: req.body.etag,
                 data: req.body.data
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -614,9 +638,8 @@
             method: "DELETE",
             name: "deleteWorkbook",
             user: req.user.name,
-            data: {
-                name: req.params.name
-            }
+            data: {name: req.params.name},
+            tenant: req.tenant
         };
         if (req.isCamelCase) {
             payload.data.name = payload.data.name.toCamelCase(true);
@@ -638,7 +661,8 @@
             name: "subscribe",
             user: req.user.name,
             id: query.id,
-            subscription: query.subscription
+            subscription: query.subscription,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -657,7 +681,8 @@
             method: "POST",
             name: "unsubscribe",
             user: req.user.name,
-            subscription: query.subscription
+            subscription: query.subscription,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -679,7 +704,8 @@
             username,
             req.body.eventKey,
             undefined,
-            false
+            false,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -698,7 +724,9 @@
 
         logger.verbose("Unlock " + req.body.id);
         datasource.unlock(
-            criteria
+            criteria,
+            undefined,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -713,7 +741,8 @@
         logger.verbose("Package " + name);
         datasource.package(
             name,
-            username
+            username,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -722,12 +751,17 @@
     }
 
     function doInstall(req, res) {
+        let query = qs.parse(req.params.query);
         const DIR = "./files/" + "tmp_" + f.createId();
         const TEMPFILE = DIR + ".zip";
 
         function cleanup() {
             rimraf(DIR); // Remove temp dir
-            fs.unlink(TEMPFILE, () => res.json(true)); // Remove zip
+            fs.unlink(TEMPFILE, function () { // Remove zip
+                if (!res.headersSent) {
+                    res.json(true);
+                }
+            });
         }
 
         fs[mkdirsync](DIR); // Create temp dir
@@ -752,15 +786,45 @@
             zip.extractAllTo(DIR, true);
             datasource.install(
                 DIR,
-                req.user.name
-            ).then(cleanup).catch(
-                error.bind(res)
-            );
+                req.user.name,
+                {
+                    subscription: query.subscription,
+                    tenant: req.tenant,
+                    databases: query.databases
+                }
+            ).catch(function (err) {
+                return new Promise(function (resolve) {
+                    error.bind(res)(err);
+                    resolve();
+                });
+            }).finally(cleanup);
         });
     }
 
+    async function doUpgrade(req, res) {
+        let query = qs.parse(req.params.query);
+        const DIR = "./";
+
+        logger.verbose("Upgrade");
+
+        try {
+            await datasource.install(
+                DIR,
+                req.user.name,
+                {
+                    subscription: query.subscription,
+                    tenant: req.tenant,
+                    databases: query.databases
+                }
+            );
+            respond.bind(res)();
+        } catch (err) {
+            error.bind(res)(err);
+        }
+    }
+
     function doExport(req, res) {
-        let apiPath = req.url.slice(10);
+        let apiPath = req.url.replace("/do/export", "");
         let feather = resolveName(apiPath);
         logger.verbose("Export", feather, req.params.format);
 
@@ -770,7 +834,9 @@
             req.body.filter || {},
             "./files/downloads/",
             req.params.format,
-            req.user.name
+            req.user.name,
+            req.body.subscription,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -815,6 +881,7 @@
         let format = req.params.format;
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
+        let query = qs.parse(req.params.query);
         const DIR = "./files/import/";
         const TEMPFILE = DIR + id + "." + format;
 
@@ -837,7 +904,9 @@
                 feather,
                 format,
                 TEMPFILE,
-                req.user.name
+                req.user.name,
+                query.subscription,
+                req.tenant
             ).then(
                 respond.bind(res)
             ).catch(
@@ -872,7 +941,8 @@
             req.body.id || req.body.ids || req.body.data,
             req.body.filename,
             req.user.name,
-            req.body.options
+            req.body.options,
+            req.tenant
         ).then(
             respond.bind(res)
         ).catch(
@@ -901,7 +971,8 @@
                     ids: req.body.pdf.id || req.body.pdf.ids,
                     filename: req.body.pdf.filename
                 }
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose("Send mail");
@@ -1052,8 +1123,9 @@
         });
     }
 
-    function doSignIn(req, res) {
+    async function doSignIn(req, res) {
         let message;
+        let rows;
         req.flash = function (ignore, msg) {
             logger.verbose(msg);
             message = msg;
@@ -1068,7 +1140,27 @@
             req.user.mode = mode;
             res.json(req.user);
         }
+        rows = await datasource.request({
+            filter: {criteria: [{
+                property: "name",
+                value: req.body.username
+            }]},
+            method: "GET",
+            name: "UserAccount",
+            tenant: req.tenant,
+            user: req.body.username
+        }, true);
 
+        if (!rows.length) {
+            res.statusCode = 401;
+            message = (
+                "User " + req.body.username +
+                " does not exist on database " +
+                req.tenant.pgDatabase
+            );
+            next(true);
+            return;
+        }
         return authenticate(req, res, next);
     }
 
@@ -1097,7 +1189,8 @@
         let payload = {
             method: "GET",
             name: "getProfile",
-            user: req.user.name
+            user: req.user.name,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1111,7 +1204,8 @@
             method: "PUT",
             name: "saveProfile",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1125,7 +1219,8 @@
             method: "PATCH",
             name: "patchProfile",
             user: req.user.name,
-            data: req.body
+            data: req.body,
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1142,7 +1237,8 @@
             data: {
                 user: req.user.name,
                 action: req.query.action
-            }
+            },
+            tenant: req.tenant
         };
 
         if (req.query.id) {
@@ -1166,7 +1262,8 @@
             user: req.user.name,
             data: {
                 id: req.body.filter.criteria[0].value
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1187,13 +1284,29 @@
                 id: req.body.id,
                 role: req.body.role,
                 actions: req.body.actions
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doStopProcess(req, res) {
+        let payload = {
+            method: "POST",
+            name: "stopProcess",
+            user: req.user.name,
+            data: req.body,
+            tenant: req.tenant
+        };
+
+        logger.verbose(payload);
+        datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
     }
@@ -1207,7 +1320,8 @@
                 name: req.params.name,
                 user: req.user.name,
                 action: req.query.action
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose(payload);
@@ -1227,7 +1341,8 @@
                 name: req.user.name,
                 oldPassword: req.body.oldPassword,
                 newPassword: req.body.newPassword
-            }
+            },
+            tenant: req.tenant
         };
 
         logger.verbose("Change password for " + req.user.name);
@@ -1246,7 +1361,10 @@
         };
 
         logger.verbose("Change User Info", JSON.stringify(payload, null, 2));
-        datasource.changeUserInfo(payload).then(
+        datasource.changeUserInfo(
+            payload,
+            req.tenant
+        ).then(
             respond.bind(res)
         ).catch(
             error.bind(res)
@@ -1256,7 +1374,8 @@
     function doConnect(req, res) {
         let key = f.createId();
         eventKeys[key] = {
-            sessionID: req.sessionID
+            sessionID: req.sessionID,
+            tenant: req.tenant
         };
 
         respond.bind(res)({
@@ -1279,7 +1398,8 @@
                 subscription: {
                     id: sid,
                     eventKey: eKey
-                }
+                },
+                tenant: false
             };
 
             function changeCallback(resp) {
@@ -1319,7 +1439,8 @@
                         user: systemUser,
                         data: {
                             name: message.payload.data.name
-                        }
+                        },
+                        tenant: false
                     }, true).then(changeCallback).catch(reject);
                 } else if (message.payload.subscription.change === "delete") {
                      // Update all clients
@@ -1362,7 +1483,8 @@
             method: "GET",
             user: systemUser,
             subscription: {id: f.createId(), eventKey: eKey},
-            data: {name: "catalog"}
+            data: {name: "catalog"},
+            tenant: false
         }, true);
     }
 
@@ -1381,11 +1503,168 @@
             name: "Route",
             method: "GET",
             user: systemUser,
-            subscription: {id: sid, eventKey: eKey}
+            subscription: {id: sid, eventKey: eKey},
+            tenant: false
         }, true);
     }
 
-    function start() {
+    // HANDLE PUSH NOTIFICATION -------------------------------
+    // Receiver callback for all events, sends only to applicable instance.
+    let pending = [];
+    let isFetching = false;
+
+    function processFetch() {
+        if (!isFetching && pending.length) {
+            isFetching = true;
+            let job = pending[0];
+            let jobId = job.payload.id;
+            let jobName = job.payload.name;
+            datasource.request(job.payload, true).then(function (resp) {
+                // Group together any other responses for the same
+                // record to reduce duplicate queries
+                let jobs = pending.filter(
+                    (p) => (
+                        p.payload.id === jobId &&
+                        p.payload.name === jobName
+                    )
+                );
+                jobs.forEach(function (thejob) {
+                    let idx = pending.indexOf(thejob);
+                    pending.splice(idx, 1);
+                    thejob.callback(resp);
+                });
+                isFetching = false;
+                processFetch();
+            }).catch(function (e) {
+                console.error(e);
+            });
+        }
+    }
+
+    function receiver(message, pTenant) {
+        let eventKey = message.payload.subscription.eventkey;
+        let change = message.payload.subscription.change;
+        let fn = eventSessions[eventKey];
+
+        function cb(resp) {
+            if (resp) {
+                message.payload.data = resp;
+            } else if (
+                change === "update" ||
+                change === "create"
+            ) {
+                return; // Record deleted
+            }
+
+            fn(message);
+        }
+
+        if (fn) {
+            if (fn.fetch === false) {
+                cb();
+                return;
+            }
+
+            // If record change, fetch new record
+            if (change === "create" || change === "update") {
+                pending.push({
+                    payload: {
+                        name: message.payload.data.table.toCamelCase(true),
+                        method: "GET",
+                        user: systemUser,
+                        id: message.payload.data.id,
+                        tenant: pTenant
+                    },
+                    callback: cb
+                });
+                processFetch();
+                return;
+            }
+
+            cb();
+        }
+    }
+
+    function handleEvents() {
+        // Instantiate event key for web socket connection
+        wss.on("connection", function connection(ws, req) {
+            let eKey;
+
+            ws.on("message", function incoming(key) {
+                let sessionID;
+
+                eKey = key;
+
+                if (eventKeys[key]) {
+                    sessionID = eventKeys[key].sessionID;
+                } else {
+                    ws.send("Invalid event key " + key);
+                    return;
+                }
+
+                eventSessions[eKey] = function (message) {
+                    let data = JSON.stringify({
+                        message: message.payload
+                    });
+                    ws.send(data);
+                };
+                eventSessions[eKey].sessionID = sessionID;
+
+                logger.verbose("Listening for events " + eKey);
+            });
+
+            ws.on("close", function close() {
+                let db = req.url.replaceAll("/", "");
+                let tenant = tenants.find((t) => t.pgDatabase === db);
+                delete eventSessions[eKey];
+                datasource.unsubscribe(eKey, "instance", tenant);
+                datasource.unlock({
+                    eventKey: eKey
+                });
+
+                logger.info("Closed instance " + eKey);
+            });
+        });
+    }
+
+    async function listenToTenants() {
+        let tenant;
+        let n = 0;
+
+        try {
+            while (n < tenants.length) {
+                tenant = tenants[n];
+                if (!tenant.listenerConn) {
+                    await datasource.listen(tenant, receiver);
+                }
+                n += 1;
+            }
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+
+    // Listen for changes to tenants, refresh if changed
+    async function subscribeToTenants() {
+        let sid = f.createId();
+        let eKey = f.createId();
+
+        // Reregister routes if something changes
+        eventSessions[eKey] = async function () {
+            tenants = await datasource.loadTenants();
+            await listenToTenants();
+        };
+
+        await datasource.request({
+            name: "Tenant",
+            method: "GET",
+            user: systemUser,
+            subscription: {id: sid, eventKey: eKey},
+            tenant: false
+        }, true);
+    }
+
+    async function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
             "/client",
@@ -1410,13 +1689,14 @@
             "/node_modules/tinymce/skins/content/document",
             "/node_modules/tinymce/skins/content/writer",
             "/node_modules/tinymce/themes/silver",
-            "/node_modules/tinymce/themes/mobile"
+            "/node_modules/tinymce/themes/mobile",
+            "/media"
         ];
 
         let files = [
             "/api.json",
             "/index.html",
-            "/featherbone.png",
+            "/media/featherbone.png",
             "/css/featherbone.css",
             "/css/print.css",
             "/node_modules/big.js/big.mjs",
@@ -1435,6 +1715,23 @@
             "/node_modules/gantt/dist/gantt.min.js"
         ];
 
+        // Resolve database
+        dbRouter.param("db", function (req, res, next, id) {
+            let tenant = tenants.find((t) => id === t.pgDatabase);
+            if (tenant) {
+                req.database = id;
+                req.tenant = tenant;
+                next();
+                return;
+            }
+            res.sendStatus(404);
+            console.error(
+                "Database " + id +
+                " is not a registered tenant"
+            );
+        });
+
+        // static pages
         // configure app to use bodyParser()
         // this will let us get the data from a POST
         app.use(bodyParser.urlencoded({
@@ -1497,13 +1794,16 @@
         app.use(passport.initialize());
         app.use(passport.session());
 
-        app.post("/sign-in", doSignIn);
-        app.post("/sign-out", doSignOut);
+        dbRouter.post("/:db/sign-in", doSignIn);
+        dbRouter.post("/:db/sign-out", doSignOut);
 
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
+            if (req.database) { // remove database
+                target = target.slice(req.database.length);
+            }
             target = target.slice(0, target.indexOf("/"));
             if (!req.user && check.indexOf(target) !== -1) {
                 res.status(401).json("Unauthorized session");
@@ -1526,14 +1826,17 @@
         });
 
         // static pages
-        app.get("/files/downloads/:sourcename", doGetDownload);
-        app.get("/files/downloads/:sourcename/:targetname", doGetDownload);
-        app.get("/", doGetIndexFile);
+        dbRouter.get("/:db/files/downloads/:sourcename", doGetDownload);
+        dbRouter.get(
+            "/:db/files/downloads/:sourcename/:targetname",
+            doGetDownload
+        );
+        // File upload
+        dbRouter.use(expressFileUpload());
+        dbRouter.get("/:db/", doGetIndexFile);
+        app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
         files.forEach((filename) => app.get(filename, doGetFile));
-
-        // File upload
-        app.use(expressFileUpload());
 
         // Uploaded files
         if (fileUpload) {
@@ -1546,160 +1849,59 @@
 
         // REGISTER CORE ROUTES -------------------------------
         logger.info("Registering core routes");
-        app.get("/webauthn/reg", webauthn.doWebAuthNRegister);
-        app.post("/webauthn/reg", webauthn.postWebAuthNRegister);
-        app.get("/webauthn/auth", webauthn.doWebAuthNAuthenticate);
-        app.post("/webauthn/auth", webauthn.postWebAuthNAuthenticate);
-        app.post("/connect", doConnect);
-        app.post("/data/user-accounts", doQueryRequest);
-        app.post("/data/user-account", doPostUserAccount);
-        app.get("/data/user-account/:id", doRequest);
-        app.get("/pdf/:file", doOpenPdf);
-        app.patch("/data/user-account/:id", doPatchUserAccount);
-        app.delete("/data/user-account/:id", doRequest);
-        app.get("/currency/base", doGetBaseCurrency);
-        app.get("/currency/convert", doConvertCurrency);
-        app.get("/do/is-authorized", doIsAuthorized);
-        app.post("/do/aggregate/", doAggregate);
-        app.post("/data/object-authorizations", doGetObjectAuthorizations);
-        app.post("/do/change-password/", doChangePassword);
-        app.post("/do/change-user-info/", doChangeUserInfo);
-        app.post("/do/save-authorization", doSaveAuthorization);
-        app.post("/do/export/:format/:feather", doExport);
-        app.post("/do/import/:format/:feather", doImport);
-        app.post("/do/upload", doUpload);
-        app.post("/do/print-pdf/form/", doPrintPdfForm);
-        app.post("/do/send-mail", doSendMail);
-        app.post("/do/subscribe/:query", doSubscribe);
-        app.post("/do/unsubscribe/:query", doUnsubscribe);
-        app.post("/do/lock", doLock);
-        app.post("/do/unlock", doUnlock);
-        app.get("/feather/:name", doGetFeather);
-        app.post("/module/package/:name", doPackageModule);
-        app.post("/module/install", doInstall);
-        app.get("/profile", doGetProfile);
-        app.put("/profile", doPutProfile);
-        app.patch("/profile", doPatchProfile);
-        app.get("/settings/:name", doGetSettingsRow);
-        app.put("/settings/:name", doSaveSettings);
-        app.get("/settings-definition", doGetSettingsDefinition);
-        app.get("/workbooks", doGetWorkbooks);
-        app.get("/workbook/is-authorized/:name", doWorkbookIsAuthorized);
-        app.get("/workbook/:name", doGetWorkbook);
-        app.put("/workbook/:name", doSaveWorkbook);
-        app.delete("/workbook/:name", doDeleteWorkbook);
-        let pending = [];
-        let isFetching = false;
+        dbRouter.get("/:db/webauthn/reg", webauthn.doWebAuthNRegister);
+        dbRouter.post("/:db/webauthn/reg", webauthn.postWebAuthNRegister);
+        dbRouter.get("/:db/webauthn/auth", webauthn.doWebAuthNAuthenticate);
+        dbRouter.post("/:db/webauthn/auth", webauthn.postWebAuthNAuthenticate);
+        dbRouter.post("/:db/connect", doConnect);
+        dbRouter.post("/:db/data/user-accounts", doQueryRequest);
+        dbRouter.post("/:db/data/user-account", doPostUserAccount);
+        dbRouter.get("/:db/data/user-account/:id", doRequest);
+        dbRouter.get("/:db/pdf/:file", doOpenPdf);
+        dbRouter.patch("/:db/data/user-account/:id", doPatchUserAccount);
+        dbRouter.delete("/:db/data/user-account/:id", doRequest);
+        dbRouter.get("/:db/currency/base", doGetBaseCurrency);
+        dbRouter.get("/:db/currency/convert", doConvertCurrency);
+        dbRouter.get("/:db/do/is-authorized", doIsAuthorized);
+        dbRouter.post("/:db/do/aggregate/", doAggregate);
+        dbRouter.post(
+            "/:db/data/object-authorizations",
+            doGetObjectAuthorizations
+        );
+        dbRouter.post("/:db/do/change-password/", doChangePassword);
+        dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
+        dbRouter.post("/:db/do/save-authorization", doSaveAuthorization);
+        dbRouter.post("/:db/do/stop-process", doStopProcess);
+        dbRouter.post("/:db/do/export/:format/:feather", doExport);
+        dbRouter.post("/:db/do/import/:format/:feather/:query", doImport);
+        dbRouter.post("/:db/do/upload", doUpload);
+        dbRouter.post("/:db/do/print-pdf/form/", doPrintPdfForm);
+        dbRouter.post("/:db/do/send-mail", doSendMail);
+        dbRouter.post("/:db/do/subscribe/:query", doSubscribe);
+        dbRouter.post("/:db/do/unsubscribe/:query", doUnsubscribe);
+        dbRouter.post("/:db/do/lock", doLock);
+        dbRouter.post("/:db/do/unlock", doUnlock);
+        dbRouter.get("/:db/feather/:name", doGetFeather);
+        dbRouter.post("/:db/module/package/:name", doPackageModule);
+        dbRouter.post("/:db/module/install/:query", doInstall);
+        dbRouter.post("/:db/do/upgrade/:query", doUpgrade);
+        dbRouter.get("/:db/profile", doGetProfile);
+        dbRouter.put("/:db/profile", doPutProfile);
+        dbRouter.patch("/:db/profile", doPatchProfile);
+        dbRouter.get("/:db/settings/:name", doGetSettingsRow);
+        dbRouter.put("/:db/settings/:name", doSaveSettings);
+        dbRouter.get("/:db/settings-definition", doGetSettingsDefinition);
+        dbRouter.get("/:db/workbooks", doGetWorkbooks);
+        dbRouter.get(
+            "/:db/workbook/is-authorized/:name",
+            doWorkbookIsAuthorized
+        );
+        dbRouter.get("/:db/workbook/:name", doGetWorkbook);
+        dbRouter.put("/:db/workbook/:name", doSaveWorkbook);
+        dbRouter.delete("/:db/workbook/:name", doDeleteWorkbook);
 
-        function processFetch() {
-            if (!isFetching && pending.length) {
-                isFetching = true;
-                let job = pending[0];
-                let jobId = job.payload.id;
-                let jobName = job.payload.name;
-                datasource.request(job.payload, true).then(function (resp) {
-                    // Group together any other responses for the same
-                    // record to reduce duplicate queries
-                    let jobs = pending.filter(
-                        (p) => (
-                            p.payload.id === jobId &&
-                            p.payload.name === jobName
-                        )
-                    );
-                    jobs.forEach(function (thejob) {
-                        let idx = pending.indexOf(thejob);
-                        pending.splice(idx, 1);
-                        thejob.callback(resp);
-                    });
-                    isFetching = false;
-                    processFetch();
-                }).catch(function (e) {
-                    console.error(e);
-                });
-            }
-        }
-
-        // HANDLE PUSH NOTIFICATION -------------------------------
-        // Receiver callback for all events, sends only to applicable instance.
-        function receiver(message) {
-            let eventKey = message.payload.subscription.eventkey;
-            let change = message.payload.subscription.change;
-            let fn = eventSessions[eventKey];
-
-            function cb(resp) {
-                if (resp) {
-                    message.payload.data = resp;
-                }
-
-                fn(message);
-            }
-
-            if (fn) {
-                if (fn.fetch === false) {
-                    cb();
-                    return;
-                }
-
-                // If record change, fetch new record
-                if (change === "create" || change === "update") {
-                    pending.push({
-                        payload: {
-                            name: message.payload.data.table.toCamelCase(true),
-                            method: "GET",
-                            user: systemUser,
-                            id: message.payload.data.id
-                        },
-                        callback: cb
-                    });
-                    processFetch();
-                    return;
-                }
-
-                cb();
-            }
-        }
-
-        function handleEvents() {
-            // Instantiate event key for web socket connection
-            wss.on("connection", function connection(ws) {
-                let eKey;
-
-                ws.on("message", function incoming(key) {
-                    let sessionID;
-
-                    eKey = key;
-
-                    if (eventKeys[key]) {
-                        sessionID = eventKeys[key].sessionID;
-                    } else {
-                        ws.send("Invalid event key " + key);
-                        return;
-                    }
-
-                    eventSessions[eKey] = function (message) {
-                        let data = JSON.stringify({
-                            message: message.payload
-                        });
-                        ws.send(data);
-                    };
-                    eventSessions[eKey].sessionID = sessionID;
-
-                    logger.verbose("Listening for events " + eKey);
-                });
-
-                ws.on("close", function close() {
-                    delete eventSessions[eKey];
-                    datasource.unsubscribe(eKey, "instance");
-                    datasource.unlock({
-                        eventKey: eKey
-                    });
-
-                    logger.info("Closed instance " + eKey);
-                });
-            });
-        }
-
-        datasource.listen(receiver).then(handleEvents).catch(console.error);
+        await listenToTenants();
+        handleEvents();
 
         // REGISTER MODULE ROUTES
         routes.forEach(registerRoute);
@@ -1721,6 +1923,8 @@
     //
 
     init().then(
+        subscribeToTenants
+    ).then(
         subscribeToFeathers
     ).then(
         subscribeToCatalog

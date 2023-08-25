@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -60,7 +60,7 @@
                     "SELECT etag, data FROM \"$profiles\" WHERE role = $1;"
                 );
                 let role = obj.client.currentUser();
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 // Query profile
                 client.query(sql, [role], function (err, resp) {
@@ -97,7 +97,7 @@
                 );
                 let role = obj.client.currentUser();
                 let etag = f.createId();
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 // Query profile
                 client.query(sql, [role], function (err, resp) {
@@ -146,7 +146,7 @@
                 let data;
                 let role = obj.client.currentUser();
                 let etag = f.createId();
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 // Query profile
                 client.query(sql, [role], function (err, resp) {

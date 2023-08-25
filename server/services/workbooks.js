@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -61,7 +61,7 @@
         that.deleteWorkbook = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "DELETE FROM \"$workbook\" WHERE name=$1;";
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 tools.isSuperUser({
                     client: theClient,
@@ -134,7 +134,7 @@
         that.getWorkbooks = function (obj) {
             return new Promise(function (resolve, reject) {
                 let theUser = obj.user;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 function callback(isSuper) {
                     let params = [];
@@ -233,7 +233,7 @@
                 let user = obj.data.user;
                 let action = obj.data.action || "";
                 let name = obj.data.name;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 action = action.toSnakeCase();
 
@@ -310,7 +310,7 @@
                 let len = workbooks.length;
                 let n = 0;
                 let oldAuth;
-                let theClient = db.getClient(obj.client);
+                let theClient = obj.client;
 
                 findSql = (
                     "SELECT * FROM \"$workbook\" AS workbook, " +

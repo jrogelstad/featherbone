@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -502,6 +502,7 @@ formPage.viewModel = function (options) {
         theFeather
     ).enableRowAuthorization;
     let hasHelp = form.helpLink && form.helpLink.resource;
+    let pathname = "/" + location.pathname.replaceAll("/", "");
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -592,7 +593,9 @@ formPage.viewModel = function (options) {
             let url = (
                 window.location.protocol + "//" +
                 window.location.hostname + ":" +
-                window.location.port + "/pdf/" + resp
+                window.location.port +
+                pathname +
+                "/pdf/" + resp
             );
             window.open(encodeURI(url));
         }
@@ -628,7 +631,7 @@ formPage.viewModel = function (options) {
 
         payload = {
             method: "POST",
-            url: "/do/print-pdf/form/",
+            url: pathname + "/do/print-pdf/form/",
             body: theBody
         };
 
@@ -801,6 +804,7 @@ formPage.viewModel = function (options) {
                 vm.model().subscribe(true);
             }
         });
+        pageIdx += 1;
         id = vm.model().id();
         instances[id] = vm.model();
         formInstances[id] = inst;
@@ -810,7 +814,7 @@ formPage.viewModel = function (options) {
         }, {
             state: {
                 form: options.form,
-                index: pageIdx + 1,
+                index: pageIdx,
                 create: false,
                 receiver: options.receiver
             }
@@ -1350,6 +1354,7 @@ formPage.component = {
                 }, icon),
                 m("label", vm.title())
             ]),
+            f.snackbar(),
             m(dlg, {
                 viewModel: vm.confirmDialog()
             }),
