@@ -72,7 +72,7 @@ settings.getSettings = async function (obj) {
                 rec = resp.rows[0];
 
                 // Handle decryption
-                if (rec.definition) {
+                if (rec.definition && rec.data) {
                     sql = "SELECT pgp_sym_decrypt($1::BYTEA, $2) AS value;";
                     pkeys = Object.keys(rec.definition.properties);
                     while (i < pkeys.length) {
