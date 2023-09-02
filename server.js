@@ -1631,16 +1631,16 @@
         let tenant;
         let n = 0;
 
-        try {
-            while (n < tenants.length) {
-                tenant = tenants[n];
-                if (!tenant.listenerConn) {
+        while (n < tenants.length) {
+            tenant = tenants[n];
+            if (!tenant.listenerConn) {
+                try {
                     await datasource.listen(tenant, receiver);
+                } catch (err) {
+                    console.error(err.message);
                 }
-                n += 1;
             }
-        } catch (err) {
-            return Promise.reject(err);
+            n += 1;
         }
     }
 
