@@ -128,16 +128,18 @@ addressRelation.viewModel = function (options) {
         let dmodel;
         let addressDialog = vm.addressDialog();
 
-        function applyEdit() {
-            vm.model(dmodel.toJSON());
-        }
-
-        addressDialog.onOk(applyEdit);
         addressDialog.show();
         dmodel = vm.addressDialog().formWidget().model();
+        // No locking
+        dmodel.isChild = true;
+        dmodel.state().resolve(
+            "/Ready/Fetched/Clean"
+        ).event("changed", function () {
+            dmodel.state().goto("/Ready/Fetched/Dirty");
+        });
         if (vm.model()) {
             value = vm.model().toJSON();
-            dmodel.set(value);
+            dmodel.set(value, true, true);
             dmodel.state().goto("/Ready/Fetched/Clean");
         }
     };
@@ -219,6 +221,9 @@ addressRelation.viewModel = function (options) {
             }]
         }
     }));
+    vm.addressDialog().onOk(function () {
+        vm.model(vm.addressDialog().formWidget().model().toJSON());
+    });
 
     vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.doClear,
@@ -251,16 +256,22 @@ addressRelation.component = {
     */
     oninit: function (vnode) {
         let options = vnode.attrs;
+        let parentProperty = options.parentProperty;
+        let relations = options.parentViewModel.relations();
 
         // Set up viewModel if required
-        this.viewModel = addressRelation.viewModel({
-            parentViewModel: options.parentViewModel,
-            parentProperty: options.parentProperty,
-            id: options.id,
-            isCell: options.isCell,
-            style: options.style,
-            readonly: options.readonly
-        });
+        if (!relations[parentProperty]) {
+            relations[parentProperty] = addressRelation.viewModel({
+                parentViewModel: options.parentViewModel,
+                parentProperty: options.parentProperty,
+                id: options.id,
+                isCell: options.isCell,
+                style: options.style,
+                readonly: options.readonly
+            });
+        }
+
+        this.viewModel = relations[parentProperty];
     },
 
     /**
