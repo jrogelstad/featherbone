@@ -1615,6 +1615,7 @@
 
             ws.on("close", function close() {
                 let db = req.url.replaceAll("/", "");
+                db = db.toCamelCase().toSnakeCase();
                 let tenant = tenants.find((t) => t.pgDatabase === db);
                 delete eventSessions[eKey];
                 datasource.unsubscribe(eKey, "instance", tenant);
@@ -1717,6 +1718,7 @@
 
         // Resolve database
         dbRouter.param("db", function (req, res, next, id) {
+            id = id.toCamelCase().toSnakeCase();
             let tenant = tenants.find((t) => id === t.pgDatabase);
             if (tenant) {
                 req.database = id;
