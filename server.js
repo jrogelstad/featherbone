@@ -1704,7 +1704,6 @@
             "/node_modules/event-source-polyfill/src/eventsource.js",
             "/node_modules/fast-json-patch/dist/fast-json-patch.js",
             "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
-            "/node_modules/dialog-polyfill/dialog-polyfill.js",
             "/node_modules/mithril/mithril.js",
             "/node_modules/mithril/mithril.min.js",
             "/node_modules/qs/dist/qs.js",
@@ -1743,9 +1742,10 @@
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
-            function (username, password, done) {
+            {passReqToCallback: true},
+            function (req, username, password, done) {
                 //console.log("Login process:", username);
-                datasource.authenticate(username, password).then(
+                datasource.authenticate(req, username, password).then(
                     function (user) {
                         return done(null, user);
                     }
@@ -1765,14 +1765,32 @@
             done(null, user.name);
         });
 
-        passport.deserializeUser(function (name, done) {
-            //console.log("deserualize ", name);
-            datasource.deserializeUser(name).then(
-                function (user) {
-                    //console.log("deserializeUser", user);
-                    done(null, user);
-                }
-            ).catch(done);
+        passport.deserializeUser(async function (req, name, done) {
+            if (files.indexOf(req.url) !== -1) {
+                done(null, {}); // Don't care about user on files
+                return;
+            }
+
+            let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
+            if (dirs.indexOf(ldir) !== -1) {
+                done(null, {}); // Don't care about user on files
+                return;
+            }
+
+            if (!req.tenant) {
+                let db = req.url.slice(1);
+                db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
+                req.database = db;
+                req.tenant = tenants.find((t) => t.pgDatabase === db);
+            }
+            try {
+                let user = await datasource.deserializeUser(req, name);
+                done(null, user);
+            } catch (e) {
+                req.isAuthenticated = false;
+                req.sessionError = e;
+                done(null, {});
+            }
         });
 
         // Initialize passport
@@ -1801,6 +1819,11 @@
 
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
+            if (req.sessionError) {
+                doSignOut(req, res);
+                return;
+            }
+
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
             if (req.database) { // remove database

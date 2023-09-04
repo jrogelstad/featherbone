@@ -133,48 +133,40 @@
             @param {String} password
             @return {Promise}
         */
-        that.authenticate = function (username, pswd) {
-            return new Promise(function (resolve, reject) {
-                // Do connection
-                function doConnect(resp) {
-                    return new Promise(function (resolve, reject) {
-                        let login = new Pool({
-                            database: resp.pgDatabase,
-                            host: resp.pgHost,
-                            password: pswd,
-                            port: resp.pgPort,
-                            ssl: sslConfig(resp),
-                            user: username
-                        });
+        that.authenticate = async function (req, username, pswd) {
+            try {
+                let resp = await config.read();
+                let pgdb;
+                let pghost;
+                let pgport;
 
-                        login.connect(function (err, ignore, done) {
-                            // handle an error from the connection
-                            done();
-
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            that.deserializeUser(username).then(function (dat) {
-                                login.end();
-                                resolve(dat);
-                            }).catch(reject);
-                        });
-                    });
+                if (req && req.tenant) {
+                    pgdb = req.tenant.pgDatabase;
+                    pghost = req.tenant.pgService.pgHost;
+                    pgport = req.tenant.pgService.pgPort;
+                } else {
+                    pgdb = resp.pgDatabase;
+                    pghost = resp.pgHost;
+                    pgport = resp.pgPort;
                 }
+                let login = new Pool({
+                    database: pgdb,
+                    host: pghost,
+                    password: pswd,
+                    port: pgport,
+                    ssl: sslConfig(resp),
+                    user: username
+                });
 
-                // If no connection string, go get it
-                Promise.resolve().then(
-                    config.read
-                ).then(
-                    doConnect
-                ).then(
-                    resolve
-                ).catch(
-                    reject
-                );
-            });
+                let client = await login.connect();
+                client.release();
+
+                let dat = await that.deserializeUser(req, username);
+                login.end();
+                return dat;
+            } catch (e) {
+                return Promise.reject(e);
+            }
         };
         /**
             Database connection object. This object is requested from a
@@ -378,7 +370,7 @@
             @param {Object} tenant Tenant
             @return {User} User account info
         */
-        that.deserializeUser = function (username, tenant) {
+        that.deserializeUser = function (req, username) {
             return new Promise(function (resolve, reject) {
                 const sql = (
                     "SELECT name, is_super, " +
@@ -392,7 +384,7 @@
                     "WHERE name = $1;"
                 );
 
-                that.connect(tenant).then(function (obj) {
+                that.connect(req.tenant).then(function (obj) {
                     obj.client.query(sql, [username]).then(function (resp) {
                         let row;
 
@@ -400,6 +392,7 @@
                             reject(new Error(
                                 "User account " + username + " not found."
                             ));
+                            return;
                         }
 
                         row = resp.rows[0];
