@@ -240,12 +240,12 @@ const home = {
                         ])
                     ]),
                     m("button", {
-                        id: "logo-edit",
-                        class: "pure-button fb-menu-setup fb-menu-button fb-menu-button-middle-side",
-                        title: (
-                            "Change the logo & " +
-                            "address used for printed forms"
+                        id: "global-settings",
+                        class: (
+                            "pure-button fb-menu-setup fb-menu-button " +
+                            "fb-menu-button-middle-side"
                         ),
+                        title: "Global settings",
                         onclick: function () {
                             m.route.set("/settings/:settings", {
                                 settings: "globalSettings"
@@ -254,7 +254,7 @@ const home = {
                     }, [m("i", {
                         id: "logo-edit-icon",
                         class: "material-icons fb-button-icon"
-                    }, "photo")]),
+                    }, "public")]),
                     m(components.accountMenu)
                 ])
             ]

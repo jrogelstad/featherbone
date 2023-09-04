@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023 John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, this, for, devel, unordered */
-
 /**
     PDF file generator.
     @module PDF
 */
+
 (function (exports) {
     "use strict";
 
@@ -30,11 +30,14 @@
     const {CRUD} = require("./crud");
     const {Tools} = require("./tools");
     const {Feathers} = require("./feathers");
+    const {Settings} = require("./settings");
+    const fetch = require("node-fetch");
     const pdf = require("pdfjs");
-    const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
-    const {registerFont, createCanvas} = require("canvas");
-    const defTextLabel = "Confidential";
+    //const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
+    //const {registerFont, createCanvas} = require("canvas");
+    //const defTextLabel = "Confidential";
     const formats = new Tools().formats;
+    const settings = new Settings();
 
     const fonts = {
         Barcode39: new pdf.Font(
@@ -242,6 +245,10 @@
             let attachments = [];
             let annotation;
             let resp;
+            let globalSettings = await settings.getSettings({
+                client: vClient,
+                data: {name: "globalSettings"}
+            });
 
             if (options && options.annotation) {
                 annotation = options.annotation;
@@ -335,7 +342,14 @@
             });
 
             let header;
-            let src = fs[readFileSync]("./files/logo.jpg");
+            let src;
+            let res;
+            if (globalSettings && globalSettings.logo) {
+                res = await fetch(globalSettings.logo.resource);
+                src = await res.buffer();
+            } else {
+                src = fs[readFileSync]("./files/logo.jpg");
+            }
             let logo = new pdf.Image(src);
             let n = 0;
             let file = (filename || f.createId()) + ".pdf";
@@ -955,6 +969,7 @@
                 n = 0;
             }
 
+            /*
             await new Promise(function (resolve) {
                 if (!attachments.length) {
                     resolve();
@@ -966,9 +981,11 @@
                     ).then(resolve);
                 }
             });
+            */
 
             doc.pipe(w);
             await doc.end();
+            /*
             if (!options || !options.watermark) {
                 return file;
             }
@@ -986,6 +1003,7 @@
                     resolve();
                 });
             });
+            */
 
             return file;
         };
@@ -993,6 +1011,7 @@
         return that;
     };
 
+    /*
     function fetchBytes(url) {
         return new Promise(function (res2) {
             readFile(
@@ -1579,6 +1598,7 @@
         }
         return bytes;
     };
+    */
 
 }(exports));
 

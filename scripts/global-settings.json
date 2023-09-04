@@ -16,36 +16,36 @@
             }
         },
         "name": {
-            "description": "Organization name",
+            "description": "Organization name on printed forms",
             "type": "string"
         },
         "street": {
-            "description": "Street address",
+            "description": "Street address on printed forms",
             "type": "string"
         },
         "unit": {
-            "description": "Unit",
+            "description": "Unit on printed forms",
             "type": "string"
         },
         "city": {
-            "description": "City",
+            "description": "City on printed forms",
             "type": "string"
         },
         "postalCode": {
-            "description": "Postal code",
+            "description": "Postal code on printed forms",
             "type": "string"
         },
         "state": {
-            "description": "State or province",
+            "description": "State or province on printed forms",
             "type": "string"
         },
         "country": {
-            "description": "Country",
+            "description": "Country on printed forms",
             "type": "string",
             "default": "United States"
         },
         "phone": {
-            "description": "Description",
+            "description": "Phone on printed forms",
             "type": "string",
             "format": "tel"
         }
