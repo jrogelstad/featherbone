@@ -239,6 +239,22 @@ const home = {
                             }, "playlist_remove")], "Delete Template")
                         ])
                     ]),
+                    m("button", {
+                        id: "logo-edit",
+                        class: "pure-button fb-menu-setup fb-menu-button fb-menu-button-middle-side",
+                        title: (
+                            "Change the logo & " +
+                            "address used for printed forms"
+                        ),
+                        onclick: function () {
+                            m.route.set("/settings/:settings", {
+                                settings: "globalSettings"
+                            });
+                        }
+                    }, [m("i", {
+                        id: "logo-edit-icon",
+                        class: "material-icons fb-button-icon"
+                    }, "photo")]),
                     m(components.accountMenu)
                 ])
             ]
