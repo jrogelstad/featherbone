@@ -33,6 +33,11 @@
             "path": "scripts/workbooks.json"
         },
         {
+            "type": "settings",
+            "name": "globalSettings",
+            "path": "scripts/global-settings.json"
+        },
+        {
             "type": "batch",
             "path": "scripts/data.json"
         }
