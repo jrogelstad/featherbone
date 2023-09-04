@@ -249,6 +249,7 @@
                 client: vClient,
                 data: {name: "globalSettings"}
             });
+            const cr = "\n";
 
             if (options && options.annotation) {
                 annotation = options.annotation;
@@ -472,7 +473,6 @@
                 let nkey;
                 let lkey;
                 let rel;
-                let cr = "\n";
                 let fontStr = style.font || defFont;
                 let ovrFont = fonts[fontStr];
 
@@ -516,6 +516,9 @@
                         value += rec[attr].state + " ";
                         value += rec[attr].postalCode;
                         value += cr + rec[attr].country;
+                        if (rec[attr].phone) {
+                            value += cr + "Ph: " + rec[attr].phone;
+                        }
                         row.cell(fontMod(value), {
                             font: ovrFont,
                             fontSize: style.fontSize
@@ -917,7 +920,7 @@
 
             if (form.hideLogo !== true || form.hideTitle !== true) {
                 header = doc.header().table({
-                    widths: [null, null],
+                    widths: [null, 5 * pdf.cm, 2.5 * pdf.cm],
                     paddingBottom: 1 * pdf.cm
                 }).row();
 
@@ -931,9 +934,63 @@
                 );
 
                 if (!form.hideLogo) {
+                    let addr = "";
+                    if (globalSettings) {
+                        addr += globalSettings.name;
+                        if (globalSettings.street) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.street;
+                        }
+                        if (globalSettings.unit) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.unit;
+                        }
+                        if (globalSettings.city) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.city;
+                        }
+                        if (globalSettings.state) {
+                            if (addr.length && globalSettings.city) {
+                                addr += ", ";
+                            } else if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.state;
+                        }
+                        if (globalSettings.postalCode) {
+                            if (addr.length && (
+                                globalSettings.city ||
+                                globalSettings.state
+                            )) {
+                                addr += " ";
+                            } else if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.postalCode;
+                        }
+                        if (globalSettings.country) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.country;
+                        }
+                        if (globalSettings.phone) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += "Ph: " + globalSettings.phone;
+                        }
+                    }
+                    header.cell().text().add(addr);
                     header.cell().image(logo, {
                         align: "right",
-                        height: 1.5 * pdf.cm
+                        height: 2.5 * pdf.cm
                     });
                 }
             }
