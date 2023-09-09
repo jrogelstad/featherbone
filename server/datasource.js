@@ -431,6 +431,7 @@
         await db.endPool(tenant);
 
         const client = new Client({
+            database: conf.pgDatabase,
             host: conf.pgHost,
             password: superpwd,
             port: conf.pgPort || 80,
