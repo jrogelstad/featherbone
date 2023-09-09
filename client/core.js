@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -350,7 +350,11 @@ function input(pType, options) {
         onfocus: options.onFocus,
         onblur: options.onBlur,
         value: prop(),
-        autocomplete: "off"
+        autocomplete: (
+            options.id === "password"
+            ? "new-password"
+            : "off"
+        )
     };
 
     if (opts.class) {
@@ -1878,6 +1882,7 @@ f.notify = function (msg, opts) {
         note.status = opts.status;
     } else {
         notes.push({
+            canStop: opts.canStop,
             id: theId,
             message: msg,
             icon: opts.icon || "info",
@@ -1907,16 +1912,18 @@ function mapSnackbar(note) {
     if (note.isProcess) {
         if (note.status === "P") {
             status = "Processing";
-            icls = "dangerous";
-            iclass += " fb-snackbar-cancel";
-            ititle = "Stop process";
-            close = function () {
-                f.datasource().request({
-                    method: "POST",
-                    path: "/do/stop-process",
-                    body: {id: note.id}
-                });
-            };
+            if (note.canStop) {
+                icls = "dangerous";
+                iclass += " fb-snackbar-cancel";
+                ititle = "Stop process";
+                close = function () {
+                    f.datasource().request({
+                        method: "POST",
+                        path: "/do/stop-process",
+                        body: {id: note.id}
+                    });
+                };
+            }
         } else if (note.status === "C") {
             status = "Complete";
         } else if (note.status === "E") {
@@ -1925,11 +1932,12 @@ function mapSnackbar(note) {
             status = "Stopped";
         }
         ret = m("div", {class: "fb-snackbar-item"}, [
-            m("div", {class: "fb-snackbar-progress"}, [
+            m("div", {}, [
                 m("label", {
                     for: note.id
                 }, status + ": " + note.message),
                 m("progress", {
+                    class: "fb-snackbar-progress",
                     id: note.id,
                     max: 100,
                     value: note.percentComplete
@@ -2054,6 +2062,7 @@ f.processEvent = function (obj) {
     if (data.objectType === "ServerProcess") {
         if (change === "create" || change === "update") {
             f.notify(data.name, {
+                canStop: data.canStop,
                 processId: data.id,
                 percentComplete: data.percentComplete,
                 status: data.status
@@ -2457,6 +2466,7 @@ appState = State.define(function () {
         this.event("success", function () {
             this.goto("../SignedIn");
             m.route.set("/home");
+            window.history.go(0);
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -2494,13 +2504,18 @@ appState.goto();
 f.state = function () {
     return appState;
 };
-
 /**
     State constructor.
     @method State
     @return {State}
 */
 f.State = State;
+/**
+    Current software version.
+    @method version
+    @return {String}
+*/
+f.version = createProperty();
 f.TABLE_MIN_HEIGHT = 200;
 f.TABLE_COLUMN_WIDTH_DEFAULT = 150;
 

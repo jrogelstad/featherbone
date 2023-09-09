@@ -350,6 +350,9 @@
         }, {
             "attr": "isAlwaysLoad",
             "unit": 1
+        }, {
+            "attr": "isEncrypted",
+            "unit": 1
         }]
     }
 }, {
@@ -1300,7 +1303,7 @@
     "method": "POST",
     "id": "DL",
     "data": {
-        "code": "DL",
+        "code": "DE",
         "name": "Delaware"
     }
 }, {

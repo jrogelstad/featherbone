@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -239,6 +239,22 @@ const home = {
                             }, "playlist_remove")], "Delete Template")
                         ])
                     ]),
+                    m("button", {
+                        id: "global-settings",
+                        class: (
+                            "pure-button fb-menu-setup fb-menu-button " +
+                            "fb-menu-button-middle-side"
+                        ),
+                        title: "Global settings",
+                        onclick: function () {
+                            m.route.set("/settings/:settings", {
+                                settings: "globalSettings"
+                            });
+                        }
+                    }, [m("i", {
+                        id: "logo-edit-icon",
+                        class: "material-icons fb-button-icon"
+                    }, "public")]),
                     m(components.accountMenu)
                 ])
             ]
@@ -591,6 +607,9 @@ function initPromises() {
                     );
                 } else {
                     module.dependencies = [];
+                }
+                if (module.name === "Core") {
+                    f.version(module.version);
                 }
             });
 
@@ -971,70 +990,85 @@ function connect() {
     });
 }
 
-connect().then(function (resp) {
-    let edata;
-    let wp = (
-        window.location.protocol.indexOf("s") === -1
-        ? "ws://"
-        : "wss://"
+// Make sure the path has a slash at the end
+if (window.location.pathname.slice(
+    window.location.pathname.length - 1,
+    window.location.pathname.length
+) !== "/") {
+    let theUrl = (
+        window.location.protocol + "//" +
+        window.location.hostname + ":" +
+        window.location.port +
+        window.location.pathname + "/"
     );
-
-    function listen() {
-        const wsurl = (
-            wp + window.location.hostname +
-            ":" + window.location.port
+    window.open(theUrl, "_self");
+} else {
+    connect().then(function (resp) {
+        let edata;
+        let wp = (
+            window.location.protocol.indexOf("s") === -1
+            ? "ws://"
+            : "wss://"
         );
-        const evsubscr = new WebSocket(wsurl);
 
-        // Connection opened
-        evsubscr.onopen = function () {
-            evsubscr.send(edata.eventKey);
-        };
+        function listen() {
+            const wsurl = (
+                wp + window.location.hostname +
+                ":" + window.location.port +
+                window.location.pathname
+            );
+            const evsubscr = new WebSocket(wsurl);
 
-        // Listen for messages
-        evsubscr.onmessage = function (e) {
-            f.processEvent({
-                event: e,
-                moduleSubscrId: moduleSid,
-                formsSubscrId: formsSid
+            // Connection opened
+            evsubscr.onopen = function () {
+                evsubscr.send(edata.eventKey);
+            };
+
+            // Listen for messages
+            evsubscr.onmessage = function (e) {
+                f.processEvent({
+                    event: e,
+                    moduleSubscrId: moduleSid,
+                    formsSubscrId: formsSid
+                });
+            };
+
+            // Stop listening when we sign out. We'll realign on
+            // Session with a new listener when we sign back in
+            f.state().resolve("/SignedOut").enter(function () {
+                evsubscr.close();
+
+                // Remove this function
+                f.state().resolve("/SignedOut").enters.pop();
             });
-        };
 
-        // Stop listening when we sign out. We'll realign on
-        // Session with a new listener when we sign back in
-        f.state().resolve("/SignedOut").enter(function () {
-            evsubscr.close();
-
-            // Remove this function
-            f.state().resolve("/SignedOut").enters.pop();
-        });
-
-        // Houston, we've got a problem.
-        // Report it to state handler.
-        evsubscr.onclose = function (e) {
-            sseState.send("error", e);
-        };
-    }
-
-    if (resp.data) {
-        edata = resp.data;
-        catalog.register("subscriptions");
-
-        // Listen for event changes for this instance
-        catalog.eventKey(edata.eventKey);
-
-        // Initiate event listener with key on sign in
-        f.state().resolve("/SignedIn").enter(listen);
-
-        if (resp.data.authorized) {
-            f.currentUser(edata.authorized);
-            f.state().send("preauthorized");
-            start();
-        } else {
-            goSignIn();
+            // Houston, we've got a problem.
+            // Report it to state handler.
+            evsubscr.onclose = function (e) {
+                sseState.send("error", e);
+            };
         }
-    }
-});
+
+        if (resp.data) {
+            edata = resp.data;
+            catalog.register("subscriptions");
+
+            // Listen for event changes for this instance
+            catalog.eventKey(edata.eventKey);
+
+            // Initiate event listener with key on sign in
+            f.state().resolve("/SignedIn").enter(listen);
+
+            if (resp.data.authorized) {
+                f.currentUser(edata.authorized);
+                f.state().send("preauthorized");
+                start();
+            } else {
+                goSignIn();
+            }
+        }
+    });
+}
 
 // Let displays handle their own overflow locally
 document.documentElement.style.overflow = "hidden";

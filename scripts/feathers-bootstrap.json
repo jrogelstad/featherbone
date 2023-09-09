@@ -207,6 +207,11 @@
                 "description": "Always load this attribute, even on non-editable models",
                 "type": "boolean",
                 "default": false
+            },
+            "isEncrypted": {
+                "description": "Encrypt value in the database",
+                "type": "boolean",
+                "default": false
             }
         }
     },
@@ -569,7 +574,8 @@
             "country": {
                 "description": "Country",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "default": "United States"
             },
             "phone": {
                 "description": "Phone",

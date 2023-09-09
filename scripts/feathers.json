@@ -1356,6 +1356,152 @@
             "processId": {
                 "description": "Postgres process ID. Needed if stopping process",
                 "type": "integer"
+            },
+            "canStop": {
+                "description": "Flag whether process can be stopped while processing",
+                "type": "boolean",
+                "default": true
+            }
+        }
+    },
+    {
+        "name": "TenantService",
+        "plural": "TenantServices",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Tennant postgres service",
+        "properties": {
+            "name": {
+                "description": "Name of service",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isNaturalKey": true
+            },
+            "pgHost": {
+                "description": "Postgres host url",
+                "type": "string",
+                "alias": "Host",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "pgPort": {
+                "description": "Postgres port number",
+                "type": "string",
+                "alias": "Port",
+                "isRequired": true
+            },
+            "pgUser": {
+                "description": "Administrative user",
+                "type": "string",
+                "alias": "User",
+                "isRequired": true
+            },
+            "pgPassword": {
+                "description": "Administrative user password",
+                "type": "string",
+                "alias": "Password",
+                "format": "password",
+                "isRequired": true,
+                "isEncrypted": true
+            }
+        }
+    },
+    {
+        "name": "Edition",
+        "plural": "Editions",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Software edition installed",
+        "properties": {
+            "name": {
+                "description": "Name of edition",
+                "type": "string",
+                "isRequired": true,
+                "isNaturalKey": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            }
+        }
+    },
+    {
+        "name": "Tenant",
+        "plural": "Tenants",
+        "inherits": "Document",
+        "module": "Core",
+        "description": "Map of companies to their database",
+        "properties": {
+            "name": {
+                "description": "Name of company or instance",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isNaturalKey": true
+            },
+            "contact": {
+                "description": "Primary contact",
+                "type": {
+                    "relation": "Contact",
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "address",
+                        "phone"
+                    ]
+                },
+                "isRequired": true
+            },
+            "isActive": {
+                "type": "boolean",
+                "description": "Whether tennant is active",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "pgService": {
+                "description": "Postgres data service",
+                "type": {
+                    "relation": "TenantService",
+                    "properties": [
+                        "name",
+                        "pgHost"
+                    ]
+                },
+                "alias": "Service",
+                "isRequired": true
+            },
+            "pgDatabase": {
+                "description": "Postgres database name",
+                "type": "string",
+                "alias": "Database",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isLabelKey": true
+            },
+            "modules": {
+                "description": "List of modules installed on tenant",
+                "type": "array",
+                "isReadOnly": true,
+                "isAlwaysLoad": true
+            },
+            "edition": {
+                "description": "Edition of software used",
+                "type": {
+                    "relation": "Edition",
+                    "properties": [
+                        "name",
+                        "description"
+                    ]
+                },
+                "isReadOnly": false
+            },
+            "isDemo": {
+                "description": "Flag whether demo database",
+                "type": "boolean"
             }
         }
     }
