@@ -166,7 +166,11 @@ textarea {
 }
 
 .fb-checkbox {
-  display: inline-block;
+    display: inline-block;
+}
+
+.fb-checkbox-cell {
+    display: table-cell;
 }
 
 .fb-checkbox-focus {

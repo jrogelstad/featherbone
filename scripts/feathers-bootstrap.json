@@ -574,7 +574,8 @@
             "country": {
                 "description": "Country",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "default": "United States"
             },
             "phone": {
                 "description": "Phone",
