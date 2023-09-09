@@ -107,6 +107,45 @@ module.static = f.prop({
             selections.length === 1 &&
             !selections.some((sel) => sel.naturalKey() === "Core")
         );
+    },
+    upgrade: async function (viewModel) {
+        let dialog = viewModel.confirmDialog();
+        let query = Qs.stringify({
+            subscription: {
+                id: f.createId(),
+                eventKey: f.catalog().eventKey()
+            }
+        });
+        let mods;
+
+        function error(err) {
+            dialog.message(err.message);
+            dialog.title("Error");
+            dialog.icon("error");
+            dialog.buttonCancel().hide();
+            dialog.show();
+        }
+
+        try {
+            await f.datasource().request({
+                method: "POST",
+                path: "/do/upgrade/" + query
+            });
+            mods = await f.datasource().request({
+                method: "POST",
+                path: "/data/modules",
+                body: {
+                    properties: ["id", "version"],
+                    filter: {criteria: [{
+                        property: "name",
+                        value: "Core"
+                    }]}
+                }
+            });
+            f.version(mods[0].version);
+        } catch (err) {
+            error(err);
+        }
     }
 });
 

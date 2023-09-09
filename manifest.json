@@ -1,6 +1,6 @@
 {
     "module": "Core",
-    "version": "1.0.0",
+    "version": "2.0.0-alpha-2",
     "files": [
         {
             "type": "execute",
@@ -31,6 +31,11 @@
         {
             "type": "workbook",
             "path": "scripts/workbooks.json"
+        },
+        {
+            "type": "settings",
+            "name": "globalSettings",
+            "path": "scripts/global-settings.json"
         },
         {
             "type": "batch",

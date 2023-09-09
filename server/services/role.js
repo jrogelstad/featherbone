@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -96,7 +96,7 @@
                     ? "LOGIN"
                     : "NOLOGIN"
                 ) + ";";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([name]);
                 client.query(sql, function (err) {
@@ -109,6 +109,36 @@
                     resolve(true);
                 });
             });
+        };
+
+        /**
+            Featherbone super users can create databases. Otherwise
+            not.
+
+            @method changeRoleCreateDb
+            @param {Object} Payload
+            @param {Client} [payload.client]
+            @param {Object} [payload.data] Data
+            @param {String} [payload.data.name] Role name
+            @param {Boolean} [payload.data.isSuper] Is Super
+            @return {Promise}
+        */
+        that.changeRoleCreateDb = async function (obj) {
+            let name = obj.data.name;
+            let sql = "ALTER ROLE %I " + (
+                obj.data.isLogin === true
+                ? "CREATEDB"
+                : "NOCREATEDB"
+            ) + ";";
+
+            sql = sql.format([name]);
+
+            try {
+                await obj.client.query(sql);
+                return true;
+            } catch (err) {
+                return Promise.reject(err);
+            }
         };
 
         /**
@@ -126,7 +156,7 @@
                 let name = obj.data.name;
                 let pwd = obj.data.password;
                 let sql = "ALTER ROLE %I PASSWORD %L;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([name, pwd]);
                 client.query(sql, function (err) {
@@ -150,48 +180,47 @@
             @param {String} payload.data.name Role name
             @param {String} payload.data.password Password
             @param {Boolean} [payload.data.isLogin] Default false
+            @param {Boolean} [payload.data.isSuper] Default false
             @param {Boolean} [payload.data.isInherit] Default false
             @return {Promise}
         */
-        that.createRole = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let name = obj.data.name;
-                let pwd = obj.data.password;
-                let sql = (
-                    "SELECT * FROM pg_catalog.pg_roles " +
-                    "WHERE rolname = $1;"
-                );
-                let client = db.getClient(obj.client);
+        that.createRole = async function (obj) {
+            let name = obj.data.name;
+            let pwd = obj.data.password;
+            let sql = (
+                "SELECT * FROM pg_catalog.pg_roles " +
+                "WHERE rolname = $1;"
+            );
+            let client = obj.client;
+            let resp;
 
-                client.query(sql, [name]).then(function (resp) {
-                    if (!resp.rows.length) {
-                        sql = "CREATE ROLE %I " + (
-                            obj.data.isLogin === true
-                            ? "LOGIN"
-                            : "NOLOGIN"
-                        ) + (
-                            obj.data.isInherit !== false
-                            ? " INHERIT "
-                            : " NOINHERIT "
-                        ) + " PASSWORD %L;";
+            try {
+                resp = await client.query(sql, [name]);
+                if (!resp.rows.length) {
+                    sql = "CREATE ROLE %I " + (
+                        obj.data.isLogin === true
+                        ? "LOGIN"
+                        : "NOLOGIN"
+                    ) + (
+                        obj.data.isSuper === true
+                        ? " CREATEDB"
+                        : " NOCREATEDB"
+                    ) + (
+                        obj.data.isInherit !== false
+                        ? " INHERIT "
+                        : " NOINHERIT "
+                    ) + " PASSWORD %L;";
 
-                        sql = sql.format([name, pwd]);
-                        client.query(sql, function (err) {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            // Send back result
-                            resolve(true);
-                        });
-                    } else {
-                        that.changeRoleLogin(obj).then(
-                            that.changeRolePassword.bind(null, obj)
-                        ).then(resolve).catch(reject);
-                    }
-                });
-            });
+                    sql = sql.format([name, pwd]);
+                    await client.query(sql);
+                } else {
+                    await that.changeRoleLogin(obj);
+                    await that.changeRolePassword(obj);
+                    await that.changeRoleCreateDb(obj);
+                }
+            } catch (err) {
+                return Promise.reject(err);
+            }
         };
 
         /**
@@ -207,7 +236,7 @@
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let sql = "DROP ROLE %I;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 function callback() {
                     client.query(
@@ -234,7 +263,7 @@
         that.grantMembership = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "GRANT %I TO %I;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([obj.data.fromRole, obj.data.toRole]);
                 client.query(sql).then(resolve).catch(reject);
@@ -254,7 +283,7 @@
         that.revokeMembership = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "REVOKE %I FROM %I;";
-                let client = db.getClient(obj.client);
+                let client = obj.client;
 
                 sql = sql.format([obj.data.fromRole, obj.data.toRole]);
                 client.query(sql).then(resolve).catch(reject);

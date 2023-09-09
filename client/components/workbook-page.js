@@ -100,11 +100,7 @@ const editSheetConfig = {
         attr: "helpLink",
         grid: 1,
         label: "Help Page"
-    }/*, { This works, but overkill?
-        attr: "isClearOnNoSearch",
-        label: "Clear on no search",
-        grid: 1
-    }*/, {
+    }, {
         attr: "columns",
         showLabel: false,
         height: "208px",
@@ -352,7 +348,6 @@ workbookPage.viewModel = function (options) {
             feather: sheet.feather,
             form: sheet.form || "D",
             drawerForm: sheet.drawerForm || "N",
-            isClearOnNoSearch: Boolean(sheet.isClearOnNoSearch),
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
@@ -370,7 +365,6 @@ workbookPage.viewModel = function (options) {
             sheet.feather = data.feather;
             sheet.form = data.form;
             sheet.drawerForm = data.drawerForm;
-            sheet.isClearOnNoSearch = data.isClearOnNoSearch;
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
@@ -406,7 +400,6 @@ workbookPage.viewModel = function (options) {
             } else {
                 vm.buttonEdit().disable();
             }
-            vm.tableWidget().isClearOnNoSearch(data.isClearOnNoSearch);
             vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
             handleDrawer();
 
@@ -549,24 +542,6 @@ workbookPage.viewModel = function (options) {
         let type = vm.tableWidget().model().data.objectType();
         let url;
         let win;
-
-        /* Keep it simple
-        if (vm.sheet().openInNewWindow) {
-            url = (
-                window.location.protocol + "//" +
-                window.location.hostname + ":" +
-                window.location.port + "#!/edit/" + type + "/" +
-                selection.id()
-            );
-
-            win = window.open(url);
-            win.options = {
-                form: form.id,
-                isNewWindow: true
-            };
-            return;
-        }
-        */
 
         if (selection) {
             m.route.set("/edit/:feather/:key", {
@@ -1132,13 +1107,13 @@ workbookPage.viewModel = function (options) {
         actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
-        isClearOnNoSearch: vm.sheet().isClearOnNoSearch,
         feather: vm.sheet().feather,
         search: vm.searchInput().value,
         ondblclick: vm.modelOpen,
         subscribe: true,
         footerId: vm.footerId(),
-        loadAllProperties: hasDrawer()
+        loadAllProperties: hasDrawer(),
+        printTitle: vm.sheet().name.toName()
     }));
     vm.actions = function () {
         let acts = vm.tableWidget().actions();

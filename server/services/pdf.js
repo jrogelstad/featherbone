@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023 John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, this, for, devel, unordered */
-
 /**
     PDF file generator.
     @module PDF
 */
+
 (function (exports) {
     "use strict";
 
@@ -30,11 +30,14 @@
     const {CRUD} = require("./crud");
     const {Tools} = require("./tools");
     const {Feathers} = require("./feathers");
+    const {Settings} = require("./settings");
+    const fetch = require("node-fetch");
     const pdf = require("pdfjs");
-    const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
-    const {registerFont, createCanvas} = require("canvas");
-    const defTextLabel = "Confidential";
+    //const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
+    //const {registerFont, createCanvas} = require("canvas");
+    //const defTextLabel = "Confidential";
     const formats = new Tools().formats;
+    const settings = new Settings();
 
     const fonts = {
         Barcode39: new pdf.Font(
@@ -242,6 +245,11 @@
             let attachments = [];
             let annotation;
             let resp;
+            let globalSettings = await settings.getSettings({
+                client: vClient,
+                data: {name: "globalSettings"}
+            });
+            const cr = "\n";
 
             if (options && options.annotation) {
                 annotation = options.annotation;
@@ -335,7 +343,14 @@
             });
 
             let header;
-            let src = fs[readFileSync]("./files/logo.jpg");
+            let src;
+            let res;
+            if (globalSettings && globalSettings.logo) {
+                res = await fetch(globalSettings.logo.resource);
+                src = await res.buffer();
+            } else {
+                src = fs[readFileSync]("./files/logo.jpg");
+            }
             let logo = new pdf.Image(src);
             let n = 0;
             let file = (filename || f.createId()) + ".pdf";
@@ -458,7 +473,6 @@
                 let nkey;
                 let lkey;
                 let rel;
-                let cr = "\n";
                 let fontStr = style.font || defFont;
                 let ovrFont = fonts[fontStr];
 
@@ -502,6 +516,9 @@
                         value += rec[attr].state + " ";
                         value += rec[attr].postalCode;
                         value += cr + rec[attr].country;
+                        if (rec[attr].phone) {
+                            value += cr + "Ph: " + rec[attr].phone;
+                        }
                         row.cell(fontMod(value), {
                             font: ovrFont,
                             fontSize: style.fontSize
@@ -903,7 +920,7 @@
 
             if (form.hideLogo !== true || form.hideTitle !== true) {
                 header = doc.header().table({
-                    widths: [null, null],
+                    widths: [null, 5 * pdf.cm, 2.5 * pdf.cm],
                     paddingBottom: 1 * pdf.cm
                 }).row();
 
@@ -917,9 +934,63 @@
                 );
 
                 if (!form.hideLogo) {
+                    let addr = "";
+                    if (globalSettings) {
+                        addr += globalSettings.name;
+                        if (globalSettings.street) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.street;
+                        }
+                        if (globalSettings.unit) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.unit;
+                        }
+                        if (globalSettings.city) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.city;
+                        }
+                        if (globalSettings.state) {
+                            if (addr.length && globalSettings.city) {
+                                addr += ", ";
+                            } else if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.state;
+                        }
+                        if (globalSettings.postalCode) {
+                            if (addr.length && (
+                                globalSettings.city ||
+                                globalSettings.state
+                            )) {
+                                addr += " ";
+                            } else if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.postalCode;
+                        }
+                        if (globalSettings.country) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += globalSettings.country;
+                        }
+                        if (globalSettings.phone) {
+                            if (addr.length) {
+                                addr += cr;
+                            }
+                            addr += "Ph: " + globalSettings.phone;
+                        }
+                    }
+                    header.cell().text().add(addr);
                     header.cell().image(logo, {
                         align: "right",
-                        height: 1.5 * pdf.cm
+                        height: 2.5 * pdf.cm
                     });
                 }
             }
@@ -955,6 +1026,7 @@
                 n = 0;
             }
 
+            /*
             await new Promise(function (resolve) {
                 if (!attachments.length) {
                     resolve();
@@ -966,9 +1038,11 @@
                     ).then(resolve);
                 }
             });
+            */
 
             doc.pipe(w);
             await doc.end();
+            /*
             if (!options || !options.watermark) {
                 return file;
             }
@@ -986,6 +1060,7 @@
                     resolve();
                 });
             });
+            */
 
             return file;
         };
@@ -993,6 +1068,7 @@
         return that;
     };
 
+    /*
     function fetchBytes(url) {
         return new Promise(function (res2) {
             readFile(
@@ -1579,6 +1655,7 @@
         }
         return bytes;
     };
+    */
 
 }(exports));
 
