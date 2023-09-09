@@ -2466,6 +2466,7 @@ appState = State.define(function () {
         this.event("success", function () {
             this.goto("../SignedIn");
             m.route.set("/home");
+            window.history.go(0);
         });
         this.event("failed", function () {
             this.goto("../SignedOut");

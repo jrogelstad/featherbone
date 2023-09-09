@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1299,6 +1299,11 @@ function createModel(data, feather) {
         let payload;
         let flag = args[0];
 
+        // Children always subordinate to parent
+        if (model.isChild) {
+            return;
+        }
+
         if (!args.length) {
             if (subscriptionId) {
                 return subscriptionId;
@@ -1849,6 +1854,17 @@ function createModel(data, feather) {
                         result.state().resolve(
                             "/Ready/Fetched/Dirty"
                         ).event("save");
+
+                        // More child case handling
+                        if (result.isChild) {
+                            result.parent(model);
+                            // No locking
+                            result.state().resolve(
+                                "/Ready/Fetched/Clean"
+                            ).event("changed", function () {
+                                result.state().goto("/Ready/Fetched/Dirty");
+                            });
+                        }
 
                         return result;
                     };

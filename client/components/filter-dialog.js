@@ -107,6 +107,7 @@ filterDialog.viewModel = function (options) {
         if (typeof type === "string") {
             if (type === "boolean") {
                 component = m(f.getComponent("Checkbox"), {
+                    isCell: true,
                     value: theValue,
                     onclick: vm.itemChanged.bind(this, index, "value")
                 });

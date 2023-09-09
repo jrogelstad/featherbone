@@ -239,6 +239,22 @@ const home = {
                             }, "playlist_remove")], "Delete Template")
                         ])
                     ]),
+                    m("button", {
+                        id: "global-settings",
+                        class: (
+                            "pure-button fb-menu-setup fb-menu-button " +
+                            "fb-menu-button-middle-side"
+                        ),
+                        title: "Global settings",
+                        onclick: function () {
+                            m.route.set("/settings/:settings", {
+                                settings: "globalSettings"
+                            });
+                        }
+                    }, [m("i", {
+                        id: "logo-edit-icon",
+                        class: "material-icons fb-button-icon"
+                    }, "public")]),
                     m(components.accountMenu)
                 ])
             ]
