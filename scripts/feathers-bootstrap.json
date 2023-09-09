@@ -292,12 +292,19 @@
     },
     {
         "name": "FeatherAuthorization",
+        "plural": "FeatherAuthorizations",
         "module": "Core",
         "description": "Role authorized to use the parent feather",
         "properties": {
             "parent": {
                 "description": "Parent feather",
                 "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "inherits",
+                        "module"
+                    ],
                     "relation": "Feather",
                     "childOf": "authorizations"
                 }
