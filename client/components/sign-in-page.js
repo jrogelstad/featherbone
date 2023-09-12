@@ -88,6 +88,23 @@ signInPage.component = {
                         f.state().send("authenticate");
                     }
                 }, "Sign in")
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "forgotPasswordLabel",
+                    for: "forgotPassword",
+                    class: "fb-sign-in-label"
+                }, ""),
+                m("a", {
+                    style: {width: "215px", color: "darkslateblue"},
+                    id: "forgotPassword",
+                    onclick: function () {
+                        console.log("Hello World");
+                        f.state().send("forgotPassword");
+                    }
+                }, "Forgot password")
             ])
         ]);
     }

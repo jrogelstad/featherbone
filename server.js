@@ -33,6 +33,31 @@
     const path = require("path");
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
+    const MagicLoginStrategy = require("passport-magic-login");
+    const magicLogin = new MagicLoginStrategy({
+        secret: "all your base are belong to us",
+        callbackUrl: "/auth/magiclogin/callback",
+        sendMagicLink: async function (destination, href) {
+            await sendEmail({
+                to: destination,
+                body: (
+                    `Click this link to finish logging in:` +
+                    ` https://yourcompany.com${href}`
+                )
+            });
+        },
+        verify: async function (payload, callback) {
+            try {
+                let user = await getOrCreateUserWithEmail(
+                    payload.destination
+                );
+                callback(null, user);
+            } catch (err) {
+                callback(err);
+            }
+        },
+        jwtOptions: {expiresIn: "2 days"}
+    })
     const authenticate = passport.authenticate("local", {
         failureFlash: "Username or password invalid",
         failWithError: true
@@ -1123,6 +1148,11 @@
         });
     }
 
+    function doForgotPassword() {
+        magicLogin.send();
+        console.log("Ok");
+    }
+
     async function doSignIn(req, res) {
         let message;
         let rows;
@@ -1760,6 +1790,8 @@
             }
         ));
 
+        passport.use(magicLogin);
+
         passport.serializeUser(function (user, done) {
             //console.log("serialize ", user);
             done(null, user.name);
@@ -1816,6 +1848,7 @@
 
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);
+        dbRouter.post("/:db/forgot-password", doForgotPassword);
 
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
