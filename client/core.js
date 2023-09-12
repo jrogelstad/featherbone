@@ -2444,6 +2444,18 @@ appState = State.define(function () {
                 }
             });
         });
+        this.event("forgotPassword", function () {
+            let user = document.getElementById(
+                "username"
+            ).value;
+
+            console.log("Hello " + user);
+            f.datasource().request({
+                method: "POST",
+                path: "/forgotPassword",
+                body: {username: user}
+            });
+        });
         this.enter(function () {
             f.currentUser({});
             m.route.set("/sign-in");
