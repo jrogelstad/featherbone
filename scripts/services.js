@@ -1261,6 +1261,16 @@ function updateUserAccount(obj) {
         let requests = [];
         let pswd = obj.newRec.password;
 
+        if (!obj.newRec.contact) {
+            reject("Contact is required");
+            return;
+        }
+
+        if (!obj.newRec.contact.email) {
+            reject("Contact must have a primary email address");
+            return;
+        }
+
         function unlock() {
             f.datasource.unlock({
                 username: obj.client.currentUser(),
@@ -1335,6 +1345,16 @@ function updateUserAccount(obj) {
 
 function createUserAccount(obj) {
     return new Promise(function (resolve, reject) {
+        if (!obj.newRec.contact) {
+            reject("Contact is required.");
+            return;
+        }
+
+        if (!obj.newRec.contact.email) {
+            reject("Contact must have a primary email address");
+            return;
+        }
+
         function callback(config) {
             if (
                 config.passwordLength &&

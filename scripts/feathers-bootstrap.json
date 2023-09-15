@@ -721,7 +721,8 @@
                         "email",
                         "address"
                     ]
-                }
+                },
+                "isRequired": true
             },
             "isActive": {
                 "description": "Allow user to log in",
