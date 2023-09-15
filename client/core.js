@@ -2452,7 +2452,7 @@ appState = State.define(function () {
             console.log("Hello " + user);
             f.datasource().request({
                 method: "POST",
-                path: "/forgotPassword",
+                path: "/forgot-password",
                 body: {username: user}
             });
         });
