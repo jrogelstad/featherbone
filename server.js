@@ -33,32 +33,48 @@
     const path = require("path");
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
-    const MagicLoginStrategy = require("passport-magic-login");
+    const MagicLoginStrategy = require("passport-magic-login").default;
     const magicLogin = new MagicLoginStrategy({
         secret: "all your base are belong to us",
-        callbackUrl: "/auth/magiclogin/callback",
+        callbackUrl: "/auth/magiclink/callback",
         sendMagicLink: async function (destination, href) {
-            await sendEmail({
-                to: destination,
-                body: (
-                    `Click this link to finish logging in:` +
-                    ` https://yourcompany.com${href}`
-                )
-            });
-        },
-        verify: async function (payload, callback) {
             try {
-                let user = await getOrCreateUserWithEmail(
-                    payload.destination
-                );
+                let res = await datasource.request({
+                    method: "POST",
+                    name: "sendMail",
+                    data: {
+                        message: {
+                            to: destination,
+                            subject: "Password reset",
+                            from: "support@featherbone.com",
+                            html: (
+                                `<html><p>Click ` +
+                                `<a href=\"http://localhost/demo${href}"` +
+                                `>here</a> to finish logging in.` +
+                                `</p><html>`
+                            )
+                        }
+                    },
+                    user: systemUser,
+                    tenant: false
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        verify: async function (payload, callback, req) {
+            try {
+                req.tenant = payload.tenant;
+                let user = await datasource.deserializeUser(req, payload.username);
+
                 callback(null, user);
             } catch (err) {
                 callback(err);
             }
         },
         jwtOptions: {expiresIn: "2 days"}
-    })
-    const authenticate = passport.authenticate("local", {
+    });
+    const authenticateLocal = passport.authenticate("local", {
         failureFlash: "Username or password invalid",
         failWithError: true
     });
@@ -1148,9 +1164,29 @@
         });
     }
 
-    function doForgotPassword() {
-        magicLogin.send();
-        console.log("Ok");
+    function doForgotPassword(req, res) {
+        deserializeUser(
+            req,
+            req.body.username,
+            function (err, user) {
+                if (err) {
+                    error.bind(res)(err);
+                    return;
+                }
+
+                if (!user.email) {
+                    error.bind(res)(
+                        "No email set for user " +
+                        req.body.destination + ". " +
+                        "Contact your administrator."
+                    );
+                    return;
+                }
+                req.body.destination = user.email;
+                req.body.tenant = req.tenant;
+                magicLogin.send(req, res);
+            }
+        );
     }
 
     async function doSignIn(req, res) {
@@ -1191,7 +1227,7 @@
             next(true);
             return;
         }
-        return authenticate(req, res, next);
+        return authenticateLocal(req, res, next);
     }
 
     function doSignOut(req, res) {
@@ -1695,56 +1731,84 @@
         }, true);
     }
 
+    // Define exactly which directories and files are to be served
+    const dirs = [
+        "/client",
+        "/client/components",
+        "/client/models",
+        "/common",
+        "/fonts",
+        "/node_modules/codemirror/addon/lint",
+        "/node_modules/codemirror/lib",
+        "/node_modules/codemirror/mode/javascript",
+        "/node_modules/codemirror/mode/css",
+        "/node_modules/typeface-raleway/files",
+        "/node_modules/print-js/dist",
+        "/node_modules/tinymce",
+        "/node_modules/tinymce/icons/default",
+        "/node_modules/tinymce/skins/ui/oxide",
+        "/node_modules/tinymce/skins/ui/oxide/fonts",
+        "/node_modules/tinymce/skins/ui/oxide-dark",
+        "/node_modules/tinymce/skins/ui/oxide-dark/fonts",
+        "/node_modules/tinymce/skins/content/default",
+        "/node_modules/tinymce/skins/content/dark",
+        "/node_modules/tinymce/skins/content/document",
+        "/node_modules/tinymce/skins/content/writer",
+        "/node_modules/tinymce/themes/silver",
+        "/node_modules/tinymce/themes/mobile",
+        "/media"
+    ];
+
+    const files = [
+        "/api.json",
+        "/index.html",
+        "/media/featherbone.png",
+        "/css/featherbone.css",
+        "/css/print.css",
+        "/node_modules/big.js/big.mjs",
+        "/node_modules/event-source-polyfill/src/eventsource.js",
+        "/node_modules/fast-json-patch/dist/fast-json-patch.js",
+        "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
+        "/node_modules/mithril/mithril.js",
+        "/node_modules/mithril/mithril.min.js",
+        "/node_modules/qs/dist/qs.js",
+        "/node_modules/purecss/build/pure-min.css",
+        "/node_modules/purecss/build/grids-responsive-min.css",
+        "/node_modules/dialog-polyfill/dialog-polyfill.css",
+        "/node_modules/codemirror/theme/neat.css",
+        "/node_modules/typeface-raleway/index.css",
+        "/node_modules/gantt/dist/gantt.min.js"
+    ];
+
+    async function deserializeUser(req, name, done) {
+        if (files.indexOf(req.url) !== -1) {
+            done(null, {}); // Don't care about user on files
+            return;
+        }
+
+        let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
+        if (dirs.indexOf(ldir) !== -1) {
+            done(null, {}); // Don't care about user on files
+            return;
+        }
+
+        if (!req.tenant) {
+            let db = req.url.slice(1);
+            db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
+            req.database = db;
+            req.tenant = tenants.find((t) => t.pgDatabase === db);
+        }
+        try {
+            let user = await datasource.deserializeUser(req, name);
+            done(null, user);
+        } catch (e) {
+            req.isAuthenticated = false;
+            req.sessionError = e;
+            done(null, {});
+        }
+    }
+
     async function start() {
-        // Define exactly which directories and files are to be served
-        let dirs = [
-            "/client",
-            "/client/components",
-            "/client/models",
-            "/common",
-            "/fonts",
-            "/node_modules/codemirror/addon/lint",
-            "/node_modules/codemirror/lib",
-            "/node_modules/codemirror/mode/javascript",
-            "/node_modules/codemirror/mode/css",
-            "/node_modules/typeface-raleway/files",
-            "/node_modules/print-js/dist",
-            "/node_modules/tinymce",
-            "/node_modules/tinymce/icons/default",
-            "/node_modules/tinymce/skins/ui/oxide",
-            "/node_modules/tinymce/skins/ui/oxide/fonts",
-            "/node_modules/tinymce/skins/ui/oxide-dark",
-            "/node_modules/tinymce/skins/ui/oxide-dark/fonts",
-            "/node_modules/tinymce/skins/content/default",
-            "/node_modules/tinymce/skins/content/dark",
-            "/node_modules/tinymce/skins/content/document",
-            "/node_modules/tinymce/skins/content/writer",
-            "/node_modules/tinymce/themes/silver",
-            "/node_modules/tinymce/themes/mobile",
-            "/media"
-        ];
-
-        let files = [
-            "/api.json",
-            "/index.html",
-            "/media/featherbone.png",
-            "/css/featherbone.css",
-            "/css/print.css",
-            "/node_modules/big.js/big.mjs",
-            "/node_modules/event-source-polyfill/src/eventsource.js",
-            "/node_modules/fast-json-patch/dist/fast-json-patch.js",
-            "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
-            "/node_modules/mithril/mithril.js",
-            "/node_modules/mithril/mithril.min.js",
-            "/node_modules/qs/dist/qs.js",
-            "/node_modules/purecss/build/pure-min.css",
-            "/node_modules/purecss/build/grids-responsive-min.css",
-            "/node_modules/dialog-polyfill/dialog-polyfill.css",
-            "/node_modules/codemirror/theme/neat.css",
-            "/node_modules/typeface-raleway/index.css",
-            "/node_modules/gantt/dist/gantt.min.js"
-        ];
-
         // Resolve database
         dbRouter.param("db", function (req, res, next, id) {
             id = id.toCamelCase().toSnakeCase();
@@ -1797,33 +1861,7 @@
             done(null, user.name);
         });
 
-        passport.deserializeUser(async function (req, name, done) {
-            if (files.indexOf(req.url) !== -1) {
-                done(null, {}); // Don't care about user on files
-                return;
-            }
-
-            let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
-            if (dirs.indexOf(ldir) !== -1) {
-                done(null, {}); // Don't care about user on files
-                return;
-            }
-
-            if (!req.tenant) {
-                let db = req.url.slice(1);
-                db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
-                req.database = db;
-                req.tenant = tenants.find((t) => t.pgDatabase === db);
-            }
-            try {
-                let user = await datasource.deserializeUser(req, name);
-                done(null, user);
-            } catch (e) {
-                req.isAuthenticated = false;
-                req.sessionError = e;
-                done(null, {});
-            }
-        });
+        passport.deserializeUser(deserializeUser);
 
         // Initialize passport
         app.use(express.static("public"));
@@ -1849,6 +1887,16 @@
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);
         dbRouter.post("/:db/forgot-password", doForgotPassword);
+        dbRouter.get(
+            "/:db/auth/magiclink/callback",
+            function (req, res, next) {
+                let auth = passport.authenticate("magiclogin", {
+                    session: true,
+                    successRedirect: "http://localhost/demo/"
+                });
+                auth(req, res);
+            }
+        );
 
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
