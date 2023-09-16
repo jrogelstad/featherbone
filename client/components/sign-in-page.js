@@ -101,7 +101,6 @@ signInPage.component = {
                     style: {width: "215px", color: "darkslateblue"},
                     id: "forgotPassword",
                     onclick: function () {
-                        console.log("Hello World");
                         f.state().send("forgotPassword");
                     }
                 }, "Forgot password")
@@ -111,4 +110,76 @@ signInPage.component = {
 };
 
 f.catalog().register("components", "signInPage", signInPage.component);
+
+const confirmCodePage = {};
+
+confirmCodePage.component = {
+    oncreate: function () {
+        document.getElementById("fb-title").text = "Confirm Sign In Code";
+    },
+
+    view: function (vnode) {
+        return m("form", {
+            class: "pure-form pure-form-aligned"
+        }, [
+            m("div", {
+                class: "fb-sign-in fb-sign-in-header"
+            }, "Confirm Sign in to Featherbone"),
+            m("div", {
+                class: "fb-sign-in fb-sign-in-error"
+            }, (
+                f.state().current().length
+                ? f.state().resolve(f.state().current()[0]).message()
+                : ""
+            )),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "confirmCodeLabel",
+                    for: "confirm-code",
+                    class: "fb-confirm-code-label"
+                }, "Code"),
+                m("input", {
+                    id: "confirm-code",
+                    autocomplete: "off",
+                    onkeydown: function (e) {
+                        if (e.which === 13) {
+                            f.state().send("entered", {
+                                confirmUrl: vnode.attrs.confirmUrl
+                            });
+                            e.preventDefault();
+                        }
+                    }
+                })
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "confirmLabel",
+                    for: "confirm",
+                    class: "fb-sign-in-label"
+                }, ""),
+                m("button", {
+                    style: {width: "215px"},
+                    id: "confirm",
+                    class: "pure-button pure-button-primary fb-input",
+                    onclick: function () {
+                        f.state().send("entered", {
+                            confirmUrl: vnode.attrs.confirmUrl
+                        });
+                    }
+                }, "Confirm")
+            ])
+        ]);
+    }
+};
+
+f.catalog().register(
+    "components",
+    "confirmCodePage",
+    confirmCodePage.component
+);
+
 

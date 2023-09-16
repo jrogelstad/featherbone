@@ -30,6 +30,7 @@ import webauthn from "./components/webauthn.js";
 
 const m = window.m;
 const f = window.f;
+const Qs = window.Qs;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
 const tinymce = window.tinymce;
@@ -2434,13 +2435,14 @@ appState = State.define(function () {
             let user = document.getElementById(
                 "username"
             ).value;
+            let pswd = document.getElementById(
+                "password"
+            ).value;
 
             this.goto("../Authenticating", {
                 context: {
                     username: user,
-                    password: document.getElementById(
-                        "password"
-                    ).value
+                    password: pswd
                 }
             });
         });
@@ -2449,7 +2451,6 @@ appState = State.define(function () {
                 "username"
             ).value;
 
-            console.log("Hello " + user);
             f.datasource().request({
                 method: "POST",
                 path: "/forgot-password",
@@ -2475,10 +2476,10 @@ appState = State.define(function () {
         });
     });
     this.state("Authenticating", function () {
-        this.event("success", function () {
-            this.goto("../SignedIn");
-            m.route.set("/home");
-            window.history.go(0);
+        this.event("success", function (ctxt) {
+            this.goto("../Confirm", {
+                context: ctxt
+            });
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -2491,6 +2492,51 @@ appState = State.define(function () {
                     username: context.username,
                     password: context.password
                 }
+            }).then(function (resp) {
+                message("");
+                f.state().send("success", resp);
+            }).catch(function (err) {
+                message(err.message.replace(/"/g, ""));
+                f.state().send("failed");
+            });
+        });
+        this.message = () => "";
+    });
+    this.state("Confirm", function () {
+        this.event("entered", function (context) {
+            let code = document.getElementById(
+                "confirm-code"
+            ).value;
+            let url = context.confirmUrl + "&" + Qs.stringify({
+                confirmCode: code
+            });
+
+            this.goto("../Confirming", {
+                context: {
+                    confirmUrl: url
+                }
+            });
+        });
+        this.enter(function (context) {
+            m.route.set("/confirm-sign-in", {
+                confirmUrl: context.confirmUrl
+            });
+        });
+        this.message = () => "";
+    });
+    this.state("Confirming", function () {
+        this.event("success", function () {
+            this.goto("../SignedIn");
+            m.route.set("/home");
+            window.history.go(0);
+        });
+        this.event("failed", function () {
+            this.goto("../SignedOut");
+        });
+        this.enter(function (context) {
+            datasource.request({
+                method: "GET",
+                path: context.confirmUrl
             }).then(function (resp) {
                 f.currentUser(resp);
                 message("");

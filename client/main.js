@@ -267,7 +267,8 @@ let routes = {
     "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
-    "/sign-in": components.signInPage
+    "/sign-in": components.signInPage,
+    "/confirm-sign-in": components.confirmCodePage
 };
 
 // Global sse state handler, allows any page
