@@ -34,19 +34,21 @@
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
     const MagicLoginStrategy = require("passport-magic-login").default;
+    let systemUser;
+    let smtpAuthUser;
     const magicLogin = new MagicLoginStrategy({
         secret: "all your base are belong to us",
         callbackUrl: "/auth/magiclink/callback",
         sendMagicLink: async function (destination, href) {
             try {
-                let res = await datasource.request({
+                await datasource.request({
                     method: "POST",
                     name: "sendMail",
                     data: {
                         message: {
                             to: destination,
-                            subject: "Password reset",
-                            from: "support@featherbone.com",
+                            subject: "Featherbone login",
+                            from: smtpAuthUser,
                             html: (
                                 `<html><p>Click ` +
                                 `<a href=\"http://localhost/demo${href}"` +
@@ -65,7 +67,10 @@
         verify: async function (payload, callback, req) {
             try {
                 req.tenant = payload.tenant;
-                let user = await datasource.deserializeUser(req, payload.username);
+                let user = await datasource.deserializeUser(
+                    req,
+                    payload.username
+                );
 
                 callback(null, user);
             } catch (err) {
@@ -76,7 +81,8 @@
     });
     const authenticateLocal = passport.authenticate("local", {
         failureFlash: "Username or password invalid",
-        failWithError: true
+        failWithError: true,
+        session: false
     });
     const {Config} = require("./server/config");
     const config = new Config();
@@ -159,7 +165,6 @@
     let pgPool;
     let sessionTimeout;
     let thesecret;
-    let systemUser;
     let logger;
     let tenants = false;
 
@@ -294,6 +299,7 @@
             sessionTimeout = resp.sessionTimeout || 86400000;
             thesecret = resp.secret;
             systemUser = resp.pgUser;
+            smtpAuthUser = resp.smtpAuthUser;
             mode = resp.mode || "prod";
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
@@ -1174,14 +1180,6 @@
                     return;
                 }
 
-                if (!user.email) {
-                    error.bind(res)(
-                        "No email set for user " +
-                        req.body.destination + ". " +
-                        "Contact your administrator."
-                    );
-                    return;
-                }
                 req.body.destination = user.email;
                 req.body.tenant = req.tenant;
                 magicLogin.send(req, res);
@@ -1197,14 +1195,19 @@
             message = msg;
         };
 
-        function next(err) {
+        async function next(err) {
             if (err) {
                 res.status(res.statusCode).json(message);
                 return;
             }
 
-            req.user.mode = mode;
-            res.json(req.user);
+            req.body.destination = req.user.email;
+            req.body.tenant = req.tenant;
+            try {
+                await magicLogin.send(req, res);
+            } catch (e) {
+                error.bind(res)(e);
+            }
         }
         rows = await datasource.request({
             filter: {criteria: [{
@@ -1227,7 +1230,7 @@
             next(true);
             return;
         }
-        return authenticateLocal(req, res, next);
+        authenticateLocal(req, res, next);
     }
 
     function doSignOut(req, res) {
@@ -1836,9 +1839,8 @@
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
-            {passReqToCallback: true},
+            {passReqToCallback: true, session: false},
             function (req, username, password, done) {
-                //console.log("Login process:", username);
                 datasource.authenticate(req, username, password).then(
                     function (user) {
                         return done(null, user);
@@ -1889,7 +1891,7 @@
         dbRouter.post("/:db/forgot-password", doForgotPassword);
         dbRouter.get(
             "/:db/auth/magiclink/callback",
-            function (req, res, next) {
+            function (req, res) {
                 let auth = passport.authenticate("magiclogin", {
                     session: true,
                     successRedirect: "http://localhost/demo/"
