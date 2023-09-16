@@ -34,51 +34,6 @@
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
     const MagicLoginStrategy = require("passport-magic-login").default;
-    let systemUser;
-    let smtpAuthUser;
-    const magicLogin = new MagicLoginStrategy({
-        secret: "all your base are belong to us",
-        callbackUrl: "/auth/magiclink/callback",
-        sendMagicLink: async function (destination, href) {
-            try {
-                await datasource.request({
-                    method: "POST",
-                    name: "sendMail",
-                    data: {
-                        message: {
-                            to: destination,
-                            subject: "Featherbone login",
-                            from: smtpAuthUser,
-                            html: (
-                                `<html><p>Click ` +
-                                `<a href=\"http://localhost/demo${href}"` +
-                                `>here</a> to finish logging in.` +
-                                `</p><html>`
-                            )
-                        }
-                    },
-                    user: systemUser,
-                    tenant: false
-                });
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        verify: async function (payload, callback, req) {
-            try {
-                req.tenant = payload.tenant;
-                let user = await datasource.deserializeUser(
-                    req,
-                    payload.username
-                );
-
-                callback(null, user);
-            } catch (err) {
-                callback(err);
-            }
-        },
-        jwtOptions: {expiresIn: "2 days"}
-    });
     const authenticateLocal = passport.authenticate("local", {
         failureFlash: "Username or password invalid",
         failWithError: true,
@@ -167,6 +122,9 @@
     let thesecret;
     let logger;
     let tenants = false;
+    let systemUser;
+    let smtpAuthUser;
+    let magicLogin;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -1195,16 +1153,23 @@
             message = msg;
         };
 
-        async function next(err) {
+        function next(err) {
             if (err) {
                 res.status(res.statusCode).json(message);
                 return;
             }
 
+            req.body.confirmCode = String(
+                Math.floor(Math.random() * 90000) + 10000
+            );
             req.body.destination = req.user.email;
             req.body.tenant = req.tenant;
             try {
-                await magicLogin.send(req, res);
+                magicLogin.send(req, {json: () => ""});
+                respond.bind(res)({
+                    success: true,
+                    confirmUrl: req.magicHref
+                });
             } catch (e) {
                 error.bind(res)(e);
             }
@@ -1856,6 +1821,83 @@
             }
         ));
 
+
+        // Magic link setup
+        magicLogin = new MagicLoginStrategy({
+            secret: thesecret,
+            callbackUrl: "/auth/magiclink/callback",
+            sendMagicLink: async function (destination, href, ignore, req) {
+                try {
+                    if (req.body.confirmCode) {
+                        req.magicHref = href;
+                        await datasource.request({
+                            method: "POST",
+                            name: "sendMail",
+                            data: {
+                                message: {
+                                    to: req.user.email,
+                                    subject: "Featherbone confirmation code",
+                                    from: smtpAuthUser,
+                                    html: (
+                                        `<html><p>Your confirmation code is: ` +
+                                        `<b>${req.body.confirmCode}</b>` +
+                                        `</p><html>`
+                                    )
+                                }
+                            },
+                            user: systemUser,
+                            tenant: false
+                        });
+                    } else {
+                        await datasource.request({
+                            method: "POST",
+                            name: "sendMail",
+                            data: {
+                                message: {
+                                    to: destination,
+                                    subject: "Featherbone login",
+                                    from: smtpAuthUser,
+                                    html: (
+                                        `<html><p>Click <a href=` +
+                                        `\"http://localhost/demo${href}\"` +
+                                        `>here</a> to finish logging in.` +
+                                        `</p><html>`
+                                    )
+                                }
+                            },
+                            user: systemUser,
+                            tenant: false
+                        });
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            },
+            verify: async function (payload, callback, req) {
+                try {
+
+                    if (
+                        payload.confirmCode &&
+                        payload.confirmCode !== req.query.confirmCode
+                    ) {
+                        callback(new Error("Invalid confirmation code"));
+                        return;
+                    }
+
+                    req.tenant = payload.tenant;
+                    let user = await datasource.deserializeUser(
+                        req,
+                        payload.username
+                    );
+
+                    callback(null, user);
+                } catch (err) {
+                    callback(err);
+                }
+            },
+            jwtOptions: {expiresIn: "2 days"}
+        });
+
         passport.use(magicLogin);
 
         passport.serializeUser(function (user, done) {
@@ -1891,12 +1933,12 @@
         dbRouter.post("/:db/forgot-password", doForgotPassword);
         dbRouter.get(
             "/:db/auth/magiclink/callback",
-            function (req, res) {
+            function (req, res, next) {
                 let auth = passport.authenticate("magiclogin", {
                     session: true,
                     successRedirect: "http://localhost/demo/"
                 });
-                auth(req, res);
+                auth(req, res, next);
             }
         );
 
