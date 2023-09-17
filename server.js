@@ -1849,6 +1849,11 @@
                             tenant: false
                         });
                     } else {
+                        let url = (
+                            req.protocol + "://" + req.get("host") + "/" +
+                            req.database + href
+                        );
+
                         await datasource.request({
                             method: "POST",
                             name: "sendMail",
@@ -1859,7 +1864,7 @@
                                     from: smtpAuthUser,
                                     html: (
                                         `<html><p>Click <a href=` +
-                                        `\"http://localhost/demo${href}\"` +
+                                        `\"${url}\"` +
                                         `>here</a> to finish logging in.` +
                                         `</p><html>`
                                     )
@@ -1933,13 +1938,10 @@
         dbRouter.post("/:db/forgot-password", doForgotPassword);
         dbRouter.get(
             "/:db/auth/magiclink/callback",
-            function (req, res, next) {
-                let auth = passport.authenticate("magiclogin", {
-                    session: true,
-                    successRedirect: "http://localhost/demo/"
-                });
-                auth(req, res, next);
-            }
+            passport.authenticate("magiclogin", {
+                session: true,
+                successRedirect: "../../"
+            })
         );
 
         // Block unauthorized requests to internal data
