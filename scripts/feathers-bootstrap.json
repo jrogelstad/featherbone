@@ -728,6 +728,16 @@
                 "description": "Allow user to log in",
                 "type": "boolean",
                 "default": true
+            },
+            "changePassword": {
+                "description": "Force user to change password on next sign in",
+                "type": "boolean"
+            },
+            "lastPasswordChange": {
+                "description": "Last time password was changed",
+                "type": "string",
+                "format": "dateTime",
+                "default": null
             }
         }
     }

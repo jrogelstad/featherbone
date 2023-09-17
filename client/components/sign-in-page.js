@@ -101,7 +101,7 @@ signInPage.component = {
                     style: {width: "215px", color: "darkslateblue"},
                     id: "forgotPassword",
                     onclick: function () {
-                        f.state().send("forgotPassword");
+                        f.state().send("resetPassword");
                     }
                 }, "Forgot password")
             ])
@@ -124,7 +124,7 @@ confirmCodePage.component = {
         }, [
             m("div", {
                 class: "fb-sign-in fb-sign-in-header"
-            }, "Confirm Sign in to Featherbone"),
+            }, "Check Your Email"),
             m("div", {
                 class: "fb-sign-in fb-sign-in-error"
             }, (
@@ -182,4 +182,99 @@ f.catalog().register(
     confirmCodePage.component
 );
 
+const changePasswordPage = {};
 
+changePasswordPage.component = {
+    oncreate: function () {
+        document.getElementById("fb-title").text = "Change Password";
+    },
+
+    view: function () {
+        return m("form", {
+            class: "pure-form pure-form-aligned"
+        }, [
+            m("div", {
+                class: "fb-sign-in fb-sign-in-header"
+            }, "Change Password for Featherbone"),
+            m("div", {
+                class: "fb-sign-in fb-sign-in-error"
+            }, (
+                f.state().current().length
+                ? f.state().resolve(f.state().current()[0]).message()
+                : ""
+            )),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "userLabel",
+                    for: "username",
+                    class: "fb-password-label"
+                }, "User:"),
+                m("input", {
+                    id: "username",
+                    autocomplete: "off",
+                    disabled: true,
+                    value: f.currentUser().name
+                })
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "passwordLabel1",
+                    for: "password1",
+                    class: "fb-password-label"
+                }, "New Password:"),
+                m("input", {
+                    id: "password1",
+                    autocomplete: "new-password",
+                    type: "password"
+                })
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "passwordLabel2",
+                    for: "password2",
+                    class: "fb-password-label"
+                }, "Re-enter Password:"),
+                m("input", {
+                    id: "password2",
+                    autocomplete: "new-password",
+                    type: "password",
+                    onkeydown: function (e) {
+                        if (e.which === 13) {
+                            f.state().send("submit");
+                            e.preventDefault();
+                        }
+                    }
+                })
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("label", {
+                    id: "submitLabel",
+                    for: "submit",
+                    class: "fb-sign-in-label"
+                }, ""),
+                m("button", {
+                    style: {width: "215px"},
+                    id: "submit",
+                    class: "pure-button pure-button-primary fb-input",
+                    onclick: function () {
+                        f.state().send("submit");
+                    }
+                }, "Submit")
+            ])
+        ]);
+    }
+};
+
+f.catalog().register(
+    "components",
+    "changePasswordPage",
+    changePasswordPage.component
+);

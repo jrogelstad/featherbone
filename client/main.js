@@ -262,13 +262,15 @@ const home = {
     }
 };
 let routes = {
+    "/home": home,
     "/workbook/:workbook/:page": components.workbookPage,
     "/edit/:feather/:key": components.formPage,
     "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
     "/sign-in": components.signInPage,
-    "/confirm-sign-in": components.confirmCodePage
+    "/confirm-sign-in": components.confirmCodePage,
+    "/change-password": components.changePasswordPage
 };
 
 // Global sse state handler, allows any page
@@ -946,14 +948,7 @@ function initApp() {
         sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
         sseErrorDialogViewModel.buttonCancel().hide();
 
-        routes["/home"] = home;
         m.route(document.body, "/home", routes);
-
-        if (hash === "/sign-in") {
-            hash = "/home";
-        }
-
-        m.route.set(hash);
     });
 }
 
@@ -1059,6 +1054,15 @@ if (window.location.pathname.slice(
 
             // Initiate event listener with key on sign in
             f.state().resolve("/SignedIn").enter(listen);
+            f.state().resolve("/SignedIn/Ready").enter(async function () {
+                if (hash === "/sign-in") {
+                    m.route.set("/home");
+                    //window.history.go(0);
+                    //window.location.reload();
+                    return;
+                }
+                m.route.set(hash);
+            });
 
             if (resp.data.authorized) {
                 f.currentUser(edata.authorized);

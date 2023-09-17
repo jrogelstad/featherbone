@@ -373,7 +373,7 @@
         that.deserializeUser = function (req, username) {
             return new Promise(function (resolve, reject) {
                 const sql = (
-                    "SELECT name, is_super, " +
+                    "SELECT name, is_super, change_password, " +
                     "contact.first_name as first_name, " +
                     "contact.last_name as last_name, " +
                     "contact.email AS email, " +
@@ -401,9 +401,11 @@
                         row.lastName = row.last_name || "";
                         row.email = row.email || "";
                         row.phone = row.phone || "";
+                        row.changePassword = row.change_password;
                         delete row.is_super;
                         delete row.first_name;
                         delete row.last_name;
+                        delete row.change_password;
                         // Send back result
                         resolve(row);
                         obj.done();
