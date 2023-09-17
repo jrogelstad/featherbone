@@ -2446,14 +2446,14 @@ appState = State.define(function () {
                 }
             });
         });
-        this.event("forgotPassword", function () {
+        this.event("resetPassword", function () {
             let user = document.getElementById(
                 "username"
             ).value;
 
             f.datasource().request({
                 method: "POST",
-                path: "/forgot-password",
+                path: "/reset-password",
                 body: {username: user}
             });
         });
@@ -2464,15 +2464,66 @@ appState = State.define(function () {
         this.message = message;
     });
     this.state("SignedIn", function () {
-        this.event("signOut", function () {
-            this.goto("../SignedOut");
+        this.c = this.C; // Squelch jslint complaint
+        this.c(function () {
+            if (f.currentUser().changePassword) {
+                return "./ChangePassword";
+            }
         });
-        this.message = () => "";
         this.exit(function () {
             datasource.request({
                 method: "POST",
                 path: "/sign-out"
             }).then(() => location.reload());
+        });
+        this.state("Ready", function () {
+            this.event("signOut", function () {
+                this.goto("../../SignedOut");
+            });
+            this.message = () => "";
+        });
+        this.state("ChangePassword", function () {
+            let msg = f.prop();
+            this.event("submit", function () {
+                let user = document.getElementById(
+                    "username"
+                ).value;
+                let pswd1 = document.getElementById(
+                    "password1"
+                ).value;
+                let pswd2 = document.getElementById(
+                    "password2"
+                ).value;
+
+                if (!pswd1) {
+                    msg("Password cannot be blank");
+                    return;
+                }
+                if (pswd1 !== pswd2) {
+                    msg("Passwords do not match");
+                    return;
+                }
+
+                datasource.request({
+                    method: "POST",
+                    path: "/do/change-role-password",
+                    body: {
+                        username: user,
+                        password: pswd1
+                    }
+                }).then(function () {
+                    f.currentUser().changePassword = false;
+                    message("");
+                    f.state().goto("../Ready");
+                }).catch(function (err) {
+                    message(err.message.replace(/"/g, ""));
+                    f.state().send("failed");
+                });
+            });
+            this.message = msg;
+            this.enter(function () {
+                m.route.set("/change-password");
+            });
         });
     });
     this.state("Authenticating", function () {
@@ -2527,8 +2578,8 @@ appState = State.define(function () {
     this.state("Confirming", function () {
         this.event("success", function () {
             this.goto("../SignedIn");
-            m.route.set("/home");
-            window.history.go(0);
+            //m.route.set("/home");
+            //window.history.go(0);
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -2537,7 +2588,11 @@ appState = State.define(function () {
             datasource.request({
                 method: "GET",
                 path: context.confirmUrl
-            }).then(function (resp) {
+            }).then(async function () {
+                let resp = f.datasource().request({
+                    method: "POST",
+                    path: "/connect"
+                });
                 f.currentUser(resp);
                 message("");
                 f.state().send("success");

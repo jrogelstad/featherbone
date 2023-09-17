@@ -1128,7 +1128,7 @@
         });
     }
 
-    function doForgotPassword(req, res) {
+    function doResetPassword(req, res) {
         deserializeUser(
             req,
             req.body.username,
@@ -1362,6 +1362,24 @@
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doChangeRolePassword(req, res) {
+        let payload = {
+            method: "POST",
+            name: "changeRolePassword",
+            user: req.user.name,
+            data: {
+                name: req.user.name,
+                newPassword: req.body.newPassword
+            },
+            tenant: req.tenant
+        };
+
+        logger.verbose("Change role password for " + req.user.name);
+        datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
     }
@@ -1935,7 +1953,7 @@
 
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);
-        dbRouter.post("/:db/forgot-password", doForgotPassword);
+        dbRouter.post("/:db/reset-password", doResetPassword);
         dbRouter.get(
             "/:db/auth/magiclink/callback",
             passport.authenticate("magiclogin", {
@@ -2021,6 +2039,7 @@
             doGetObjectAuthorizations
         );
         dbRouter.post("/:db/do/change-password/", doChangePassword);
+        dbRouter.post("/:db/do/change-role-password/", doChangeRolePassword);
         dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
         dbRouter.post("/:db/do/save-authorization", doSaveAuthorization);
         dbRouter.post("/:db/do/stop-process", doStopProcess);

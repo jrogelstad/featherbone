@@ -895,6 +895,11 @@
                 "unit": 0,
                 "grid": 0
             },
+           {
+                "attr": "changePassword",
+                "unit": 0,
+                "grid": 0
+            },
             {
                 "attr": "isActive",
                 "unit": 0,
