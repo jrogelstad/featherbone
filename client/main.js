@@ -953,25 +953,20 @@ function initApp() {
 }
 
 // Load application data
-function start() {
+async function start() {
     if (initialized) {
         return;
     }
 
     initPromises();
-    Promise.all([
+    await Promise.all([
         loadCatalog,
         loadModules,
         loadForms,
         loadProfile,
         loadWorkbooks
-    ]).then(initApp);
-}
-
-function goSignIn() {
-    m.route(document.body, "/sign-in", routes);
-    f.state().resolve("/SignedIn").enter(start);
-    f.state().send("signIn");
+    ]);
+    initApp();
 }
 
 // Connect
@@ -999,7 +994,7 @@ if (window.location.pathname.slice(
     );
     window.open(theUrl, "_self");
 } else {
-    connect().then(function (resp) {
+    connect().then(async function (resp) {
         let edata;
         let wp = (
             window.location.protocol.indexOf("s") === -1
@@ -1054,11 +1049,10 @@ if (window.location.pathname.slice(
 
             // Initiate event listener with key on sign in
             f.state().resolve("/SignedIn").enter(listen);
-            f.state().resolve("/SignedIn/Ready").enter(async function () {
+            f.state().resolve("/SignedIn/Ready").enter(function () {
                 if (hash === "/sign-in") {
                     m.route.set("/home");
-                    //window.history.go(0);
-                    //window.location.reload();
+                    window.history.go(0);
                     return;
                 }
                 m.route.set(hash);
@@ -1067,9 +1061,13 @@ if (window.location.pathname.slice(
             if (resp.data.authorized) {
                 f.currentUser(edata.authorized);
                 f.state().send("preauthorized");
-                start();
+                await start();
             } else {
-                goSignIn();
+                m.route(document.body, "/sign-in", routes);
+                f.state().resolve("/SignedIn").enter(async function () {
+                    await start();
+                });
+                f.state().send("signIn");
             }
         }
     });
