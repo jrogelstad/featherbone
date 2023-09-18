@@ -2578,7 +2578,6 @@ appState = State.define(function () {
     this.state("Confirming", function () {
         this.event("success", function () {
             this.goto("../SignedIn");
-            //m.route.set("/home");
             //window.history.go(0);
         });
         this.event("failed", function () {
@@ -2589,11 +2588,11 @@ appState = State.define(function () {
                 method: "GET",
                 path: context.confirmUrl
             }).then(async function () {
-                let resp = f.datasource().request({
+                let resp = await f.datasource().request({
                     method: "POST",
                     path: "/connect"
                 });
-                f.currentUser(resp);
+                f.currentUser(resp.data.authorized);
                 message("");
                 f.state().send("success");
             }).catch(function (err) {
