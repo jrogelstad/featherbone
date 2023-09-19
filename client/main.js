@@ -1050,7 +1050,7 @@ if (window.location.pathname.slice(
             // Initiate event listener with key on sign in
             f.state().resolve("/SignedIn").enter(listen);
             f.state().resolve("/SignedIn/Ready").enter(function () {
-                if (hash === "/sign-in") {
+                if (!hash || (hash === "/sign-in")) {
                     m.route.set("/home");
                     window.history.go(0);
                     return;
