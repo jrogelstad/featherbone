@@ -68,6 +68,7 @@ signInPage.component = {
                         if (e.which === 13) {
                             f.state().send("authenticate");
                             e.preventDefault();
+                            return false;
                         }
                     }
                 })
@@ -86,6 +87,7 @@ signInPage.component = {
                     class: "pure-button pure-button-primary fb-input",
                     onclick: function () {
                         f.state().send("authenticate");
+                        return false;
                     }
                 }, "Sign in")
             ]),
@@ -149,6 +151,7 @@ confirmCodePage.component = {
                                 confirmUrl: vnode.attrs.confirmUrl
                             });
                             e.preventDefault();
+                            return false;
                         }
                     }
                 })
@@ -169,6 +172,7 @@ confirmCodePage.component = {
                         f.state().send("entered", {
                             confirmUrl: vnode.attrs.confirmUrl
                         });
+                        return false;
                     }
                 }, "Confirm")
             ])
@@ -248,6 +252,7 @@ changePasswordPage.component = {
                         if (e.which === 13) {
                             f.state().send("submit");
                             e.preventDefault();
+                            return false;
                         }
                     }
                 })
@@ -266,6 +271,7 @@ changePasswordPage.component = {
                     class: "pure-button pure-button-primary fb-input",
                     onclick: function () {
                         f.state().send("submit");
+                        return false;
                     }
                 }, "Submit")
             ])
