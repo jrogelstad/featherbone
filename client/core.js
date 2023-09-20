@@ -2483,7 +2483,6 @@ appState = State.define(function () {
             this.message = () => "";
         });
         this.state("ChangePassword", function () {
-            let msg = f.prop();
             this.event("submit", function () {
                 let user = document.getElementById(
                     "username"
@@ -2496,11 +2495,11 @@ appState = State.define(function () {
                 ).value;
 
                 if (!pswd1) {
-                    msg("Password cannot be blank");
+                    message("Password cannot be blank");
                     return;
                 }
                 if (pswd1 !== pswd2) {
-                    msg("Passwords do not match");
+                    message("Passwords do not match");
                     return;
                 }
 
@@ -2520,7 +2519,7 @@ appState = State.define(function () {
                     f.state().send("failed");
                 });
             });
-            this.message = msg;
+            this.message = message;
             this.enter(function () {
                 m.route.set("/change-password");
             });
@@ -2569,19 +2568,20 @@ appState = State.define(function () {
             });
         });
         this.enter(function (context) {
-            m.route.set("/confirm-sign-in", {
-                confirmUrl: context.confirmUrl
-            });
+            if (context) {
+                m.route.set("/confirm-sign-in", {
+                    confirmUrl: context.confirmUrl
+                });
+            }
         });
-        this.message = () => "";
+        this.message = message;
     });
     this.state("Confirming", function () {
         this.event("success", function () {
             this.goto("../SignedIn");
-            //window.history.go(0);
         });
         this.event("failed", function () {
-            this.goto("../SignedOut");
+            this.goto("../Confirm");
         });
         this.enter(function (context) {
             datasource.request({
@@ -2595,12 +2595,12 @@ appState = State.define(function () {
                 f.currentUser(resp.data.authorized);
                 message("");
                 f.state().send("success");
-            }).catch(function (err) {
-                message(err.message.replace(/"/g, ""));
+            }).catch(function () {
+                message("Invalid confirmation code");
                 f.state().send("failed");
             });
         });
-        this.message = () => "";
+        this.message = message;
     });
 });
 appState.goto();
