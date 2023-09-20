@@ -128,6 +128,10 @@ confirmCodePage.component = {
                 class: "fb-sign-in fb-sign-in-header"
             }, "Check Your Email"),
             m("div", {
+                class: "fb-sign-in fb-sign-in-header",
+                style: {fontSize: "Large"},
+            }, "Enter the confirmation code below:"),
+            m("div", {
                 class: "fb-sign-in fb-sign-in-error"
             }, (
                 f.state().current().length
@@ -137,11 +141,6 @@ confirmCodePage.component = {
             m("div", {
                 class: "pure-control-group fb-sign-in"
             }, [
-                m("label", {
-                    id: "confirmCodeLabel",
-                    for: "confirm-code",
-                    class: "fb-confirm-code-label"
-                }, "Code"),
                 m("input", {
                     id: "confirm-code",
                     autocomplete: "off",
@@ -159,13 +158,12 @@ confirmCodePage.component = {
             m("div", {
                 class: "pure-control-group fb-sign-in"
             }, [
-                m("label", {
-                    id: "confirmLabel",
-                    for: "confirm",
-                    class: "fb-sign-in-label"
-                }, ""),
                 m("button", {
-                    style: {width: "215px"},
+                    style: {
+                        width: "100px",
+                        minWidth: "100px",
+                        marginRight: "20px"
+                    },
                     id: "confirm",
                     class: "pure-button pure-button-primary fb-input",
                     onclick: function () {
@@ -174,7 +172,21 @@ confirmCodePage.component = {
                         });
                         return false;
                     }
-                }, "Confirm")
+                }, "Confirm"),
+                m("button", {
+                    style: {
+                        width: "100px",
+                        minWidth: "100px"
+                    },
+                    id: "resend",
+                    class: "pure-button fb-input",
+                    onclick: function () {
+                        f.state().send("resend", {
+                            confirmUrl: vnode.attrs.confirmUrl
+                        });
+                        return false;
+                    }
+                }, "Resend")
             ])
         ]);
     }
