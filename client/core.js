@@ -2544,7 +2544,11 @@ appState = State.define(function () {
                 }
             }).then(function (resp) {
                 message("");
-                f.state().send("success", resp);
+                f.state().send("success", {
+                    username: context.username,
+                    password: context.password,
+                    response: resp
+                });
             }).catch(function (err) {
                 message(err.message.replace(/"/g, ""));
                 f.state().send("failed");
@@ -2553,13 +2557,16 @@ appState = State.define(function () {
         this.message = () => "";
     });
     this.state("Confirm", function () {
+        let user;
+        let pswd;
         this.event("entered", function (context) {
             let code = document.getElementById(
                 "confirm-code"
             ).value;
-            let url = context.confirmUrl + "&" + Qs.stringify({
-                confirmCode: code
-            });
+            let url = (
+                context.confirmUrl + "&" +
+                Qs.stringify({confirmCode: code})
+            );
 
             this.goto("../Confirming", {
                 context: {
@@ -2567,10 +2574,26 @@ appState = State.define(function () {
                 }
             });
         });
+        this.event("resend", function () {
+            if (!user && pswd) {
+                message("Unable to resend");
+                return;
+            }
+            // TODO: Why won't message render?
+            message("New code sent");
+            this.goto("../Authenticating", {
+                context: {
+                    username: user,
+                    password: pswd
+                }
+            });
+        });
         this.enter(function (context) {
             if (context) {
+                user = context.username;
+                pswd = context.password;
                 m.route.set("/confirm-sign-in", {
-                    confirmUrl: context.confirmUrl
+                    confirmUrl: context.response.confirmUrl
                 });
             }
         });
