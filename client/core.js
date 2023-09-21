@@ -2526,10 +2526,14 @@ appState = State.define(function () {
         });
     });
     this.state("Authenticating", function () {
-        this.event("success", function (ctxt) {
+        this.event("confirm", function (ctxt) {
             this.goto("../Confirm", {
                 context: ctxt
             });
+            return;
+        });
+        this.event("success", function () {
+            this.goto("SignedIn");
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -2543,12 +2547,16 @@ appState = State.define(function () {
                     password: context.password
                 }
             }).then(function (resp) {
+                console.log(resp.email);
+                console.log(resp.phone);
                 message("");
-                f.state().send("success", {
-                    username: context.username,
-                    password: context.password,
-                    response: resp
-                });
+                if (resp.confirmUrl) {
+                    f.state().send("confirm", {
+                        username: context.username,
+                        password: context.password,
+                        response: resp
+                    });
+                }
             }).catch(function (err) {
                 message(err.message.replace(/"/g, ""));
                 f.state().send("failed");

@@ -1158,6 +1158,24 @@
                 res.status(res.statusCode).json(message);
                 return;
             }
+            let userEmail = "";
+            let userPhone = "";
+            if (req.user.email) {
+                userEmail = (
+                    "********" +
+                    req.user.email.slice(
+                        req.user.email.length - 10
+                    )
+                )
+            }
+            if (req.user.phone) {
+                userPhone = (
+                    "***-***-" +
+                    req.user.phone.slice(
+                        req.user.phone.length - 4
+                    )
+                ) 
+            }
 
             req.body.confirmCode = String(
                 Math.floor(Math.random() * 90000) + 10000
@@ -1168,7 +1186,9 @@
                 magicLogin.send(req, {json: () => ""});
                 respond.bind(res)({
                     success: true,
-                    confirmUrl: req.magicHref
+                    confirmUrl: req.magicHref,
+                    email: userEmail,
+                    phone: userPhone
                 });
             } catch (e) {
                 error.bind(res)(e);
