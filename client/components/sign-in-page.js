@@ -129,7 +129,7 @@ confirmCodePage.component = {
             }, "Check Your Email"),
             m("div", {
                 class: "fb-sign-in fb-sign-in-header",
-                style: {fontSize: "Large"},
+                style: {fontSize: "Large"}
             }, "Enter the confirmation code below:"),
             m("div", {
                 class: "fb-sign-in fb-sign-in-error"
@@ -146,7 +146,7 @@ confirmCodePage.component = {
                     autocomplete: "off",
                     onkeydown: function (e) {
                         if (e.which === 13) {
-                            f.state().send("entered", {
+                            f.state().send("submit", {
                                 confirmUrl: vnode.attrs.confirmUrl
                             });
                             e.preventDefault();
@@ -167,7 +167,7 @@ confirmCodePage.component = {
                     id: "confirm",
                     class: "pure-button pure-button-primary fb-input",
                     onclick: function () {
-                        f.state().send("entered", {
+                        f.state().send("submit", {
                             confirmUrl: vnode.attrs.confirmUrl
                         });
                         return false;
@@ -196,6 +196,125 @@ f.catalog().register(
     "components",
     "confirmCodePage",
     confirmCodePage.component
+);
+
+const resendCodePage = {};
+
+resendCodePage.viewModel = function (options) {
+    options = options || {};
+    return {
+        sendEmail: f.prop(true),
+        email: f.prop(options.email || "Email here"),
+        phone: f.prop(options.phone) || "Phone here"
+    };
+};
+
+resendCodePage.component = {
+    oninit: function (vnode) {
+        this.viewModel = resendCodePage.viewModel(vnode.attrs);
+    },
+
+    oncreate: function () {
+        document.getElementById("fb-title").text = (
+            "Resend Confirmation Code"
+        );
+    },
+
+    view: function () {
+        let vm = this.viewModel;
+
+        return m("form", {
+            class: "pure-form pure-form-aligned"
+        }, [
+            m("div", {
+                class: "fb-sign-in fb-sign-in-header"
+            }, "Resnd Confirmation Code"),
+            m("div", {
+                class: "fb-sign-in fb-sign-in-header",
+                style: {fontSize: "Large"}
+            }, "Code will be sent to the destination below:"),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("button", {
+                    style: {
+                        width: "100px",
+                        minWidth: "100px",
+                        marginRight: "20px"
+                    },
+                    id: "confirm",
+                    class: "pure-button",
+                    onclick: function () {
+                        vm.sendMail(false);
+                        return false;
+                    }
+                }, [
+                    m("i", {
+                        class: "material-icons-outlined fb-button-icon"
+                    }, (
+                        vm.sendEmail()
+                        ? "radio_button_unchecked"
+                        : "radio_button_checked"
+                    ))
+                ]),
+                m("div", {
+                    class: "fb-sign-in fb-sign-in-header",
+                    style: {fontSize: "Large"}
+                }, vm.phone())
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("button", {
+                    style: {
+                        width: "100px",
+                        minWidth: "100px"
+                    },
+                    id: "resend",
+                    class: "pure-button",
+                    onclick: function () {
+                        vm.sendMail(true);
+                        return false;
+                    }
+                }, [
+                    m("i", {
+                        class: "material-icons-outlined fb-button-icon"
+                    }, (
+                        vm.sendEmail()
+                        ? "radio_button_checked"
+                        : "radio_button_unchecked"
+                    ))
+                ]),
+                m("div", {
+                    class: "fb-sign-in fb-sign-in-header",
+                    style: {fontSize: "Large"}
+                }, vm.email())
+            ]),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("button", {
+                    style: {
+                        width: "100px",
+                        minWidth: "100px",
+                        marginRight: "20px"
+                    },
+                    id: "confirm",
+                    class: "pure-button pure-button-primary fb-input",
+                    onclick: function () {
+                        f.state().send("submit");
+                        return false;
+                    }
+                }, "Resend")
+            ])
+        ]);
+    }
+};
+
+f.catalog().register(
+    "components",
+    "resendCodePage",
+    resendCodePage.component
 );
 
 const changePasswordPage = {};

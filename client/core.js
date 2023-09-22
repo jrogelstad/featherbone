@@ -2547,8 +2547,6 @@ appState = State.define(function () {
                     password: context.password
                 }
             }).then(function (resp) {
-                console.log(resp.email);
-                console.log(resp.phone);
                 message("");
                 if (resp.confirmUrl) {
                     f.state().send("confirm", {
@@ -2567,45 +2565,62 @@ appState = State.define(function () {
     this.state("Confirm", function () {
         let user;
         let pswd;
-        this.event("entered", function (context) {
-            let code = document.getElementById(
-                "confirm-code"
-            ).value;
-            let url = (
-                context.confirmUrl + "&" +
-                Qs.stringify({confirmCode: code})
-            );
+        let userEmail;
+        let userPhone;
 
-            this.goto("../Confirming", {
-                context: {
-                    confirmUrl: url
-                }
-            });
-        });
-        this.event("resend", function () {
-            if (!user && pswd) {
-                message("Unable to resend");
-                return;
-            }
-            // TODO: Why won't message render?
-            message("New code sent");
-            this.goto("../Authenticating", {
-                context: {
-                    username: user,
-                    password: pswd
-                }
-            });
-        });
-        this.enter(function (context) {
-            if (context) {
-                user = context.username;
-                pswd = context.password;
-                m.route.set("/confirm-sign-in", {
-                    confirmUrl: context.response.confirmUrl
+        this.state("Pending", function () {
+            this.event("submit", function (context) {
+                let code = document.getElementById(
+                    "confirm-code"
+                ).value;
+                let url = (
+                    context.confirmUrl + "&" +
+                    Qs.stringify({confirmCode: code})
+                );
+                userEmail = context.email;
+                userPhone = context.phone;
+
+                this.goto("../../Confirming", {
+                    context: {
+                        confirmUrl: url
+                    }
                 });
-            }
+            });
+            this.event("resend", function () {
+                if (!user && pswd) {
+                    message("Unable to resend");
+                    return;
+                }
+                this.goto("../Resend");
+            });
+            this.enter(function (context) {
+                if (context) {
+                    user = context.username;
+                    pswd = context.password;
+                    m.route.set("/confirm-sign-in", {
+                        confirmUrl: context.response.confirmUrl
+                    });
+                }
+            });
+            this.message = message;
         });
-        this.message = message;
+        this.state("Resend", function () {
+            this.event("submit", function () {
+                this.goto("../../Authenticating", {
+                    context: {
+                        username: user,
+                        password: pswd
+                    }
+                });
+            });
+            this.enter(function () {
+                m.route.set("/resend-code", {
+                    email: userEmail,
+                    phone: userPhone
+                });
+            });
+            this.message = message;
+        });
     });
     this.state("Confirming", function () {
         this.event("success", function () {
