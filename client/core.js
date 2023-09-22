@@ -2577,8 +2577,6 @@ appState = State.define(function () {
                     context.confirmUrl + "&" +
                     Qs.stringify({confirmCode: code})
                 );
-                userEmail = context.email;
-                userPhone = context.phone;
 
                 this.goto("../../Confirming", {
                     context: {
@@ -2597,6 +2595,8 @@ appState = State.define(function () {
                 if (context) {
                     user = context.username;
                     pswd = context.password;
+                    userEmail = context.response.email;
+                    userPhone = context.response.phone;
                     m.route.set("/confirm-sign-in", {
                         confirmUrl: context.response.confirmUrl
                     });
@@ -2614,9 +2614,11 @@ appState = State.define(function () {
                 });
             });
             this.enter(function () {
-                m.route.set("/resend-code", {
-                    email: userEmail,
-                    phone: userPhone
+                m.route.set("/resend-code", null, {
+                    state: {
+                        email: userEmail,
+                        phone: userPhone
+                    }
                 });
             });
             this.message = message;
