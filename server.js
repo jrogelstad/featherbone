@@ -1166,7 +1166,7 @@
                     req.user.email.slice(
                         req.user.email.length - 10
                     )
-                )
+                );
             }
             if (req.user.phone) {
                 userPhone = (
@@ -1174,7 +1174,7 @@
                     req.user.phone.slice(
                         req.user.phone.length - 4
                     )
-                ) 
+                );
             }
 
             req.body.confirmCode = String(

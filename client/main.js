@@ -269,8 +269,9 @@ let routes = {
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
     "/sign-in": components.signInPage,
+    "/change-password": components.changePasswordPage,
     "/confirm-sign-in": components.confirmCodePage,
-    "/change-password": components.changePasswordPage
+    "/resend-code": components.resendCodePage
 };
 
 // Global sse state handler, allows any page
