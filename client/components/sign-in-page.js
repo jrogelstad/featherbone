@@ -203,7 +203,7 @@ const resendCodePage = {};
 resendCodePage.viewModel = function (options) {
     options = options || {};
     return {
-        sendEmail: f.prop(true),
+        sendEmail: f.prop(!Boolean(options.smsEnabled)),
         email: f.prop(options.email || "Email here"),
         phone: f.prop(options.phone) || "Phone here"
     };
@@ -220,7 +220,7 @@ resendCodePage.component = {
         );
     },
 
-    view: function () {
+    view: function (vnode) {
         let vm = this.viewModel;
 
         return m("form", {
@@ -228,12 +228,19 @@ resendCodePage.component = {
         }, [
             m("div", {
                 class: "fb-sign-in fb-sign-in-header"
-            }, "Resnd Confirmation Code"),
+            }, "Resend Confirmation Code"),
             m("div", {
                 class: "fb-sign-in fb-sign-in-header",
                 style: {fontSize: "Large"}
             }, "The code will be sent to the destination below:"),
             m("div", {
+                style: {
+                    display: (
+                        vnode.attrs.smsEnabled
+                        ? "block"
+                        : "none"
+                    )
+                },
                 class: "pure-control-group fb-sign-in"
             }, [
                 m("a", {

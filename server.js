@@ -1188,7 +1188,8 @@
                     success: true,
                     confirmUrl: req.magicHref,
                     email: userEmail,
-                    phone: userPhone
+                    phone: userPhone,
+                    smsEnabled: false
                 });
             } catch (e) {
                 error.bind(res)(e);
