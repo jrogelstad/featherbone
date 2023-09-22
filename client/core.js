@@ -2567,6 +2567,7 @@ appState = State.define(function () {
         let pswd;
         let userEmail;
         let userPhone;
+        let isSmsEnabled;
 
         this.state("Pending", function () {
             this.event("submit", function (context) {
@@ -2597,6 +2598,7 @@ appState = State.define(function () {
                     pswd = context.password;
                     userEmail = context.response.email;
                     userPhone = context.response.phone;
+                    isSmsEnabled = context.response.smsEnabled;
                     m.route.set("/confirm-sign-in", {
                         confirmUrl: context.response.confirmUrl
                     });
@@ -2617,7 +2619,8 @@ appState = State.define(function () {
                 m.route.set("/resend-code", null, {
                     state: {
                         email: userEmail,
-                        phone: userPhone
+                        phone: userPhone,
+                        smsEnabled: isSmsEnabled
                     }
                 });
             });
