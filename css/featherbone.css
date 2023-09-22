@@ -164,7 +164,13 @@ textarea {
     font-size: 24px;
     vertical-align: bottom;
 }
+.fb-button-radio {
+    background-color: white;
+}
 
+.fb-radio-icon {
+    vertical-align: middle;
+}
 .fb-checkbox {
     display: inline-block;
 }

@@ -232,63 +232,60 @@ resendCodePage.component = {
             m("div", {
                 class: "fb-sign-in fb-sign-in-header",
                 style: {fontSize: "Large"}
-            }, "Code will be sent to the destination below:"),
+            }, "The code will be sent to the destination below:"),
             m("div", {
                 class: "pure-control-group fb-sign-in"
             }, [
-                m("button", {
-                    style: {
-                        width: "100px",
-                        minWidth: "100px",
-                        marginRight: "20px"
-                    },
+                m("a", {
                     id: "confirm",
-                    class: "pure-button",
-                    onclick: function () {
-                        vm.sendMail(false);
-                        return false;
-                    }
+                    class: "fb-button-radio",
+                    onclick: vm.sendEmail.bind(null, false)
                 }, [
                     m("i", {
-                        class: "material-icons-outlined fb-button-icon"
+                        class: "material-icons-outlined fb-radio-icon"
                     }, (
                         vm.sendEmail()
                         ? "radio_button_unchecked"
                         : "radio_button_checked"
                     ))
                 ]),
-                m("div", {
-                    class: "fb-sign-in fb-sign-in-header",
-                    style: {fontSize: "Large"}
-                }, vm.phone())
+                m("label", {
+                    id: "phoneLabel",
+                    for: "phone",
+                    class: "fb-sign-in-label"
+                }, "Phone:"),
+                m("input", {
+                    id: "phone",
+                    disabled: true,
+                    value: vm.phone()
+                })
             ]),
             m("div", {
                 class: "pure-control-group fb-sign-in"
             }, [
-                m("button", {
-                    style: {
-                        width: "100px",
-                        minWidth: "100px"
-                    },
+                m("a", {
                     id: "resend",
-                    class: "pure-button",
-                    onclick: function () {
-                        vm.sendMail(true);
-                        return false;
-                    }
+                    class: "fb-button-radio",
+                    onclick: vm.sendEmail.bind(null, true)
                 }, [
                     m("i", {
-                        class: "material-icons-outlined fb-button-icon"
+                        class: "material-icons-outlined fb-radio-icon"
                     }, (
                         vm.sendEmail()
                         ? "radio_button_checked"
                         : "radio_button_unchecked"
                     ))
                 ]),
-                m("div", {
-                    class: "fb-sign-in fb-sign-in-header",
-                    style: {fontSize: "Large"}
-                }, vm.email())
+                m("label", {
+                    id: "emailLabel",
+                    for: "email",
+                    class: "fb-sign-in-label"
+                }, "Email:"),
+                m("input", {
+                    id: "email",
+                    disabled: true,
+                    value: vm.email()
+                })
             ]),
             m("div", {
                 class: "pure-control-group fb-sign-in"
