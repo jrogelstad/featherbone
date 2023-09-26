@@ -370,48 +370,49 @@
             @param {Object} tenant Tenant
             @return {User} User account info
         */
-        that.deserializeUser = function (req, username) {
-            return new Promise(function (resolve, reject) {
-                const sql = (
-                    "SELECT name, is_super, change_password, " +
-                    "contact.first_name as first_name, " +
-                    "contact.last_name as last_name, " +
-                    "contact.email AS email, " +
-                    "contact.phone AS phone " +
-                    "FROM user_account " +
-                    "LEFT OUTER JOIN contact ON " +
-                    "  (_contact_contact_pk = contact._pk) " +
-                    "WHERE name = $1;"
-                );
+        that.deserializeUser = async function (req, username) {
+            const sql = (
+                "SELECT name, is_super, change_password, " +
+                "contact.first_name as first_name, " +
+                "contact.last_name as last_name, " +
+                "contact.email AS email, " +
+                "contact.phone AS phone " +
+                "FROM user_account " +
+                "LEFT OUTER JOIN contact ON " +
+                "  (_contact_contact_pk = contact._pk) " +
+                "WHERE name = $1;"
+            );
+            let obj;
 
-                that.connect(req.tenant).then(function (obj) {
-                    obj.client.query(sql, [username]).then(function (resp) {
-                        let row;
+            try {
+                obj = await that.connect(req.tenant);
+                let resp = await obj.client.query(sql, [username]);
+                let row;
 
-                        if (!resp.rows.length) {
-                            reject(new Error(
-                                "User account " + username + " not found."
-                            ));
-                            return;
-                        }
+                if (!resp.rows.length) {
+                    return Promise.reject(new Error(
+                        "User account " + username + " not found."
+                    ));
+                }
 
-                        row = resp.rows[0];
-                        row.isSuper = row.is_super;
-                        row.firstName = row.first_name || "";
-                        row.lastName = row.last_name || "";
-                        row.email = row.email || "";
-                        row.phone = row.phone || "";
-                        row.changePassword = row.change_password;
-                        delete row.is_super;
-                        delete row.first_name;
-                        delete row.last_name;
-                        delete row.change_password;
-                        // Send back result
-                        resolve(row);
-                        obj.done();
-                    }).catch(reject);
-                });
-            });
+                row = resp.rows[0];
+                row.isSuper = row.is_super;
+                row.firstName = row.first_name || "";
+                row.lastName = row.last_name || "";
+                row.email = row.email || "";
+                row.phone = row.phone || "";
+                row.changePassword = row.change_password;
+                delete row.is_super;
+                delete row.first_name;
+                delete row.last_name;
+                delete row.change_password;
+                // Send back result
+                return row;
+            } catch (e) {
+                return Promise.reject(e);
+            } finally {
+                obj.done();
+            }
         };
 
         /**

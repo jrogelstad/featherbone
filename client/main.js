@@ -270,6 +270,7 @@ let routes = {
     "/settings/:settings": components.settingsPage,
     "/sign-in": components.signInPage,
     "/change-password": components.changePasswordPage,
+    "/check-email": components.checkEmailPage,
     "/confirm-sign-in": components.confirmCodePage,
     "/resend-code": components.resendCodePage
 };
