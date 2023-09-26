@@ -1132,11 +1132,36 @@
         deserializeUser(
             req,
             req.body.username,
-            function (err, user) {
+            async function (err, user) {
                 if (err) {
                     error.bind(res)(err);
                     return;
                 }
+
+                let rows = await datasource.request({
+                    filter: {criteria: [{
+                        property: "name",
+                        value: req.body.username
+                    }]},
+                    method: "GET",
+                    name: "UserAccount",
+                    properties: ["id"],
+                    tenant: req.tenant,
+                    user: req.body.username
+                }, true);
+
+                await datasource.request({
+                    data: [{
+                        op: "replace",
+                        path: "/changePassword",
+                        value: true
+                    }],
+                    id: rows[0].id,
+                    method: "PATCH",
+                    name: "UserAccount",
+                    tenant: req.tenant,
+                    user: req.body.username
+                }, true);
 
                 req.body.destination = user.email;
                 req.body.tenant = req.tenant;
@@ -1899,12 +1924,12 @@
                             data: {
                                 message: {
                                     to: destination,
-                                    subject: "Featherbone login",
+                                    subject: "Featherbone password reset",
                                     from: smtpAuthUser,
                                     html: (
                                         `<html><p>Click <a href=` +
                                         `\"${url}\"` +
-                                        `>here</a> to finish logging in.` +
+                                        `>here</a> to reset your password.` +
                                         `</p><html>`
                                     )
                                 }

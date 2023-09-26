@@ -113,6 +113,43 @@ signInPage.component = {
 
 f.catalog().register("components", "signInPage", signInPage.component);
 
+const checkEmailPage = {};
+
+checkEmailPage.component = {
+    view: function () {
+        return m("form", {
+            class: "pure-form pure-form-aligned"
+        }, [
+            m("div", {
+                class: "fb-sign-in fb-sign-in-header"
+            }, "Check Your Email"),
+            m("div", {
+                class: "fb-sign-in fb-sign-in-header",
+                style: {fontSize: "Large"}
+            }, "A link to reset your password has been sent to you"),
+            m("div", {
+                class: "pure-control-group fb-sign-in"
+            }, [
+                m("button", {
+                    style: {maxWidth: "200px"},
+                    id: "return",
+                    class: "pure-button pure-button-primary fb-input",
+                    onclick: function () {
+                        f.state().send("signIn");
+                        return false;
+                    }
+                }, "Return to Sign In")
+            ])
+        ]);
+    }
+};
+
+f.catalog().register(
+    "components",
+    "checkEmailPage",
+    checkEmailPage.component
+);
+
 const confirmCodePage = {};
 
 confirmCodePage.component = {

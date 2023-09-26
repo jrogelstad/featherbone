@@ -2456,12 +2456,22 @@ appState = State.define(function () {
                 path: "/reset-password",
                 body: {username: user}
             });
+            this.goto("../CheckEmail");
         });
         this.enter(function () {
             f.currentUser({});
             m.route.set("/sign-in");
         });
         this.message = message;
+    });
+    this.state("CheckEmail", function () {
+        this.event("signIn", function () {
+            this.goto("../SignedOut");
+        });
+        this.enter(function () {
+            m.route.set("/check-email");
+        });
+        this.message = () => "";
     });
     this.state("SignedIn", function () {
         this.c = this.C; // Squelch jslint complaint
