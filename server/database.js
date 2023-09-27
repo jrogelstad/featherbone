@@ -134,39 +134,122 @@
             @return {Promise}
         */
         that.authenticate = async function (req, username, pswd) {
-            try {
-                let resp = await config.read();
-                let pgdb;
-                let pghost;
-                let pgport;
+            let conf = await config.read();
+            let pgdb;
+            let pghost;
+            let pgport;
+            let resp;
+            let client1;
 
-                if (req && req.tenant) {
-                    pgdb = req.tenant.pgDatabase;
-                    pghost = req.tenant.pgService.pgHost;
-                    pgport = req.tenant.pgService.pgPort;
-                } else {
-                    pgdb = resp.pgDatabase;
-                    pghost = resp.pgHost;
-                    pgport = resp.pgPort;
-                }
-                let login = new Pool({
-                    database: pgdb,
-                    host: pghost,
-                    password: pswd,
-                    port: pgport,
-                    ssl: sslConfig(resp),
-                    user: username
-                });
-
-                let client = await login.connect();
-                client.release();
-
-                let dat = await that.deserializeUser(req, username);
-                login.end();
-                return dat;
-            } catch (e) {
-                return Promise.reject(e);
+            if (req && req.tenant) {
+                pgdb = req.tenant.pgDatabase;
+                pghost = req.tenant.pgService.pgHost;
+                pgport = req.tenant.pgService.pgPort;
+            } else {
+                pgdb = conf.pgDatabase;
+                pghost = conf.pgHost;
+                pgport = conf.pgPort;
             }
+            let login1 = new Pool({
+                database: pgdb,
+                host: pghost,
+                password: pswd,
+                port: pgport,
+                ssl: sslConfig(conf),
+                user: username
+            });
+            let login2 = new Pool({
+                database: pgdb,
+                host: conf.pgHost,
+                password: conf.pgPassword,
+                port: conf.pgPort,
+                ssl: sslConfig(conf),
+                user: conf.pgUser
+            });
+            let client2 = await login2.connect();
+
+            try {
+                client1 = await login1.connect();
+            } catch (e) {
+                resp = await client2.query((
+                    "SELECT sign_in_attempts " +
+                    "FROM user_account " +
+                    "WHERE name = $1 " +
+                    " AND is_active;"
+                ), [username]);
+
+                if (resp.rows.length === 0) {
+                    return Promise.reject(new Error(
+                        "No active user account " + username + " found"
+                    ));
+                }
+
+                let attempts = resp.rows[0].sign_in_attempts + 1;
+
+                await client2.query((
+                    "UPDATE user_account SET " +
+                    "sign_in_attempts = $2 " +
+                    "WHERE name = $1"
+                ), [username, attempts]);
+
+                if (attempts > 3) {
+                    await client2.query((
+                        "UPDATE user_account SET " +
+                        "is_locked = true " +
+                        "WHERE name = $1"
+                    ), [username]);
+
+                    return Promise.reject(new Error(
+                        "Too many sign in attempts. " +
+                        "Account is locked."
+                    ));
+                }
+
+                if (attempts === 3) {
+                    return Promise.reject(new Error(
+                        "Invalid sign in credentials. " +
+                        "One more attempt before account is locked."
+                    ));
+                }
+
+                return Promise.reject(e);
+            } finally {
+                login1.end();
+            }
+
+            client1.release();
+
+            resp = await client2.query((
+                "SELECT is_active, is_locked " +
+                "FROM user_account " +
+                "WHERE name = $1 " +
+                " AND is_active"
+            ), [username]);
+
+            if (resp.rows.length === 0) {
+                return Promise.reject(new Error(
+                    "No active user account " + username + " found"
+                ));
+            }
+
+            let row = resp.rows[0];
+            if (row.is_locked) {
+                return Promise.reject(new Error(
+                    "User account is locked"
+                ));
+            }
+
+            await client2.query((
+                "UPDATE user_account SET " +
+                "last_sign_in = now(), " +
+                "sign_in_attempts = 0 " +
+                "WHERE name = $1"
+            ), [username]);
+
+            client2.release();
+            login2.end();
+
+            return await that.deserializeUser(req, username);
         };
         /**
             Database connection object. This object is requested from a

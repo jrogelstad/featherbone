@@ -49,6 +49,7 @@ signInPage.component = {
                 }, "Username"),
                 m("input", {
                     autocomplete: "on",
+                    autofocus: true,
                     id: "username"
                 })
             ]),
@@ -182,6 +183,7 @@ confirmCodePage.component = {
                 m("input", {
                     id: "confirm-code",
                     autocomplete: "off",
+                    autofocus: true,
                     onkeydown: function (e) {
                         if (e.which === 13) {
                             f.state().send("submit", {
