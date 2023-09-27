@@ -733,11 +733,31 @@
                 "description": "Force user to change password on next sign in",
                 "type": "boolean"
             },
+            "lastSignIn": {
+                "description": "Last time user signed in",
+                "type": "string",
+                "format": "dateTime",
+                "default": null,
+                "isReadOnly": true
+            },
             "lastPasswordChange": {
                 "description": "Last time password was changed",
                 "type": "string",
                 "format": "dateTime",
-                "default": null
+                "default": null,
+                "isReadOnly": true
+            },
+            "signInAttempts": {
+                "description": "How many attemps have been made to sign in",
+                "type": "integer",
+                "max": 0,
+                "min": 0,
+                "isReadOnly": true
+            },
+            "isLocked": {
+                "description": "Account lock from too many sign in attemps",
+                "type": "boolean",
+                "default": false
             }
         }
     }

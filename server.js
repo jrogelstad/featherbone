@@ -35,7 +35,7 @@
     const LocalStrategy = require("passport-local").Strategy;
     const MagicLoginStrategy = require("passport-magic-login").default;
     const authenticateLocal = passport.authenticate("local", {
-        failureFlash: "Username or password invalid",
+        failureFlash: true,
         failWithError: true,
         session: false
     });
