@@ -23,6 +23,8 @@
     "use strict";
 
     const {Database} = require("../database");
+    const {Config} = require("../config");
+    const config = new Config();
     const db = new Database();
 
     /**
@@ -151,24 +153,39 @@
             @param {String} payload.data.password Password
             @return {Promise}
         */
-        that.changeRolePassword = function (obj) {
-            return new Promise(function (resolve, reject) {
+        that.changeRolePassword = async function (obj) {
+            try {
                 let name = obj.data.name;
                 let pwd = obj.data.password;
                 let sql = "ALTER ROLE %I PASSWORD %L;";
                 let client = obj.client;
+                let conf = await config.read();
+                let plen = conf.passwordLength || 0;
+
+                if (!pwd) {
+                    return Promise.reject(
+                        "Password cannot be blank"
+                    );
+                }
+                if (plen > pwd.length) {
+                    return Promise.reject(
+                        "Password must be at least " + plen +
+                        " characters"
+                    );
+                }
 
                 sql = sql.format([name, pwd]);
-                client.query(sql, function (err) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
+                await client.query(sql);
+                await client.query((
+                    "UPDATE user_account SET " +
+                    "change_password = false WHERE name = $1;"
+                ), [name]);
 
-                    // Send back result
-                    resolve(true);
-                });
-            });
+                // Send back result
+                return true;
+            } catch (e) {
+                return Promise.reject(e);
+            }
         };
 
         /**

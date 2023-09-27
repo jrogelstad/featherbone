@@ -100,6 +100,7 @@ signInPage.component = {
                     class: "fb-sign-in-label"
                 }, ""),
                 m("a", {
+                    class: "fb-click-text",
                     style: {width: "215px", color: "darkslateblue"},
                     id: "forgotPassword",
                     onclick: function () {
@@ -403,6 +404,7 @@ changePasswordPage.component = {
                     class: "fb-password-label"
                 }, "New Password:"),
                 m("input", {
+                    autofocus: true,
                     id: "password1",
                     autocomplete: "new-password",
                     type: "password"

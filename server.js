@@ -1129,6 +1129,13 @@
     }
 
     function doResetPassword(req, res) {
+        if (req.body.username === systemUser) {
+            error.bind(res)(
+                "Cannot reset password for the system user"
+            );
+            return;
+        }
+
         deserializeUser(
             req,
             req.body.username,
@@ -1412,22 +1419,25 @@
         );
     }
 
-    function doChangeRolePassword(req, res) {
+    async function doChangeRolePassword(req, res) {
         let payload = {
             method: "POST",
             name: "changeRolePassword",
             user: req.user.name,
             data: {
                 name: req.user.name,
-                newPassword: req.body.newPassword
+                password: req.body.password
             },
             tenant: req.tenant
         };
 
         logger.verbose("Change role password for " + req.user.name);
-        datasource.request(payload).then(respond.bind(res)).catch(
-            error.bind(res)
-        );
+        try {
+            await datasource.request(payload);
+            await doSignOut(req, res);
+        } catch (e) {
+            error.bind(res)(e);
+        }
     }
 
     function doChangePassword(req, res) {
@@ -1836,7 +1846,7 @@
         } catch (e) {
             req.isAuthenticated = false;
             req.sessionError = e;
-            done(null, {});
+            done(e, {});
         }
     }
 

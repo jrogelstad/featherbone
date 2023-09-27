@@ -2446,17 +2446,21 @@ appState = State.define(function () {
                 }
             });
         });
-        this.event("resetPassword", function () {
+        this.event("resetPassword", async function () {
             let user = document.getElementById(
                 "username"
             ).value;
 
-            f.datasource().request({
-                method: "POST",
-                path: "/reset-password",
-                body: {username: user}
-            });
-            this.goto("../CheckEmail");
+            try {
+                await f.datasource().request({
+                    method: "POST",
+                    path: "/reset-password",
+                    body: {username: user}
+                });
+                this.goto("../CheckEmail");
+            } catch (e) {
+                message(e.message);
+            }
         });
         this.enter(function () {
             f.currentUser({});
@@ -2493,7 +2497,10 @@ appState = State.define(function () {
             this.message = () => "";
         });
         this.state("ChangePassword", function () {
-            this.event("submit", function () {
+            this.event("signOut", function () {
+                    this.goto("/SignedOut");
+            });
+            this.event("submit", async function () {
                 let user = document.getElementById(
                     "username"
                 ).value;
@@ -2513,21 +2520,20 @@ appState = State.define(function () {
                     return;
                 }
 
-                datasource.request({
-                    method: "POST",
-                    path: "/do/change-role-password",
-                    body: {
-                        username: user,
-                        password: pswd1
-                    }
-                }).then(function () {
+                try {
+                    await datasource.request({
+                        method: "POST",
+                        path: "/do/change-role-password",
+                        body: {
+                            username: user,
+                            password: pswd1
+                        }
+                    });
                     f.currentUser().changePassword = false;
                     message("");
-                    f.state().goto("../Ready");
-                }).catch(function (err) {
-                    message(err.message.replace(/"/g, ""));
-                    f.state().send("failed");
-                });
+                } catch (e) {
+                    message(e.message.replace(/"/g, ""));
+                };
             });
             this.message = message;
             this.enter(function () {
