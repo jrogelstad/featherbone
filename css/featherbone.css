@@ -188,6 +188,10 @@ textarea {
   left: -999px;
 }
 
+.fb-click-text:hover {
+  cursor:pointer;
+}
+
 .fb-checkbox-label {
   border-width: thin;
   border-style: solid;
