@@ -1271,11 +1271,8 @@ function updateUserAccount(obj) {
             return;
         }
 
-        function unlock() {
-            f.datasource.unlock({
-                username: obj.client.currentUser(),
-                eventKey: obj.eventKey
-            }).then(resolve).catch(reject);
+        if (!obj.newRec.isLocked) {
+            obj.newRec.signInAttempts = 0;
         }
 
         function callback(config) {
@@ -1292,6 +1289,7 @@ function updateUserAccount(obj) {
                 }
 
                 obj.newRec.password = "";
+                obj.newRec.changePassword = true;
                 requests.push(f.datasource.request(
                     {
                         method: "POST",
@@ -1336,7 +1334,7 @@ function updateUserAccount(obj) {
                 ));
             }
 
-            Promise.all(requests).then(unlock).catch(reject);
+            Promise.all(requests).then(resolve).catch(reject);
         }
 
         f.datasource.config().then(callback).catch(reject);

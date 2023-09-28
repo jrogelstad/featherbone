@@ -1448,7 +1448,8 @@
             data: {
                 name: req.user.name,
                 oldPassword: req.body.oldPassword,
-                newPassword: req.body.newPassword
+                newPassword: req.body.newPassword,
+                request: req
             },
             tenant: req.tenant
         };
