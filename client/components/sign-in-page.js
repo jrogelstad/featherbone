@@ -419,7 +419,7 @@ changePasswordPage.component = {
                     id: "passwordLabel2",
                     for: "password2",
                     class: "fb-password-label"
-                }, "Re-enter Password:"),
+                }, "Confirm Password:"),
                 m("input", {
                     id: "password2",
                     autocomplete: "new-password",

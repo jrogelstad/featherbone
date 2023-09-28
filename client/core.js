@@ -2498,7 +2498,7 @@ appState = State.define(function () {
         });
         this.state("ChangePassword", function () {
             this.event("signOut", function () {
-                    this.goto("/SignedOut");
+                this.goto("/SignedOut");
             });
             this.event("submit", async function () {
                 let user = document.getElementById(
@@ -2531,9 +2531,10 @@ appState = State.define(function () {
                     });
                     f.currentUser().changePassword = false;
                     message("");
+                    this.goto("/SignedOut");
                 } catch (e) {
                     message(e.message.replace(/"/g, ""));
-                };
+                }
             });
             this.message = message;
             this.enter(function () {

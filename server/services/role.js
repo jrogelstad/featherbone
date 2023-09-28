@@ -49,6 +49,7 @@
             @param {String} payload.data.name Role name
             @param {String} payload.data.oldPassword Old password
             @param {String} payload.data.newPassword New password
+            @param {Object} payload.data.request Request object
             @return {Promise}
         */
         that.changeOwnPassword = function (obj) {
@@ -74,6 +75,7 @@
                 }
 
                 db.authenticate(
+                    obj.data.request,
                     obj.data.name,
                     obj.data.oldPassword
                 ).then(callback).catch(reject);
