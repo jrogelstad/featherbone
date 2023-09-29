@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -97,34 +97,36 @@ checkbox.component = {
         let label;
 
         function createLabel() {
-            if (!vm.isCell()) {
-                theclass = "fb-checkbox-input";
-                thestyle = vnode.attrs.style || {};
-
-                if (vnode.attrs.readonly) {
-                    labelClass += " fb-checkbox-readonly";
-                }
-
-                if (vm.hasFocus()) {
-                    labelClass += " fb-checkbox-focus";
-                }
-
-                return m("label", {
-                    for: vm.id(),
-                    title: vnode.attrs.title,
-                    class: labelClass
-                }, m("div", {
-                    class: "material-icons",
-                    style: {
-                        fontWeight: "bold",
-                        visibility: (
-                            vnode.attrs.value
-                            ? "visible"
-                            : "hidden"
-                        )
-                    }
-                }, "done"));
+            theclass = "fb-checkbox-input";
+            if (vm.isCell()) {
+                labelClass += " fb-checkbox-cell";
             }
+
+            thestyle = vnode.attrs.style || {};
+
+            if (vnode.attrs.readonly) {
+                labelClass += " fb-checkbox-readonly";
+            }
+
+            if (vm.hasFocus()) {
+                labelClass += " fb-checkbox-focus";
+            }
+
+            return m("label", {
+                for: vm.id(),
+                title: vnode.attrs.title,
+                class: labelClass
+            }, m("div", {
+                class: "material-icons",
+                style: {
+                    fontWeight: "bold",
+                    visibility: (
+                        vnode.attrs.value
+                        ? "visible"
+                        : "hidden"
+                    )
+                }
+            }, "done"));
         }
 
         label = createLabel();

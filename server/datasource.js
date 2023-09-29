@@ -431,6 +431,7 @@
         await db.endPool(tenant);
 
         const client = new Client({
+            database: conf.pgDatabase,
             host: conf.pgHost,
             password: superpwd,
             port: conf.pgPort || 80,
@@ -889,15 +890,19 @@
                 theClient = await db.connect(tenant);
                 return await doUnlock(theClient);
             }
-
-            while (i < tenants.length) {
-                tenant = tenants[i];
-                i += 1;
-                theClient = await db.connect(tenant);
-                await doUnlock(theClient);
-            }
         } catch (e) {
             return Promise.reject(e);
+        }
+
+        while (i < tenants.length) {
+            tenant = tenants[i];
+            i += 1;
+            try {
+                theClient = await db.connect(tenant);
+                await doUnlock(theClient);
+            } catch (e) {
+                console.error(e.message);
+            }
         }
     };
 

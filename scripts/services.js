@@ -1261,11 +1261,18 @@ function updateUserAccount(obj) {
         let requests = [];
         let pswd = obj.newRec.password;
 
-        function unlock() {
-            f.datasource.unlock({
-                username: obj.client.currentUser(),
-                eventKey: obj.eventKey
-            }).then(resolve).catch(reject);
+        if (!obj.newRec.contact) {
+            reject("Contact is required");
+            return;
+        }
+
+        if (!obj.newRec.contact.email) {
+            reject("Contact must have a primary email address");
+            return;
+        }
+
+        if (!obj.newRec.isLocked) {
+            obj.newRec.signInAttempts = 0;
         }
 
         function callback(config) {
@@ -1282,6 +1289,7 @@ function updateUserAccount(obj) {
                 }
 
                 obj.newRec.password = "";
+                obj.newRec.changePassword = true;
                 requests.push(f.datasource.request(
                     {
                         method: "POST",
@@ -1326,7 +1334,7 @@ function updateUserAccount(obj) {
                 ));
             }
 
-            Promise.all(requests).then(unlock).catch(reject);
+            Promise.all(requests).then(resolve).catch(reject);
         }
 
         f.datasource.config().then(callback).catch(reject);
@@ -1335,6 +1343,16 @@ function updateUserAccount(obj) {
 
 function createUserAccount(obj) {
     return new Promise(function (resolve, reject) {
+        if (!obj.newRec.contact) {
+            reject("Contact is required.");
+            return;
+        }
+
+        if (!obj.newRec.contact.email) {
+            reject("Contact must have a primary email address");
+            return;
+        }
+
         function callback(config) {
             if (
                 config.passwordLength &&
