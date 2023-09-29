@@ -27,6 +27,7 @@
     "smtpAuthUser": "user@yourdomain.com",
     "smtpHost": "smtp.yourdomain.com",
     "smtpSecure": true,
-    "smtpPort": 465,
-    "ssl": false
+    "smtpPort":  465,
+    "ssl": false,
+    "twoFactorAuth": false
 }
