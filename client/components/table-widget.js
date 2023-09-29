@@ -1442,6 +1442,7 @@ tableWidget.viewModel = function (options) {
             ) {
                 tableData = f.formats()[theProp.format].tableData;
             } else if (
+                theProp.type !== "boolean" &&
                 f.types[theProp.type] &&
                 f.types[theProp.type].tableData
             ) {
@@ -1463,7 +1464,17 @@ tableWidget.viewModel = function (options) {
 
             if (typeof content === "string") {
                 row[colName] = content;
+                return;
             }
+
+            if (typeof content === "boolean") {
+                if (content) {
+                    row[colName] = "X";
+                } else {
+                    row[colName] = "";
+                }
+            }
+
         }
 
         theCols = theBody.properties;

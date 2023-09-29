@@ -292,12 +292,19 @@
     },
     {
         "name": "FeatherAuthorization",
+        "plural": "FeatherAuthorizations",
         "module": "Core",
         "description": "Role authorized to use the parent feather",
         "properties": {
             "parent": {
                 "description": "Parent feather",
                 "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "inherits",
+                        "module"
+                    ],
                     "relation": "Feather",
                     "childOf": "authorizations"
                 }
@@ -714,12 +721,44 @@
                         "email",
                         "address"
                     ]
-                }
+                },
+                "isRequired": true
             },
             "isActive": {
                 "description": "Allow user to log in",
                 "type": "boolean",
                 "default": true
+            },
+            "changePassword": {
+                "description": "Force user to change password on next sign in",
+                "type": "boolean",
+                "default": true
+            },
+            "lastSignIn": {
+                "description": "Last time user signed in",
+                "type": "string",
+                "format": "dateTime",
+                "default": null,
+                "isReadOnly": true
+            },
+            "lastPasswordChange": {
+                "description": "Last time password was changed",
+                "type": "string",
+                "format": "dateTime",
+                "default": null,
+                "isReadOnly": true
+            },
+            "signInAttempts": {
+                "description": "How many attemps have been made to sign in",
+                "type": "integer",
+                "max": 0,
+                "min": 0,
+                "isReadOnly": true
+            },
+            "isLocked": {
+                "description": "Account lock from too many sign in attemps",
+                "type": "boolean",
+                "default": false
             }
         }
     }

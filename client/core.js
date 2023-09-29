@@ -30,6 +30,7 @@ import webauthn from "./components/webauthn.js";
 
 const m = window.m;
 const f = window.f;
+const Qs = window.Qs;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
 const tinymce = window.tinymce;
@@ -2434,15 +2435,32 @@ appState = State.define(function () {
             let user = document.getElementById(
                 "username"
             ).value;
+            let pswd = document.getElementById(
+                "password"
+            ).value;
 
             this.goto("../Authenticating", {
                 context: {
                     username: user,
-                    password: document.getElementById(
-                        "password"
-                    ).value
+                    password: pswd
                 }
             });
+        });
+        this.event("resetPassword", async function () {
+            let user = document.getElementById(
+                "username"
+            ).value;
+
+            try {
+                await f.datasource().request({
+                    method: "POST",
+                    path: "/reset-password",
+                    body: {username: user}
+                });
+                this.goto("../CheckEmail");
+            } catch (e) {
+                message(e.message);
+            }
         });
         this.enter(function () {
             f.currentUser({});
@@ -2450,23 +2468,89 @@ appState = State.define(function () {
         });
         this.message = message;
     });
-    this.state("SignedIn", function () {
-        this.event("signOut", function () {
+    this.state("CheckEmail", function () {
+        this.event("signIn", function () {
             this.goto("../SignedOut");
         });
+        this.enter(function () {
+            m.route.set("/check-email");
+        });
         this.message = () => "";
+    });
+    this.state("SignedIn", function () {
+        this.c = this.C; // Squelch jslint complaint
+        this.c(function () {
+            if (f.currentUser().changePassword) {
+                return "./ChangePassword";
+            }
+        });
         this.exit(function () {
             datasource.request({
                 method: "POST",
                 path: "/sign-out"
             }).then(() => location.reload());
         });
+        this.state("Ready", function () {
+            this.event("signOut", function () {
+                this.goto("../../SignedOut");
+            });
+            this.message = () => "";
+        });
+        this.state("ChangePassword", function () {
+            this.event("signOut", function () {
+                this.goto("/SignedOut");
+            });
+            this.event("submit", async function () {
+                let user = document.getElementById(
+                    "username"
+                ).value;
+                let pswd1 = document.getElementById(
+                    "password1"
+                ).value;
+                let pswd2 = document.getElementById(
+                    "password2"
+                ).value;
+
+                if (!pswd1) {
+                    message("Password cannot be blank");
+                    return;
+                }
+                if (pswd1 !== pswd2) {
+                    message("Passwords do not match");
+                    return;
+                }
+
+                try {
+                    await datasource.request({
+                        method: "POST",
+                        path: "/do/change-role-password",
+                        body: {
+                            username: user,
+                            password: pswd1
+                        }
+                    });
+                    f.currentUser().changePassword = false;
+                    message("");
+                    this.goto("/SignedOut");
+                } catch (e) {
+                    message(e.message.replace(/"/g, ""));
+                }
+            });
+            this.message = message;
+            this.enter(function () {
+                m.route.set("/change-password");
+            });
+        });
     });
     this.state("Authenticating", function () {
+        this.event("confirm", function (ctxt) {
+            this.goto("../Confirm", {
+                context: ctxt
+            });
+            return;
+        });
         this.event("success", function () {
             this.goto("../SignedIn");
-            m.route.set("/home");
-            window.history.go(0);
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -2480,15 +2564,113 @@ appState = State.define(function () {
                     password: context.password
                 }
             }).then(function (resp) {
-                f.currentUser(resp);
                 message("");
-                f.state().send("success");
+                if (resp.confirmUrl) {
+                    f.state().send("confirm", {
+                        username: context.username,
+                        password: context.password,
+                        response: resp
+                    });
+                } else {
+                    f.state().send("success");
+                }
             }).catch(function (err) {
                 message(err.message.replace(/"/g, ""));
                 f.state().send("failed");
             });
         });
         this.message = () => "";
+    });
+    this.state("Confirm", function () {
+        let user;
+        let pswd;
+        let userEmail;
+        let userPhone;
+        let isSmsEnabled;
+
+        this.state("Pending", function () {
+            this.event("submit", function (context) {
+                let code = document.getElementById(
+                    "confirm-code"
+                ).value;
+                let url = (
+                    context.confirmUrl + "&" +
+                    Qs.stringify({confirmCode: code})
+                );
+
+                this.goto("../../Confirming", {
+                    context: {
+                        confirmUrl: url
+                    }
+                });
+            });
+            this.event("resend", function () {
+                if (!user && pswd) {
+                    message("Unable to resend");
+                    return;
+                }
+                this.goto("../Resend");
+            });
+            this.enter(function (context) {
+                if (context) {
+                    user = context.username;
+                    pswd = context.password;
+                    userEmail = context.response.email;
+                    userPhone = context.response.phone;
+                    isSmsEnabled = context.response.smsEnabled;
+                    m.route.set("/confirm-sign-in", {
+                        confirmUrl: context.response.confirmUrl
+                    });
+                }
+            });
+            this.message = message;
+        });
+        this.state("Resend", function () {
+            this.event("submit", function () {
+                this.goto("../../Authenticating", {
+                    context: {
+                        username: user,
+                        password: pswd
+                    }
+                });
+            });
+            this.enter(function () {
+                m.route.set("/resend-code", null, {
+                    state: {
+                        email: userEmail,
+                        phone: userPhone,
+                        smsEnabled: isSmsEnabled
+                    }
+                });
+            });
+            this.message = message;
+        });
+    });
+    this.state("Confirming", function () {
+        this.event("success", function () {
+            this.goto("../SignedIn");
+        });
+        this.event("failed", function () {
+            this.goto("../Confirm");
+        });
+        this.enter(function (context) {
+            datasource.request({
+                method: "GET",
+                path: context.confirmUrl
+            }).then(async function () {
+                let resp = await f.datasource().request({
+                    method: "POST",
+                    path: "/connect"
+                });
+                f.currentUser(resp.data.authorized);
+                message("");
+                f.state().send("success");
+            }).catch(function () {
+                message("Invalid confirmation code");
+                f.state().send("failed");
+            });
+        });
+        this.message = message;
     });
 });
 appState.goto();
