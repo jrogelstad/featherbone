@@ -239,6 +239,22 @@ const home = {
                             }, "playlist_remove")], "Delete Template")
                         ])
                     ]),
+                    m("button", {
+                        id: "global-settings",
+                        class: (
+                            "pure-button fb-menu-setup fb-menu-button " +
+                            "fb-menu-button-middle-side"
+                        ),
+                        title: "Global settings",
+                        onclick: function () {
+                            m.route.set("/settings/:settings", {
+                                settings: "globalSettings"
+                            });
+                        }
+                    }, [m("i", {
+                        id: "logo-edit-icon",
+                        class: "material-icons fb-button-icon"
+                    }, "public")]),
                     m(components.accountMenu)
                 ])
             ]
@@ -246,12 +262,17 @@ const home = {
     }
 };
 let routes = {
+    "/home": home,
     "/workbook/:workbook/:page": components.workbookPage,
     "/edit/:feather/:key": components.formPage,
     "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
-    "/sign-in": components.signInPage
+    "/sign-in": components.signInPage,
+    "/change-password": components.changePasswordPage,
+    "/check-email": components.checkEmailPage,
+    "/confirm-sign-in": components.confirmCodePage,
+    "/resend-code": components.resendCodePage
 };
 
 // Global sse state handler, allows any page
@@ -929,37 +950,25 @@ function initApp() {
         sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
         sseErrorDialogViewModel.buttonCancel().hide();
 
-        routes["/home"] = home;
         m.route(document.body, "/home", routes);
-
-        if (hash === "/sign-in") {
-            hash = "/home";
-        }
-
-        m.route.set(hash);
     });
 }
 
 // Load application data
-function start() {
+async function start() {
     if (initialized) {
         return;
     }
 
     initPromises();
-    Promise.all([
+    await Promise.all([
         loadCatalog,
         loadModules,
         loadForms,
         loadProfile,
         loadWorkbooks
-    ]).then(initApp);
-}
-
-function goSignIn() {
-    m.route(document.body, "/sign-in", routes);
-    f.state().resolve("/SignedIn").enter(start);
-    f.state().send("signIn");
+    ]);
+    initApp();
 }
 
 // Connect
@@ -987,7 +996,7 @@ if (window.location.pathname.slice(
     );
     window.open(theUrl, "_self");
 } else {
-    connect().then(function (resp) {
+    connect().then(async function (resp) {
         let edata;
         let wp = (
             window.location.protocol.indexOf("s") === -1
@@ -1042,13 +1051,25 @@ if (window.location.pathname.slice(
 
             // Initiate event listener with key on sign in
             f.state().resolve("/SignedIn").enter(listen);
+            f.state().resolve("/SignedIn/Ready").enter(function () {
+                if (!hash || (hash === "/sign-in")) {
+                    m.route.set("/home");
+                    window.history.go(0);
+                    return;
+                }
+                m.route.set(hash);
+            });
 
             if (resp.data.authorized) {
                 f.currentUser(edata.authorized);
                 f.state().send("preauthorized");
-                start();
+                await start();
             } else {
-                goSignIn();
+                m.route(document.body, "/sign-in", routes);
+                f.state().resolve("/SignedIn").enter(async function () {
+                    await start();
+                });
+                f.state().send("signIn");
             }
         }
     });

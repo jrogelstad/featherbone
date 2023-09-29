@@ -1612,6 +1612,7 @@
                         while (ckeys.length) {
                             ckey = ckeys.shift();
                             rel = props[ckey].type.relation;
+                            i = 0;
                             while (i < data[ckey].length) {
                                 row = data[ckey][i];
                                 i += 1;

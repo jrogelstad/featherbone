@@ -164,9 +164,19 @@ textarea {
     font-size: 24px;
     vertical-align: bottom;
 }
+.fb-button-radio {
+    background-color: white;
+}
 
+.fb-radio-icon {
+    vertical-align: middle;
+}
 .fb-checkbox {
-  display: inline-block;
+    display: inline-block;
+}
+
+.fb-checkbox-cell {
+    display: table-cell;
 }
 
 .fb-checkbox-focus {
@@ -176,6 +186,10 @@ textarea {
 .fb-checkbox-input {
   position: absolute;
   left: -999px;
+}
+
+.fb-click-text:hover {
+  cursor:pointer;
 }
 
 .fb-checkbox-label {
