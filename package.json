@@ -1,6 +1,6 @@
 {
   "name": "featherbone",
-  "version": "2.0.0-alpha-2",
+  "version": "2.0.0-alpha-3",
   "private": true,
   "description": "Framework for building object relational database apps",
   "keywords": [],
@@ -30,6 +30,7 @@
     "nodemailer": "^6.7.5",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
+    "passport-magic-login": "^1.2.2",
     "pdfjs": "^2.4.7",
     "pg": "^8.7.3",
     "pg-format": "^1.0.4",
