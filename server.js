@@ -34,11 +34,6 @@
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
     const MagicLoginStrategy = require("passport-magic-login").default;
-    const authenticateLocal = passport.authenticate("local", {
-        failureFlash: true,
-        failWithError: true,
-        session: false
-    });
     const {Config} = require("./server/config");
     const config = new Config();
     const {Tools} = require("./server/services/tools");
@@ -125,6 +120,8 @@
     let systemUser;
     let smtpAuthUser;
     let magicLogin;
+    let twoFactorAuth = false;
+    let authenticateLocal;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -261,6 +258,12 @@
             mode = resp.mode || "prod";
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
+            twoFactorAuth = Boolean(resp.twoFactorAuth);
+            authenticateLocal = passport.authenticate("local", {
+                failureFlash: true,
+                failWithError: true,
+                session: !twoFactorAuth
+            });
 
             await datasource.loadCryptoKey();
             await datasource.getCatalog();
@@ -1190,41 +1193,49 @@
                 res.status(res.statusCode).json(message);
                 return;
             }
-            let userEmail = "";
-            let userPhone = "";
-            if (req.user.email) {
-                userEmail = (
-                    "********" +
-                    req.user.email.slice(
-                        req.user.email.length - 10
-                    )
-                );
-            }
-            if (req.user.phone) {
-                userPhone = (
-                    "***-***-" +
-                    req.user.phone.slice(
-                        req.user.phone.length - 4
-                    )
-                );
-            }
 
-            req.body.confirmCode = String(
-                Math.floor(Math.random() * 90000) + 10000
-            );
-            req.body.destination = req.user.email;
-            req.body.tenant = req.tenant;
-            try {
-                magicLogin.send(req, {json: () => ""});
-                respond.bind(res)({
-                    success: true,
-                    confirmUrl: req.magicHref,
-                    email: userEmail,
-                    phone: userPhone,
-                    smsEnabled: false
-                });
-            } catch (e) {
-                error.bind(res)(e);
+            if (twoFactorAuth) {
+                let userEmail = "";
+                let userPhone = "";
+
+                if (req.user.email) {
+                    userEmail = (
+                        "********" +
+                        req.user.email.slice(
+                            req.user.email.length - 10
+                        )
+                    );
+                }
+                if (req.user.phone) {
+                    userPhone = (
+                        "***-***-" +
+                        req.user.phone.slice(
+                            req.user.phone.length - 4
+                        )
+                    );
+                }
+
+                req.body.confirmCode = String(
+                    Math.floor(Math.random() * 90000) + 10000
+                );
+                req.body.destination = req.user.email;
+                req.body.tenant = req.tenant;
+
+                try {
+                    magicLogin.send(req, {json: () => ""});
+                    respond.bind(res)({
+                        success: true,
+                        confirmUrl: req.magicHref,
+                        email: userEmail,
+                        phone: userPhone,
+                        smsEnabled: false
+                    });
+                } catch (e) {
+                    error.bind(res)(e);
+                }
+            } else {
+                req.user.mode = mode;
+                res.json(req.user);
             }
         }
         rows = await datasource.request({

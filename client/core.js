@@ -2550,7 +2550,7 @@ appState = State.define(function () {
             return;
         });
         this.event("success", function () {
-            this.goto("SignedIn");
+            this.goto("../SignedIn");
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -2571,6 +2571,8 @@ appState = State.define(function () {
                         password: context.password,
                         response: resp
                     });
+                } else {
+                    f.state().send("success");
                 }
             }).catch(function (err) {
                 message(err.message.replace(/"/g, ""));
