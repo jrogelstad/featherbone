@@ -882,6 +882,9 @@
         "tabs": [
             {
                 "name": "Membership"
+            },
+            {
+                "name": "Manage"
             }
         ],
         "attrs": [
@@ -908,18 +911,21 @@
             {
                 "attr": "owner",
                 "unit": 1,
-                "grid": 0
+                "grid": 0,
+                "columns": []
             },
             {
                 "attr": "contact",
                 "unit": 1,
                 "grid": 0,
                 "showLabel": true,
-                "columns": []
+                "columns": [],
+                "dataList": ""
             },
             {
                 "attr": "membership",
                 "grid": 1,
+                "unit": 0,
                 "showLabel": false,
                 "columns": [
                     {
@@ -927,6 +933,32 @@
                         "dataList": "roleNames"
                     }
                 ]
+            },
+            {
+                "attr": "changePassword",
+                "showLabel": "true",
+                "unit": 0,
+                "grid": 2,
+                "dataList": "",
+                "columns": []
+            },
+            {
+                "attr": "isLocked",
+                "label": "",
+                "unit": 0,
+                "grid": 2
+            },
+            {
+                "attr": "lastSignIn",
+                "label": "",
+                "unit": 0,
+                "grid": 2
+            },
+            {
+                "attr": "signInAttempts",
+                "label": "",
+                "unit": 0,
+                "grid": 2
             }
         ]
     }

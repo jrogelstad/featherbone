@@ -33,10 +33,7 @@
     const path = require("path");
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
-    const authenticate = passport.authenticate("local", {
-        failureFlash: "Username or password invalid",
-        failWithError: true
-    });
+    const MagicLoginStrategy = require("passport-magic-login").default;
     const {Config} = require("./server/config");
     const config = new Config();
     const {Tools} = require("./server/services/tools");
@@ -118,9 +115,13 @@
     let pgPool;
     let sessionTimeout;
     let thesecret;
-    let systemUser;
     let logger;
     let tenants = false;
+    let systemUser;
+    let smtpAuthUser;
+    let magicLogin;
+    let twoFactorAuth = false;
+    let authenticateLocal;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -253,9 +254,16 @@
             sessionTimeout = resp.sessionTimeout || 86400000;
             thesecret = resp.secret;
             systemUser = resp.pgUser;
+            smtpAuthUser = resp.smtpAuthUser;
             mode = resp.mode || "prod";
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
+            twoFactorAuth = Boolean(resp.twoFactorAuth);
+            authenticateLocal = passport.authenticate("local", {
+                failureFlash: true,
+                failWithError: true,
+                session: !twoFactorAuth
+            });
 
             await datasource.loadCryptoKey();
             await datasource.getCatalog();
@@ -1123,6 +1131,55 @@
         });
     }
 
+    function doResetPassword(req, res) {
+        if (req.body.username === systemUser) {
+            error.bind(res)(
+                "Cannot reset password for the system user"
+            );
+            return;
+        }
+
+        deserializeUser(
+            req,
+            req.body.username,
+            async function (err, user) {
+                if (err) {
+                    error.bind(res)(err);
+                    return;
+                }
+
+                let rows = await datasource.request({
+                    filter: {criteria: [{
+                        property: "name",
+                        value: req.body.username
+                    }]},
+                    method: "GET",
+                    name: "UserAccount",
+                    properties: ["id"],
+                    tenant: req.tenant,
+                    user: req.body.username
+                }, true);
+
+                await datasource.request({
+                    data: [{
+                        op: "replace",
+                        path: "/changePassword",
+                        value: true
+                    }],
+                    id: rows[0].id,
+                    method: "PATCH",
+                    name: "UserAccount",
+                    tenant: req.tenant,
+                    user: req.body.username
+                }, true);
+
+                req.body.destination = user.email;
+                req.body.tenant = req.tenant;
+                magicLogin.send(req, res);
+            }
+        );
+    }
+
     async function doSignIn(req, res) {
         let message;
         let rows;
@@ -1137,8 +1194,49 @@
                 return;
             }
 
-            req.user.mode = mode;
-            res.json(req.user);
+            if (twoFactorAuth) {
+                let userEmail = "";
+                let userPhone = "";
+
+                if (req.user.email) {
+                    userEmail = (
+                        "********" +
+                        req.user.email.slice(
+                            req.user.email.length - 10
+                        )
+                    );
+                }
+                if (req.user.phone) {
+                    userPhone = (
+                        "***-***-" +
+                        req.user.phone.slice(
+                            req.user.phone.length - 4
+                        )
+                    );
+                }
+
+                req.body.confirmCode = String(
+                    Math.floor(Math.random() * 90000) + 10000
+                );
+                req.body.destination = req.user.email;
+                req.body.tenant = req.tenant;
+
+                try {
+                    magicLogin.send(req, {json: () => ""});
+                    respond.bind(res)({
+                        success: true,
+                        confirmUrl: req.magicHref,
+                        email: userEmail,
+                        phone: userPhone,
+                        smsEnabled: false
+                    });
+                } catch (e) {
+                    error.bind(res)(e);
+                }
+            } else {
+                req.user.mode = mode;
+                res.json(req.user);
+            }
         }
         rows = await datasource.request({
             filter: {criteria: [{
@@ -1161,7 +1259,7 @@
             next(true);
             return;
         }
-        return authenticate(req, res, next);
+        authenticateLocal(req, res, next);
     }
 
     function doSignOut(req, res) {
@@ -1332,6 +1430,27 @@
         );
     }
 
+    async function doChangeRolePassword(req, res) {
+        let payload = {
+            method: "POST",
+            name: "changeRolePassword",
+            user: req.user.name,
+            data: {
+                name: req.user.name,
+                password: req.body.password
+            },
+            tenant: req.tenant
+        };
+
+        logger.verbose("Change role password for " + req.user.name);
+        try {
+            await datasource.request(payload);
+            await doSignOut(req, res);
+        } catch (e) {
+            error.bind(res)(e);
+        }
+    }
+
     function doChangePassword(req, res) {
         let payload = {
             method: "POST",
@@ -1340,7 +1459,8 @@
             data: {
                 name: req.user.name,
                 oldPassword: req.body.oldPassword,
-                newPassword: req.body.newPassword
+                newPassword: req.body.newPassword,
+                request: req
             },
             tenant: req.tenant
         };
@@ -1665,56 +1785,84 @@
         }, true);
     }
 
+    // Define exactly which directories and files are to be served
+    const dirs = [
+        "/client",
+        "/client/components",
+        "/client/models",
+        "/common",
+        "/fonts",
+        "/node_modules/codemirror/addon/lint",
+        "/node_modules/codemirror/lib",
+        "/node_modules/codemirror/mode/javascript",
+        "/node_modules/codemirror/mode/css",
+        "/node_modules/typeface-raleway/files",
+        "/node_modules/print-js/dist",
+        "/node_modules/tinymce",
+        "/node_modules/tinymce/icons/default",
+        "/node_modules/tinymce/skins/ui/oxide",
+        "/node_modules/tinymce/skins/ui/oxide/fonts",
+        "/node_modules/tinymce/skins/ui/oxide-dark",
+        "/node_modules/tinymce/skins/ui/oxide-dark/fonts",
+        "/node_modules/tinymce/skins/content/default",
+        "/node_modules/tinymce/skins/content/dark",
+        "/node_modules/tinymce/skins/content/document",
+        "/node_modules/tinymce/skins/content/writer",
+        "/node_modules/tinymce/themes/silver",
+        "/node_modules/tinymce/themes/mobile",
+        "/media"
+    ];
+
+    const files = [
+        "/api.json",
+        "/index.html",
+        "/media/featherbone.png",
+        "/css/featherbone.css",
+        "/css/print.css",
+        "/node_modules/big.js/big.mjs",
+        "/node_modules/event-source-polyfill/src/eventsource.js",
+        "/node_modules/fast-json-patch/dist/fast-json-patch.js",
+        "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
+        "/node_modules/mithril/mithril.js",
+        "/node_modules/mithril/mithril.min.js",
+        "/node_modules/qs/dist/qs.js",
+        "/node_modules/purecss/build/pure-min.css",
+        "/node_modules/purecss/build/grids-responsive-min.css",
+        "/node_modules/dialog-polyfill/dialog-polyfill.css",
+        "/node_modules/codemirror/theme/neat.css",
+        "/node_modules/typeface-raleway/index.css",
+        "/node_modules/gantt/dist/gantt.min.js"
+    ];
+
+    async function deserializeUser(req, name, done) {
+        if (files.indexOf(req.url) !== -1) {
+            done(null, {}); // Don't care about user on files
+            return;
+        }
+
+        let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
+        if (dirs.indexOf(ldir) !== -1) {
+            done(null, {}); // Don't care about user on files
+            return;
+        }
+
+        if (!req.tenant) {
+            let db = req.url.slice(1);
+            db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
+            req.database = db;
+            req.tenant = tenants.find((t) => t.pgDatabase === db);
+        }
+        try {
+            let user = await datasource.deserializeUser(req, name);
+            done(null, user);
+        } catch (e) {
+            req.isAuthenticated = false;
+            req.sessionError = e;
+            done(e, {});
+        }
+    }
+
     async function start() {
-        // Define exactly which directories and files are to be served
-        let dirs = [
-            "/client",
-            "/client/components",
-            "/client/models",
-            "/common",
-            "/fonts",
-            "/node_modules/codemirror/addon/lint",
-            "/node_modules/codemirror/lib",
-            "/node_modules/codemirror/mode/javascript",
-            "/node_modules/codemirror/mode/css",
-            "/node_modules/typeface-raleway/files",
-            "/node_modules/print-js/dist",
-            "/node_modules/tinymce",
-            "/node_modules/tinymce/icons/default",
-            "/node_modules/tinymce/skins/ui/oxide",
-            "/node_modules/tinymce/skins/ui/oxide/fonts",
-            "/node_modules/tinymce/skins/ui/oxide-dark",
-            "/node_modules/tinymce/skins/ui/oxide-dark/fonts",
-            "/node_modules/tinymce/skins/content/default",
-            "/node_modules/tinymce/skins/content/dark",
-            "/node_modules/tinymce/skins/content/document",
-            "/node_modules/tinymce/skins/content/writer",
-            "/node_modules/tinymce/themes/silver",
-            "/node_modules/tinymce/themes/mobile",
-            "/media"
-        ];
-
-        let files = [
-            "/api.json",
-            "/index.html",
-            "/media/featherbone.png",
-            "/css/featherbone.css",
-            "/css/print.css",
-            "/node_modules/big.js/big.mjs",
-            "/node_modules/event-source-polyfill/src/eventsource.js",
-            "/node_modules/fast-json-patch/dist/fast-json-patch.js",
-            "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
-            "/node_modules/mithril/mithril.js",
-            "/node_modules/mithril/mithril.min.js",
-            "/node_modules/qs/dist/qs.js",
-            "/node_modules/purecss/build/pure-min.css",
-            "/node_modules/purecss/build/grids-responsive-min.css",
-            "/node_modules/dialog-polyfill/dialog-polyfill.css",
-            "/node_modules/codemirror/theme/neat.css",
-            "/node_modules/typeface-raleway/index.css",
-            "/node_modules/gantt/dist/gantt.min.js"
-        ];
-
         // Resolve database
         dbRouter.param("db", function (req, res, next, id) {
             id = id.toCamelCase().toSnakeCase();
@@ -1742,9 +1890,8 @@
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
-            {passReqToCallback: true},
+            {passReqToCallback: true, session: false},
             function (req, username, password, done) {
-                //console.log("Login process:", username);
                 datasource.authenticate(req, username, password).then(
                     function (user) {
                         return done(null, user);
@@ -1760,38 +1907,96 @@
             }
         ));
 
+
+        // Magic link setup
+        magicLogin = new MagicLoginStrategy({
+            secret: thesecret,
+            callbackUrl: "/auth/magiclink/callback",
+            sendMagicLink: async function (destination, href, ignore, req) {
+                try {
+                    if (req.body.confirmCode) {
+                        req.magicHref = href;
+                        await datasource.request({
+                            method: "POST",
+                            name: "sendMail",
+                            data: {
+                                message: {
+                                    to: req.user.email,
+                                    subject: "Featherbone confirmation code",
+                                    from: smtpAuthUser,
+                                    html: (
+                                        `<html><p>Your confirmation code is: ` +
+                                        `<b>${req.body.confirmCode}</b>` +
+                                        `</p><html>`
+                                    )
+                                }
+                            },
+                            user: systemUser,
+                            tenant: false
+                        });
+                    } else {
+                        let url = (
+                            req.protocol + "://" + req.get("host") + "/" +
+                            req.database + href
+                        );
+
+                        await datasource.request({
+                            method: "POST",
+                            name: "sendMail",
+                            data: {
+                                message: {
+                                    to: destination,
+                                    subject: "Featherbone password reset",
+                                    from: smtpAuthUser,
+                                    html: (
+                                        `<html><p>Click <a href=` +
+                                        `\"${url}\"` +
+                                        `>here</a> to reset your password.` +
+                                        `</p><html>`
+                                    )
+                                }
+                            },
+                            user: systemUser,
+                            tenant: false
+                        });
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            },
+            verify: async function (payload, callback, req) {
+                try {
+
+                    if (
+                        payload.confirmCode &&
+                        payload.confirmCode !== req.query.confirmCode
+                    ) {
+                        callback(new Error("Invalid confirmation code"));
+                        return;
+                    }
+
+                    req.tenant = payload.tenant;
+                    let user = await datasource.deserializeUser(
+                        req,
+                        payload.username
+                    );
+
+                    callback(null, user);
+                } catch (err) {
+                    callback(err);
+                }
+            },
+            jwtOptions: {expiresIn: "2 days"}
+        });
+
+        passport.use(magicLogin);
+
         passport.serializeUser(function (user, done) {
             //console.log("serialize ", user);
             done(null, user.name);
         });
 
-        passport.deserializeUser(async function (req, name, done) {
-            if (files.indexOf(req.url) !== -1) {
-                done(null, {}); // Don't care about user on files
-                return;
-            }
-
-            let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
-            if (dirs.indexOf(ldir) !== -1) {
-                done(null, {}); // Don't care about user on files
-                return;
-            }
-
-            if (!req.tenant) {
-                let db = req.url.slice(1);
-                db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
-                req.database = db;
-                req.tenant = tenants.find((t) => t.pgDatabase === db);
-            }
-            try {
-                let user = await datasource.deserializeUser(req, name);
-                done(null, user);
-            } catch (e) {
-                req.isAuthenticated = false;
-                req.sessionError = e;
-                done(null, {});
-            }
-        });
+        passport.deserializeUser(deserializeUser);
 
         // Initialize passport
         app.use(express.static("public"));
@@ -1816,6 +2021,14 @@
 
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);
+        dbRouter.post("/:db/reset-password", doResetPassword);
+        dbRouter.get(
+            "/:db/auth/magiclink/callback",
+            passport.authenticate("magiclogin", {
+                session: true,
+                successRedirect: "../../"
+            })
+        );
 
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
@@ -1894,6 +2107,7 @@
             doGetObjectAuthorizations
         );
         dbRouter.post("/:db/do/change-password/", doChangePassword);
+        dbRouter.post("/:db/do/change-role-password/", doChangeRolePassword);
         dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
         dbRouter.post("/:db/do/save-authorization", doSaveAuthorization);
         dbRouter.post("/:db/do/stop-process", doStopProcess);
