@@ -1435,18 +1435,7 @@
         let done;
         let transaction;
         let isChild;
-        if (!settings.data.catalog) {
-            let dat = await settings.getSettings({
-                client: obj.client,
-                data: {
-                    name: "catalog",
-                    force: true
-                }
-            });
-
-            settings.data.catalog = {data: dat};
-        }
-        let catalog = settings.data.catalog.data;
+        let catalog;
         let isExternalClient = false;
         let wrap = false;
         let isTriggering = (
@@ -1837,6 +1826,19 @@
                 theClient = resp.client;
                 done = resp.done;
             }
+
+            if (!settings.data.catalog) {
+                let dat = await settings.getSettings({
+                    client: theClient,
+                    data: {
+                        name: "catalog",
+                        force: true
+                    }
+                });
+
+                settings.data.catalog = {data: dat};
+            }
+            catalog = settings.data.catalog.data;
 
             //console.log("REQUEST->", obj.name, obj.method);
             let msg;
