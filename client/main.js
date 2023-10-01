@@ -249,6 +249,81 @@ const home = {
                         onclick: function () {
                             m.route.set("/settings/:settings", {
                                 settings: "globalSettings"
+                            }, {
+                                state: {
+                                    form: {
+                                        "name": "globalSettings",
+                                        "description": "Global settings",
+                                        "tabs": [{
+                                            name: "Address"
+                                        }, {
+                                            name: "SMTP Credentials"
+                                        }],
+                                        "attrs": [
+                                            {
+                                                "attr": "logo",
+                                                "grid": 0
+                                            },
+                                            {
+                                                "attr": "name",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "street",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "unit",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "city",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "state",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "postalCode",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "country",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "phone",
+                                                "grid": 1
+                                            },
+                                            {
+                                                "attr": "smtpHost",
+                                                "grid": 2,
+                                                "label": "Host"
+                                            },
+                                            {
+                                                "attr": "smtpUser",
+                                                "grid": 2,
+                                                "label": "Email"
+                                            },
+                                            {
+                                                "attr": "smtpPassword",
+                                                "grid": 2,
+                                                "label": "Password"
+                                            },
+                                            {
+                                                "attr": "smtpSecure",
+                                                "grid": 2,
+                                                "label": "Secure"
+                                            },
+                                            {
+                                                "attr": "smtpPort",
+                                                "grid": 2,
+                                                "label": "Port"
+                                            }
+                                        ]
+                                    }
+                                }
                             });
                         }
                     }, [m("i", {
