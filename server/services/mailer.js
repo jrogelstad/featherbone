@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -80,15 +80,18 @@
             @param {String} [payload.data.pdf.form] Form name
             @param {String|Array} [payload.data.pdf.ids] Record id or ids
             @param {String} [payload.data.pdf.filename] Name of attachement
+            @param {Object} [payload.data.tenant] Use SMTP credentials from
+            tenant's database global settings
             @param {Object} payload.client Database client
             @return {Object} Promise
         */
-        that.sendMail = function (obj) {
-            return new Promise(function (resolve, reject) {
-                let message = obj.data.message;
-                let opts = obj.data.pdf;
+        that.sendMail = async function (obj) {
+            let message = obj.data.message;
+            let opts = obj.data.pdf;
+            let theSmtp = obj.data.smtp || smtp;
 
-                function cleanup() {
+            function cleanup() {
+                return new Promise(function (resolve, reject) {
                     fs.unlink(message.attachments.path, function (err) {
                         if (err) {
                             reject(err);
@@ -96,38 +99,42 @@
                         }
                         resolve();
                     });
-                }
+                });
+            }
 
-                function attachPdf(resp) {
-                    return new Promise(function (resolve) {
-                        message.attachments = {
-                            path: "./files/downloads/" + resp
-                        };
+            function attachPdf(resp) {
+                return new Promise(function (resolve) {
+                    message.attachments = {
+                        path: "./files/downloads/" + resp
+                    };
 
-                        resolve();
-                    });
-                }
+                    resolve();
+                });
+            }
 
-                function sendMail() {
-                    return new Promise(function (resolve, reject) {
-                        let transporter = nodemailer.createTransport(smtp);
+            function sendMail() {
+                return new Promise(function (resolve, reject) {
+                    let transporter = nodemailer.createTransport(theSmtp);
 
-                        transporter.sendMail(
-                            message
-                        ).then(
-                            resolve
-                        ).catch(
-                            reject
-                        );
-                    });
-                }
+                    transporter.sendMail(
+                        message
+                    ).then(
+                        resolve
+                    ).catch(
+                        reject
+                    );
+                });
+            }
 
-                if (opts) {
+            function sendMailWithOptions() {
+                return new Promise(function (resolve, reject) {
                     if (!opts.ids && !opts.data) {
                         attachPdf(opts.filename).then(
                             sendMail
                         ).then(
                             cleanup
+                        ).then(
+                            resolve
                         ).catch(
                             reject
                         );
@@ -143,14 +150,24 @@
                             sendMail
                         ).then(
                             cleanup
+                        ).then(
+                            resolve
                         ).catch(
                             reject
                         );
                     }
+                });
+            }
+
+            try {
+                if (opts) {
+                    return await sendMailWithOptions();
                 } else {
-                    sendMail().then(resolve).catch(reject);
+                    return await sendMail();
                 }
-            });
+            } catch (e) {
+                return Promise.reject(e);
+            }
         };
 
         return that;
