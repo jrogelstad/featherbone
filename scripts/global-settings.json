@@ -31,12 +31,12 @@
             "description": "City on printed forms",
             "type": "string"
         },
-        "postalCode": {
-            "description": "Postal code on printed forms",
-            "type": "string"
-        },
         "state": {
             "description": "State or province on printed forms",
+            "type": "string"
+        },
+        "postalCode": {
+            "description": "Postal code on printed forms",
             "type": "string"
         },
         "country": {
@@ -48,6 +48,30 @@
             "description": "Phone on printed forms",
             "type": "string",
             "format": "tel"
+        },
+        "smtpHost": {
+            "description": "SMTP host address",
+            "type": "string"
+        },
+        "smtpUser": {
+            "description": "SMTP email account",
+            "type": "string"
+        },
+        "smtpPassword": {
+            "description": "SMTP password",
+            "type": "string",
+            "format": "password",
+            "isEncrypted": true
+        },
+        "smtpSecure": {
+            "description": "Whether SMTP connection is secure",
+            "type": "boolean",
+            "default": true
+        },
+        "smtpPort": {
+            "description": "SMTP port",
+            "type": "integer",
+            "default": 465
         }
     }
 }
