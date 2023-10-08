@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node*/
+/*jslint node unordered*/
 const f = require("../common/core");
 
 (function (exports) {
@@ -97,9 +97,17 @@ const f = require("../common/core");
                     id = resp.rows[0].id;
                     obj.client.query(
                         (
-                            "INSERT INTO user_account VALUES " +
+                            "INSERT INTO user_account " +
+                            "(_pk, id, created, created_by, updated, " +
+                            " updated_by, is_deleted, lock, owner, etag, " +
+                            " name, password, is_super, " +
+                            "_contact_contact_pk, is_active, " +
+                            " change_password, last_password_change, " +
+                            " last_sign_in, sign_in_attempts, is_locked)  " +
+                            " VALUES " +
                             "($2, 'e54y397l4arw', now(), $1, now(), " +
-                            "$1, false, null, $1, $3, $1, '', true);"
+                            "$1, false, null, $1, $3, $1, '', true, -1, " +
+                            "true, false, null, null, 0, false);"
                         ),
                         [usr, id, f.createId()]
                     ).then(resolve).catch(reject);
