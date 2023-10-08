@@ -47,6 +47,7 @@ const exclusions = [
     "owner"
 ];
 const formats = {};
+const disabledFthrs = [];
 
 let styles;
 
@@ -1778,6 +1779,26 @@ f.createEditor = function (obj) {
     @return {Object}
 */
 f.createRelationWidget = createRelationWidgetFromFeather;
+
+/**
+  Sets or returns a set of feathers that are not available for use in lists by
+  non super users.
+
+  Any sheet in a workbook using a disabled feather will be invisible to
+  regular users and highlighted red for super users.
+
+  @method disabledFeathers
+  @param {Array} Array of feathers to disable
+  @return {Array}
+*/
+f.disabledFeathers = function (...args) {
+    if (args.length && Array.isArray(args[0])) {
+        disabledFthrs.length = 0;
+        args[0].forEach((fthr) => disabledFthrs.push(fthr));
+    }
+
+    return f.copy(disabledFthrs);
+};
 
 /**
   Returns the exact x, y coordinents of an HTML element.

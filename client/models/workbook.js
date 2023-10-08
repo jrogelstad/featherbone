@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -920,7 +920,18 @@ function worksheetModel(data) {
     }
 
     function thefeathers() {
-        return Object.keys(f.catalog().feathers()).sort().map(function (key) {
+        let df = f.disabledFeathers();
+        if (f.currentUser().isSuper) {
+            return Object.keys(
+                f.catalog().feathers()
+            ).sort().map(function (key) {
+                return {value: key, label: key};
+            });
+        }
+
+        return Object.keys(f.catalog().feathers()).filter(
+            (fthr) => df.indexOf(fthr) === -1
+        ).sort().map(function (key) {
             return {value: key, label: key};
         });
     }
