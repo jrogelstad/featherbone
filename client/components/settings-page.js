@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2023  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -34,22 +34,24 @@ const settingsPage = {};
 settingsPage.viewModel = function (options) {
     options = options || {};
     let vm = {};
-    let form = {};
+    let form = options.form || {};
     let models = f.catalog().store().models();
     let theModel = models[options.settings]();
     let definition = models[options.settings].definition();
 
     // Build form from settings definition
-    form.name = definition.name;
-    form.description = definition.description;
-    form.attrs = [];
-    Object.keys(definition.properties).forEach(function (key) {
-        form.attrs.push({
-            attr: key,
-            grid: 0,
-            unit: 0
+    if (!options.form) {
+        form.name = definition.name;
+        form.description = definition.description;
+        form.attrs = [];
+        Object.keys(definition.properties).forEach(function (key) {
+            form.attrs.push({
+                attr: key,
+                grid: 0,
+                unit: 0
+            });
         });
-    });
+    }
 
     // ..........................................................
     // PUBLIC

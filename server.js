@@ -958,7 +958,24 @@
         );
     }
 
-    function doSendMail(req, res) {
+    async function doSendMail(req, res) {
+        let gSettings = await datasource.request({
+            method: "GET",
+            name: "getSettings",
+            data: {name: "globalSettings"},
+            tenant: req.tenant,
+            user: req.user.name
+        }, true);
+        let theSmtp = {
+            auth: {
+                pass: gSettings.smtpPassword,
+                user: gSettings.smtpUser
+            },
+            host: gSettings.smtpHost,
+            port: gSettings.smtpPort,
+            secure: gSettings.smtpSecure
+        };
+
         let payload = {
             method: "POST",
             name: "sendMail",
@@ -978,7 +995,8 @@
                     form: req.body.pdf.form,
                     ids: req.body.pdf.id || req.body.pdf.ids,
                     filename: req.body.pdf.filename
-                }
+                },
+                smtp: theSmtp
             },
             tenant: req.tenant
         };
