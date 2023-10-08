@@ -80,11 +80,7 @@ const editSheetConfig = {
     }, {
         attr: "feather",
         grid: 1
-    }/*, { Keep it simple
-        attr: "openInNewWindow",
-        label: "Open in new tab",
-        grid: 1
-    }*/, {
+    }, {
         attr: "form",
         grid: 1,
         label: "Drill down form"
@@ -540,8 +536,6 @@ workbookPage.viewModel = function (options) {
             return sheet.form === frm.name;
         }) || {};
         let type = vm.tableWidget().model().data.objectType();
-        let url;
-        let win;
 
         if (selection) {
             m.route.set("/edit/:feather/:key", {
@@ -1624,6 +1618,7 @@ workbookPage.component = {
         tabs = vm.sheets().map(function (sheet) {
             let tab;
             let tabOpts;
+            let csheet = vm.config().find((sh) => sh.name === sheet);
 
             // Build tab
             tabOpts = {
@@ -1644,6 +1639,18 @@ workbookPage.component = {
                 tabOpts.ondrop = vm.ondrop.bind(this, idx, config);
                 tabOpts.ondragend = vm.ondragend;
                 tabOpts.class += " fb-workbook-tab-draggable";
+            }
+
+            if (csheet && f.disabledFeathers().indexOf(csheet.feather) !== -1) {
+                if (f.currentUser().isSuper) {
+                    tabOpts.style = {color: "red"};
+                    tabOpts.title = (
+                        "Feather disabled: " +
+                        "this tab is only visible to super users"
+                    );
+                } else {
+                    tabOpts.style = {display: "none"};
+                }
             }
 
             tab = m("button[type=button]", tabOpts, sheet.toName());
