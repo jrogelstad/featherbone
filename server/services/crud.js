@@ -945,6 +945,7 @@
                 let afterDelete;
                 let afterLog;
                 let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
+                let sql2 = "DELETE from \"$subscription\" WHERE objectid=$1;";
                 let clen = 1;
                 let c = 0;
                 let theClient = obj.client;
@@ -996,7 +997,7 @@
                     }, true).then(afterDoSelect).catch(reject);
                 };
 
-                afterDoSelect = function (resp) {
+                afterDoSelect = async function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -1052,6 +1053,7 @@
                     });
 
                     // Finally, delete parent object
+                    await theClient.query(sql2, [obj.id]);
                     theClient.query(sql, [obj.id], afterDelete);
                 };
 
