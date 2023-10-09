@@ -1791,7 +1791,7 @@ f.createRelationWidget = createRelationWidgetFromFeather;
   @param {Array} Array of feathers to disable
   @return {Array}
 */
-f.disabledFeathers = function (...args) {
+f.hiddenFeathers = function (...args) {
     if (args.length && Array.isArray(args[0])) {
         disabledFthrs.length = 0;
         args[0].forEach((fthr) => disabledFthrs.push(fthr));

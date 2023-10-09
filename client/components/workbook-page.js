@@ -1641,11 +1641,11 @@ workbookPage.component = {
                 tabOpts.class += " fb-workbook-tab-draggable";
             }
 
-            if (csheet && f.disabledFeathers().indexOf(csheet.feather) !== -1) {
+            if (csheet && f.hiddenFeathers().indexOf(csheet.feather) !== -1) {
                 if (f.currentUser().isSuper) {
                     tabOpts.style = {color: "red"};
                     tabOpts.title = (
-                        "Feather disabled: " +
+                        "Feather hidden: " +
                         "this tab is only visible to super users"
                     );
                 } else {

@@ -920,7 +920,7 @@ function worksheetModel(data) {
     }
 
     function thefeathers() {
-        let df = f.disabledFeathers();
+        let df = f.hiddenFeathers();
         if (f.currentUser().isSuper) {
             return Object.keys(
                 f.catalog().feathers()
