@@ -217,6 +217,7 @@
     },
     {
         "name": "FeatherOverload",
+        "plural": "FeatherOverloads",
         "module": "Core",
         "description": "Override behvaior of inherited properties on client",
         "properties": {
@@ -356,6 +357,7 @@
     },
     {
         "name": "RoleMembership",
+        "plural": "RoleMemberships",
         "module": "Core",
         "description": "Member reference to a parent role",
         "authorizations": [],
@@ -432,6 +434,7 @@
     },
     {
         "name": "ModuleDependency",
+        "plural": "ModuleDependencies",
         "module": "Core",
         "description": "Reference to module required for parent to operate",
         "properties": {
@@ -463,6 +466,7 @@
     },
     {
         "name": "ModuleNpm",
+        "plural": "ModuleNpms",
         "module": "Core",
         "description": "npm package dependencies",
         "properties": {
