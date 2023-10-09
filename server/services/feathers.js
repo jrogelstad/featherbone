@@ -1187,11 +1187,14 @@
                         actions.canCreate = false;
                         actions.canUpdate = false;
                         actions.canDelete = false;
-                    } else if (!feather.properties.owner) {
+                    } else if (
+                        obj.data.id &&
+                        !feather.properties.owner
+                    ) {
                         err = (
                             "Feather '" + resp.name +
                             "' must have owner property to set " +
-                            "authorization."
+                            "record level authorization."
                         );
                     }
 
@@ -1237,6 +1240,7 @@
                                 }
 
                                 if (
+                                    obj.data.id &&
                                     resp.rows[0].owner !==
                                     theClient.currentUser()
                                 ) {
