@@ -26,6 +26,11 @@
         },
         {
             "type": "feather",
+            "path": "scripts/feathers-bootstrap.json",
+            "isSystem": false
+        },
+        {
+            "type": "feather",
             "path": "scripts/feathers.json"
         },
         {
