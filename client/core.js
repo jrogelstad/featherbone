@@ -1037,17 +1037,14 @@ formats.userAccount = {
     type: "string"
 };
 function userAccountNames() {
-    let roles = catalog.store().data().roles().slice();
+    let userAccounts = catalog.store().data().userAccounts().slice();
     let result;
 
-    result = roles.filter((r) => (
-        r.data.objectType() === "UserAccount" && !r.data.isDeleted()
-    ));
-    result = result.map((role) => role.data.name()).sort();
-    result = result.map(function (role) {
+    result = userAccounts.map((ua) => ua.data.name()).sort();
+    result = result.map(function (ua) {
         return {
-            value: role,
-            label: role
+            value: ua,
+            label: ua
         };
     });
     result.unshift({
