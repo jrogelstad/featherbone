@@ -1200,9 +1200,24 @@ tableWidget.viewModel = function (options) {
                 );
             }
 
+            function notHidden(p) {
+                let prop = fspec.properties[p];
+                if (
+                    typeof prop.type === "object" &&
+                    f.hiddenFeathers().indexOf(prop.type.relation) !== -1
+                ) {
+                    return false;
+                }
+                return true;
+            }
+
             if (isOnlyVisible()) {
                 theBody.properties = vm.config().columns.map((col) => col.attr);
                 theBody.properties = theBody.properties.filter(notCalculated);
+            } else {
+                theBody.properties = Object.keys(
+                    fspec.properties
+                ).filter(notHidden).filter(notCalculated);
             }
 
             theBody.filter = getFilter();
