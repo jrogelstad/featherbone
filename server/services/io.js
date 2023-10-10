@@ -52,7 +52,8 @@
             filter: {criteria: [{
                 property: "isBase",
                 value: true
-            }], limit: 1}
+            }], limit: 1},
+            tenant: vClient.tenant()
         }, true);
         if (!curr.length) {
             throw "No base currency found";
@@ -295,7 +296,7 @@
                             }
                         } else if (
                             prop.type === "object" &&
-                            prop.format === "money"
+                            f.formats[prop.format].isMoney
                         ) {
                             row[key] = (
                                 value
@@ -709,7 +710,8 @@
                             property: nkey,
                             value: pValue
                         }]},
-                        user: pClient.currentUser()
+                        user: pClient.currentUser(),
+                        tenant: pClient.tenant()
                     }, true);
 
                     // If found match, use it
@@ -775,7 +777,10 @@
                             value
                         ) {
                             await getRelationId(key, value);
-                        } else if (props[key].format === "money") {
+                        } else if (
+                            props[key].type === "object" &&
+                            f.formats[props[key].format].isMoney
+                        ) {
                             value = String(value);
                             attrs = value.split(" ");
                             ret[key] = {
@@ -875,8 +880,9 @@
             } finally {
                 await unlink();
                 await process.complete();
-                return await writeLog();
             }
+
+            return await writeLog();
         };
 
         /**
