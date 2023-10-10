@@ -1341,42 +1341,47 @@ function updateUserAccount(obj) {
     });
 }
 
-function createUserAccount(obj) {
-    return new Promise(function (resolve, reject) {
-        if (!obj.newRec.contact) {
-            reject("Contact is required.");
-            return;
-        }
+async function createUserAccount(obj) {
+    if (!obj.newRec.contact) {
+        return Promise.reject("Contact is required.");
+    }
 
-        if (!obj.newRec.contact.email) {
-            reject("Contact must have a primary email address");
-            return;
-        }
+    let cntct = await f.datasource.request({
+        client: obj.client,
+        id: obj.newRec.contact.id,
+        method: "GET",
+        name: "Contact"
+    }, true);
 
-        function callback(config) {
-            if (
-                config.passwordLength &&
-                obj.newRec.password.length < config.passwordLength
-            ) {
-                reject(
-                    "Password length must be at least " +
-                    config.passwordLength + " characters"
-                );
-                return;
-            }
+    if (!cntct) {
+        return Promise.reject("Contact not found");
+    }
 
-            // Forward user account based options for role
-            obj.roleOptions = {
-                name: obj.newRec.name.toLowerCase(),
-                isLogin: obj.newRec.isActive,
-                isSuper: obj.newRec.isSuper,
-                password: obj.newRec.password,
-                isInherits: false
-            };
-            resolve();
-        }
-        f.datasource.config().then(callback).catch(reject);
-    });
+    if (!cntct.email) {
+        return Promise.reject("Contact must have a primary email address");
+    }
+
+
+    let config = await f.datasource.config();
+
+    if (
+        config.passwordLength &&
+        obj.newRec.password.length < config.passwordLength
+    ) {
+        return Promise.reject(
+            "Password length must be at least " +
+            config.passwordLength + " characters"
+        );
+    }
+
+    // Forward user account based options for role
+    obj.roleOptions = {
+        name: obj.newRec.name.toLowerCase(),
+        isLogin: obj.newRec.isActive,
+        isSuper: obj.newRec.isSuper,
+        password: obj.newRec.password,
+        isInherits: false
+    };
 }
 
 f.datasource.registerFunction(
