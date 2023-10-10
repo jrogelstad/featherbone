@@ -703,6 +703,7 @@
         "module": "Core",
         "authorizations": [],
         "description": "System users",
+        "isFetchOnStartup": true,
         "properties": {
             "password": {
                 "description": "Password",
