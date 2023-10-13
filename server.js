@@ -393,7 +393,21 @@
 
         logger.verbose(log);
         datasource.request(payload, req.user.isSuper).then(
-            function (data) {
+            async function (data) {
+                let cntct = await datasource.request({
+                    id: req.body.contact.id,
+                    name: "Contact",
+                    method: "GET",
+                    properties: ["id", "email"],
+                    user: systemUser,
+                    tenant: req.tenant
+                });
+                req.body.destination = cntct.email;
+                req.body.user = {name: req.body.name};
+                req.body.username = req.body.name;
+                req.body.tenant = req.tenant;
+                req.body.newAccount = true;
+                await magicLogin.send(req, {json: () => ""});
                 respond.bind(res, data)();
             }
         ).catch(
@@ -1932,6 +1946,7 @@
             callbackUrl: "/auth/magiclink/callback",
             sendMagicLink: async function (destination, href, ignore, req) {
                 try {
+                    // Confirmation mail only
                     if (req.body.confirmCode) {
                         req.magicHref = href;
                         await datasource.request({
@@ -1952,12 +1967,42 @@
                             user: systemUser,
                             tenant: false
                         });
-                    } else {
-                        let url = (
-                            req.protocol + "://" + req.get("host") + "/" +
-                            req.database + href
-                        );
+                        return;
+                    }
 
+                    // Link to log in without password
+                    let url = (
+                        req.protocol + "://" + req.get("host") + "/" +
+                        req.database + href
+                    );
+
+                    // New account
+                    if (req.body.newAccount) {
+                        let theHtml = (
+                            `<html><p>A new account has been created` +
+                            ` for you at: <b>${req.get("host")}</b></p>` +
+                            `<p>Your user name is: ` +
+                            `<b>${req.body.user.name}</b></p>` +
+                            `<html><p>Click <a href=` +
+                            `\"${url}\"` +
+                            `>here</a> to sign in.</p><html>`
+                        );
+                        await datasource.request({
+                            method: "POST",
+                            name: "sendMail",
+                            data: {
+                                message: {
+                                    to: destination,
+                                    subject: "New account created",
+                                    from: smtpAuthUser,
+                                    html: theHtml
+                                }
+                            },
+                            user: systemUser,
+                            tenant: false
+                        });
+                    } else {
+                        // Reset password
                         await datasource.request({
                             method: "POST",
                             name: "sendMail",

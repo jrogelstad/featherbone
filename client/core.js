@@ -1040,7 +1040,9 @@ function userAccountNames() {
     let userAccounts = catalog.store().data().userAccounts().slice();
     let result;
 
-    result = userAccounts.map((ua) => ua.data.name()).sort();
+    result = userAccounts.filter(
+        (ua) => !ua.data.isDeleted()
+    ).map((ua) => ua.data.name()).sort();
     result = result.map(function (ua) {
         return {
             value: ua,

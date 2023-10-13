@@ -25,7 +25,8 @@ function userAccount(data, feather) {
         data = {
             membership: [{
                 role: "everyone"
-            }]
+            }],
+            password: f.createId() + f.createId()
         };
     }
     let model = f.createModel(data, feather);
