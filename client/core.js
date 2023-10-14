@@ -2122,6 +2122,7 @@ f.processEvent = function (obj) {
             instance = ary.find((item) => item.id === data);
             ary.splice(ary.indexOf(instance), 1);
         }
+        ary.postProcess();
 
         return;
     }
@@ -2215,9 +2216,11 @@ f.processEvent = function (obj) {
         } else {
             addContingent();
         }
+        ary.postProcess();
         break;
     case "create":
         addContingent();
+        ary.postProcess();
         break;
     case "delete":
         instance = ary.indexOf(function (model) {
@@ -2227,6 +2230,7 @@ f.processEvent = function (obj) {
         if (instance !== -1) {
             ary.splice(instance, 1);
         }
+        ary.postProcess();
         break;
     case "lock":
         instance = ary.find(function (model) {
