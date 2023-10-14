@@ -2578,6 +2578,10 @@ tableWidget.viewModel = function (options) {
         doFetch();
         doFetchAggregates();
     }
+    if (vm.models().onEvent) {
+        vm.models().onEvent(doFetchAggregates);
+    }
+
     if (vm.models().state) {
         vm.models().state().resolve("/Unitialized").enter(vm.unselect);
     }

@@ -54,6 +54,7 @@ function createList(feather) {
     let sid = f.createId();
     let isBackground = false;
     let pathname = "/" + location.pathname.replaceAll("/", "");
+    let onEvents = [];
 
     // ..........................................................
     // PUBLIC
@@ -370,6 +371,17 @@ function createList(feather) {
     */
     ary.model = models[feather.toCamelCase() || "Model"];
     /**
+        A function to call after a model is updated by a subscribed event.
+
+        @method onEvent
+        @param {Function} callback Callback function after subcription events
+        @chainable
+        @return {Object}
+    */
+    ary.onEvent = function (callback) {
+        onEvents.push(callback);
+    };
+    /**
         A function to call before executing save. A view model will be
         passed in similar to static functions that allow for working with
         interactive dialogs or other presentation related elements.
@@ -427,6 +439,15 @@ function createList(feather) {
         @return {String}
     */
     ary.pending = f.prop([]);
+
+    /**
+        Execute subscription event post processing.
+
+        @method postProcess
+    */
+    ary.postProcess = function () {
+        onEvents.forEach((evt) => evt());
+    };
 
     /**
         Array of properties to fetch if only a subset required.
