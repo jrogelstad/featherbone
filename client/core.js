@@ -730,6 +730,10 @@ formats.icon.editor = function (options) {
         return m("option", icon.label);
     });
 
+    if (options.readonly) {
+        return formats.icon.tableData(options);
+    }
+
     return m("div", {
         key: options.key,
         style: {display: "inline-block"}
