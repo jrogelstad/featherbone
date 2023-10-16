@@ -2444,7 +2444,7 @@
             }]},
             method: "GET",
             name: "Tenant",
-            properties: ["id", "name", "pgService", "pgDatabase"],
+            properties: ["id", "name", "pgService", "pgDatabase", "edition"],
             user: conf.pgUser
         }, true);
         let tenant;

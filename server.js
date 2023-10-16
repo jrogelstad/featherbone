@@ -1267,7 +1267,10 @@
                 }
             } else {
                 req.user.mode = mode;
-                res.json(req.user);
+                req.session.database = req.database;
+                req.session.save(function () {
+                    res.json(req.user);
+                });
             }
         }
         rows = await datasource.request({
@@ -1294,7 +1297,7 @@
         authenticateLocal(req, res, next);
     }
 
-    function doSignOut(req, res) {
+    function doSignOut(req, res, next) {
         // Notify all instances on same session
         Object.keys(eventSessions).forEach(function (key) {
             if (eventSessions[key].sessionID === req.sessionID) {
@@ -1311,7 +1314,12 @@
         });
         req.logout(function () {
             req.session.destroy();
-            res.status(200).send();
+            if (res) {
+                res.status(200).send();
+            }
+            if (next) {
+                next();
+            }
         });
     }
 
@@ -1922,8 +1930,27 @@
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
-            {passReqToCallback: true, session: false},
-            function (req, username, password, done) {
+            {passReqToCallback: true},
+            async function (req, username, password, done) {
+                if (
+                    req.session &&
+                    req.tenant.edition &&
+                    req.tenant.edition.maxSessions
+                ) {
+                    let sql = "SELECT * FROM \"$session\" WHERE sess->>'database'=$1";
+                    let resp = await req.sessionStore.pool.query(sql, [req.database]);
+                    console.log(resp.rows.length);
+
+                    if (resp.rows.length >= req.tenant.edition.maxSessions) {
+                        done(null, false, new Error(
+                            "Maximum allowed sessions of " +
+                            req.tenant.edition.maxSessions +
+                            " exceeded"
+                        ));
+                        return;
+                    }
+                }
+
                 datasource.authenticate(req, username, password).then(
                     function (user) {
                         return done(null, user);
@@ -2044,7 +2071,10 @@
                         payload.username
                     );
 
-                    callback(null, user);
+                    req.session.database = req.database;
+                    req.session.save(function () {
+                        callback(null, user);
+                    });
                 } catch (err) {
                     callback(err);
                 }
@@ -2097,6 +2127,22 @@
         app.use(function (req, res, next) {
             if (req.sessionError) {
                 doSignOut(req, res);
+                return;
+            }
+
+            if (
+                req.session &&
+                req.session.database &&
+                req.database &&
+                req.session.database !== req.database
+            ) {
+                doSignOut(req, undefined, function () {
+                    let url = (
+                        req.protocol + "://" + req.get("host") + "/" +
+                        req.database
+                    );
+                    res.redirect(url);
+                });
                 return;
             }
 
