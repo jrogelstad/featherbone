@@ -1425,6 +1425,10 @@
                 "type": "string",
                 "isRequired": true,
                 "isLabelKey": true
+            },
+            "maxSessions": {
+                "description": "Number of sessions that can sign in",
+                "type": "integer"
             }
         }
     },
@@ -1494,7 +1498,8 @@
                     "relation": "Edition",
                     "properties": [
                         "name",
-                        "description"
+                        "description",
+                        "maxSessions"
                     ]
                 },
                 "isReadOnly": false
