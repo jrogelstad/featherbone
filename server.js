@@ -1323,6 +1323,49 @@
         });
     }
 
+    async function doGetSessions(req, res) {
+        // Notify all instances on same session
+        let sql = (
+            "SELECT * FROM \"$session\" " +
+            "WHERE sess->>'database'=$1 " +
+            " AND expire > now() " +
+            "ORDER BY expire;"
+        );
+        let resp = await req.sessionStore.pool.query(sql, [req.database]);
+        resp = resp.rows.map(function (row) {
+            return {
+                id: row.sid,
+                user: row.sess.passport.user,
+                expires: row.expire
+            };
+        });
+        respond.bind(res)(resp);
+    }
+
+    async function doDisconnectSession(req, res) {
+        // Notify all instances on same session
+        let sql = "DELETE FROM \"$session\" WHERE sid=$1;";
+
+        // Notify all instances on same session
+        Object.keys(eventSessions).forEach(function (key) {
+            if (eventSessions[key].sessionID === req.params.id) {
+                eventSessions[key]({
+                    payload: {
+                        subscription: {
+                            subscriptionId: "",
+                            change: "signedOut",
+                            data: {}
+                        }
+                    }
+                });
+            }
+        });
+
+        await req.sessionStore.pool.query(sql, [req.params.id]);
+
+        respond.bind(res)(true);
+    }
+
     function doGetProfile(req, res) {
         let payload = {
             method: "GET",
@@ -1931,32 +1974,39 @@
         // Set up authentication with passport
         passport.use(new LocalStrategy(
             {passReqToCallback: true},
-            async function (req, username, password, done) {
-                if (
-                    req.session &&
-                    req.tenant.edition &&
-                    req.tenant.edition.maxSessions
-                ) {
-                    let sql = (
-                        "SELECT * FROM \"$session\" " +
-                        "WHERE sess->>'database'=$1 " +
-                        " AND expire > now();"
-                    );
-                    let resp = await req.sessionStore.pool.query(sql, [req.database]);
-                    console.log(resp.rows.length);
-
-                    if (resp.rows.length >= req.tenant.edition.maxSessions) {
-                        done(null, false, new Error(
-                            "Maximum allowed sessions of " +
-                            req.tenant.edition.maxSessions +
-                            " exceeded"
-                        ));
-                        return;
-                    }
-                }
-
+            function (req, username, password, done) {
                 datasource.authenticate(req, username, password).then(
-                    function (user) {
+                    async function (user) {
+                        // Check session count
+                        if (
+                            !user.isSuper &&
+                            req.session &&
+                            req.tenant.edition &&
+                            req.tenant.edition.maxSessions
+                        ) {
+                            let sql = (
+                                "SELECT sid FROM \"$session\" " +
+                                "WHERE sess->>'database'=$1 " +
+                                " AND expire > now();"
+                            );
+                            let resp = await req.sessionStore.pool.query(
+                                sql,
+                                [req.database]
+                            );
+
+                            if (
+                                resp.rows.length >=
+                                req.tenant.edition.maxSessions
+                            ) {
+                                done(null, false, new Error(
+                                    "Maximum allowed sessions of " +
+                                    req.tenant.edition.maxSessions +
+                                    " exceeded"
+                                ));
+                                return;
+                            }
+                        }
+
                         return done(null, user);
                     }
                 ).catch(
@@ -2219,6 +2269,8 @@
             "/:db/data/object-authorizations",
             doGetObjectAuthorizations
         );
+        dbRouter.get("/:db/sessions", doGetSessions);
+        dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);
         dbRouter.post("/:db/do/change-role-password/", doChangeRolePassword);
         dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
