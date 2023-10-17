@@ -1937,7 +1937,11 @@
                     req.tenant.edition &&
                     req.tenant.edition.maxSessions
                 ) {
-                    let sql = "SELECT * FROM \"$session\" WHERE sess->>'database'=$1";
+                    let sql = (
+                        "SELECT * FROM \"$session\" " +
+                        "WHERE sess->>'database'=$1 " +
+                        " AND expire > now();"
+                    );
                     let resp = await req.sessionStore.pool.query(sql, [req.database]);
                     console.log(resp.rows.length);
 
