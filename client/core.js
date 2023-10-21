@@ -2102,6 +2102,8 @@ f.processEvent = function (obj) {
         return;
     }
 
+    ary.postProcess = ary.postProcess || function () {};
+
     // Special application change events
     switch (subscriptionId) {
     case moduleSid:
