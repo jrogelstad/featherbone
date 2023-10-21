@@ -1729,10 +1729,9 @@ function createModel(data, feather) {
         // Return read only props to previous state
         keys.forEach(function (key) {
             let prop = d[key];
-            let value = prop();
 
             if (prop.isToMany() && !prop.isCalculated) {
-                value.forEach(function (item) {
+                prop().forEach(function (item) {
                     item.state().goto("/Ready/Fetched/Clean");
                 });
             }
