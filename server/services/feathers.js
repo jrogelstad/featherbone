@@ -1754,16 +1754,21 @@
 
                         /* Create table if applicable */
                         if (!feather) {
-                            sql = "CREATE TABLE %I( ";
-                            sql += "CONSTRAINT %I PRIMARY KEY (_pk), ";
-                            sql += "CONSTRAINT %I UNIQUE (id)) ";
-                            sql += "INHERITS (%I);";
-                            sql += "CREATE TRIGGER %I AFTER INSERT ON %I ";
-                            sql += "FOR EACH ROW EXECUTE PROCEDURE ";
-                            sql += "insert_trigger();";
-                            sql += "CREATE TRIGGER %I AFTER UPDATE ON %I ";
-                            sql += "FOR EACH ROW EXECUTE PROCEDURE ";
-                            sql += "update_trigger();";
+                            sql = (
+                                "CREATE TABLE %I( " +
+                                "CONSTRAINT %I PRIMARY KEY (_pk), " +
+                                "CONSTRAINT %I UNIQUE (id)) " +
+                                "INHERITS (%I);" +
+                                "CREATE TRIGGER %I AFTER INSERT ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "insert_trigger();" +
+                                "CREATE TRIGGER %I AFTER UPDATE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "update_trigger();" +
+                                "CREATE TRIGGER %I AFTER DELETE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "delete_trigger();"
+                            );
 
                             tokens = tokens.concat([
                                 table,
@@ -1773,10 +1778,37 @@
                                 table + "_insert_trigger",
                                 table,
                                 table + "_update_trigger",
+                                table,
+                                table + "_delete_trigger",
                                 table
                             ]);
 
                         } else {
+                            // Update triggers as necessary
+                            sql += (
+                                "CREATE OR REPLACE TRIGGER %I " +
+                                "AFTER INSERT ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "insert_trigger();" +
+                                "CREATE OR REPLACE TRIGGER %I " +
+                                "AFTER UPDATE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "update_trigger();" +
+                                "CREATE OR REPLACE TRIGGER %I " +
+                                "AFTER DELETE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "delete_trigger();"
+                            );
+
+                            tokens = tokens.concat([
+                                table + "_insert_trigger",
+                                table,
+                                table + "_update_trigger",
+                                table,
+                                table + "_delete_trigger",
+                                table
+                            ]);
+
                             /* Drop non-inherited columns not included
                                in properties */
                             props = feather.properties;
