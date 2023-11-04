@@ -2102,7 +2102,9 @@ f.processEvent = function (obj) {
         return;
     }
 
-    ary.postProcess = ary.postProcess || function () {};
+    ary.postProcess = ary.postProcess || function () {
+        return;
+    };
 
     // Special application change events
     switch (subscriptionId) {
@@ -2225,13 +2227,8 @@ f.processEvent = function (obj) {
         ary.postProcess();
         break;
     case "delete":
-        instance = ary.indexOf(function (model) {
-            return model.id() === data;
-        });
-
-        if (instance !== -1) {
-            ary.splice(instance, 1);
-        }
+        instance = ary.find((i) => i.data.id() === data);
+        ary.splice(ary.indexOf(instance), 1);
         ary.postProcess();
         break;
     case "lock":

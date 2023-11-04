@@ -997,7 +997,7 @@
                     }, true).then(afterDoSelect).catch(reject);
                 };
 
-                afterDoSelect = async function (resp) {
+                afterDoSelect = function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -1053,18 +1053,18 @@
                     });
 
                     // Finally, delete parent object
-                    await theClient.query(sql2, [obj.id]);
                     theClient.query(sql, [obj.id], afterDelete);
                 };
 
                 // Handle change log
-                afterDelete = function () {
+                afterDelete = async function () {
                     // Move on only after all callbacks report back
                     c += 1;
                     if (c < clen) {
                         return;
                     }
 
+                    await theClient.query(sql2, [obj.id]);
                     afterLog();
                     return;
 
