@@ -113,11 +113,48 @@ textarea {
   background: #eee !important;
 }
 
+.fb-tags {
+  display: inline-block;
+  position: relative;
+}
+
+.fb-tags:hover:before {
+  border: solid;
+  border-color: #333 transparent;
+  border-width: 0 6px 6px 6px;
+  bottom: -4px;
+  content: "";
+  left: 50%;
+  position: absolute;
+  z-index: 99;
+}
+
+.fb-tags:hover:after {
+  background: #333;
+  background: rgba(0, 0, 0, .8);
+  border-radius: 5px;
+  top: 25px;
+  color: #fff;
+  content: attr(fbtitle);
+  left: 20%;
+  padding: 5px 15px;
+  position: absolute;
+  z-index: 98;
+  text-align: left;
+  width: max-content;
+  max-width: 350px;
+}
+
+.fb-button-tags:hover:after {
+  top: 40px;
+}
+
 .fb-input {
   width: 60%;
   min-width: 215px;
   max-width: 350px;
 }
+
 .fb-input-number {
   width: 60%;
   min-width: 215px;
