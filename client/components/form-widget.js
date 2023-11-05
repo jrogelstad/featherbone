@@ -183,8 +183,7 @@ function buildFieldset(vm, attrs) {
             for: theKey,
             key: theKey + "FormLabel",
             class: "fb-form-label",
-            style: {},
-            title: prop.description
+            style: {}
         };
 
         // For relations we get buttons for label
@@ -195,7 +194,11 @@ function buildFieldset(vm, attrs) {
                 };
             }
 
-            labelOpts.class = "pure-button fb-form-label-button";
+            labelOpts.fbtitle = prop.description;
+            labelOpts.class = (
+                "pure-button fb-form-label-button fb-tags " +
+                "fb-button-tags"
+            );
             labelOpts.onclick = function () {
                 menuButtons[theKey].display = "block";
             };
@@ -215,6 +218,10 @@ function buildFieldset(vm, attrs) {
                     id: "nav-relation-div-" + theKey,
                     class: "pure-menu fb-relation-menu"
                 }, [
+                    m("a", {
+                        class: "fb-tags",
+                        fbtitle: prop.description
+                    }, ""),
                     m("ul", {
                         class: "pure-menu-list fb-relation-menu-list",
                         id: "nav-relation-list-" + theKey,
@@ -278,7 +285,16 @@ function buildFieldset(vm, attrs) {
                 }, "menu")
             ], item.label || prop.alias() + ":");
         } else {
-            label = m("label", labelOpts, (item.label || prop.alias()) + ":");
+            label = m(
+                "label",
+                labelOpts,
+                [
+                    m("a", {
+                        class: "fb-tags",
+                        fbtitle: prop.description
+                    }, (item.label || prop.alias()) + ":")
+                ]
+            );
         }
 
         if (item.showLabel === false) {
