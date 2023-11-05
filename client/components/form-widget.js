@@ -218,10 +218,6 @@ function buildFieldset(vm, attrs) {
                     id: "nav-relation-div-" + theKey,
                     class: "pure-menu fb-relation-menu"
                 }, [
-                    m("a", {
-                        class: "fb-tags",
-                        fbtitle: prop.description
-                    }, ""),
                     m("ul", {
                         class: "pure-menu-list fb-relation-menu-list",
                         id: "nav-relation-list-" + theKey,
