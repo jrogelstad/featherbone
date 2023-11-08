@@ -766,13 +766,26 @@ function createList(feather) {
 
     async function doSave(context) {
         let requests = [];
-        let resp;
+        let resp = [];
+        let r;
+        let mdl;
 
         try {
             await doPreProcess(context.viewModel);
 
-            requests = dirty.map((mdl) => mdl.save(context.viewModel));
-            resp = await Promise.all(requests);
+            // Save one by one if extra processing such
+            // as user prompts set.
+            if (dirty[0].hasExtraProcessing()) {
+                while (dirty.length) {
+                    mdl = dirty[0];
+                    r = await mdl.save(context.viewModel);
+                    resp.push(r);
+                }
+            // Otherwise save all at once which is faster
+            } else {
+                requests = dirty.map((mdl) => mdl.save(context.viewModel));
+                resp = await Promise.all(requests);
+            }
             state.send("changed");
             context.resolve(resp);
 
