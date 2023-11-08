@@ -842,7 +842,7 @@ formPage.viewModel = function (options) {
         @method doSave
     */
     vm.doSave = function () {
-        vm.model().save().then(function () {
+        vm.model().save(vm).then(function () {
             callReceiver();
             vm.doBack();
         });
@@ -851,7 +851,7 @@ formPage.viewModel = function (options) {
         @method doSaveAndNew
     */
     vm.doSaveAndNew = function () {
-        vm.model().save().then(function () {
+        vm.model().save(vm).then(function () {
             callReceiver();
             delete instances[vm.model().id()];
             delete formInstances[vm.model().id()];

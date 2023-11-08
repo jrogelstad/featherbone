@@ -669,6 +669,19 @@ function createModel(data, feather) {
     };
 
     /**
+        Return whether there is pre-processing set by `onSave` or
+        or post-processing set by `onSaved`. Lists will save one by
+        one rather than all at once if this is true.
+
+        @method hasExtraProcessing
+        @return {Boolean}
+    */
+    model.hasExtraProcessing = function () {
+        return (onSave.length || onSaved.length);
+    };
+
+
+    /**
         Send event to fetch data based on the current id from the server.
         Returns a promise with model.data passed back as the value.
 
