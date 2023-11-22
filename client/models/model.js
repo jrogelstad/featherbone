@@ -2329,7 +2329,10 @@ function createModel(data, feather) {
 
     // Add standard check for 'canDelete'
     model.onCanDelete(function () {
-        return state.resolve(state.current()[0]).canDelete();
+        return (
+            !model.isReadOnly() &&
+            state.resolve(state.current()[0]).canDelete()
+        );
     });
 
     // Initialize
