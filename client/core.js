@@ -2186,8 +2186,12 @@ f.processEvent = function (obj) {
                 instance.state().goto("Ready/Fetched/Clean");
                 if (!ary.inFilter(instance)) {
                     // New data state should no longer show
-                    ary.remove(instance);
-                }
+                    if (ary.remove) {
+                        ary.remove(instance);
+                    } else {
+                        ary.splice(ary.indexOf(instance), 1);
+                    }
+            }
                 m.redraw();
             }
         } else {
@@ -2201,7 +2205,11 @@ f.processEvent = function (obj) {
         break;
     case "delete":
         instance = ary.find((i) => i.data.id() === data);
-        ary.remove(instance);
+        if (ary.remove) {
+            ary.remove(instance);
+        } else {
+            ary.splice(ary.indexOf(instance), 1);
+        }
         ary.postProcess();
         break;
     case "lock":
