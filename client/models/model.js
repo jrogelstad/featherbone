@@ -173,7 +173,7 @@ function extendArray(model, prop, name, onChange, onChanged) {
     };
 
     ary.canAdd = createProperty(true);
-
+    ary.canMove = f.prop(true);
     ary.clear = function () {
         prop.state().send("change");
         ary.length = 0;

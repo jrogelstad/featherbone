@@ -455,7 +455,7 @@ childTable.component = {
         buttonUp.disable();
         buttonDown.disable();
 
-        if (sel) {
+        if (ary.canMove && ary.canMove() && sel) {
             if (ary.length > 1) {
                 if (index < ary.length - 1) {
                     buttonDown.enable();
