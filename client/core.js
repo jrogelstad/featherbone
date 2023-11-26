@@ -2044,6 +2044,8 @@ f.processEvent = function (obj) {
     let patching = "/Busy/Saving/Patching";
     let data;
     let event = obj.event;
+    let formsSid = obj.formsSubscrId;
+    let moduleSid = obj.moduleSubscrId;
 
     if (holdEvents) {
         pending.push(obj);
@@ -2103,6 +2105,31 @@ f.processEvent = function (obj) {
     ary.postProcess = ary.postProcess || function () {
         return;
     };
+
+    // Special application change events
+    switch (subscriptionId) {
+    case moduleSid:
+        if (change === "create") {
+            catalog.store().data().modules().push({
+                value: data.name,
+                label: data.name
+            });
+        }
+        return;
+    case formsSid:
+        if (change === "create") {
+            ary.push(data);
+        } else if (change === "update") {
+            instance = ary.find((item) => item.id === data.id);
+            ary.splice(ary.indexOf(instance), 1, data);
+        } else if (change === "delete") {
+            instance = ary.find((item) => item.id === data);
+            ary.splice(ary.indexOf(instance), 1);
+        }
+        ary.postProcess();
+
+        return;
+    }
 
     let filter = {};
     // Handle if this is list array
