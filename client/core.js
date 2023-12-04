@@ -2208,9 +2208,12 @@ f.processEvent = function (obj) {
                     )
                 )
             ) {
-                instance.state().goto("Ready/Fetched/ReadOnly");
                 instance.set(data, true, true);
-                instance.state().goto("Ready/Fetched/Clean");
+                // Force `onLoad` manually as forcing state transition doesn't work
+                instance.state().resolve("/Ready/Fetched").enters.forEach(function (cb) {
+                    cb();
+                });
+
                 if (!ary.inFilter(instance)) {
                     // New data state should no longer show
                     if (ary.remove) {
@@ -2218,7 +2221,7 @@ f.processEvent = function (obj) {
                     } else {
                         ary.splice(ary.indexOf(instance), 1);
                     }
-            }
+                }
                 m.redraw();
             }
         } else {
