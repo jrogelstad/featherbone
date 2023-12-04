@@ -2046,6 +2046,7 @@ f.processEvent = function (obj) {
     let event = obj.event;
     let formsSid = obj.formsSubscrId;
     let moduleSid = obj.moduleSubscrId;
+    let onLoad;
 
     if (holdEvents) {
         pending.push(obj);
@@ -2209,10 +2210,15 @@ f.processEvent = function (obj) {
                 )
             ) {
                 instance.set(data, true, true);
-                // Force `onLoad` manually as forcing state transition doesn't work
-                instance.state().resolve("/Ready/Fetched").enters.forEach(function (cb) {
-                    cb();
-                });
+                // Force `onLoad` manually as forcing state
+                // transition doesn't work
+                onLoad = instance.state().resolve(
+                    "/Ready/Fetched/ReadOnly"
+                ).enters;
+                onLoad = onLoad.concat(instance.state().resolve(
+                    "/Ready/Fetched/Clean"
+                ).enters);
+                onLoad.forEach((cb) => cb());
 
                 if (!ary.inFilter(instance)) {
                     // New data state should no longer show
