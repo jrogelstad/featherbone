@@ -38,7 +38,7 @@ gantt.viewModel = function (options) {
 
     vm.chart = f.prop();
     vm.id = f.prop(options.id || f.createId());
-    vm.showDetail = f.prop(true);
+    vm.showDetail = f.prop(false);
     vm.showLinks = f.prop(true);
     vm.viewMode = f.prop("week");
 
@@ -117,12 +117,7 @@ gantt.component = {
             data = data.filter((d) => Boolean(d.type));
         }
 
-        if (chart) {
-            chart.options.viewMode = vm.viewMode();
-            chart.options.showLinks = vm.showLinks();
-            chart.data = data;
-            chart.render();
-        } else if (data.length && !chart) {
+        if (data.length) {
             chart = new Gantt.CanvasGantt(
                 e,
                 data,
