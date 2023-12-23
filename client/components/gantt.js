@@ -88,10 +88,6 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
-                        if (!item.feather && item.key) {
-                            return;
-                        }
-
                         if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
@@ -117,7 +113,22 @@ gantt.component = {
             data = data.filter((d) => Boolean(d.type));
         }
 
-        if (data.length) {
+        if (chart) {
+            chart.options.viewMode = vm.viewMode();
+            chart.options.showLinks = vm.showLinks();
+            chart.data = data;
+            chart.start = new Date();
+            chart.end = new Date();
+            chart.data.forEach(function (dat) {
+                if (dat.start < chart.start) {
+                    chart.start = dat.start;
+                }
+                if (dat.end > chart.end) {
+                    chart.end = dat.end;
+                }
+            })
+            chart.render();
+        } else if (data.length && !chart) {
             chart = new Gantt.CanvasGantt(
                 e,
                 data,
@@ -125,10 +136,6 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
-                        if (!item.feather && item.key) {
-                            return;
-                        }
-
                         if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
