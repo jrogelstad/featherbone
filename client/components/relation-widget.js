@@ -774,11 +774,15 @@ relationWidget.component = {
                 id: vm.id(),
                 onchange: (e) => vm.onchange(e.target.value),
                 onfocus: function () {
-                    vnode.attrs.onFocus();
+                    if (vnode.attrs.onFocus) {
+                        vnode.attrs.onFocus();
+                    }
                     vm.onfocus();
                 },
                 onblur: function () {
-                    vnode.attrs.onBlur();
+                    if (vnode.attrs.onBlur) {
+                        vnode.attrs.onBlur();
+                    }
                     vm.onblur();
                 },
                 oninput: (e) => vm.oninput(e.target.value),
