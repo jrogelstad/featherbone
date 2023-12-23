@@ -117,13 +117,13 @@ gantt.component = {
             chart.options.viewMode = vm.viewMode();
             chart.options.showLinks = vm.showLinks();
             chart.data = data;
-            chart.start = new Date();
-            chart.end = new Date();
+            chart.start = f.parseDate(f.endOfTime());
+            chart.end = f.parseDate(f.startOfTime())
             chart.data.forEach(function (dat) {
-                if (dat.start < chart.start) {
+                if (dat.start.valueOf() < chart.start.valueOf()) {
                     chart.start = dat.start;
                 }
-                if (dat.end > chart.end) {
+                if (dat.end.valueOf() > chart.end.valueOf()) {
                     chart.end = dat.end;
                 }
             })
