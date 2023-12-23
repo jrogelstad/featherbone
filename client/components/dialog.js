@@ -300,6 +300,14 @@ dialog.component = {
         let icon = vm.icon();
         let iconClass = "material-icons-outlined fb-dialog-icon";
 
+        // Kick redraw when browser navigation via history loses track of dialog
+        if (
+            vm.state().current()[0] === "/Display/Showing" &&
+            !document.getElementById(ids.dialog)
+        ) {
+            m.redraw();
+        }
+
         switch (icon) {
         case "info":
             iconClass += " fb-info";
