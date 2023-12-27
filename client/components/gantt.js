@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -34,6 +34,7 @@ const gantt = {};
     @param {String} [options.id] Id
 */
 gantt.viewModel = function (options) {
+    options = options || {};
     let vm = {};
 
     vm.chart = f.prop();
@@ -44,6 +45,8 @@ gantt.viewModel = function (options) {
 
     return vm;
 };
+
+f.catalog().register("viewModels", "gantt", gantt.viewModel);
 
 /**
     Gantt component
@@ -63,7 +66,7 @@ gantt.component = {
         in view model to attached to
     */
     oninit: function (vnode) {
-        this.viewModel = gantt.viewModel(vnode.attrs);
+        this.viewModel = vnode.attrs.viewModel || gantt.viewModel(vnode.attrs);
         this.viewModel.data = vnode.attrs.parentViewModel.model().data[
             vnode.attrs.parentProperty
         ];
@@ -80,7 +83,7 @@ gantt.component = {
             data = data.filter((d) => Boolean(d.type));
         }
 
-        if (data.length && !chart) {
+        if (data.length) {
             chart = new Gantt.CanvasGantt(
                 e,
                 data,
