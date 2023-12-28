@@ -91,7 +91,9 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
-                        if (item.feather && item.key) {
+                        if (item.route) {
+                            m.route.set(item.route);
+                        } else if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
                                 key: item.key
@@ -139,7 +141,9 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
-                        if (item.feather && item.key) {
+                        if (item.route) {
+                            m.route.set(item.route);
+                        } else if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
                                 key: item.key
