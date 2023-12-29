@@ -2046,7 +2046,7 @@ f.processEvent = function (obj) {
     let event = obj.event;
     let formsSid = obj.formsSubscrId;
     let moduleSid = obj.moduleSubscrId;
-    let onLoad;
+    let onLoad = [];
 
     if (holdEvents) {
         pending.push(obj);
@@ -2212,12 +2212,19 @@ f.processEvent = function (obj) {
                 instance.set(data, true, true);
                 // Force `onLoad` manually as forcing state
                 // transition doesn't work
-                onLoad = instance.state().resolve(
-                    "/Ready/Fetched/ReadOnly"
-                ).enters;
-                onLoad = onLoad.concat(instance.state().resolve(
-                    "/Ready/Fetched/Clean"
-                ).enters);
+                switch (instance.state().current()[0]) {
+                case "/Ready/Fetched/Clean":
+                    onLoad = onLoad.concat(instance.state().resolve(
+                        "/Ready/Fetched/Clean"
+                    ).enters);
+                    break;
+                case "/Ready/Fetched/ReadOnly":
+                    onLoad = instance.state().resolve(
+                        "/Ready/Fetched/ReadOnly"
+                    ).enters;
+                    break;
+                }
+
                 onLoad.forEach((cb) => cb());
 
                 if (!ary.inFilter(instance)) {
