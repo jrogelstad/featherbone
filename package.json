@@ -4,7 +4,7 @@
   "private": true,
   "description": "Framework for building object relational database apps",
   "keywords": [],
-  "author": "John Rogelstad",
+  "author": "Featherbone LLC",
   "license": "GPL v3",
   "main": "server.js",
   "repository": {
