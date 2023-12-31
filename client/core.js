@@ -2046,7 +2046,6 @@ f.processEvent = function (obj) {
     let event = obj.event;
     let formsSid = obj.formsSubscrId;
     let moduleSid = obj.moduleSubscrId;
-    let onLoad = [];
 
     if (holdEvents) {
         pending.push(obj);
@@ -2143,6 +2142,8 @@ f.processEvent = function (obj) {
     // Make a copy to work with
     let cary = ary.slice();
     let at;
+    let currState;
+
     function doSort(a, b) {
         let ret = 0;
         let i = 0;
@@ -2200,32 +2201,19 @@ f.processEvent = function (obj) {
         });
 
         if (instance) {
+            currState = instance.state().current()[0];
             // Only update if not caused by this instance
             if (
-                instance.state().current()[0] !== patching && (
+                currState !== patching && (
                     !data.etag || (
                         data.etag && instance.data.etag &&
                         data.etag !== instance.data.etag()
                     )
                 )
             ) {
+                instance.state().goto("/Ready/New");
                 instance.set(data, true, true);
-                // Force `onLoad` manually as forcing state
-                // transition doesn't work
-                switch (instance.state().current()[0]) {
-                case "/Ready/Fetched/Clean":
-                    onLoad = onLoad.concat(instance.state().resolve(
-                        "/Ready/Fetched/Clean"
-                    ).enters);
-                    break;
-                case "/Ready/Fetched/ReadOnly":
-                    onLoad = instance.state().resolve(
-                        "/Ready/Fetched/ReadOnly"
-                    ).enters;
-                    break;
-                }
-
-                onLoad.forEach((cb) => cb());
+                instance.state().goto(currState);
 
                 if (!ary.inFilter(instance)) {
                     // New data state should no longer show
