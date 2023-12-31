@@ -507,6 +507,12 @@ formWidget.viewModel = function (options) {
     */
     vm.outsideElementIds = f.prop(options.outsideElementIds || []);
     /**
+        @method parentViewModel
+        @param {Object} [viewModel]
+        @return {Object}
+    */
+    vm.parentViewModel = f.prop(options.parent);
+    /**
         Places to store relation content between redraws
         @method relations
         @param {Object} [relations]
