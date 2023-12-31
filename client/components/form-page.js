@@ -999,7 +999,8 @@ formPage.viewModel = function (options) {
         model: fmodel,
         id: options.key,
         config: form,
-        outsideElementIds: ["toolbar", "title"]
+        outsideElementIds: ["toolbar", "title"],
+        parent: vm
     }));
 
     // Once model instantiated let history know already created so we know
