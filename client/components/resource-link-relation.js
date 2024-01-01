@@ -148,9 +148,10 @@ function linkFiles(vm, files) {
 resourceLinkRelation.viewModel = function (options) {
     let vm = f.createViewModel("RelationWidget", options);
     vm.labelClass = "fb-relation-label truncate";
-    // Hide until we create a way to direct files to a
+    // Disable upload until we create a way to direct files to a
     // persistent file server
-    //vm.placeholder = "Search or → drop file ←";
+    /*
+    vm.placeholder = "Search or → drop file ←";
     /// only set dragleave to remove any effect
     vm.onDragLeave = function (evt) {
         //evt.dataTransfer.dropEffect = "none";
@@ -168,6 +169,7 @@ resourceLinkRelation.viewModel = function (options) {
         evt.preventDefault();
         linkFiles(vm, evt.dataTransfer.files);
     };
+    */
 
     vm.labels = function () {
         let resource;
