@@ -162,7 +162,7 @@
                 "type": "object",
                 "format": "autonumber",
                 "isRequired": false,
-                "default": null
+                "default": "null"
             },
             "isReadOnly": {
                 "description": "Ready only flag",
@@ -198,7 +198,7 @@
                 "description": "Array of input values",
                 "type": "array",
                 "isRequired": false,
-                "default": null
+                "default": "null"
             },
             "isIndexed": {
                 "description": "Flag whether to index property",
@@ -745,14 +745,14 @@
                 "description": "Last time user signed in",
                 "type": "string",
                 "format": "dateTime",
-                "default": null,
+                "default": "null",
                 "isReadOnly": true
             },
             "lastPasswordChange": {
                 "description": "Last time password was changed",
                 "type": "string",
                 "format": "dateTime",
-                "default": null,
+                "default": "null",
                 "isReadOnly": true
             },
             "signInAttempts": {
