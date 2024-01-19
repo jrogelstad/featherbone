@@ -1831,7 +1831,7 @@
                 sql += " WHERE id = $1";
 
                 if (obj.isForUpdate) {
-                    sql += " FOR UPDATE"
+                    sql += " FOR UPDATE";
                     await theClient.query(
                         "SELECT pg_advisory_xact_lock($1);",
                         [key]
@@ -1864,7 +1864,6 @@
                     feather.enableRowAuthorization
                 );
 
-                let feathername;
                 let sort = (
                     obj.filter
                     ? obj.filter.sort || []
@@ -1886,15 +1885,17 @@
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                feathername = obj.name;
-
                 // Handle subscription
-                await events.subscribe(
-                    theClient,
-                    obj.subscription,
-                    result.map((item) => item.id),
-                    feathername
-                );
+                if (obj.subscription) {
+                    let descendants = await feathers.getDescendants(obj.client, obj.name);
+
+                    await events.subscribe(
+                        theClient,
+                        obj.subscription,
+                        result.map((item) => item.id),
+                        descendants
+                    );
+                }
 
                 return result;
             }
