@@ -761,6 +761,52 @@
             disablePropagateViews = Boolean(flag);
         };
 
+        let descendants = {};
+        /**
+           Take a feather name and return an array of the feather
+           and its descendant names
+
+            @method getDescendants
+            @param {Object} client
+            @param {String} name
+            @return {Array}
+         */
+        that.getDescendants = async function (theClient, name) {
+            if (!name) {
+                return;
+            }
+
+            if (descendants[name]) {
+                return descendants[name];
+            }
+
+            let result = [name];
+            let catalog;
+
+            function appendFeathers(str) {
+                let kids = Object.keys(catalog).filter(function children(fthr) {
+                    return catalog[fthr].inherits === str;
+                });
+                result = result.concat(kids);
+                kids.forEach(appendFeathers);
+            }
+
+            try {
+                catalog = await settings.getSettings({
+                    client: theClient,
+                    data: {name: "catalog"}
+                });
+
+                appendFeathers(name);
+
+                descendants[name] = result;
+
+                return result;
+            } catch (e) {
+                return Promise.reject(e);
+            }
+        };
+
         /**
             Return a feather definition, including inherited properties.
 
@@ -2367,6 +2413,7 @@
                             return;
                         }
 
+                        descendants = {}; // Reset cache
                         resolve(true);
                     };
 
