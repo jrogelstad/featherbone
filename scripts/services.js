@@ -303,6 +303,7 @@ function doDeleteFeather(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
+        obj.isHard = true;
         let cpayload = {
             method: "DELETE",
             name: "deleteFeather",
