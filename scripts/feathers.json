@@ -306,6 +306,22 @@
         }
     },
     {
+        "name": "PrintForm",
+        "plural": "PrintForms",
+        "module": "Core",
+        "inherits": "Form",
+        "description": "Form layouts for printed documents",
+        "properties": {}
+    },
+    {
+        "name": "SystemPrintForm",
+        "plural": "PrintForms",
+        "module": "Core",
+        "inherits": "PrintForm",
+        "description": "Standard form layouts for printed documents delivered with packages",
+        "properties": {}
+    },
+    {
         "name": "FormTab",
         "plural": "FormTabs",
         "module": "Core",
@@ -389,12 +405,14 @@
                 "isRequired": true
             },
             "grid": {
+                "alias": "Panel",
                 "description": "Grid (pane) number",
                 "type": "integer",
                 "default": 0,
                 "isRequired": true
             },
             "unit": {
+                "alias": "Column",
                 "description": "Unit (column) number",
                 "type": "integer",
                 "default": 0,
