@@ -916,6 +916,8 @@ function sysprform(data, feather) {
                 model.data.module("");
                 model.data.module.isReadOnly(true);
             });
+        } else {
+            model.data.module.isReadOnly(false);
         }
     });
 
