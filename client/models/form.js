@@ -885,3 +885,41 @@ function printOverlayAttrColumn(data, feather) {
 }
 
 f.catalog().registerModel("PrintOverlayAttrColumn", printOverlayAttrColumn);
+
+function prform(data, feather) {
+    feather = feather || f.catalog().getFeather("PrintForm");
+    let model = f.createModel(data, feather);
+    if (model.data.module) {
+        model.data.module.isReadOnly(true);
+    }
+
+    // Hack: list can't differentiate types
+    model.onCanDelete(function () {
+        return (!Boolean(model.data.objectType() === "SystemPrintForm"));
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("PrintForm", prform);
+
+function sysprform(data, feather) {
+    feather = feather || f.catalog().getFeather("SystemPrintForm");
+    let model = f.createModel(data, feather);
+    let state = model.state();
+
+    model.onLoad(function () {
+        if (f.currentUser().mode !== "dev") {
+            state.send("freeze");
+            model.onCopy(function () {
+                model.name = "PrintForm";
+                model.data.module("");
+                model.data.module.isReadOnly(true);
+            });
+        }
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("SystemPrintForm", sysprform);
