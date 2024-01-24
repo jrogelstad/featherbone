@@ -362,8 +362,10 @@ childTable.viewModel = function (options) {
     });
     canAdd = vm.tableWidget().models().canAdd;
 
-    root.state().resolve("/Ready").enter(canAdd);
-    root.state().resolve("/Locked").enter(canAdd);
+    root.state().resolve("/Ready/Fetched/ReadOnly").enter(() => canAdd(false));
+    root.state().resolve("/Locked").enter(() => canAdd(false));
+    root.state().resolve("/Ready/Fetched/ReadOnly").exit(() => canAdd(true));
+    root.state().resolve("/Locked").exit(() => canAdd(true));
     root.state().resolve("/Ready/Fetched/Clean").enter(vm.tableWidget().select);
     canAdd.state().resolve("/Changing").exit(toggleCanAdd);
     toggleCanAdd();
