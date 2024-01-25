@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1200,9 +1200,24 @@ tableWidget.viewModel = function (options) {
                 );
             }
 
+            function notHidden(p) {
+                let prop = fspec.properties[p];
+                if (
+                    typeof prop.type === "object" &&
+                    f.hiddenFeathers().indexOf(prop.type.relation) !== -1
+                ) {
+                    return false;
+                }
+                return true;
+            }
+
             if (isOnlyVisible()) {
                 theBody.properties = vm.config().columns.map((col) => col.attr);
                 theBody.properties = theBody.properties.filter(notCalculated);
+            } else {
+                theBody.properties = Object.keys(
+                    fspec.properties
+                ).filter(notHidden).filter(notCalculated);
             }
 
             theBody.filter = getFilter();
@@ -2563,6 +2578,10 @@ tableWidget.viewModel = function (options) {
         doFetch();
         doFetchAggregates();
     }
+    if (vm.models().onEvent) {
+        vm.models().onEvent(doFetchAggregates);
+    }
+
     if (vm.models().state) {
         vm.models().state().resolve("/Unitialized").enter(vm.unselect);
     }

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -730,6 +730,10 @@ formats.icon.editor = function (options) {
         return m("option", icon.label);
     });
 
+    if (options.readonly) {
+        return formats.icon.tableData(options);
+    }
+
     return m("div", {
         key: options.key,
         style: {display: "inline-block"}
@@ -1037,17 +1041,16 @@ formats.userAccount = {
     type: "string"
 };
 function userAccountNames() {
-    let roles = catalog.store().data().roles().slice();
+    let userAccounts = catalog.store().data().userAccounts().slice();
     let result;
 
-    result = roles.filter((r) => (
-        r.data.objectType() === "UserAccount" && !r.data.isDeleted()
-    ));
-    result = result.map((role) => role.data.name()).sort();
-    result = result.map(function (role) {
+    result = userAccounts.filter(
+        (ua) => !ua.data.isDeleted()
+    ).map((ua) => ua.data.name()).sort();
+    result = result.map(function (ua) {
         return {
-            value: role,
-            label: role
+            value: ua,
+            label: ua
         };
     });
     result.unshift({
@@ -2099,6 +2102,10 @@ f.processEvent = function (obj) {
         return;
     }
 
+    ary.postProcess = ary.postProcess || function () {
+        return;
+    };
+
     // Special application change events
     switch (subscriptionId) {
     case moduleSid:
@@ -2119,6 +2126,7 @@ f.processEvent = function (obj) {
             instance = ary.find((item) => item.id === data);
             ary.splice(ary.indexOf(instance), 1);
         }
+        ary.postProcess();
 
         return;
     }
@@ -2134,6 +2142,8 @@ f.processEvent = function (obj) {
     // Make a copy to work with
     let cary = ary.slice();
     let at;
+    let currState;
+
     function doSort(a, b) {
         let ret = 0;
         let i = 0;
@@ -2191,39 +2201,47 @@ f.processEvent = function (obj) {
         });
 
         if (instance) {
+            currState = instance.state().current()[0];
             // Only update if not caused by this instance
             if (
-                instance.state().current()[0] !== patching && (
+                currState !== patching && (
                     !data.etag || (
                         data.etag && instance.data.etag &&
                         data.etag !== instance.data.etag()
                     )
                 )
             ) {
-                instance.state().goto("Ready/Fetched/ReadOnly");
+                instance.state().goto("/Ready/New");
                 instance.set(data, true, true);
-                instance.state().goto("Ready/Fetched/Clean");
+                instance.state().goto(currState);
+
                 if (!ary.inFilter(instance)) {
                     // New data state should no longer show
-                    ary.splice(ary.indexOf(instance), 1);
+                    if (ary.remove) {
+                        ary.remove(instance);
+                    } else {
+                        ary.splice(ary.indexOf(instance), 1);
+                    }
                 }
                 m.redraw();
             }
         } else {
             addContingent();
         }
+        ary.postProcess();
         break;
     case "create":
         addContingent();
+        ary.postProcess();
         break;
     case "delete":
-        instance = ary.indexOf(function (model) {
-            return model.id() === data;
-        });
-
-        if (instance !== -1) {
-            ary.splice(instance, 1);
+        instance = ary.find((i) => i.data.id() === data);
+        if (ary.remove) {
+            ary.remove(instance);
+        } else {
+            ary.splice(ary.indexOf(instance), 1);
         }
+        ary.postProcess();
         break;
     case "lock":
         instance = ary.find(function (model) {

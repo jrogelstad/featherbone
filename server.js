@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -393,7 +393,21 @@
 
         logger.verbose(log);
         datasource.request(payload, req.user.isSuper).then(
-            function (data) {
+            async function (data) {
+                let cntct = await datasource.request({
+                    id: req.body.contact.id,
+                    name: "Contact",
+                    method: "GET",
+                    properties: ["id", "email"],
+                    user: systemUser,
+                    tenant: req.tenant
+                });
+                req.body.destination = cntct.email;
+                req.body.user = {name: req.body.name};
+                req.body.username = req.body.name;
+                req.body.tenant = req.tenant;
+                req.body.newAccount = true;
+                await magicLogin.send(req, {json: () => ""});
                 respond.bind(res, data)();
             }
         ).catch(
@@ -1253,7 +1267,10 @@
                 }
             } else {
                 req.user.mode = mode;
-                res.json(req.user);
+                req.session.database = req.database;
+                req.session.save(function () {
+                    res.json(req.user);
+                });
             }
         }
         rows = await datasource.request({
@@ -1280,7 +1297,7 @@
         authenticateLocal(req, res, next);
     }
 
-    function doSignOut(req, res) {
+    function doSignOut(req, res, next) {
         // Notify all instances on same session
         Object.keys(eventSessions).forEach(function (key) {
             if (eventSessions[key].sessionID === req.sessionID) {
@@ -1297,8 +1314,56 @@
         });
         req.logout(function () {
             req.session.destroy();
-            res.status(200).send();
+            if (res) {
+                res.status(200).send();
+            }
+            if (next) {
+                next();
+            }
         });
+    }
+
+    async function doGetSessions(req, res) {
+        // Notify all instances on same session
+        let sql = (
+            "SELECT * FROM \"$session\" " +
+            "WHERE sess->>'database'=$1 " +
+            " AND expire > now() " +
+            "ORDER BY expire;"
+        );
+        let resp = await req.sessionStore.pool.query(sql, [req.database]);
+        resp = resp.rows.map(function (row) {
+            return {
+                id: row.sid,
+                user: row.sess.passport.user,
+                expires: row.expire
+            };
+        });
+        respond.bind(res)(resp);
+    }
+
+    async function doDisconnectSession(req, res) {
+        // Notify all instances on same session
+        let sql = "DELETE FROM \"$session\" WHERE sid=$1;";
+
+        // Notify all instances on same session
+        Object.keys(eventSessions).forEach(function (key) {
+            if (eventSessions[key].sessionID === req.params.id) {
+                eventSessions[key]({
+                    payload: {
+                        subscription: {
+                            subscriptionId: "",
+                            change: "signedOut",
+                            data: {}
+                        }
+                    }
+                });
+            }
+        });
+
+        await req.sessionStore.pool.query(sql, [req.params.id]);
+
+        respond.bind(res)(true);
     }
 
     function doGetProfile(req, res) {
@@ -1908,10 +1973,40 @@
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
-            {passReqToCallback: true, session: false},
+            {passReqToCallback: true},
             function (req, username, password, done) {
                 datasource.authenticate(req, username, password).then(
-                    function (user) {
+                    async function (user) {
+                        // Check session count
+                        if (
+                            !user.isSuper &&
+                            req.session &&
+                            req.tenant.edition &&
+                            req.tenant.edition.maxSessions
+                        ) {
+                            let sql = (
+                                "SELECT sid FROM \"$session\" " +
+                                "WHERE sess->>'database'=$1 " +
+                                " AND expire > now();"
+                            );
+                            let resp = await req.sessionStore.pool.query(
+                                sql,
+                                [req.database]
+                            );
+
+                            if (
+                                resp.rows.length >=
+                                req.tenant.edition.maxSessions
+                            ) {
+                                done(null, false, new Error(
+                                    "Maximum allowed sessions of " +
+                                    req.tenant.edition.maxSessions +
+                                    " exceeded"
+                                ));
+                                return;
+                            }
+                        }
+
                         return done(null, user);
                     }
                 ).catch(
@@ -1932,6 +2027,7 @@
             callbackUrl: "/auth/magiclink/callback",
             sendMagicLink: async function (destination, href, ignore, req) {
                 try {
+                    // Confirmation mail only
                     if (req.body.confirmCode) {
                         req.magicHref = href;
                         await datasource.request({
@@ -1952,12 +2048,42 @@
                             user: systemUser,
                             tenant: false
                         });
-                    } else {
-                        let url = (
-                            req.protocol + "://" + req.get("host") + "/" +
-                            req.database + href
-                        );
+                        return;
+                    }
 
+                    // Link to log in without password
+                    let url = (
+                        req.protocol + "://" + req.get("host") + "/" +
+                        req.database + href
+                    );
+
+                    // New account
+                    if (req.body.newAccount) {
+                        let theHtml = (
+                            `<html><p>A new account has been created` +
+                            ` for you at: <b>${req.get("host")}</b></p>` +
+                            `<p>Your user name is: ` +
+                            `<b>${req.body.user.name}</b></p>` +
+                            `<html><p>Click <a href=` +
+                            `\"${url}\"` +
+                            `>here</a> to sign in.</p><html>`
+                        );
+                        await datasource.request({
+                            method: "POST",
+                            name: "sendMail",
+                            data: {
+                                message: {
+                                    to: destination,
+                                    subject: "New account created",
+                                    from: smtpAuthUser,
+                                    html: theHtml
+                                }
+                            },
+                            user: systemUser,
+                            tenant: false
+                        });
+                    } else {
+                        // Reset password
                         await datasource.request({
                             method: "POST",
                             name: "sendMail",
@@ -1999,7 +2125,10 @@
                         payload.username
                     );
 
-                    callback(null, user);
+                    req.session.database = req.database;
+                    req.session.save(function () {
+                        callback(null, user);
+                    });
                 } catch (err) {
                     callback(err);
                 }
@@ -2052,6 +2181,22 @@
         app.use(function (req, res, next) {
             if (req.sessionError) {
                 doSignOut(req, res);
+                return;
+            }
+
+            if (
+                req.session &&
+                req.session.database &&
+                req.database &&
+                req.session.database !== req.database
+            ) {
+                doSignOut(req, undefined, function () {
+                    let url = (
+                        req.protocol + "://" + req.get("host") + "/" +
+                        req.database
+                    );
+                    res.redirect(url);
+                });
                 return;
             }
 
@@ -2124,6 +2269,8 @@
             "/:db/data/object-authorizations",
             doGetObjectAuthorizations
         );
+        dbRouter.get("/:db/sessions", doGetSessions);
+        dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);
         dbRouter.post("/:db/do/change-role-password/", doChangeRolePassword);
         dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
