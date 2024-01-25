@@ -1,6 +1,6 @@
 ﻿/**
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -113,11 +113,49 @@ textarea {
   background: #eee !important;
 }
 
+.fb-tags {
+  display: inline-block;
+  position: relative;
+}
+
+.fb-tags:hover:before {
+  border: solid;
+  border-color: #333 transparent;
+  border-width: 0 6px 6px 6px;
+  bottom: -4px;
+  content: "";
+  left: 50%;
+  position: absolute;
+  z-index: 99;
+}
+
+.fb-tags:hover:after {
+  background: #333;
+  background: rgba(0, 0, 0, .8);
+  border-radius: 5px;
+  top: 25px;
+  color: #fff;
+  content: attr(fbtitle);
+  left: 20%;
+  padding: 5px 15px;
+  position: absolute;
+  z-index: 98;
+  text-align: left;
+  width: max-content;
+  max-width: 350px;
+  text-wrap: wrap;
+}
+
+.fb-button-tags:hover:after {
+  top: 40px;
+}
+
 .fb-input {
   width: 60%;
   min-width: 215px;
   max-width: 350px;
 }
+
 .fb-input-number {
   width: 60%;
   min-width: 215px;
@@ -176,7 +214,8 @@ textarea {
 }
 
 .fb-checkbox-cell {
-    display: table-cell;
+    top: -10px;
+    left: -6px !important;
 }
 
 .fb-checkbox-focus {
@@ -184,8 +223,8 @@ textarea {
 }
 
 .fb-checkbox-input {
-  position: absolute;
-  left: -999px;
+  position: relative;
+  left: -9999px;
 }
 
 .fb-click-text:hover {
@@ -205,6 +244,8 @@ textarea {
   max-width: 15px;
   min-width: 15px;
   background-color: White;
+  position: relative;
+  left: -13px;
 }
 
 .fb-cell-view {

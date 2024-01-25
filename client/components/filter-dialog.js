@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -180,7 +180,10 @@ filterDialog.viewModel = function (options) {
                 return m(w, {
                     parentProperty: attr,
                     parentViewModel: vm,
-                    isCell: true
+                    isCell: true,
+                    style: {
+                        maxWidth: "220px"
+                    }
                 });
             }
         }
