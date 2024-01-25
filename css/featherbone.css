@@ -214,7 +214,8 @@ textarea {
 }
 
 .fb-checkbox-cell {
-    display: table-cell;
+    top: -10px;
+    left: -6px !important;
 }
 
 .fb-checkbox-focus {
@@ -222,8 +223,8 @@ textarea {
 }
 
 .fb-checkbox-input {
-  position: absolute;
-  left: -999px;
+  position: relative;
+  left: -9999px;
 }
 
 .fb-click-text:hover {
@@ -243,6 +244,8 @@ textarea {
   max-width: 15px;
   min-width: 15px;
   background-color: White;
+  position: relative;
+  left: -13px;
 }
 
 .fb-cell-view {
