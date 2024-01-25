@@ -998,7 +998,7 @@
                     }, true).then(afterDoSelect).catch(reject);
                 };
 
-                afterDoSelect = function (resp) {
+                afterDoSelect = async function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -1054,6 +1054,7 @@
                     });
 
                     // Finally, delete parent object
+                    await theClient.query(sql2, [obj.id]);
                     theClient.query(sql, [obj.id], afterDelete);
                 };
 
