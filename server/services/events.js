@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -80,11 +80,15 @@
             @param {Boolean} [subscription.merge] Merge previous subscription.
                 Default false.
             @param {Array} ids Ids to listen to
-            @param {String} tablename Feather or table name to listen for
-            inserts.
+            @param {String | Array} tablenames Feather(s) or table name(s)
+            to listen for inserts.
             @return {Promise}
         */
-        events.subscribe = function (client, subscription, ids, tablename) {
+        events.subscribe = function (client, subscription, ids, tablenames) {
+            if (tablenames && typeof tablenames === "string") {
+                tablenames = [tablenames];
+            }
+
             return new Promise(function (resolve, reject) {
                 if (!subscription) {
                     resolve();
@@ -124,20 +128,22 @@
                             queries.push(client.query(sql, params));
                         });
 
-                        if (tablename) {
-                            tablename = tablename.toSnakeCase();
-                            tparams = [
-                                subscription.nodeId,
-                                subscription.eventKey,
-                                subscription.id,
-                                tablename
-                            ];
-                            sql = (
-                                "INSERT INTO \"$subscription\" VALUES " +
-                                "($1, $2, $3, $4) ON CONFLICT DO NOTHING;"
-                            );
+                        if (tablenames && tablenames.length) {
+                            tablenames.forEach(function (tablename) {
+                                tablename = tablename.toSnakeCase();
+                                tparams = [
+                                    subscription.nodeId,
+                                    subscription.eventKey,
+                                    subscription.id,
+                                    tablename
+                                ];
+                                sql = (
+                                    "INSERT INTO \"$subscription\" VALUES " +
+                                    "($1, $2, $3, $4) ON CONFLICT DO NOTHING;"
+                                );
 
-                            queries.push(client.query(sql, tparams));
+                                queries.push(client.query(sql, tparams));
+                            });
                         }
 
                         Promise.all(queries).then(resolve).catch(reject);

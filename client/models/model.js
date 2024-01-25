@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -173,7 +173,7 @@ function extendArray(model, prop, name, onChange, onChanged) {
     };
 
     ary.canAdd = createProperty(true);
-
+    ary.canMove = f.prop(true);
     ary.clear = function () {
         prop.state().send("change");
         ary.length = 0;
@@ -667,6 +667,19 @@ function createModel(data, feather) {
             resolve(true);
         });
     };
+
+    /**
+        Return whether there is pre-processing set by `onSave` or
+        or post-processing set by `onSaved`. Lists will save one by
+        one rather than all at once if this is true.
+
+        @method hasExtraProcessing
+        @return {Boolean}
+    */
+    model.hasExtraProcessing = function () {
+        return (onSave.length || onSaved.length);
+    };
+
 
     /**
         Send event to fetch data based on the current id from the server.
@@ -1729,10 +1742,9 @@ function createModel(data, feather) {
         // Return read only props to previous state
         keys.forEach(function (key) {
             let prop = d[key];
-            let value = prop();
 
             if (prop.isToMany() && !prop.isCalculated) {
-                value.forEach(function (item) {
+                prop().forEach(function (item) {
                     item.state().goto("/Ready/Fetched/Clean");
                 });
             }
@@ -2317,7 +2329,10 @@ function createModel(data, feather) {
 
     // Add standard check for 'canDelete'
     model.onCanDelete(function () {
-        return state.resolve(state.current()[0]).canDelete();
+        return (
+            !model.isReadOnly() &&
+            state.resolve(state.current()[0]).canDelete()
+        );
     });
 
     // Initialize

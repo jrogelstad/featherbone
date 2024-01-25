@@ -132,13 +132,15 @@
                 "description": "Numeric scale",
                 "type": "number",
                 "isRequired": false,
-                "default": -1
+                "default": -1,
+                "min": -1
             },
             "precision": {
                 "description": "Numeric precision",
                 "type": "number",
                 "isRequired": false,
-                "default": -1
+                "default": -1,
+                "min": -1
             },
             "min": {
                 "description": "Numeric minimum",
@@ -160,7 +162,7 @@
                 "type": "object",
                 "format": "autonumber",
                 "isRequired": false,
-                "default": null
+                "default": "null"
             },
             "isReadOnly": {
                 "description": "Ready only flag",
@@ -196,7 +198,7 @@
                 "description": "Array of input values",
                 "type": "array",
                 "isRequired": false,
-                "default": null
+                "default": "null"
             },
             "isIndexed": {
                 "description": "Flag whether to index property",
@@ -217,6 +219,7 @@
     },
     {
         "name": "FeatherOverload",
+        "plural": "FeatherOverloads",
         "module": "Core",
         "description": "Override behvaior of inherited properties on client",
         "properties": {
@@ -356,6 +359,7 @@
     },
     {
         "name": "RoleMembership",
+        "plural": "RoleMemberships",
         "module": "Core",
         "description": "Member reference to a parent role",
         "authorizations": [],
@@ -432,6 +436,7 @@
     },
     {
         "name": "ModuleDependency",
+        "plural": "ModuleDependencies",
         "module": "Core",
         "description": "Reference to module required for parent to operate",
         "properties": {
@@ -463,6 +468,7 @@
     },
     {
         "name": "ModuleNpm",
+        "plural": "ModuleNpms",
         "module": "Core",
         "description": "npm package dependencies",
         "properties": {
@@ -699,6 +705,7 @@
         "module": "Core",
         "authorizations": [],
         "description": "System users",
+        "isFetchOnStartup": true,
         "properties": {
             "password": {
                 "description": "Password",
@@ -738,14 +745,14 @@
                 "description": "Last time user signed in",
                 "type": "string",
                 "format": "dateTime",
-                "default": null,
+                "default": "null",
                 "isReadOnly": true
             },
             "lastPasswordChange": {
                 "description": "Last time password was changed",
                 "type": "string",
                 "format": "dateTime",
-                "default": null,
+                "default": "null",
                 "isReadOnly": true
             },
             "signInAttempts": {

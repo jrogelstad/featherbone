@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -945,6 +945,7 @@
                 let afterDelete;
                 let afterLog;
                 let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
+                let sql2 = "DELETE from \"$subscription\" WHERE objectid=$1;";
                 let clen = 1;
                 let c = 0;
                 let theClient = obj.client;
@@ -989,6 +990,7 @@
                     crud.doSelect({
                         name: obj.name,
                         id: obj.id,
+                        isForUpdate: true,
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
                         client: theClient,
@@ -1056,13 +1058,14 @@
                 };
 
                 // Handle change log
-                afterDelete = function () {
+                afterDelete = async function () {
                     // Move on only after all callbacks report back
                     c += 1;
                     if (c < clen) {
                         return;
                     }
 
+                    await theClient.query(sql2, [obj.id]);
                     afterLog();
                     return;
 
@@ -1828,6 +1831,7 @@
                 sql += " WHERE id = $1";
 
                 if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
                     await theClient.query(
                         "SELECT pg_advisory_xact_lock($1);",
                         [key]
@@ -1860,7 +1864,6 @@
                     feather.enableRowAuthorization
                 );
 
-                let feathername;
                 let sort = (
                     obj.filter
                     ? obj.filter.sort || []
@@ -1874,20 +1877,25 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
+                if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
+                }
 
                 //console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                feathername = obj.name;
-
                 // Handle subscription
-                await events.subscribe(
-                    theClient,
-                    obj.subscription,
-                    result.map((item) => item.id),
-                    feathername
-                );
+                if (obj.subscription) {
+                    let descendants = await feathers.getDescendants(obj.client, obj.name);
+
+                    await events.subscribe(
+                        theClient,
+                        obj.subscription,
+                        result.map((item) => item.id),
+                        descendants
+                    );
+                }
 
                 return result;
             }
@@ -2011,6 +2019,7 @@
                     resp = await crud.doSelect({
                         name: obj.name,
                         id: obj.id,
+                        isForUpdate: true,
                         properties: keys.filter(noChildProps),
                         client: theClient,
                         sanitize: false

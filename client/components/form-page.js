@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -842,7 +842,7 @@ formPage.viewModel = function (options) {
         @method doSave
     */
     vm.doSave = function () {
-        vm.model().save().then(function () {
+        vm.model().save(vm).then(function () {
             callReceiver();
             vm.doBack();
         });
@@ -851,7 +851,7 @@ formPage.viewModel = function (options) {
         @method doSaveAndNew
     */
     vm.doSaveAndNew = function () {
-        vm.model().save().then(function () {
+        vm.model().save(vm).then(function () {
             callReceiver();
             delete instances[vm.model().id()];
             delete formInstances[vm.model().id()];
@@ -999,7 +999,8 @@ formPage.viewModel = function (options) {
         model: fmodel,
         id: options.key,
         config: form,
-        outsideElementIds: ["toolbar", "title"]
+        outsideElementIds: ["toolbar", "title"],
+        parent: vm
     }));
 
     // Once model instantiated let history know already created so we know

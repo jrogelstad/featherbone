@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -54,6 +54,7 @@ function createList(feather) {
     let sid = f.createId();
     let isBackground = false;
     let pathname = "/" + location.pathname.replaceAll("/", "");
+    let onEvents = [];
 
     // ..........................................................
     // PUBLIC
@@ -370,6 +371,17 @@ function createList(feather) {
     */
     ary.model = models[feather.toCamelCase() || "Model"];
     /**
+        A function to call after a model is updated by a subscribed event.
+
+        @method onEvent
+        @param {Function} callback Callback function after subcription events
+        @chainable
+        @return {Object}
+    */
+    ary.onEvent = function (callback) {
+        onEvents.push(callback);
+    };
+    /**
         A function to call before executing save. A view model will be
         passed in similar to static functions that allow for working with
         interactive dialogs or other presentation related elements.
@@ -427,6 +439,15 @@ function createList(feather) {
         @return {String}
     */
     ary.pending = f.prop([]);
+
+    /**
+        Execute subscription event post processing.
+
+        @method postProcess
+    */
+    ary.postProcess = function () {
+        onEvents.forEach((evt) => evt());
+    };
 
     /**
         Array of properties to fetch if only a subset required.
@@ -745,13 +766,26 @@ function createList(feather) {
 
     async function doSave(context) {
         let requests = [];
-        let resp;
+        let resp = [];
+        let r;
+        let mdl;
 
         try {
             await doPreProcess(context.viewModel);
 
-            requests = dirty.map((mdl) => mdl.save(context.viewModel));
-            resp = await Promise.all(requests);
+            // Save one by one if extra processing such
+            // as user prompts set.
+            if (dirty[0].hasExtraProcessing()) {
+                while (dirty.length) {
+                    mdl = dirty[0];
+                    r = await mdl.save(context.viewModel);
+                    resp.push(r);
+                }
+            // Otherwise save all at once which is faster
+            } else {
+                requests = dirty.map((mdl) => mdl.save(context.viewModel));
+                resp = await Promise.all(requests);
+            }
             state.send("changed");
             context.resolve(resp);
 
