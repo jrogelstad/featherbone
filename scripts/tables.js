@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -91,7 +91,33 @@
         "CREATE TRIGGER \"$settings_update_trigger\" " +
         "AFTER UPDATE ON \"$settings\" " +
         "FOR EACH ROW EXECUTE PROCEDURE " +
-        "update_trigger();"
+        "update_trigger();" +
+        "CREATE OR REPLACE FUNCTION delete_trigger() RETURNS trigger AS $$" +
+        "DECLARE " +
+        "  node RECORD;" +
+        "  sub RECORD; " +
+        "  payload TEXT; " +
+        "  change TEXT DEFAULT 'delete';" +
+        "  data TEXT; " +
+        "BEGIN" +
+        "  FOR node IN " +
+        "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
+        "    WHERE objectid = OLD.id LOOP " +
+        "      data := '\"' || OLD.id || '\"'; " +
+        "    FOR sub IN" +
+        "      SELECT change AS change, eventkey, subscriptionid " +
+        "      FROM \"$subscription\"" +
+        "      WHERE nodeid = node.nodeid " +
+        "          AND objectid = OLD.id " +
+        "    LOOP" +
+        "        payload := '{\"subscription\": ' || " +
+        "        row_to_json(sub)::text || ',\"data\":' || data || '}';" +
+        "        PERFORM pg_notify(node.nodeid, payload); " +
+        "    END LOOP;" +
+        "  END LOOP; " +
+        "RETURN NEW; " +
+        "END; " +
+        "$$ LANGUAGE plpgsql;"
     );
 
     const createSubcriptionSql = (

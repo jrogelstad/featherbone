@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -183,8 +183,7 @@ function buildFieldset(vm, attrs) {
             for: theKey,
             key: theKey + "FormLabel",
             class: "fb-form-label",
-            style: {},
-            title: prop.description
+            style: {}
         };
 
         // For relations we get buttons for label
@@ -195,7 +194,11 @@ function buildFieldset(vm, attrs) {
                 };
             }
 
-            labelOpts.class = "pure-button fb-form-label-button";
+            labelOpts.fbtitle = prop.description;
+            labelOpts.class = (
+                "pure-button fb-form-label-button fb-tags " +
+                "fb-button-tags"
+            );
             labelOpts.onclick = function () {
                 menuButtons[theKey].display = "block";
             };
@@ -278,7 +281,16 @@ function buildFieldset(vm, attrs) {
                 }, "menu")
             ], item.label || prop.alias() + ":");
         } else {
-            label = m("label", labelOpts, (item.label || prop.alias()) + ":");
+            label = m(
+                "label",
+                labelOpts,
+                [
+                    m("a", {
+                        class: "fb-tags",
+                        fbtitle: prop.description
+                    }, (item.label || prop.alias()) + ":")
+                ]
+            );
         }
 
         if (item.showLabel === false) {
@@ -494,6 +506,12 @@ formWidget.viewModel = function (options) {
         @return {String}
     */
     vm.outsideElementIds = f.prop(options.outsideElementIds || []);
+    /**
+        @method parentViewModel
+        @param {Object} [viewModel]
+        @return {Object}
+    */
+    vm.parentViewModel = f.prop(options.parent);
     /**
         Places to store relation content between redraws
         @method relations

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -774,11 +774,15 @@ relationWidget.component = {
                 id: vm.id(),
                 onchange: (e) => vm.onchange(e.target.value),
                 onfocus: function () {
-                    vnode.attrs.onFocus();
+                    if (vnode.attrs.onFocus) {
+                        vnode.attrs.onFocus();
+                    }
                     vm.onfocus();
                 },
                 onblur: function () {
-                    vnode.attrs.onBlur();
+                    if (vnode.attrs.onBlur) {
+                        vnode.attrs.onBlur();
+                    }
                     vm.onblur();
                 },
                 oninput: (e) => vm.oninput(e.target.value),
