@@ -519,21 +519,16 @@
             });
         }
 
-        function commit() {
-            return new Promise(function (resolve) {
-                let client = conn.client;
-                client.query("COMMIT;").then(resolve);
-                conn.done();
-            });
+        async function commit() {
+            let client = conn.client;
+            await client.query("COMMIT;");
+            conn.done();
         }
 
-        function rollback() {
-            return new Promise(function (resolve) {
-                let client = conn.client;
-                client.query("ROLLBACK;").then(resolve);
-                conn.done();
-                resolve();
-            });
+        async function rollback() {
+            let client = conn.client;
+            await client.query("ROLLBACK;");
+            conn.done();
         }
 
         function doUpdate() {
@@ -1952,10 +1947,13 @@
             let resp = await db.connect(obj.tenant);
             resp = await doRequest(resp);
             theClient.currentUser(undefined);
-            done();
             return resp;
         } catch (err) {
             return Promise.reject(err);
+        } finally {
+            if (done) {
+                done();
+            }
         }
     };
 
