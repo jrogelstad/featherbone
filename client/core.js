@@ -2236,12 +2236,14 @@ f.processEvent = function (obj) {
         break;
     case "delete":
         instance = ary.find((i) => i.data.id() === data);
-        if (ary.remove) {
-            ary.remove(instance);
-        } else {
-            ary.splice(ary.indexOf(instance), 1);
+        if (instance) {
+            if (ary.remove) {
+                ary.remove(instance);
+            } else {
+                ary.splice(ary.indexOf(instance), 1);
+            }
+            ary.postProcess();
         }
-        ary.postProcess();
         break;
     case "lock":
         instance = ary.find(function (model) {
