@@ -90,14 +90,13 @@ checkbox.component = {
         @return {Object} View
     */
     view: function (vnode) {
-        let labelClass = "fb-checkbox-label";
+        let labelClass = vnode.attrs.labelClass || "fb-checkbox-label";
         let vm = this.viewModel;
-        let theclass;
+        let theclass = vnode.attrs.inputClass || "fb-checkbox-input";
         let thestyle;
         let label;
 
         function createLabel() {
-            theclass = "fb-checkbox-input";
             if (vm.isCell()) {
                 labelClass += " fb-checkbox-cell";
             }
