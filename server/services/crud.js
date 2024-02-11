@@ -726,9 +726,11 @@
             console.error(err);
         });
         crud.commit = async function (obj) {
+            let callbacks = obj.client.callbacks.slice();
+
             async function doPostProcessing() {
-                while (obj.client.callbacks.length) {
-                    await obj.client.callbacks.shift()();
+                while (callbacks.length) {
+                    await callbacks.shift()();
                 }
             }
 
