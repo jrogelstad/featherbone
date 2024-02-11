@@ -236,7 +236,7 @@ function buildSelector(obj, opts) {
         if (
             selectComponents[theId].prop === opts.prop &&
             selectComponents[theId].readonly === opts.readonly &&
-            selectComponents[theId].readonly === val &&
+            selectComponents[theId].value === val &&
             selectComponents[theId].values === values
         ) {
             return selectComponents[theId].content;
