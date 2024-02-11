@@ -1934,6 +1934,12 @@
             db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
             req.database = db;
             req.tenant = tenants.find((t) => t.pgDatabase === db);
+            if (!req.tenant.baseUrl) {
+                req.tenant.baseUrl = (
+                    req.protocol + "://" + req.get("host") + "/" +
+                    req.database
+                );
+            }
         }
         try {
             let user = await datasource.deserializeUser(req, name);

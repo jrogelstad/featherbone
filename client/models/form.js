@@ -895,13 +895,48 @@ function prform(data, feather) {
 
     // Hack: list can't differentiate types
     model.onCanDelete(function () {
-        return (!Boolean(model.data.objectType() === "SystemPrintForm"));
+        return (
+            f.currentUser().isSuper ||
+            model.data.objectType() !== "SystemPrintForm"
+        );
     });
+
+    model.addCalculated({
+        name: "statusIcon",
+        type: "string",
+        format: "icon",
+        function: function () {
+            if (
+                !f.currentUser().isSuper &&
+                model.data.objectType() === "SystemPrintForm"
+            ) {
+                return "lock";
+            }
+            return "lock_open";
+        },
+        style: "EMPHASIS"
+    });
+
+    model.data.statusIcon.title = function () {
+        if (
+            !f.currentUser().isSuper &&
+            model.data.objectType() === "SystemPrintForm"
+        ) {
+            return "System form. Copy to make your own edits";
+        }
+        return "Local copy, editing allowed";
+    };
 
     return model;
 }
 
 f.catalog().registerModel("PrintForm", prform);
+
+prform.calculated().statusIcon = {
+    type: "string",
+    description: "Status indicator",
+    format: "icon"
+};
 
 function sysprform(data, feather) {
     feather = feather || f.catalog().getFeather("SystemPrintForm");
@@ -909,7 +944,7 @@ function sysprform(data, feather) {
     let state = model.state();
 
     model.onLoad(function () {
-        if (f.currentUser().mode !== "dev") {
+        if (!f.currentUser().isSuper) {
             state.send("freeze");
             model.onCopy(function () {
                 model.name = "PrintForm";
