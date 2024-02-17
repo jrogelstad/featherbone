@@ -1832,21 +1832,30 @@
                         } else {
                             // Update triggers as necessary
                             sql += (
-                                "CREATE OR REPLACE TRIGGER %I " +
+                                "DROP TRIGGER IF EXISTS %I ON %I;" +
+                                "DROP TRIGGER IF EXISTS %I ON %I;" +
+                                "DROP TRIGGER IF EXISTS %I ON %I;" +
+                                "CREATE TRIGGER %I " +
                                 "AFTER INSERT ON %I " +
                                 "FOR EACH ROW EXECUTE PROCEDURE " +
                                 "insert_trigger();" +
-                                "CREATE OR REPLACE TRIGGER %I " +
+                                "CREATE TRIGGER %I " +
                                 "AFTER UPDATE ON %I " +
                                 "FOR EACH ROW EXECUTE PROCEDURE " +
                                 "update_trigger();" +
-                                "CREATE OR REPLACE TRIGGER %I " +
+                                "CREATE TRIGGER %I " +
                                 "AFTER DELETE ON %I " +
                                 "FOR EACH ROW EXECUTE PROCEDURE " +
                                 "delete_trigger();"
                             );
 
                             tokens = tokens.concat([
+                                table + "_insert_trigger",
+                                table,
+                                table + "_update_trigger",
+                                table,
+                                table + "_delete_trigger",
+                                table,
                                 table + "_insert_trigger",
                                 table,
                                 table + "_update_trigger",
