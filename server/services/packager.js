@@ -379,7 +379,7 @@
         content = rows.map(function (row) {
             let rec = row.form;
             let ret = {
-                name: "Form",
+                name: rec.objectType,
                 method: "POST",
                 module: rec.module,
                 id: rec.id,

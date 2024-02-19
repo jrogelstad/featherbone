@@ -1918,30 +1918,34 @@
     ];
 
     async function deserializeUser(req, name, done) {
-        if (files.indexOf(req.url) !== -1) {
-            done(null, {}); // Don't care about user on files
-            return;
-        }
-
-        let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
-        if (dirs.indexOf(ldir) !== -1) {
-            done(null, {}); // Don't care about user on files
-            return;
-        }
-
-        if (!req.tenant) {
-            let db = req.url.slice(1);
-            db = db.slice(0, db.indexOf("/")).toCamelCase().toSnakeCase();
-            req.database = db;
-            req.tenant = tenants.find((t) => t.pgDatabase === db);
-            if (!req.tenant.baseUrl) {
-                req.tenant.baseUrl = (
-                    req.protocol + "://" + req.get("host") + "/" +
-                    req.database
-                );
-            }
-        }
         try {
+            if (files.indexOf(req.url) !== -1) {
+                done(null, {}); // Don't care about user on files
+                return;
+            }
+
+            let ldir = req.url.slice(0, req.url.lastIndexOf("/"));
+            if (dirs.indexOf(ldir) !== -1) {
+                done(null, {}); // Don't care about user on files
+                return;
+            }
+
+            if (!req.tenant) {
+                let db = req.url.slice(1);
+                if (db.indexOf("/") !== -1) {
+                    db = db.slice(0, db.indexOf("/"));
+                }
+                db = db.toCamelCase().toSnakeCase();
+                req.database = db;
+                req.tenant = tenants.find((t) => t.pgDatabase === db);
+                if (req.tenant && !req.tenant.baseUrl) {
+                    req.tenant.baseUrl = (
+                        req.protocol + "://" + req.get("host") + "/" +
+                        req.database
+                    );
+                }
+            }
+
             let user = await datasource.deserializeUser(req, name);
             done(null, user);
         } catch (e) {
