@@ -40,6 +40,7 @@
     const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
+    const d = require("domain").create();
 
     function noJoin(w) {
         return !w.table && w.property.indexOf(".") === -1;
@@ -720,24 +721,22 @@
             @param {Object} payload.client Database client
             @return {Promise}
         */
+        d.on("error", function (err) {
+            // handle any post process error safely
+            console.error(err);
+        });
         crud.commit = async function (obj) {
-            let client = obj.client;
-            let callbacks = client.callbacks.slice();
+            let callbacks = obj.client.callbacks.slice();
 
             async function doPostProcessing() {
-                try {
-                    while (callbacks.length) {
-                        await callbacks.shift()();
-                    }
-                } catch (e) {
-                    console.error(e);
-                    return Promise.reject(e);
+                while (callbacks.length) {
+                    await callbacks.shift()();
                 }
             }
 
             try {
-                await client.query("COMMIT;");
-                doPostProcessing(); // Happens in the background
+                await obj.client.query("COMMIT;");
+                d.run(doPostProcessing); // Happens in the background
             } catch (err) {
                 return Promise.reject(err);
             }
@@ -1888,7 +1887,10 @@
 
                 // Handle subscription
                 if (obj.subscription) {
-                    let descendants = await feathers.getDescendants(obj.client, obj.name);
+                    let descendants = await feathers.getDescendants(
+                        obj.client,
+                        obj.name
+                    );
 
                     await events.subscribe(
                         theClient,
