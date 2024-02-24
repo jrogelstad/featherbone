@@ -26,6 +26,7 @@
     const {PDF} = require("./pdf");
     const {Config} = require("../config");
     const {google} = require("googleapis");
+    const gmail = google.gmail({version: "v1"});
 
     const config = new Config();
     const pdf = new PDF();
@@ -34,6 +35,7 @@
     let credentials;
 
     config.read().then(function (resp) {
+        console.log("CONFIG->", JSON.stringify(resp, null, 2));
         /*
         smtp = {
             auth: {
@@ -47,8 +49,10 @@
         */
         credentials = {
             clientEmail: resp.googleEmailServiceEmail,
-            privateKey: resp.googleEmailServicePrivateKey
+            privateKey: resp.googleEmailServicePrivateKey,
+            userEmail: resp.googleEmailUserAccount
         };
+        console.log("G-CREDS->", JSON.stringify(credentials, null, 2));
     });
 
     /**
@@ -122,7 +126,9 @@
 
             // Function to send the email using Gmail API
             async function sendMimeMessage(mimeMessage) {
-                const gmail = google.gmail({version: "v1"});
+                console.log("CLIENT EML->", credentials.clientEmail);
+                console.log("USER EML->", credentials.userEmail);
+                console.log("PKEY->", credentials.privateKey);
                 const jwtClient = new google.auth.JWT(
                     credentials.clientEmail,
                     null,
@@ -140,7 +146,7 @@
                 const response = await gmail.users.messages.send({
                     auth: jwtClient,
                     resource: {raw: mimeMessage},
-                    userId: credentials.clientEmail
+                    userId: credentials.userEmail
                 });
                 console.log("Email sent:", response.data);
             }
