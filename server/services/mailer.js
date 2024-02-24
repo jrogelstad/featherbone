@@ -25,13 +25,16 @@
     const fs = require("fs");
     const {PDF} = require("./pdf");
     const {Config} = require("../config");
+    const {google} = require("googleapis");
 
     const config = new Config();
     const pdf = new PDF();
     const nodemailer = require("nodemailer");
-    let smtp;
+    //let smtp;
+    let credentials;
 
     config.read().then(function (resp) {
+        /*
         smtp = {
             auth: {
                 pass: resp.smtpAuthPass,
@@ -40,6 +43,11 @@
             host: resp.smtpHost,
             port: resp.smtpPort,
             secure: resp.smtpSecure
+        };
+        */
+        credentials = {
+            clientEmail: resp.googleEmailServiceEmail,
+            privateKey: resp.googleEmailServicePrivateKey
         };
     });
 
@@ -88,7 +96,7 @@
         that.sendMail = async function (obj) {
             let message = obj.data.message;
             let opts = obj.data.pdf;
-            let theSmtp = obj.data.smtp || smtp;
+            //let theSmtp = obj.data.smtp || smtp;
 
             function cleanup() {
                 return new Promise(function (resolve, reject) {
@@ -112,17 +120,54 @@
                 });
             }
 
+            // Function to send the email using Gmail API
+            async function sendMimeMessage(mimeMessage) {
+                const gmail = google.gmail({version: "v1"});
+                const jwtClient = new google.auth.JWT(
+                    credentials.clientEmail,
+                    null,
+                    credentials.privateKey,
+                    ["https://www.googleapis.com/auth/gmail.send"],
+                    // Specify the email address of the user the service
+                    // account is impersonating.
+                    // Ensure the service account has domain-wide authority
+                    // to impersonate this user.
+                    credentials.clientEmail
+                );
+                // Authorize the JWT client and get a token to make API calls
+                await jwtClient.authorize();
+                // Send the email using the Gmail API
+                const response = await gmail.users.messages.send({
+                    auth: jwtClient,
+                    resource: {raw: mimeMessage},
+                    userId: credentials.clientEmail
+                });
+                console.log("Email sent:", response.data);
+            }
+
             function sendMail() {
                 return new Promise(function (resolve, reject) {
-                    let transporter = nodemailer.createTransport(theSmtp);
+                    let transporter = nodemailer.createTransport({
+                        buffer: true,
+                        newline: "unix",
+                        streamTransport: true
+                    });
 
-                    transporter.sendMail(
-                        message
-                    ).then(
-                        resolve
-                    ).catch(
-                        reject
-                    );
+                    function mimeMethod(err, info) {
+                        if (err) {
+                            return console.error("Failed to send mail:", err);
+                        }
+                        const mimeMessage = info.message.toString("base64");
+                        sendMimeMessage(mimeMessage).then(function () {
+                            console.log("Email sent successfully.");
+                            resolve();
+                        }).catch(function (error) {
+                            console.error("Error sending email:", error);
+                            reject(error);
+                        });
+                    }
+
+                    transporter.sendMail(message, mimeMethod);
                 });
             }
 
