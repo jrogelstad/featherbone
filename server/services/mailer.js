@@ -206,7 +206,7 @@
                             reject
                         );
                     } else {
-                        sendGmail().then(resolve).catch(reject);
+                        sendGmail(message).then(resolve).catch(reject);
                     }
                 });
             }
