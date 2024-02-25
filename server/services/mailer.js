@@ -31,12 +31,79 @@
     const config = new Config();
     const pdf = new PDF();
     const nodemailer = require("nodemailer");
-    //let smtp;
-    let credentials;
+    const path = require("path");
+    let smtp;
+    let credentials = {};
+
+    // Function to send the email using Gmail API
+    async function sendMimeMessage(mimeMessage) {
+        const jwtClient = new google.auth.JWT(
+            credentials.client_email,
+            null,
+            credentials.private_key,
+            ["https://www.googleapis.com/auth/gmail.send"],
+            // Specify the email address of the user the service
+            // account is impersonating.
+            // Ensure the service account has domain-wide authority
+            // to impersonate this user.
+            credentials.userEmail
+        );
+        // Authorize the JWT client and get a token to make API calls
+        await jwtClient.authorize();
+        // Send the email using the Gmail API
+        const response = await gmail.users.messages.send({
+            auth: jwtClient,
+            resource: {raw: mimeMessage},
+            userId: credentials.userEmail
+        });
+        console.log("Email sent:", response.data);
+    }
+
+    function sendGmail(message) {
+        return new Promise(function (resolve, reject) {
+            let transporter = nodemailer.createTransport({
+                buffer: true,
+                newline: "unix",
+                streamTransport: true
+            });
+
+            function mimeMethod(err, info) {
+                if (err) {
+                    return console.error("Failed to send mail:", err);
+                }
+                const mimeMessage = info.message.toString("base64");
+                sendMimeMessage(mimeMessage).then(function () {
+                    console.log("Email sent successfully.");
+                    resolve();
+                }).catch(function (error) {
+                    console.error("Error sending email:", error);
+                    reject(error);
+                });
+            }
+
+            transporter.sendMail(message, mimeMethod);
+        });
+    }
+
+    function readGoogleKeys(name) {
+        return new Promise(function (resolve, reject) {
+            let filename = path.format(
+                {base: "/keys/" + name, root: "./"}
+            );
+
+            fs.readFile(filename, "utf8", function (err, data) {
+                if (err) {
+                    console.error(err);
+                    return reject(err);
+                }
+                data = JSON.parse(data);
+
+                resolve(data);
+            });
+        });
+    }
 
     config.read().then(function (resp) {
-        console.log("CONFIG->", JSON.stringify(resp, null, 2));
-        /*
         smtp = {
             auth: {
                 pass: resp.smtpAuthPass,
@@ -46,13 +113,15 @@
             port: resp.smtpPort,
             secure: resp.smtpSecure
         };
-        */
-        credentials = {
-            clientEmail: resp.googleEmailServiceEmail,
-            privateKey: resp.googleEmailServicePrivateKey,
-            userEmail: resp.googleEmailUserAccount
-        };
-        console.log("G-CREDS->", JSON.stringify(credentials, null, 2));
+
+        credentials.userEmail = resp.googleEmailUserAccount;
+
+        if (resp.googleEmailClientFile) {
+            readGoogleKeys(resp.googleEmailClientFile).then(function (data) {
+                credentials = data;
+                credentials.userEmail = resp.googleEmailUserAccount;
+            });
+        }
     });
 
     /**
@@ -100,7 +169,7 @@
         that.sendMail = async function (obj) {
             let message = obj.data.message;
             let opts = obj.data.pdf;
-            //let theSmtp = obj.data.smtp || smtp;
+            let theSmtp = obj.data.smtp || smtp;
 
             function cleanup() {
                 return new Promise(function (resolve, reject) {
@@ -124,56 +193,21 @@
                 });
             }
 
-            // Function to send the email using Gmail API
-            async function sendMimeMessage(mimeMessage) {
-                console.log("CLIENT EML->", credentials.clientEmail);
-                console.log("USER EML->", credentials.userEmail);
-                console.log("PKEY->", credentials.privateKey);
-                const jwtClient = new google.auth.JWT(
-                    credentials.clientEmail,
-                    null,
-                    credentials.privateKey,
-                    ["https://www.googleapis.com/auth/gmail.send"],
-                    // Specify the email address of the user the service
-                    // account is impersonating.
-                    // Ensure the service account has domain-wide authority
-                    // to impersonate this user.
-                    credentials.clientEmail
-                );
-                // Authorize the JWT client and get a token to make API calls
-                await jwtClient.authorize();
-                // Send the email using the Gmail API
-                const response = await gmail.users.messages.send({
-                    auth: jwtClient,
-                    resource: {raw: mimeMessage},
-                    userId: credentials.userEmail
-                });
-                console.log("Email sent:", response.data);
-            }
-
             function sendMail() {
                 return new Promise(function (resolve, reject) {
-                    let transporter = nodemailer.createTransport({
-                        buffer: true,
-                        newline: "unix",
-                        streamTransport: true
-                    });
+                    if (theSmtp.host) {
+                        let transporter = nodemailer.createTransport(theSmtp);
 
-                    function mimeMethod(err, info) {
-                        if (err) {
-                            return console.error("Failed to send mail:", err);
-                        }
-                        const mimeMessage = info.message.toString("base64");
-                        sendMimeMessage(mimeMessage).then(function () {
-                            console.log("Email sent successfully.");
-                            resolve();
-                        }).catch(function (error) {
-                            console.error("Error sending email:", error);
-                            reject(error);
-                        });
+                        transporter.sendMail(
+                            message
+                        ).then(
+                            resolve
+                        ).catch(
+                            reject
+                        );
+                    } else {
+                        sendGmail().then(resolve).catch(reject);
                     }
-
-                    transporter.sendMail(message, mimeMethod);
                 });
             }
 
