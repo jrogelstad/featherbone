@@ -297,6 +297,11 @@ const home = {
                                                 "grid": 1
                                             },
                                             {
+                                                "attr": "smtpType",
+                                                "grid": 2,
+                                                "label": "Type"
+                                            },
+                                            {
                                                 "attr": "smtpHost",
                                                 "grid": 2,
                                                 "label": "Host"
