@@ -42,6 +42,65 @@
     const pdf = require("./server/services/pdf.js");
     const {webauthn} = require("./server/services/webauthn");
     const dbRouter = new express.Router();
+    const GoogleStrategy = require("passport-google-oauth20").Strategy;
+
+    async function googleVerify(req, accessToken, refreshToken, profile, cb) {
+        const pool = req.sessionStore.pool;
+        const theProfile = profile; // Lint tyranny
+        const theAccessToken = accessToken; // Lint tyranny
+        const theRefreshToken = refreshToken; // Lint tyranny
+
+        try {
+            let theTenant = tenants.find(
+                (t) => t.pgDatabase === req.session.database
+            );
+            let sql = (
+                "SELECT * FROM \"$session\" " +
+                "WHERE sess->>'database'=$1 " +
+                " AND sess->>'profile.id'=$2 " +
+                " AND sess->>'provider'='google' " +
+                " AND expire > now() " +
+                "ORDER BY expire;"
+            );
+            let params = [req.database, profile.id];
+            let resp = await pool.query(sql, params);
+
+            if (!resp.rows.length) {
+                await f.datasource.request({
+                    data: [{
+                        op: "replace",
+                        path: "googleId",
+                        value: "profileId"
+                    }],
+                    id: req.user.id,
+                    method: "PATCH",
+                    name: "UserAccount",
+                    tenant: theTenant,
+                    user: req.user.name
+                }, true);
+                sql = (
+                    "INSERT INTO \"$session\" " +
+                    "  (sid, sess, expire) " +
+                    "VALUES ($1, $2, " +
+                    "  (select now() + interval '6' hours)) " +
+                    "ON CONFLICT (sid) DO UPDATE " +
+                    "SET sess=EXCLUDED.sess, expire=EXCLUDED.expire;"
+                );
+                params = [profile.id, {
+                    accessToken: theAccessToken,
+                    database: req.database,
+                    profile: theProfile,
+                    provider: "google",
+                    refreshToken: theRefreshToken
+                }];
+                await pool.query(sql, params);
+            }
+            req.user.googleId = profile.id;
+            return cb(null, req.user);
+        } catch (err) {
+            return cb(err);
+        }
+    }
 
     const check = [
         "data",
@@ -122,6 +181,8 @@
     let magicLogin;
     let twoFactorAuth = false;
     let authenticateLocal;
+    let googleOauth2ClientId;
+    let googleOauth2ClientSecret;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -275,6 +336,9 @@
             await datasource.unlock();
             await datasource.cleanupProcesses();
             await datasource.unsubscribe();
+
+            googleOauth2ClientId = resp.googleOauth2ClientId;
+            googleOauth2ClientSecret = resp.googleOauth2ClientSecret;
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -2175,6 +2239,46 @@
         app.use(bodyParser.urlencoded({extended: false}));
         app.use(passport.initialize());
         app.use(passport.session());
+
+        // Google Oauth2
+        if (googleOauth2ClientId) {
+            passport.use(new GoogleStrategy(
+                {
+                    clientID: googleOauth2ClientId,
+                    clientSecret: googleOauth2ClientSecret,
+                    callbackURL: "/oauth2/redirect/google",
+                    passReqToCallback: true,
+                    scope: ["profile"]//,
+                    //successReturnToOrRedirect: true
+                },
+                googleVerify
+            ));
+
+            let ppg = passport.authenticate("google");
+            let redirects = {};
+            dbRouter.get(
+                "/:db/oauth/google",
+                function (req, res, next) {
+                    debugger;
+                    req.session.database = req.params.db;
+                    redirects[req.user.name] = req.query.redirectUrl;
+                    return ppg(req, res, next);
+                }
+            );
+            app.get(
+                "/oauth2/redirect/google",
+                passport.authenticate("google", {
+                    failureRedirect: ".."
+                }),
+                function (req, res) {
+                    let url = redirects[req.user.name];
+                    delete redirects[req.user.name];
+                    // Successful authentication, redirect home.
+                    console.log(url);
+                    res.redirect(url);
+                }
+            );
+        }
 
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);

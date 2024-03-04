@@ -2344,9 +2344,6 @@ f.resolveProperty = function (model, property) {
 /**
     Send an email with optional PDF attachment.
 
-        prop = f.resolveProperty(contact, "address.city");
-        console.log(prop()); // "Philadephia"
-
     @method sendMail
     @param {Object} Parameters
     @param {Object} parameters.message Message data
@@ -2373,6 +2370,17 @@ f.sendMail = function (params, dialog) {
         let inputStyle = {
             width: "650px"
         };
+        let globalSettings = catalog.store().models().globalSettings() || {};
+
+        if (globalSettings.data && globalSettings.data.smtpType() === "Gmail") {
+            let ga = document.createElement("a", {is: "googleAuth"});
+            let query = window.Qs.stringify({
+                redirectUrl: window.location.href
+            });
+            ga.href = "/demo/oauth/google/?" + query;
+            ga.click();
+            return;
+        }
 
         function onOk() {
             let theBody = {

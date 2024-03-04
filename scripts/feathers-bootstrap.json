@@ -766,6 +766,10 @@
                 "description": "Account lock from too many sign in attemps",
                 "type": "boolean",
                 "default": false
+            },
+            "googleId": {
+                "description": "Google user id to cross reference session info",
+                "type": "string"
             }
         }
     }
