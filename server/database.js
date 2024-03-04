@@ -459,7 +459,8 @@
                 "contact.first_name as first_name, " +
                 "contact.last_name as last_name, " +
                 "contact.email AS email, " +
-                "contact.phone AS phone " +
+                "contact.phone AS phone ," +
+                "user_account.id, google_id " +
                 "FROM user_account " +
                 "LEFT OUTER JOIN contact ON " +
                 "  (_contact_contact_pk = contact._pk) " +
@@ -485,10 +486,12 @@
                 row.email = row.email || "";
                 row.phone = row.phone || "";
                 row.changePassword = row.change_password;
+                row.googleId = row.google_id;
                 delete row.is_super;
                 delete row.first_name;
                 delete row.last_name;
                 delete row.change_password;
+                delete row.google_id;
                 // Send back result
                 return row;
             } catch (e) {
