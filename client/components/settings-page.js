@@ -161,8 +161,8 @@ settingsPage.component = {
                 class: "fb-title"
             }, [
                 m("i", {
-                    class: "fa fa-wrench fb-title-icon"
-                }),
+                    class: "material-icons fb-title-icon"
+                }, "build"),
                 m("label", vm.title())
             ]),
             m(f.getComponent("FormWidget"), {
