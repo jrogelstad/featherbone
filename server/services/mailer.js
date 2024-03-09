@@ -58,7 +58,7 @@
             resource: {raw: mimeMessage},
             userId: credentials.userEmail
         });
-        console.log("Email sent:", response.data);
+        //console.log("Email sent:", response.data);
     }
 
     function sendGmailViaService(message) {
@@ -75,7 +75,7 @@
                 }
                 const mimeMessage = info.message.toString("base64");
                 sendMimeMessageViaService(mimeMessage).then(function () {
-                    console.log("Email sent successfully.");
+                    //console.log("Email sent successfully.");
                     resolve();
                 }).catch(function (error) {
                     console.error("Error sending email:", error);
@@ -210,8 +210,6 @@
                             },
                             service: "gmail"
                         });
-                        //message.from = theSmtp.auth.user;
-                        console.log("MSG->", message);
                         await transporter.sendMail(message);
                         break;
                     case "SMTP":
@@ -222,7 +220,7 @@
                         await sendGmailViaService(message);
                     }
                 } catch (e) {
-                    console.log(e);
+                    console.error(e);
                     return Promise.reject(e);
                 }
             }
@@ -268,7 +266,7 @@
                 if (thePath) {
                     fs.unlink(thePath, function (err) {
                         if (err) {
-                            console.log(err);
+                            console.error(err);
                         }
                     });
                 }
