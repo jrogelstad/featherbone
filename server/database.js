@@ -460,7 +460,7 @@
                 "contact.last_name as last_name, " +
                 "contact.email AS email, " +
                 "contact.phone AS phone ," +
-                "user_account.id, google_id " +
+                "user_account.id  " +
                 "FROM user_account " +
                 "LEFT OUTER JOIN contact ON " +
                 "  (_contact_contact_pk = contact._pk) " +
