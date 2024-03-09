@@ -2369,7 +2369,7 @@ f.sendMail = async function (params) {
         );
 
         if (smtpType === "None") {
-            f.notify("Global settings for email not set up");
+            f.notify("Global settings for email are not defined");
             return;
         }
 
