@@ -57,7 +57,8 @@ sendMailPage.viewModel = function (options) {
     */
     vm.doSend = async function () {
         try {
-            let d = vm.formWidget().model().data;
+            let theModel = vm.formWidget().model();
+            let d = theModel.data;
             let url = d.returnTo();
             let theBody = {
                 message: {
@@ -75,7 +76,8 @@ sendMailPage.viewModel = function (options) {
                 body: theBody
             });
 
-            vm.formWidget().model().delete(true);
+            await theModel.delete(true);
+
             m.route.set(url);
         } catch (e) {
             console.error(e);
@@ -90,10 +92,11 @@ sendMailPage.viewModel = function (options) {
     */
     vm.doCancel = async function () {
         let theModel = vm.formWidget().model();
-        //let url = theModel.data.returnTo();
-        await theModel.delete();
+        let url = theModel.data.returnTo();
 
-        window.history.back(2);
+        await theModel.delete(true);
+
+        m.route.set(url);
     };
 
     /**
