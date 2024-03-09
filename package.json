@@ -1,6 +1,6 @@
 {
   "name": "featherbone",
-  "version": "2.0.2",
+  "version": "2.0.4",
   "private": true,
   "description": "Framework for building object relational database apps",
   "keywords": [],
