@@ -4,6 +4,8 @@
     "debug": true,
     "googleEmailClientFile": "",
     "googleEmailUserAccount": "",
+    "googleOauth2ClientId": "",
+    "googleOauth2ClientSecret": "",
     "fileUpload": false,
     "logLevel": "info",
     "logMaxFiles": "7d",
