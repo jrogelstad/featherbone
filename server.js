@@ -55,7 +55,8 @@
         if (profile[jsn].email !== req.user.email) {
             cb(
                 "Gmail account authorized must match user email of " +
-                req.user.email
+                req.user.email + ". Go back to select the " +
+                "matching Google account."
             );
             return;
         }
