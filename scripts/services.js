@@ -1399,3 +1399,12 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
+f.datasource.registerFunction(
+    "DELETE",
+    "SendMail",
+    function (obj) {
+        obj.isHard = true;
+        return Promise.resolve();
+    },
+    f.datasource.TRIGGER_BEFORE
+);
