@@ -2392,7 +2392,7 @@ f.sendMail = async function (params) {
                     "#!/send-mail/" + theKey
                 )
             });
-            ga.href = "/demo/oauth/google/?" + query;
+            ga.href = window.location.pathname + "oauth/google/?" + query;
             ga.click();
         } else {
             m.route.set("/send-mail/:key", {key: theKey});
