@@ -352,7 +352,8 @@ let routes = {
     "/change-password": components.changePasswordPage,
     "/check-email": components.checkEmailPage,
     "/confirm-sign-in": components.confirmCodePage,
-    "/resend-code": components.resendCodePage
+    "/resend-code": components.resendCodePage,
+    "/send-mail/:key": components.sendMailPage
 };
 
 // Global sse state handler, allows any page

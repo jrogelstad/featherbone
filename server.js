@@ -43,34 +43,34 @@
     const {webauthn} = require("./server/services/webauthn");
     const dbRouter = new express.Router();
     const GoogleStrategy = require("passport-google-oauth20").Strategy;
+    const tokens = {};
 
     async function googleVerify(req, accessToken, refreshToken, profile, cb) {
-        const pool = req.sessionStore.pool;
         const theProfile = profile; // Lint tyranny
         const theAccessToken = accessToken; // Lint tyranny
         const theRefreshToken = refreshToken; // Lint tyranny
+        let found;
+
+        if (profile._json.email !== req.user.email) {
+            cb(
+                "Gmail account authorized must match user email of " +
+                req.user.email
+            );
+            return;
+        }
 
         try {
             let theTenant = tenants.find(
                 (t) => t.pgDatabase === req.session.database
             );
-            let sql = (
-                "SELECT * FROM \"$session\" " +
-                "WHERE sess->>'database'=$1 " +
-                " AND sess->>'profile.id'=$2 " +
-                " AND sess->>'provider'='google' " +
-                " AND expire > now() " +
-                "ORDER BY expire;"
-            );
-            let params = [req.database, profile.id];
-            let resp = await pool.query(sql, params);
 
-            if (!resp.rows.length) {
+            found = tokens[profile.id];
+            if (!found) {
                 await f.datasource.request({
                     data: [{
                         op: "replace",
-                        path: "googleId",
-                        value: "profileId"
+                        path: "/googleId",
+                        value: profile.id
                     }],
                     id: req.user.id,
                     method: "PATCH",
@@ -78,22 +78,11 @@
                     tenant: theTenant,
                     user: req.user.name
                 }, true);
-                sql = (
-                    "INSERT INTO \"$session\" " +
-                    "  (sid, sess, expire) " +
-                    "VALUES ($1, $2, " +
-                    "  (select now() + interval '6' hours)) " +
-                    "ON CONFLICT (sid) DO UPDATE " +
-                    "SET sess=EXCLUDED.sess, expire=EXCLUDED.expire;"
-                );
-                params = [profile.id, {
+                tokens[profile.id] = {
                     accessToken: theAccessToken,
-                    database: req.database,
                     profile: theProfile,
-                    provider: "google",
                     refreshToken: theRefreshToken
-                }];
-                await pool.query(sql, params);
+                };
             }
             req.user.googleId = profile.id;
             return cb(null, req.user);
@@ -1037,55 +1026,85 @@
     }
 
     async function doSendMail(req, res) {
-        let gSettings = await datasource.request({
-            method: "GET",
-            name: "getSettings",
-            data: {name: "globalSettings"},
-            tenant: req.tenant,
-            user: req.user.name
-        }, true);
-        let theSmtp = {
-            auth: {
-                pass: gSettings.smtpPassword,
-                user: gSettings.smtpUser
-            },
-            host: gSettings.smtpHost,
-            port: gSettings.smtpPort,
-            secure: gSettings.smtpSecure
-        };
+        let err = error.bind(res);
+        let theSmtp;
+        let resp;
+        let row;
+        let payload;
+        let found;
 
-        let payload = {
-            method: "POST",
-            name: "sendMail",
-            user: req.user.name,
-            data: {
-                message: {
-                    from: req.body.message.from,
-                    to: req.body.message.to,
-                    cc: req.body.message.cc,
-                    bcc: req.body.message.bcc,
-                    subject: req.body.message.subject,
-                    text: req.body.message.text,
-                    html: req.body.message.html
-                },
-                pdf: {
-                    data: req.body.pdf.data,
-                    form: req.body.pdf.form,
-                    ids: req.body.pdf.id || req.body.pdf.ids,
-                    filename: req.body.pdf.filename
-                },
-                smtp: theSmtp
-            },
-            tenant: req.tenant
-        };
+        try {
+            let gSettings = await datasource.request({
+                method: "GET",
+                name: "getSettings",
+                data: {name: "globalSettings"},
+                tenant: req.tenant,
+                user: req.user.name
+            }, true);
 
-        logger.verbose("Send mail");
-        logger.verbose(payload);
-        datasource.request(payload).then(
-            respond.bind(res)
-        ).catch(
-            error.bind(res)
-        );
+            if (gSettings.smtpType === "SMTP") {
+                theSmtp = {
+                    auth: {
+                        pass: gSettings.smtpPassword,
+                        user: gSettings.smtpUser
+                    },
+                    host: gSettings.smtpHost,
+                    port: gSettings.smtpPort,
+                    secure: gSettings.smtpSecure,
+                    type: gSettings.smtpType
+                };
+            } else if (gSettings.smtpType === "Gmail") {
+                found = tokens[req.user.googleId];
+                if (!found) {
+                    err("Google authorization required");
+                    return;
+                }
+
+                theSmtp = {
+                    type: "Gmail",
+                    auth: {
+                        accessToken: found.accessToken,
+                        refreshToken: found.refreshToken,
+                        user: found.profile._json.email
+                    }
+                };
+            } else {
+                err("Invalid SMTP type '" + gSettings.smtpType + "'");
+                return;
+            }
+
+            payload = {
+                method: "POST",
+                name: "sendMail",
+                user: req.user.name,
+                data: {
+                    message: {
+                        from: req.body.message.from,
+                        to: req.body.message.to,
+                        cc: req.body.message.cc,
+                        bcc: req.body.message.bcc,
+                        subject: req.body.message.subject,
+                        text: req.body.message.text,
+                        html: req.body.message.html
+                    },
+                    pdf: {
+                        data: req.body.pdf.data,
+                        form: req.body.pdf.form,
+                        ids: req.body.pdf.id || req.body.pdf.ids,
+                        filename: req.body.pdf.filename
+                    },
+                    smtp: theSmtp
+                },
+                tenant: req.tenant
+            };
+
+            logger.verbose("Send mail");
+            logger.verbose(payload);
+            resp = await datasource.request(payload, true);
+            respond.bind(res)(resp);
+        } catch (e) {
+            err(e);
+        }
     }
 
     function doGetDownload(req, res) {
@@ -2248,18 +2267,24 @@
                     clientSecret: googleOauth2ClientSecret,
                     callbackURL: "/oauth2/redirect/google",
                     passReqToCallback: true,
-                    scope: ["profile"]//,
-                    //successReturnToOrRedirect: true
+                    scope: ["profile", "email"]
                 },
                 googleVerify
             ));
 
-            let ppg = passport.authenticate("google");
+            let ppg = passport.authenticate("google", {
+                scope: [
+                    "https://www.googleapis.com/auth/userinfo.profile",
+                    "https://www.googleapis.com/auth/userinfo.email",
+                    "https://mail.google.com/"
+                ],
+                accessType: "offline",
+                prompt: "consent"
+            });
             let redirects = {};
             dbRouter.get(
                 "/:db/oauth/google",
                 function (req, res, next) {
-                    debugger;
                     req.session.database = req.params.db;
                     redirects[req.user.name] = req.query.redirectUrl;
                     return ppg(req, res, next);
@@ -2274,7 +2299,6 @@
                     let url = redirects[req.user.name];
                     delete redirects[req.user.name];
                     // Successful authentication, redirect home.
-                    console.log(url);
                     res.redirect(url);
                 }
             );

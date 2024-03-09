@@ -2346,7 +2346,7 @@ f.resolveProperty = function (model, property) {
 
     @method sendMail
     @param {Object} Parameters
-    @param {Object} parameters.message Message data
+    @param {Object} parameters.data Message data
     @param {String} parameters.data.message.from From address
     @param {String} parameters.data.message.to To address
     @param {String} parameters.data.message.subject Subject
@@ -2359,8 +2359,9 @@ f.resolveProperty = function (model, property) {
     @param {Dialog} dialog Dialog to render message preview.
     @return {Promise}
 */
-f.sendMail = function (params, dialog) {
-    return new Promise(function (resolve, reject) {
+f.sendMail = async function (params /*, dialog*/) {
+    try {
+        /*
         let mailto = f.prop(params.message.to);
         let mailsub = f.prop(params.message.subject);
         let mailtxt = f.prop(params.message.text);
@@ -2370,18 +2371,33 @@ f.sendMail = function (params, dialog) {
         let inputStyle = {
             width: "650px"
         };
+        */
         let globalSettings = catalog.store().models().globalSettings() || {};
 
         if (globalSettings.data && globalSettings.data.smtpType() === "Gmail") {
             let ga = document.createElement("a", {is: "googleAuth"});
+            let mailModel = catalog.store().models().sendMail({
+                pdf: params.pdf,
+                returnTo: window.location.hash.slice(2),
+                subject: params.message.subject,
+                text: params.message.text,
+                to: params.message.to
+            });
+            await mailModel.save();
+            let key = mailModel.id();
             let query = window.Qs.stringify({
-                redirectUrl: window.location.href
+                redirectUrl: (
+                    window.location.origin +
+                    window.location.pathname +
+                    "#!/send-mail/" + key
+                )
             });
             ga.href = "/demo/oauth/google/?" + query;
             ga.click();
             return;
         }
 
+/*
         function onOk() {
             let theBody = {
                 message: {
@@ -2463,7 +2479,10 @@ f.sendMail = function (params, dialog) {
         });
         dialog.buttonOk().label("Send");
         dialog.show();
-    });
+*/
+    } catch (e) {
+        console.error(e);
+    }
 };
 
 // Define application state
