@@ -1015,9 +1015,11 @@
         let resp;
         let payload;
         let found;
+        let gSettings;
+        let smtpType;
 
         try {
-            let gSettings = await datasource.request({
+            gSettings = await datasource.request({
                 method: "GET",
                 name: "getSettings",
                 data: {name: "globalSettings"},
@@ -1025,7 +1027,13 @@
                 user: req.user.name
             }, true);
 
-            if (gSettings.smtpType === "SMTP") {
+            smtpType = (
+                (gSettings && gSettings.smtpType)
+                ? gSettings.smtpType
+                : "None"
+            );
+
+            if (smtpType === "SMTP") {
                 theSmtp = {
                     auth: {
                         pass: gSettings.smtpPassword,
@@ -1036,7 +1044,7 @@
                     secure: gSettings.smtpSecure,
                     type: gSettings.smtpType
                 };
-            } else if (gSettings.smtpType === "Gmail") {
+            } else if (smtpType === "Gmail") {
                 found = tokens[req.user.id];
                 if (!found) {
                     err("Google authorization required");
@@ -1052,7 +1060,7 @@
                     }
                 };
             } else {
-                err("Invalid SMTP type '" + gSettings.smtpType + "'");
+                err("Invalid SMTP type '" + smtpType + "'");
                 return;
             }
 
@@ -1086,6 +1094,11 @@
             resp = await datasource.request(payload, true);
             respond.bind(res)(resp);
         } catch (e) {
+            // Force reauthentication in case of failure
+            // Perhaps the user revoked it
+            if (smtpType === "Gmail" && tokens[req.user.id]) {
+                delete tokens[req.user.id];
+            }
             err(e);
         }
     }
@@ -2268,6 +2281,10 @@
             dbRouter.get(
                 "/:db/oauth/google",
                 function (req, res, next) {
+                    if (tokens[req.user.id]) {
+                        res.redirect(req.query.redirectUrl);
+                        return;
+                    }
                     req.session.database = req.params.db;
                     redirects[req.user.name] = req.query.redirectUrl;
                     return ppg(req, res, next);
