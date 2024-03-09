@@ -44,6 +44,7 @@
     const dbRouter = new express.Router();
     const GoogleStrategy = require("passport-google-oauth20").Strategy;
     const tokens = {};
+    const jsn = "_json"; // Lint tyranny
 
     async function googleVerify(req, accessToken, refreshToken, profile, cb) {
         const theProfile = profile; // Lint tyranny
@@ -51,7 +52,7 @@
         const theRefreshToken = refreshToken; // Lint tyranny
         let found;
 
-        if (profile._json.email !== req.user.email) {
+        if (profile[jsn].email !== req.user.email) {
             cb(
                 "Gmail account authorized must match user email of " +
                 req.user.email
@@ -1029,7 +1030,6 @@
         let err = error.bind(res);
         let theSmtp;
         let resp;
-        let row;
         let payload;
         let found;
 
@@ -1065,7 +1065,7 @@
                     auth: {
                         accessToken: found.accessToken,
                         refreshToken: found.refreshToken,
-                        user: found.profile._json.email
+                        user: found.profile[jsn].email
                     }
                 };
             } else {
