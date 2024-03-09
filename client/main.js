@@ -615,6 +615,36 @@ function initPromises() {
                     }));
                 });
 
+                // Global settings get a special model
+                let gs = models.globalSettings;
+                function globalSettings(data) {
+                    let gsm = gs(data);
+                    let d = gsm.data;
+
+                    function handleReadOnly() {
+                        let isNotSmtp = d.smtpType() !== "SMTP";
+                        d.smtpHost.isReadOnly(isNotSmtp);
+                        d.smtpPassword.isReadOnly(isNotSmtp);
+                        d.smtpUser.isReadOnly(isNotSmtp);
+                        d.smtpPort.isReadOnly(isNotSmtp);
+                        d.smtpSecure.isReadOnly(isNotSmtp);
+                    }
+                    gsm.onChanged("smtpType", handleReadOnly);
+                    gsm.onChanged("smtpType", function () {
+                        if (d.smtpType() !== "SMTP") {
+                            d.smtpHost("");
+                            d.smtpPassword("");
+                            d.smtpUser("");
+                        }
+                    });
+                    handleReadOnly();
+
+                    return gsm;
+                }
+                globalSettings.definition = gs.definition;
+
+                f.catalog().registerModel("GlobalSettings", globalSettings);
+
                 // Load data as indicated
                 function fetchData() {
                     toFetch.forEach(function (feather) {
