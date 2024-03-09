@@ -46,7 +46,7 @@
     const tokens = {};
     const jsn = "_json"; // Lint tyranny
 
-    async function googleVerify(req, accessToken, refreshToken, profile, cb) {
+    function googleVerify(req, accessToken, refreshToken, profile, cb) {
         const theProfile = profile; // Lint tyranny
         const theAccessToken = accessToken; // Lint tyranny
         const theRefreshToken = refreshToken; // Lint tyranny
@@ -61,31 +61,14 @@
         }
 
         try {
-            let theTenant = tenants.find(
-                (t) => t.pgDatabase === req.session.database
-            );
-
-            found = tokens[profile.id];
+            found = tokens[req.user.id];
             if (!found) {
-                await f.datasource.request({
-                    data: [{
-                        op: "replace",
-                        path: "/googleId",
-                        value: profile.id
-                    }],
-                    id: req.user.id,
-                    method: "PATCH",
-                    name: "UserAccount",
-                    tenant: theTenant,
-                    user: req.user.name
-                }, true);
-                tokens[profile.id] = {
+                tokens[req.user.id] = {
                     accessToken: theAccessToken,
                     profile: theProfile,
                     refreshToken: theRefreshToken
                 };
             }
-            req.user.googleId = profile.id;
             return cb(null, req.user);
         } catch (err) {
             return cb(err);
@@ -1054,7 +1037,7 @@
                     type: gSettings.smtpType
                 };
             } else if (gSettings.smtpType === "Gmail") {
-                found = tokens[req.user.googleId];
+                found = tokens[req.user.id];
                 if (!found) {
                     err("Google authorization required");
                     return;
