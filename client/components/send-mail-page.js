@@ -70,6 +70,7 @@ sendMailPage.viewModel = function (options) {
                 pdf: d.pdf()
             };
 
+            vm.waitDialog().show();
             await f.datasource().request({
                 method: "POST",
                 path: "/do/send-mail/",
@@ -78,6 +79,7 @@ sendMailPage.viewModel = function (options) {
 
             await theModel.delete(true);
 
+            vm.waitDialog().cancel();
             m.route.set(url);
         } catch (e) {
             console.error(e);
@@ -94,9 +96,13 @@ sendMailPage.viewModel = function (options) {
         let theModel = vm.formWidget().model();
         let url = theModel.data.returnTo();
 
-        await theModel.delete(true);
-
-        m.route.set(url);
+        try {
+            await theModel.delete(true);
+        } catch (e) {
+            f.notify(e);
+        } finally {
+            m.route.set(url);
+        }
     };
 
     /**
@@ -120,12 +126,7 @@ sendMailPage.viewModel = function (options) {
         outsideElementIds: ["toolbar"]
     }));
 
-    /**
-        @method model
-        @param {Model} model
-        @return {Model}
-    */
-    //vm.model = f.prop(theModel);
+
 
     // ..........................................................
     // PRIVATE
@@ -144,6 +145,24 @@ sendMailPage.viewModel = function (options) {
         label: "&Cancel",
         class: "fb-toolbar-button"
     }));
+
+    /**
+        @method waitDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.waitDialog = f.prop(f.createViewModel("Dialog"));
+    let wd = vm.waitDialog();
+    wd.style().width = "300px";
+    wd.style().height = "300px";
+    wd.style().border = "none";
+    wd.style().background = "none";
+    wd.style().boxShadow = "none";
+    wd.content = function () {
+        return m("div", {class: "lds-large-dual-ring"});
+    };
+    wd.buttonCancel().hide();
+    wd.buttonOk().hide();
 
     return vm;
 };
@@ -175,6 +194,7 @@ sendMailPage.component = {
     */
     view: function () {
         let vm = this.viewModel;
+        let dlg = f.getComponent("Dialog");
 
         // Build view
         return m("div", [
@@ -199,6 +219,10 @@ sendMailPage.component = {
             ]),
             m(f.getComponent("FormWidget"), {
                 viewModel: vm.formWidget()
+            }),
+            f.snackbar(),
+            m(dlg, {
+                viewModel: vm.waitDialog()
             })
         ]);
     }
