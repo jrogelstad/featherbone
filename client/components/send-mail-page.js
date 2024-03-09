@@ -79,7 +79,6 @@ sendMailPage.viewModel = function (options) {
 
             await theModel.delete(true);
 
-            vm.waitDialog().cancel();
             m.route.set(url);
         } catch (e) {
             console.error(e);
@@ -87,6 +86,8 @@ sendMailPage.viewModel = function (options) {
                 icon: "warning",
                 iconColor: "orange"
             });
+        } finally {
+            vm.waitDialog().cancel();
         }
     };
     /**
