@@ -43,14 +43,12 @@
     const {webauthn} = require("./server/services/webauthn");
     const dbRouter = new express.Router();
     const GoogleStrategy = require("passport-google-oauth20").Strategy;
-    const tokens = {};
     const jsn = "_json"; // Lint tyranny
 
-    function googleVerify(req, accessToken, refreshToken, profile, cb) {
+    async function googleVerify(req, ignore, refreshToken, profile, cb) {
+        const pool = req.sessionStore.pool;
         const theProfile = profile; // Lint tyranny
-        const theAccessToken = accessToken; // Lint tyranny
         const theRefreshToken = refreshToken; // Lint tyranny
-        let found;
 
         if (profile[jsn].email !== req.user.email) {
             cb(
@@ -62,14 +60,21 @@
         }
 
         try {
-            found = tokens[req.user.id];
-            if (!found) {
-                tokens[req.user.id] = {
-                    accessToken: theAccessToken,
-                    profile: theProfile,
-                    refreshToken: theRefreshToken
-                };
-            }
+            let sql = (
+                "INSERT INTO \"$session\" " +
+                "  (sid, sess, expire) " +
+                "VALUES ($1, $2, " +
+                "  (select now() + interval '100 years')) " +
+                "ON CONFLICT (sid) DO UPDATE " +
+                "SET sess=EXCLUDED.sess, expire=EXCLUDED.expire;"
+            );
+            let params = [req.user.id, {
+                database: req.database,
+                profile: theProfile,
+                provider: "google",
+                refreshToken: theRefreshToken
+            }];
+            await pool.query(sql, params);
             return cb(null, req.user);
         } catch (err) {
             return cb(err);
@@ -1048,7 +1053,10 @@
                     type: gSettings.smtpType
                 };
             } else if (smtpType === "Gmail") {
-                found = tokens[req.user.id];
+                resp = await req.sessionStore.pool.query((
+                    "SELECT * FROM \"$session\" WHERE sid=$1; "
+                ), [req.user.id]);
+                found = resp.rows[0];
                 if (!found) {
                     err("Google authorization required");
                     return;
@@ -1057,9 +1065,8 @@
                 theSmtp = {
                     type: "Gmail",
                     auth: {
-                        accessToken: found.accessToken,
-                        refreshToken: found.refreshToken,
-                        user: found.profile[jsn].email
+                        refreshToken: found.sess.refreshToken,
+                        user: found.sess.profile[jsn].email
                     }
                 };
             } else {
@@ -1099,8 +1106,10 @@
         } catch (e) {
             // Force reauthentication in case of failure
             // Perhaps the user revoked it
-            if (smtpType === "Gmail" && tokens[req.user.id]) {
-                delete tokens[req.user.id];
+            if (smtpType === "Gmail" && found) {
+                await req.sessionStore.pool.query((
+                    "DELETE FROM \"$session\" WHERE sid=$1; "
+                ), [req.user.id]);
             }
             err(e);
         }
@@ -2013,7 +2022,11 @@
             }
 
             if (!req.tenant) {
-                let db = req.url.slice(1);
+                let db = (
+                    (req.session && req.session.database)
+                    ? req.session.database
+                    : req.url.slice(1)
+                );
                 if (db.indexOf("/") !== -1) {
                     db = db.slice(0, db.indexOf("/"));
                 }
@@ -2285,14 +2298,21 @@
             let redirects = {};
             dbRouter.get(
                 "/:db/oauth/google",
-                function (req, res, next) {
-                    if (tokens[req.user.id]) {
-                        res.redirect(req.query.redirectUrl);
-                        return;
+                async function (req, res, next) {
+                    try {
+                        let resp = await req.sessionStore.pool.query((
+                            "SELECT * FROM \"$session\" WHERE sid=$1; "
+                        ), [req.user.id]);
+                        if (resp.rows.length) {
+                            res.redirect(req.query.redirectUrl);
+                            return;
+                        }
+                        req.session.database = req.params.db;
+                        redirects[req.user.name] = req.query.redirectUrl;
+                        return ppg(req, res, next);
+                    } catch (e) {
+                        return Promise.reject(e);
                     }
-                    req.session.database = req.params.db;
-                    redirects[req.user.name] = req.query.redirectUrl;
-                    return ppg(req, res, next);
                 }
             );
             app.get(
