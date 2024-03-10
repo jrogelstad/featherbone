@@ -2344,12 +2344,9 @@ f.resolveProperty = function (model, property) {
 /**
     Send an email with optional PDF attachment.
 
-        prop = f.resolveProperty(contact, "address.city");
-        console.log(prop()); // "Philadephia"
-
     @method sendMail
     @param {Object} Parameters
-    @param {Object} parameters.message Message data
+    @param {Object} parameters.data Message data
     @param {String} parameters.data.message.from From address
     @param {String} parameters.data.message.to To address
     @param {String} parameters.data.message.subject Subject
@@ -2362,100 +2359,48 @@ f.resolveProperty = function (model, property) {
     @param {Dialog} dialog Dialog to render message preview.
     @return {Promise}
 */
-f.sendMail = function (params, dialog) {
-    return new Promise(function (resolve, reject) {
-        let mailto = f.prop(params.message.to);
-        let mailsub = f.prop(params.message.subject);
-        let mailtxt = f.prop(params.message.text);
-        let labelStyle = {
-            width: "80px"
-        };
-        let inputStyle = {
-            width: "650px"
-        };
+f.sendMail = async function (params) {
+    try {
+        let globalSettings = catalog.store().models().globalSettings() || {};
+        let smtpType = (
+            globalSettings.data
+            ? globalSettings.data.smtpType()
+            : "None"
+        );
 
-        function onOk() {
-            let theBody = {
-                message: {
-                    from: params.message.from,
-                    to: mailto(),
-                    subject: mailsub(),
-                    text: mailtxt()
-                },
-                pdf: params.pdf
-            };
-            let payload = {
-                method: "POST",
-                path: "/do/send-mail/",
-                body: theBody
-            };
-
-            return f.datasource().request(
-                payload
-            ).then(resolve).catch(reject);
+        if (smtpType === "None") {
+            f.notify("Global settings for email are not defined");
+            return;
         }
 
-        dialog.content = function () {
-            return m("div", {
-                class: "pure-form pure-form-aligned"
-            }, [
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: "dlgMailto",
-                        style: labelStyle
-                    }, "To:"),
-                    m("input", {
-                        type: "email",
-                        id: "dlgMailto",
-                        style: inputStyle,
-                        onchange: (e) => mailto(e.target.value),
-                        value: mailto()
-                    })
-                ]),
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: "dlgSubject",
-                        style: labelStyle
-                    }, "Subject:"),
-                    m("input", {
-                        id: "dlgSubject",
-                        style: inputStyle,
-                        onchange: (e) => mailsub(e.target.value),
-                        value: mailsub()
-                    })
-                ]),
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: "dlgBody",
-                        style: labelStyle
-                    }, ""),
-                    m("textarea", {
-                        id: "dlgBody",
-                        onchange: (e) => mailtxt(e.target.value),
-                        value: mailtxt(),
-                        style: inputStyle,
-                        rows: 15
-                    })
-                ])
-            ]);
-        };
-
-        dialog.title("Send mail");
-        dialog.icon("send");
-        dialog.onOk(onOk);
-        dialog.onCancel(reject);
-        dialog.style({
-            width: "800px"
+        let mailModel = catalog.store().models().sendMail({
+            pdf: params.pdf,
+            returnTo: window.location.hash.slice(2),
+            subject: params.message.subject,
+            text: params.message.text,
+            to: params.message.to
         });
-        dialog.buttonOk().label("Send");
-        dialog.show();
-    });
+        let theKey = mailModel.id();
+        await mailModel.save();
+
+        if (smtpType === "Gmail") {
+            let ga = document.createElement("a", {is: "googleAuth"});
+            let query = window.Qs.stringify({
+                redirectUrl: (
+                    window.location.origin +
+                    window.location.pathname +
+                    "#!/send-mail/" + theKey
+                )
+            });
+            ga.href = window.location.pathname + "oauth/google/?" + query;
+            ga.click();
+        } else {
+            m.route.set("/send-mail/:key", {key: theKey});
+        }
+    } catch (e) {
+        f.notify(e);
+        console.error(e);
+    }
 };
 
 // Define application state

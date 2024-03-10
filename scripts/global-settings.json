@@ -49,6 +49,23 @@
             "type": "string",
             "format": "tel"
         },
+        "smtpType": {
+            "description": "SMTP connection method",
+            "type": "string",
+            "format": "enum",
+            "isRequired": true,
+            "default": "None",
+            "dataList": [{
+                "value": "None",
+                "label": "No SMTP in use"
+            }, {
+                "value": "SMTP",
+                "label": "Standard SMTP connection"
+            }, {
+                "value": "Gmail",
+                "label": "Google Gmail"
+            }]
+        },
         "smtpHost": {
             "description": "SMTP host address",
             "type": "string"

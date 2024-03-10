@@ -297,6 +297,11 @@ const home = {
                                                 "grid": 1
                                             },
                                             {
+                                                "attr": "smtpType",
+                                                "grid": 2,
+                                                "label": "Type"
+                                            },
+                                            {
                                                 "attr": "smtpHost",
                                                 "grid": 2,
                                                 "label": "Host"
@@ -347,7 +352,8 @@ let routes = {
     "/change-password": components.changePasswordPage,
     "/check-email": components.checkEmailPage,
     "/confirm-sign-in": components.confirmCodePage,
-    "/resend-code": components.resendCodePage
+    "/resend-code": components.resendCodePage,
+    "/send-mail/:key": components.sendMailPage
 };
 
 // Global sse state handler, allows any page
@@ -608,6 +614,36 @@ function initPromises() {
                         models[name]().fetch().then(presolve);
                     }));
                 });
+
+                // Global settings get a special model
+                let gs = models.globalSettings;
+                function globalSettings(data) {
+                    let gsm = gs(data);
+                    let d = gsm.data;
+
+                    function handleReadOnly() {
+                        let isNotSmtp = d.smtpType() !== "SMTP";
+                        d.smtpHost.isReadOnly(isNotSmtp);
+                        d.smtpPassword.isReadOnly(isNotSmtp);
+                        d.smtpUser.isReadOnly(isNotSmtp);
+                        d.smtpPort.isReadOnly(isNotSmtp);
+                        d.smtpSecure.isReadOnly(isNotSmtp);
+                    }
+                    gsm.onChanged("smtpType", handleReadOnly);
+                    gsm.onChanged("smtpType", function () {
+                        if (d.smtpType() !== "SMTP") {
+                            d.smtpHost("");
+                            d.smtpPassword("");
+                            d.smtpUser("");
+                        }
+                    });
+                    handleReadOnly();
+
+                    return gsm;
+                }
+                globalSettings.definition = gs.definition;
+
+                f.catalog().registerModel("GlobalSettings", globalSettings);
 
                 // Load data as indicated
                 function fetchData() {
