@@ -6,6 +6,7 @@
     "googleEmailUserAccount": "",
     "googleOauth2ClientId": "",
     "googleOauth2ClientSecret": "",
+    "googleOauth2CallbackUrl": "",
     "fileUpload": false,
     "logLevel": "info",
     "logMaxFiles": "7d",
