@@ -53,7 +53,7 @@
         // Authorize the JWT client and get a token to make API calls
         await jwtClient.authorize();
         // Send the email using the Gmail API
-        const response = await gmail.users.messages.send({
+        await gmail.users.messages.send({
             auth: jwtClient,
             resource: {raw: mimeMessage},
             userId: credentials.userEmail
@@ -177,18 +177,14 @@
             let message = obj.data.message;
             let opts = obj.data.pdf;
             let theSmtp = obj.data.smtp || smtp;
-            let thePath = (
-                message.attachments
-                ? message.attachments.path
-                : false
-            );
+            let thePath = false;
 
             function attachPdf(resp) {
                 return new Promise(function (resolve) {
                     message.attachments = {
                         path: "./files/downloads/" + resp
                     };
-
+                    thePath = message.attachments.path;
                     resolve();
                 });
             }
