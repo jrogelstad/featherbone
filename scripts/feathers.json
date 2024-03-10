@@ -1527,5 +1527,39 @@
                 "type": "boolean"
             }
         }
+    },
+    {
+        "name": "SendMail",
+        "plural": "SendMails",
+        "module": "Core",
+        "description": "Model for sending mail",
+        "isSystem": true,
+        "properties": {
+            "from": {
+                "description": "Mail from address",
+                "type": "string"
+            },
+            "pdf": {
+                "description": "PDF Data",
+                "type": "object"
+            },
+            "returnTo": {
+                "description": "Return to URL",
+                "type": "string"
+            },
+            "subject": {
+                "description": "Subject",
+                "type": "string"
+            },
+            "text": {
+                "description": "Mail text body",
+                "type": "string",
+                "format": "richText"
+            },
+            "to": {
+                "description": "Mail to address",
+                "type": "string"
+            }
+        }
     }
 ]
