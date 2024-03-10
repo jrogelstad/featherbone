@@ -157,6 +157,7 @@
     let authenticateLocal;
     let googleOauth2ClientId;
     let googleOauth2ClientSecret;
+    let googleOauth2CallbackUrl;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -313,6 +314,7 @@
 
             googleOauth2ClientId = resp.googleOauth2ClientId;
             googleOauth2ClientSecret = resp.googleOauth2ClientSecret;
+            googleOauth2CallbackUrl = resp.googleOauth2CallbackUrl;
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -2262,7 +2264,9 @@
                 {
                     clientID: googleOauth2ClientId,
                     clientSecret: googleOauth2ClientSecret,
-                    callbackURL: "/oauth2/redirect/google",
+                    callbackURL: (
+                        googleOauth2CallbackUrl + "/oauth2/redirect/google"
+                    ),
                     passReqToCallback: true,
                     scope: ["profile", "email"]
                 },
