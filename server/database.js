@@ -459,7 +459,7 @@
                 "contact.first_name as first_name, " +
                 "contact.last_name as last_name, " +
                 "contact.email AS email, " +
-                "contact.phone AS phone ," +
+                "contact.phone AS phone," +
                 "user_account.id  " +
                 "FROM user_account " +
                 "LEFT OUTER JOIN contact ON " +
@@ -467,6 +467,11 @@
                 "WHERE name = $1;"
             );
             let obj;
+            if (!req.tenant) {
+                return Promise.reject(
+                    "Deserialize user function requires a tenant"
+                );
+            }
 
             try {
                 obj = await that.connect(req.tenant);
@@ -491,7 +496,6 @@
                 delete row.first_name;
                 delete row.last_name;
                 delete row.change_password;
-                delete row.google_id;
                 // Send back result
                 return row;
             } catch (e) {
