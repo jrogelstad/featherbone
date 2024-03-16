@@ -61,7 +61,7 @@ const editWorkbookConfig = {
         }, {
             label: "Update",
             attr: "canUpdate",
-            width: 60
+            width: 70
         }]
     }]
 };
