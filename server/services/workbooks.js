@@ -175,7 +175,12 @@
                     }
 
                     if (obj.data.name) {
-                        sql += " AND name=$2";
+                        sql += " AND name=$";
+                        if (!isSuper) {
+                            sql += "2";
+                        } else {
+                            sql += "1";
+                        }
                         params.push(obj.data.name);
                     }
 
