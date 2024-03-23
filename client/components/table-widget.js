@@ -1423,33 +1423,36 @@ tableWidget.viewModel = function (options) {
                 return;
             }
 
-            if (typeof format === "object" && theProp()) {
-                relation = theProp.type.relation.toCamelCase();
-                if (f.types[relation] && f.types[relation].tableData) {
-                    tableData = f.types[relation].tableData;
+            if (typeof format === "object") {
+                if (!theProp()) {
+                    tableData = () => "";
                 } else {
-                    tableData = function () {
-                        let rel;
-                        let keys;
+                    relation = theProp.type.relation.toCamelCase();
+                    if (f.types[relation] && f.types[relation].tableData) {
+                        tableData = f.types[relation].tableData;
+                    } else {
+                        tableData = function () {
+                            let rel;
+                            let keys;
 
-                        // If relation, use feather natural key to
-                        // find value to display
-                        rel = f.catalog().getFeather(format.relation);
-                        keys = Object.keys(rel.properties);
-                        rel = (
-                            keys.find(
-                                (key) => rel.properties[key].isNaturalKey
-                            ) ||
-                            keys.find(
-                                (key) => rel.properties[key].isLabelKey
-                            )
-                        );
+                            // If relation, use feather natural key to
+                            // find value to display
+                            rel = f.catalog().getFeather(format.relation);
+                            keys = Object.keys(rel.properties);
+                            rel = (
+                                keys.find(
+                                    (key) => rel.properties[key].isNaturalKey
+                                ) ||
+                                keys.find(
+                                    (key) => rel.properties[key].isLabelKey
+                                )
+                            );
 
-                        if (rel) {
-                            row[colName] = theProp().data[rel]();
-                            return;
-                        }
-                    };
+                            if (rel) {
+                                row[colName] = theProp().data[rel]();
+                            }
+                        };
+                    }
                 }
             } else if (
                 theProp.format &&
