@@ -306,6 +306,22 @@
         }
     },
     {
+        "name": "PrintForm",
+        "plural": "PrintForms",
+        "module": "Core",
+        "inherits": "Form",
+        "description": "Form layouts for printed documents",
+        "properties": {}
+    },
+    {
+        "name": "SystemPrintForm",
+        "plural": "PrintForms",
+        "module": "Core",
+        "inherits": "PrintForm",
+        "description": "Standard form layouts for printed documents delivered with packages",
+        "properties": {}
+    },
+    {
         "name": "FormTab",
         "plural": "FormTabs",
         "module": "Core",
@@ -389,12 +405,14 @@
                 "isRequired": true
             },
             "grid": {
+                "alias": "Panel",
                 "description": "Grid (pane) number",
                 "type": "integer",
                 "default": 0,
                 "isRequired": true
             },
             "unit": {
+                "alias": "Column",
                 "description": "Unit (column) number",
                 "type": "integer",
                 "default": 0,
@@ -1425,6 +1443,10 @@
                 "type": "string",
                 "isRequired": true,
                 "isLabelKey": true
+            },
+            "maxSessions": {
+                "description": "Number of sessions that can sign in",
+                "type": "integer"
             }
         }
     },
@@ -1494,7 +1516,8 @@
                     "relation": "Edition",
                     "properties": [
                         "name",
-                        "description"
+                        "description",
+                        "maxSessions"
                     ]
                 },
                 "isReadOnly": false
@@ -1502,6 +1525,40 @@
             "isDemo": {
                 "description": "Flag whether demo database",
                 "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "SendMail",
+        "plural": "SendMails",
+        "module": "Core",
+        "description": "Model for sending mail",
+        "isSystem": true,
+        "properties": {
+            "from": {
+                "description": "Mail from address",
+                "type": "string"
+            },
+            "pdf": {
+                "description": "PDF Data",
+                "type": "object"
+            },
+            "returnTo": {
+                "description": "Return to URL",
+                "type": "string"
+            },
+            "subject": {
+                "description": "Subject",
+                "type": "string"
+            },
+            "text": {
+                "description": "Mail text body",
+                "type": "string",
+                "format": "richText"
+            },
+            "to": {
+                "description": "Mail to address",
+                "type": "string"
             }
         }
     }

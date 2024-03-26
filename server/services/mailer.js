@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -25,11 +25,85 @@
     const fs = require("fs");
     const {PDF} = require("./pdf");
     const {Config} = require("../config");
+    const {google} = require("googleapis");
+    const gmail = google.gmail({version: "v1"});
 
     const config = new Config();
     const pdf = new PDF();
     const nodemailer = require("nodemailer");
+    const path = require("path");
     let smtp;
+    let credentials = {};
+    let googleOauth2ClientId;
+    let googleOauth2ClientSecret;
+
+    // Function to send the email using Gmail API
+    async function sendMimeMessageViaService(mimeMessage) {
+        const jwtClient = new google.auth.JWT(
+            credentials.client_email,
+            null,
+            credentials.private_key,
+            ["https://www.googleapis.com/auth/gmail.send"],
+            // Specify the email address of the user the service
+            // account is impersonating.
+            // Ensure the service account has domain-wide authority
+            // to impersonate this user.
+            credentials.userEmail
+        );
+        // Authorize the JWT client and get a token to make API calls
+        await jwtClient.authorize();
+        // Send the email using the Gmail API
+        await gmail.users.messages.send({
+            auth: jwtClient,
+            resource: {raw: mimeMessage},
+            userId: credentials.userEmail
+        });
+        //console.log("Email sent:", response.data);
+    }
+
+    function sendGmailViaService(message) {
+        return new Promise(function (resolve, reject) {
+            let transporter = nodemailer.createTransport({
+                buffer: true,
+                newline: "unix",
+                streamTransport: true
+            });
+
+            function mimeMethod(err, info) {
+                if (err) {
+                    return console.error("Failed to send mail:", err);
+                }
+                const mimeMessage = info.message.toString("base64");
+                sendMimeMessageViaService(mimeMessage).then(function () {
+                    //console.log("Email sent successfully.");
+                    resolve();
+                }).catch(function (error) {
+                    console.error("Error sending email:", error);
+                    reject(error);
+                });
+            }
+
+            transporter.sendMail(message, mimeMethod);
+        });
+    }
+
+    function readGoogleKeys(name) {
+        return new Promise(function (resolve, reject) {
+            let filename = path.format(
+                {base: "/keys/" + name, root: "./"}
+            );
+
+            fs.readFile(filename, "utf8", function (err, data) {
+                if (err) {
+                    console.error(err);
+                    return reject(err);
+                }
+                data = JSON.parse(data);
+
+                resolve(data);
+            });
+        });
+    }
 
     config.read().then(function (resp) {
         smtp = {
@@ -41,6 +115,20 @@
             port: resp.smtpPort,
             secure: resp.smtpSecure
         };
+
+        credentials.userEmail = resp.googleEmailUserAccount;
+
+        if (resp.googleOauth2ClientId) {
+            googleOauth2ClientId = resp.googleOauth2ClientId;
+            googleOauth2ClientSecret = resp.googleOauth2ClientSecret;
+        }
+
+        if (resp.googleEmailClientFile) {
+            readGoogleKeys(resp.googleEmailClientFile).then(function (data) {
+                credentials = data;
+                credentials.userEmail = resp.googleEmailUserAccount;
+            });
+        }
     });
 
     /**
@@ -89,41 +177,48 @@
             let message = obj.data.message;
             let opts = obj.data.pdf;
             let theSmtp = obj.data.smtp || smtp;
-
-            function cleanup() {
-                return new Promise(function (resolve, reject) {
-                    fs.unlink(message.attachments.path, function (err) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-                        resolve();
-                    });
-                });
-            }
+            let thePath = false;
 
             function attachPdf(resp) {
                 return new Promise(function (resolve) {
                     message.attachments = {
                         path: "./files/downloads/" + resp
                     };
-
+                    thePath = message.attachments.path;
                     resolve();
                 });
             }
 
-            function sendMail() {
-                return new Promise(function (resolve, reject) {
-                    let transporter = nodemailer.createTransport(theSmtp);
+            async function sendMail() {
+                let transporter;
 
-                    transporter.sendMail(
-                        message
-                    ).then(
-                        resolve
-                    ).catch(
-                        reject
-                    );
-                });
+                try {
+                    switch (theSmtp.type) {
+                    case "Gmail":
+                        transporter = nodemailer.createTransport({
+                            auth: {
+                                accessToken: theSmtp.auth.accessToken,
+                                clientId: googleOauth2ClientId,
+                                clientSecret: googleOauth2ClientSecret,
+                                refreshToken: theSmtp.auth.refreshToken,
+                                type: "OAuth2",
+                                user: theSmtp.auth.user
+                            },
+                            service: "gmail"
+                        });
+                        await transporter.sendMail(message);
+                        break;
+                    case "SMTP":
+                        transporter = nodemailer.createTransport(theSmtp);
+                        await transporter.sendMail(message);
+                        break;
+                    default:
+                        await sendGmailViaService(message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    return Promise.reject(e);
+                }
             }
 
             function sendMailWithOptions() {
@@ -131,8 +226,6 @@
                     if (!opts.ids && !opts.data) {
                         attachPdf(opts.filename).then(
                             sendMail
-                        ).then(
-                            cleanup
                         ).then(
                             resolve
                         ).catch(
@@ -148,8 +241,6 @@
                             attachPdf
                         ).then(
                             sendMail
-                        ).then(
-                            cleanup
                         ).then(
                             resolve
                         ).catch(
@@ -167,6 +258,14 @@
                 }
             } catch (e) {
                 return Promise.reject(e);
+            } finally {
+                if (thePath) {
+                    fs.unlink(thePath, function (err) {
+                        if (err) {
+                            console.error(err);
+                        }
+                    });
+                }
             }
         };
 

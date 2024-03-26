@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -885,3 +885,78 @@ function printOverlayAttrColumn(data, feather) {
 }
 
 f.catalog().registerModel("PrintOverlayAttrColumn", printOverlayAttrColumn);
+
+function prform(data, feather) {
+    feather = feather || f.catalog().getFeather("PrintForm");
+    let model = f.createModel(data, feather);
+    if (model.data.module) {
+        model.data.module.isReadOnly(true);
+    }
+
+    // Hack: list can't differentiate types
+    model.onCanDelete(function () {
+        return (
+            f.currentUser().isSuper ||
+            model.data.objectType() !== "SystemPrintForm"
+        );
+    });
+
+    model.addCalculated({
+        name: "statusIcon",
+        type: "string",
+        format: "icon",
+        function: function () {
+            if (
+                !f.currentUser().isSuper &&
+                model.data.objectType() === "SystemPrintForm"
+            ) {
+                return "lock";
+            }
+            return "lock_open";
+        },
+        style: "EMPHASIS"
+    });
+
+    model.data.statusIcon.title = function () {
+        if (
+            !f.currentUser().isSuper &&
+            model.data.objectType() === "SystemPrintForm"
+        ) {
+            return "System form. Copy to make your own edits";
+        }
+        return "Local copy, editing allowed";
+    };
+
+    return model;
+}
+
+f.catalog().registerModel("PrintForm", prform);
+
+prform.calculated().statusIcon = {
+    type: "string",
+    description: "Status indicator",
+    format: "icon"
+};
+
+function sysprform(data, feather) {
+    feather = feather || f.catalog().getFeather("SystemPrintForm");
+    let model = f.createModel(data, feather);
+    let state = model.state();
+
+    model.onLoad(function () {
+        if (!f.currentUser().isSuper) {
+            state.send("freeze");
+            model.onCopy(function () {
+                model.name = "PrintForm";
+                model.data.module("");
+                model.data.module.isReadOnly(true);
+            });
+        } else {
+            model.data.module.isReadOnly(false);
+        }
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("SystemPrintForm", sysprform);

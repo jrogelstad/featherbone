@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -761,6 +761,52 @@
             disablePropagateViews = Boolean(flag);
         };
 
+        let descendants = {};
+        /**
+           Take a feather name and return an array of the feather
+           and its descendant names
+
+            @method getDescendants
+            @param {Object} client
+            @param {String} name
+            @return {Array}
+         */
+        that.getDescendants = async function (theClient, name) {
+            if (!name) {
+                return;
+            }
+
+            if (descendants[name]) {
+                return descendants[name];
+            }
+
+            let result = [name];
+            let catalog;
+
+            function appendFeathers(str) {
+                let kids = Object.keys(catalog).filter(function children(fthr) {
+                    return catalog[fthr].inherits === str;
+                });
+                result = result.concat(kids);
+                kids.forEach(appendFeathers);
+            }
+
+            try {
+                catalog = await settings.getSettings({
+                    client: theClient,
+                    data: {name: "catalog"}
+                });
+
+                appendFeathers(name);
+
+                descendants[name] = result;
+
+                return result;
+            } catch (e) {
+                return Promise.reject(e);
+            }
+        };
+
         /**
             Return a feather definition, including inherited properties.
 
@@ -1187,11 +1233,14 @@
                         actions.canCreate = false;
                         actions.canUpdate = false;
                         actions.canDelete = false;
-                    } else if (!feather.properties.owner) {
+                    } else if (
+                        obj.data.id &&
+                        !feather.properties.owner
+                    ) {
                         err = (
                             "Feather '" + resp.name +
                             "' must have owner property to set " +
-                            "authorization."
+                            "record level authorization."
                         );
                     }
 
@@ -1237,6 +1286,7 @@
                                 }
 
                                 if (
+                                    obj.data.id &&
                                     resp.rows[0].owner !==
                                     theClient.currentUser()
                                 ) {
@@ -1750,16 +1800,21 @@
 
                         /* Create table if applicable */
                         if (!feather) {
-                            sql = "CREATE TABLE %I( ";
-                            sql += "CONSTRAINT %I PRIMARY KEY (_pk), ";
-                            sql += "CONSTRAINT %I UNIQUE (id)) ";
-                            sql += "INHERITS (%I);";
-                            sql += "CREATE TRIGGER %I AFTER INSERT ON %I ";
-                            sql += "FOR EACH ROW EXECUTE PROCEDURE ";
-                            sql += "insert_trigger();";
-                            sql += "CREATE TRIGGER %I AFTER UPDATE ON %I ";
-                            sql += "FOR EACH ROW EXECUTE PROCEDURE ";
-                            sql += "update_trigger();";
+                            sql = (
+                                "CREATE TABLE %I( " +
+                                "CONSTRAINT %I PRIMARY KEY (_pk), " +
+                                "CONSTRAINT %I UNIQUE (id)) " +
+                                "INHERITS (%I);" +
+                                "CREATE TRIGGER %I AFTER INSERT ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "insert_trigger();" +
+                                "CREATE TRIGGER %I AFTER UPDATE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "update_trigger();" +
+                                "CREATE TRIGGER %I AFTER DELETE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "delete_trigger();"
+                            );
 
                             tokens = tokens.concat([
                                 table,
@@ -1769,10 +1824,46 @@
                                 table + "_insert_trigger",
                                 table,
                                 table + "_update_trigger",
+                                table,
+                                table + "_delete_trigger",
                                 table
                             ]);
 
                         } else {
+                            // Update triggers as necessary
+                            sql += (
+                                "DROP TRIGGER IF EXISTS %I ON %I;" +
+                                "DROP TRIGGER IF EXISTS %I ON %I;" +
+                                "DROP TRIGGER IF EXISTS %I ON %I;" +
+                                "CREATE TRIGGER %I " +
+                                "AFTER INSERT ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "insert_trigger();" +
+                                "CREATE TRIGGER %I " +
+                                "AFTER UPDATE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "update_trigger();" +
+                                "CREATE TRIGGER %I " +
+                                "AFTER DELETE ON %I " +
+                                "FOR EACH ROW EXECUTE PROCEDURE " +
+                                "delete_trigger();"
+                            );
+
+                            tokens = tokens.concat([
+                                table + "_insert_trigger",
+                                table,
+                                table + "_update_trigger",
+                                table,
+                                table + "_delete_trigger",
+                                table,
+                                table + "_insert_trigger",
+                                table,
+                                table + "_update_trigger",
+                                table,
+                                table + "_delete_trigger",
+                                table
+                            ]);
+
                             /* Drop non-inherited columns not included
                                in properties */
                             props = feather.properties;
@@ -2331,6 +2422,7 @@
                             return;
                         }
 
+                        descendants = {}; // Reset cache
                         resolve(true);
                     };
 
