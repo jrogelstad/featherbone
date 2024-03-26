@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -34,16 +34,19 @@ const gantt = {};
     @param {String} [options.id] Id
 */
 gantt.viewModel = function (options) {
+    options = options || {};
     let vm = {};
 
     vm.chart = f.prop();
     vm.id = f.prop(options.id || f.createId());
-    vm.showDetail = f.prop(true);
+    vm.showDetail = f.prop(false);
     vm.showLinks = f.prop(true);
     vm.viewMode = f.prop("week");
 
     return vm;
 };
+
+f.catalog().register("viewModels", "gantt", gantt.viewModel);
 
 /**
     Gantt component
@@ -63,7 +66,7 @@ gantt.component = {
         in view model to attached to
     */
     oninit: function (vnode) {
-        this.viewModel = gantt.viewModel(vnode.attrs);
+        this.viewModel = vnode.attrs.viewModel || gantt.viewModel(vnode.attrs);
         this.viewModel.data = vnode.attrs.parentViewModel.model().data[
             vnode.attrs.parentProperty
         ];
@@ -80,7 +83,7 @@ gantt.component = {
             data = data.filter((d) => Boolean(d.type));
         }
 
-        if (data.length && !chart) {
+        if (data.length) {
             chart = new Gantt.CanvasGantt(
                 e,
                 data,
@@ -88,11 +91,9 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
-                        if (!item.feather && item.key) {
-                            return;
-                        }
-
-                        if (item.feather && item.key) {
+                        if (item.route) {
+                            m.route.set(item.route);
+                        } else if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
                                 key: item.key
@@ -121,6 +122,16 @@ gantt.component = {
             chart.options.viewMode = vm.viewMode();
             chart.options.showLinks = vm.showLinks();
             chart.data = data;
+            chart.start = f.parseDate(f.endOfTime());
+            chart.end = f.parseDate(f.startOfTime())
+            chart.data.forEach(function (dat) {
+                if (dat.start.valueOf() < chart.start.valueOf()) {
+                    chart.start = dat.start;
+                }
+                if (dat.end.valueOf() > chart.end.valueOf()) {
+                    chart.end = dat.end;
+                }
+            })
             chart.render();
         } else if (data.length && !chart) {
             chart = new Gantt.CanvasGantt(
@@ -130,11 +141,9 @@ gantt.component = {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
                     onClick: function (item) {
-                        if (!item.feather && item.key) {
-                            return;
-                        }
-
-                        if (item.feather && item.key) {
+                        if (item.route) {
+                            m.route.set(item.route);
+                        } else if (item.feather && item.key) {
                             m.route.set("/edit/:feather/:key", {
                                 feather: item.feather,
                                 key: item.key

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -459,13 +459,19 @@
                 "contact.first_name as first_name, " +
                 "contact.last_name as last_name, " +
                 "contact.email AS email, " +
-                "contact.phone AS phone " +
+                "contact.phone AS phone," +
+                "user_account.id  " +
                 "FROM user_account " +
                 "LEFT OUTER JOIN contact ON " +
                 "  (_contact_contact_pk = contact._pk) " +
                 "WHERE name = $1;"
             );
             let obj;
+            if (!req.tenant) {
+                return Promise.reject(
+                    "Deserialize user function requires a tenant"
+                );
+            }
 
             try {
                 obj = await that.connect(req.tenant);
@@ -485,6 +491,7 @@
                 row.email = row.email || "";
                 row.phone = row.phone || "";
                 row.changePassword = row.change_password;
+                row.googleId = row.google_id;
                 delete row.is_super;
                 delete row.first_name;
                 delete row.last_name;

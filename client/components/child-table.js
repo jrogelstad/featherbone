@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -362,8 +362,10 @@ childTable.viewModel = function (options) {
     });
     canAdd = vm.tableWidget().models().canAdd;
 
-    root.state().resolve("/Ready").enter(canAdd);
-    root.state().resolve("/Locked").enter(canAdd);
+    root.state().resolve("/Ready/Fetched/ReadOnly").enter(() => canAdd(false));
+    root.state().resolve("/Locked").enter(() => canAdd(false));
+    root.state().resolve("/Ready/Fetched/ReadOnly").exit(() => canAdd(true));
+    root.state().resolve("/Locked").exit(() => canAdd(true));
     root.state().resolve("/Ready/Fetched/Clean").enter(vm.tableWidget().select);
     canAdd.state().resolve("/Changing").exit(toggleCanAdd);
     toggleCanAdd();
@@ -455,7 +457,7 @@ childTable.component = {
         buttonUp.disable();
         buttonDown.disable();
 
-        if (sel) {
+        if (ary.canMove && ary.canMove() && sel) {
             if (ary.length > 1) {
                 if (index < ary.length - 1) {
                     buttonDown.enable();

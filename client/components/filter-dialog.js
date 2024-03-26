@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2022  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -72,6 +72,60 @@ filterDialog.viewModel = function (options) {
 
     /**
         @private
+        @method buildSelector
+    */
+    function buildSelector(opts) {
+        let theId = opts.key;
+        let selectComponents = vm.selectComponents();
+        let val = opts.value;
+
+        val = (
+            val === ""
+            ? undefined
+            : val
+        );
+
+        if (selectComponents[theId]) {
+            if (
+                selectComponents[theId].prop === opts.key &&
+                selectComponents[theId].value === val
+            ) {
+                return selectComponents[theId].content;
+            }
+        } else {
+            selectComponents[theId] = {};
+        }
+
+        if (opts.dataList.length && opts.dataList[0].value) {
+            opts.dataList.unshift({
+                value: "",
+                label: ""
+            });
+        }
+
+        selectComponents[theId].prop = opts.key;
+        selectComponents[theId].value = val;
+        selectComponents[theId].content = m("select", {
+            id: theId,
+            key: theId,
+            onchange: (e) => vm.itemChanged.bind(
+                this,
+                opts.index,
+                "value"
+            )(e.target.value),
+            value: val,
+            class: opts.class
+        }, opts.dataList.map(function (item) {
+            return m("option", {
+                value: item.value,
+                key: theId + "$" + item.value
+            }, item.label);
+        }));
+
+        return selectComponents[theId].content;
+    }
+    /**
+        @private
         Helper function for building input elements
 
         @method createEditor
@@ -105,9 +159,24 @@ filterDialog.viewModel = function (options) {
 
         // Handle input types
         if (typeof type === "string") {
+            if (
+                prop.dataList &&
+                (op === "=" || op === "!=")
+            ) {
+                return buildSelector({
+                    class: "fb-input",
+                    dataList: prop.dataList,
+                    index: obj.index,
+                    key: obj.key,
+                    value: theValue
+                });
+            }
+
             if (type === "boolean") {
                 component = m(f.getComponent("Checkbox"), {
-                    isCell: true,
+                    inputClass: "fb-filter-checkbox-input",
+                    isCell: false,
+                    labelClass: "fb-filter-checkbox-label",
                     value: theValue,
                     onclick: vm.itemChanged.bind(this, index, "value")
                 });
@@ -180,7 +249,10 @@ filterDialog.viewModel = function (options) {
                 return m(w, {
                     parentProperty: attr,
                     parentViewModel: vm,
-                    isCell: true
+                    isCell: true,
+                    style: {
+                        maxWidth: "220px"
+                    }
                 });
             }
         }
@@ -496,11 +568,11 @@ filterDialog.viewModel = function (options) {
                 m("td", {
                     class: "fb-filter-dialog-input-cell"
                 }, [createEditor({
+                    class: "fb-filter-dialog-input",
                     index: item.index,
                     key: item.property,
-                    value: item.value,
                     operator: item.operator,
-                    class: "fb-filter-dialog-input"
+                    value: item.value
                 })])
             ]);
 
@@ -513,6 +585,8 @@ filterDialog.viewModel = function (options) {
     // ..........................................................
     // PRIVATE
     //
+
+    vm.selectComponents = f.prop({});
 
     vm.style().width = "750px";
 

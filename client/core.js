@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -47,6 +47,7 @@ const exclusions = [
     "owner"
 ];
 const formats = {};
+const disabledFthrs = [];
 
 let styles;
 
@@ -235,7 +236,7 @@ function buildSelector(obj, opts) {
         if (
             selectComponents[theId].prop === opts.prop &&
             selectComponents[theId].readonly === opts.readonly &&
-            selectComponents[theId].readonly === val &&
+            selectComponents[theId].value === val &&
             selectComponents[theId].values === values
         ) {
             return selectComponents[theId].content;
@@ -729,6 +730,10 @@ formats.icon.editor = function (options) {
         return m("option", icon.label);
     });
 
+    if (options.readonly) {
+        return formats.icon.tableData(options);
+    }
+
     return m("div", {
         key: options.key,
         style: {display: "inline-block"}
@@ -1036,17 +1041,16 @@ formats.userAccount = {
     type: "string"
 };
 function userAccountNames() {
-    let roles = catalog.store().data().roles().slice();
+    let userAccounts = catalog.store().data().userAccounts().slice();
     let result;
 
-    result = roles.filter((r) => (
-        r.data.objectType() === "UserAccount" && !r.data.isDeleted()
-    ));
-    result = result.map((role) => role.data.name()).sort();
-    result = result.map(function (role) {
+    result = userAccounts.filter(
+        (ua) => !ua.data.isDeleted()
+    ).map((ua) => ua.data.name()).sort();
+    result = result.map(function (ua) {
         return {
-            value: role,
-            label: role
+            value: ua,
+            label: ua
         };
     });
     result.unshift({
@@ -1780,6 +1784,26 @@ f.createEditor = function (obj) {
 f.createRelationWidget = createRelationWidgetFromFeather;
 
 /**
+  Sets or returns a set of feathers that are not available for use in lists by
+  non super users.
+
+  Any sheet in a workbook using a disabled feather will be invisible to
+  regular users and highlighted red for super users.
+
+  @method disabledFeathers
+  @param {Array} Array of feathers to disable
+  @return {Array}
+*/
+f.hiddenFeathers = function (...args) {
+    if (args.length && Array.isArray(args[0])) {
+        disabledFthrs.length = 0;
+        args[0].forEach((fthr) => disabledFthrs.push(fthr));
+    }
+
+    return f.copy(disabledFthrs);
+};
+
+/**
   Returns the exact x, y coordinents of an HTML element.
 
   Thanks to:
@@ -2078,6 +2102,10 @@ f.processEvent = function (obj) {
         return;
     }
 
+    ary.postProcess = ary.postProcess || function () {
+        return;
+    };
+
     // Special application change events
     switch (subscriptionId) {
     case moduleSid:
@@ -2098,6 +2126,7 @@ f.processEvent = function (obj) {
             instance = ary.find((item) => item.id === data);
             ary.splice(ary.indexOf(instance), 1);
         }
+        ary.postProcess();
 
         return;
     }
@@ -2113,6 +2142,8 @@ f.processEvent = function (obj) {
     // Make a copy to work with
     let cary = ary.slice();
     let at;
+    let currState;
+
     function doSort(a, b) {
         let ret = 0;
         let i = 0;
@@ -2170,38 +2201,48 @@ f.processEvent = function (obj) {
         });
 
         if (instance) {
+            currState = instance.state().current()[0];
             // Only update if not caused by this instance
             if (
-                instance.state().current()[0] !== patching && (
+                currState !== patching && (
                     !data.etag || (
                         data.etag && instance.data.etag &&
                         data.etag !== instance.data.etag()
                     )
                 )
             ) {
-                instance.state().goto("Ready/Fetched/ReadOnly");
+                instance.state().goto("/Ready/New");
                 instance.set(data, true, true);
-                instance.state().goto("Ready/Fetched/Clean");
+                instance.state().goto(currState);
+
                 if (!ary.inFilter(instance)) {
                     // New data state should no longer show
-                    ary.splice(ary.indexOf(instance), 1);
+                    if (ary.remove) {
+                        ary.remove(instance);
+                    } else {
+                        ary.splice(ary.indexOf(instance), 1);
+                    }
                 }
                 m.redraw();
             }
         } else {
             addContingent();
         }
+        ary.postProcess();
         break;
     case "create":
         addContingent();
+        ary.postProcess();
         break;
     case "delete":
-        instance = ary.indexOf(function (model) {
-            return model.id() === data;
-        });
-
-        if (instance !== -1) {
-            ary.splice(instance, 1);
+        instance = ary.find((i) => i.data.id() === data);
+        if (instance) {
+            if (ary.remove) {
+                ary.remove(instance);
+            } else {
+                ary.splice(ary.indexOf(instance), 1);
+            }
+            ary.postProcess();
         }
         break;
     case "lock":
@@ -2303,12 +2344,9 @@ f.resolveProperty = function (model, property) {
 /**
     Send an email with optional PDF attachment.
 
-        prop = f.resolveProperty(contact, "address.city");
-        console.log(prop()); // "Philadephia"
-
     @method sendMail
     @param {Object} Parameters
-    @param {Object} parameters.message Message data
+    @param {Object} parameters.data Message data
     @param {String} parameters.data.message.from From address
     @param {String} parameters.data.message.to To address
     @param {String} parameters.data.message.subject Subject
@@ -2321,100 +2359,48 @@ f.resolveProperty = function (model, property) {
     @param {Dialog} dialog Dialog to render message preview.
     @return {Promise}
 */
-f.sendMail = function (params, dialog) {
-    return new Promise(function (resolve, reject) {
-        let mailto = f.prop(params.message.to);
-        let mailsub = f.prop(params.message.subject);
-        let mailtxt = f.prop(params.message.text);
-        let labelStyle = {
-            width: "80px"
-        };
-        let inputStyle = {
-            width: "650px"
-        };
+f.sendMail = async function (params) {
+    try {
+        let globalSettings = catalog.store().models().globalSettings() || {};
+        let smtpType = (
+            globalSettings.data
+            ? globalSettings.data.smtpType()
+            : "None"
+        );
 
-        function onOk() {
-            let theBody = {
-                message: {
-                    from: params.message.from,
-                    to: mailto(),
-                    subject: mailsub(),
-                    text: mailtxt()
-                },
-                pdf: params.pdf
-            };
-            let payload = {
-                method: "POST",
-                path: "/do/send-mail/",
-                body: theBody
-            };
-
-            return f.datasource().request(
-                payload
-            ).then(resolve).catch(reject);
+        if (smtpType === "None") {
+            f.notify("Global settings for email are not defined");
+            return;
         }
 
-        dialog.content = function () {
-            return m("div", {
-                class: "pure-form pure-form-aligned"
-            }, [
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: "dlgMailto",
-                        style: labelStyle
-                    }, "To:"),
-                    m("input", {
-                        type: "email",
-                        id: "dlgMailto",
-                        style: inputStyle,
-                        onchange: (e) => mailto(e.target.value),
-                        value: mailto()
-                    })
-                ]),
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: "dlgSubject",
-                        style: labelStyle
-                    }, "Subject:"),
-                    m("input", {
-                        id: "dlgSubject",
-                        style: inputStyle,
-                        onchange: (e) => mailsub(e.target.value),
-                        value: mailsub()
-                    })
-                ]),
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: "dlgBody",
-                        style: labelStyle
-                    }, ""),
-                    m("textarea", {
-                        id: "dlgBody",
-                        onchange: (e) => mailtxt(e.target.value),
-                        value: mailtxt(),
-                        style: inputStyle,
-                        rows: 15
-                    })
-                ])
-            ]);
-        };
-
-        dialog.title("Send mail");
-        dialog.icon("send");
-        dialog.onOk(onOk);
-        dialog.onCancel(reject);
-        dialog.style({
-            width: "800px"
+        let mailModel = catalog.store().models().sendMail({
+            pdf: params.pdf,
+            returnTo: window.location.hash.slice(2),
+            subject: params.message.subject,
+            text: params.message.text,
+            to: params.message.to
         });
-        dialog.buttonOk().label("Send");
-        dialog.show();
-    });
+        let theKey = mailModel.id();
+        await mailModel.save();
+
+        if (smtpType === "Gmail") {
+            let ga = document.createElement("a", {is: "googleAuth"});
+            let query = window.Qs.stringify({
+                redirectUrl: (
+                    window.location.origin +
+                    window.location.pathname +
+                    "#!/send-mail/" + theKey
+                )
+            });
+            ga.href = window.location.pathname + "oauth/google/?" + query;
+            ga.click();
+        } else {
+            m.route.set("/send-mail/:key", {key: theKey});
+        }
+    } catch (e) {
+        f.notify(e);
+        console.error(e);
+    }
 };
 
 // Define application state

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -40,6 +40,7 @@
     const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
+    const d = require("domain").create();
 
     function noJoin(w) {
         return !w.table && w.property.indexOf(".") === -1;
@@ -720,24 +721,22 @@
             @param {Object} payload.client Database client
             @return {Promise}
         */
+        d.on("error", function (err) {
+            // handle any post process error safely
+            console.error(err);
+        });
         crud.commit = async function (obj) {
-            let client = obj.client;
-            let callbacks = client.callbacks.slice();
+            let callbacks = obj.client.callbacks.slice();
 
             async function doPostProcessing() {
-                try {
-                    while (callbacks.length) {
-                        await callbacks.shift()();
-                    }
-                } catch (e) {
-                    console.error(e);
-                    return Promise.reject(e);
+                while (callbacks.length) {
+                    await callbacks.shift()();
                 }
             }
 
             try {
-                await client.query("COMMIT;");
-                doPostProcessing(); // Happens in the background
+                await obj.client.query("COMMIT;");
+                d.run(doPostProcessing); // Happens in the background
             } catch (err) {
                 return Promise.reject(err);
             }
@@ -945,6 +944,7 @@
                 let afterDelete;
                 let afterLog;
                 let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
+                let sql2 = "DELETE from \"$subscription\" WHERE objectid=$1;";
                 let clen = 1;
                 let c = 0;
                 let theClient = obj.client;
@@ -989,6 +989,7 @@
                     crud.doSelect({
                         name: obj.name,
                         id: obj.id,
+                        isForUpdate: true,
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
                         client: theClient,
@@ -996,7 +997,7 @@
                     }, true).then(afterDoSelect).catch(reject);
                 };
 
-                afterDoSelect = function (resp) {
+                afterDoSelect = async function (resp) {
                     let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
@@ -1052,17 +1053,19 @@
                     });
 
                     // Finally, delete parent object
+                    await theClient.query(sql2, [obj.id]);
                     theClient.query(sql, [obj.id], afterDelete);
                 };
 
                 // Handle change log
-                afterDelete = function () {
+                afterDelete = async function () {
                     // Move on only after all callbacks report back
                     c += 1;
                     if (c < clen) {
                         return;
                     }
 
+                    await theClient.query(sql2, [obj.id]);
                     afterLog();
                     return;
 
@@ -1828,6 +1831,7 @@
                 sql += " WHERE id = $1";
 
                 if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
                     await theClient.query(
                         "SELECT pg_advisory_xact_lock($1);",
                         [key]
@@ -1860,7 +1864,6 @@
                     feather.enableRowAuthorization
                 );
 
-                let feathername;
                 let sort = (
                     obj.filter
                     ? obj.filter.sort || []
@@ -1874,20 +1877,28 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
+                if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
+                }
 
                 //console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
-                feathername = obj.name;
-
                 // Handle subscription
-                await events.subscribe(
-                    theClient,
-                    obj.subscription,
-                    result.map((item) => item.id),
-                    feathername
-                );
+                if (obj.subscription) {
+                    let descendants = await feathers.getDescendants(
+                        obj.client,
+                        obj.name
+                    );
+
+                    await events.subscribe(
+                        theClient,
+                        obj.subscription,
+                        result.map((item) => item.id),
+                        descendants
+                    );
+                }
 
                 return result;
             }
@@ -2011,6 +2022,7 @@
                     resp = await crud.doSelect({
                         name: obj.name,
                         id: obj.id,
+                        isForUpdate: true,
                         properties: keys.filter(noChildProps),
                         client: theClient,
                         sanitize: false

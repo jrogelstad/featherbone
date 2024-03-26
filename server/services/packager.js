@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2023  John Rogelstad
+    Copyright (C) 2024  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -379,7 +379,7 @@
         content = rows.map(function (row) {
             let rec = row.form;
             let ret = {
-                name: "Form",
+                name: rec.objectType,
                 method: "POST",
                 module: rec.module,
                 id: rec.id,
