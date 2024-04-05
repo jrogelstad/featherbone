@@ -57,7 +57,7 @@
         "BEGIN" +
         "  FOR node IN " +
         "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
-        "    WHERE objectid = NEW.id LOOP " +
+        "    WHERE (objectid = NEW.id OR objectid = TG_TABLE_NAME) LOOP " +
         "    IF NEW.is_deleted THEN " +
         "      change := 'delete'; " +
         "      data := '\"' || OLD.id || '\"'; " +
