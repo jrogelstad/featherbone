@@ -1895,7 +1895,7 @@
                     await events.subscribe(
                         theClient,
                         obj.subscription,
-                        result.map((item) => item.id),
+                        [],
                         descendants
                     );
                 }
