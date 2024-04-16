@@ -152,10 +152,16 @@ filterDialog.viewModel = function (options) {
             key: theId
         };
         let setToday = false;
+        let dl;
 
         prop = resolveProperty(feather, attr);
         type = prop.type;
         format = prop.format || prop.type;
+        dl = (
+            (feather.overloads[attr] && feather.overloads[attr].dataList)
+            ? feather.overloads[attr].dataList
+            : prop.dataList
+        );
 
         // Handle input types
         if (typeof type === "string") {
@@ -165,7 +171,7 @@ filterDialog.viewModel = function (options) {
             ) {
                 return buildSelector({
                     class: "fb-input",
-                    dataList: prop.dataList,
+                    dataList: dl,
                     index: obj.index,
                     key: obj.key,
                     value: theValue
