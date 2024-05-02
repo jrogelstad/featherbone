@@ -1918,598 +1918,536 @@
             @return {Promise} Resolves to array of patches reporting back
             differences between request and actual saved record result.
         */
-        crud.doUpdate = function (obj, isChild, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let result;
-                let updRec;
-                let props;
-                let value;
-                let sql;
-                let pk;
-                let relation;
-                let key;
-                let keys;
-                let oldRec;
-                let newRec;
-                let cpatches;
-                let feather;
-                let tokens;
-                let afterGetKey;
-                let afterUpdate;
-                let afterSelectUpdated;
-                let done;
-                let nextProp;
-                let afterProperties;
-                let afterUniqueCheck;
-                let unique;
-                let doUnlock;
-                let afterGetRelKey;
-                let cacheRec;
-                let patches = obj.data || [];
-                let theId = obj.id;
-                let doList = [];
-                let params = [];
-                let ary = [];
-                let clen = 0;
-                let children = [];
-                let p = 1;
-                let n = 0;
-                let theClient = obj.client;
+        crud.doUpdate = async function (obj, isChild, isSuperUser) {
+            let result;
+            let updRec;
+            let props;
+            let value;
+            let sql;
+            let pk;
+            let relation;
+            let key;
+            let keys;
+            let oldRec;
+            let newRec;
+            let cpatches;
+            let feather;
+            let tokens;
+            let unique;
+            let cacheRec;
+            let patches = obj.data || [];
+            let theId = obj.id;
+            let doList = [];
+            let params = [];
+            let ary = [];
+            let clen = 0;
+            let children = [];
+            let p = 1;
+            let n = 0;
+            let theClient = obj.client;
+            let resp;
+            //console.log(obj.data);
 
-                if (!patches.length) {
-                    crud.unlock(theClient, {
-                        id: obj.id
-                    }).then(resolve.bind(null, [])).catch(reject);
-                    return;
+            if (!patches.length) {
+                await crud.unlock(theClient, {
+                    id: obj.id
+                });
+                return [];
+            }
+
+            function find(ary, id) {
+                return ary.filter(function (item) {
+                    return item && item.id === id;
+                })[0] || false;
+            }
+
+            function noChildProps(key) {
+                if (
+                    typeof feather.properties[key].type !== "object" ||
+                    !feather.properties[key].type.childOf
+                ) {
+                    return true;
                 }
+            }
 
-                function find(ary, id) {
-                    return ary.filter(function (item) {
-                        return item && item.id === id;
-                    })[0] || false;
+            function requiredIsNull(fkey) {
+                if (props[fkey].isRequired && updRec[fkey] === null) {
+                    key = fkey;
+                    return true;
                 }
+            }
 
-                function noChildProps(key) {
-                    if (
-                        typeof feather.properties[key].type !== "object" ||
-                        !feather.properties[key].type.childOf
-                    ) {
-                        return true;
-                    }
+            function uniqueChanged(fkey) {
+                let pf = props[fkey];
+
+                if (
+                    pf.isNaturalKey &&
+                    updRec[fkey] !== oldRec[fkey] &&
+                    !isChild // Children can be reordered
+                ) {
+
+                    unique = {
+                        feather: pf.inheritedFrom || feather.name,
+                        prop: fkey,
+                        value: updRec[fkey],
+                        label: pf.alias || fkey
+                    };
+
+                    return true;
                 }
+            }
 
-                function afterAuthorization(authorized) {
-                    if (!authorized) {
-                        reject("Not authorized to update \"" + theId + "\"");
-                        return;
-                    }
+            function callback (val) {
+                return new Promise(function (resolve, reject) {
+                    async function nextProp() {
+                        let updProp;
+                        let oldProp;
+                        let msg;
 
-                    tools.getKey({
-                        id: theId,
-                        client: theClient
-                    }).then(afterGetKey).catch(reject);
-                }
+                        key = keys[n];
+                        n += 1;
 
-                function afterGetFeather(resp) {
-                    if (!resp) {
-                        reject("Feather \"" + obj.name + "\" not found.");
-                        return;
-                    }
+                        if (n <= keys.length) {
+                            /* Handle composite types */
+                            if (typeof props[key].type === "object") {
+                                updProp = updRec[key] || {};
+                                oldProp = oldRec[key] || {};
 
-                    feather = resp;
-                    tokens = [feather.name.toSnakeCase()];
-                    props = feather.properties;
+                                /* Handle child records */
+                                if (Array.isArray(updRec[key])) {
+                                    relation = props[key].type.relation;
 
-                    if (isSuperUser === false) {
-                        feathers.isAuthorized({
-                            client: theClient,
-                            data: {
-                                id: theId,
-                                action: "canUpdate"
-                            }
-                        }).then(afterAuthorization).catch(reject);
-                        return;
-                    }
+                                    /* Process deletes */
+                                    oldRec[key].forEach(function (row) {
+                                        let cid = row.id;
 
-                    afterAuthorization(true);
-                }
-
-                afterGetKey = async function (resp) {
-                    pk = resp;
-                    keys = Object.keys(props);
-
-                    // Get existing record
-                    resp = await crud.doSelect({
-                        name: obj.name,
-                        id: obj.id,
-                        isForUpdate: true,
-                        properties: keys.filter(noChildProps),
-                        client: theClient,
-                        sanitize: false
-                    }, isChild);
-
-                    let eventKey = "_eventkey"; // JSLint no underscore
-                    let msg;
-
-                    function requiredIsNull(fkey) {
-                        if (props[fkey].isRequired && updRec[fkey] === null) {
-                            key = fkey;
-                            return true;
-                        }
-                    }
-
-                    function uniqueChanged(fkey) {
-                        let pf = props[fkey];
-
-                        if (
-                            pf.isNaturalKey &&
-                            updRec[fkey] !== oldRec[fkey] &&
-                            !isChild // Children can be reordered
-                        ) {
-
-                            unique = {
-                                feather: pf.inheritedFrom || feather.name,
-                                prop: fkey,
-                                value: updRec[fkey],
-                                label: pf.alias || fkey
-                            };
-
-                            return true;
-                        }
-                    }
-
-                    if (
-                        resp && resp.lock &&
-                        resp.lock[eventKey] !== obj.eventKey
-                    ) {
-                        msg = (
-                            "Record " + resp.id +
-                            " object type " + resp.objectType +
-                            " is locked by " + resp.lock.username +
-                            " and cannot be updated."
-                        );
-                        return Promise.reject(new Error(msg));
-                    }
-
-                    oldRec = tools.sanitize(resp);
-
-                    if (!Object.keys(oldRec).length || oldRec.isDeleted) {
-                        return false;
-                    }
-
-                    newRec = f.copy(oldRec);
-                    jsonpatch.applyPatch(newRec, patches);
-
-                    // Capture changes from original request
-                    if (obj.cache) {
-                        cacheRec = f.copy(oldRec);
-                        jsonpatch.applyPatch(cacheRec, obj.cache);
-                    }
-
-                    if (!patches.length) {
-                        afterUpdate();
-                        return;
-                    }
-
-                    updRec = f.copy(newRec);
-
-                    // Revert data that may not be updated directly
-                    updRec.created = oldRec.created;
-                    updRec.createdBy = oldRec.createdBy;
-                    updRec.updated = new Date().toJSON();
-                    updRec.updatedBy = theClient.currentUser();
-                    updRec.isDeleted = false;
-                    updRec.lock = oldRec.lock;
-
-                    if (props.etag) {
-                        updRec.etag = f.createId();
-                    }
-
-                    // Check required properties
-                    if (keys.some(requiredIsNull)) {
-                        return Promise.reject("\"" + key + "\" is required.");
-                    }
-
-                    // Check unique properties
-                    if (keys.some(uniqueChanged)) {
-                        resp = await tools.getKeys({
-                            client: theClient,
-                            name: unique.feather,
-                            filter: {
-                                criteria: [{
-                                    property: unique.prop,
-                                    value: unique.value
-                                }]
-                            }
-                        });
-                        afterUniqueCheck(resp);
-                        return;
-                    }
-
-                    // Process properties
-                    nextProp();
-                };
-
-                afterUniqueCheck = function (resp) {
-                    let msg;
-
-                    if (resp && resp.length) {
-                        msg = "Value '" + unique.value + "' assigned to ";
-                        msg += unique.label.toName() + " on ";
-                        msg += feather.name.toName();
-                        msg += " is not unique to data type ";
-                        msg += unique.feather.toName() + ".";
-                        reject(new Error(msg));
-                        return;
-                    }
-
-                    nextProp();
-                };
-
-                nextProp = function () {
-                    let updProp;
-                    let oldProp;
-                    let msg;
-
-                    key = keys[n];
-                    n += 1;
-
-                    if (n <= keys.length) {
-                        /* Handle composite types */
-                        if (typeof props[key].type === "object") {
-                            updProp = updRec[key] || {};
-                            oldProp = oldRec[key] || {};
-
-                            /* Handle child records */
-                            if (Array.isArray(updRec[key])) {
-                                relation = props[key].type.relation;
-
-                                /* Process deletes */
-                                oldRec[key].forEach(function (row) {
-                                    let cid = row.id;
-
-                                    if (!find(updRec[key], cid)) {
-                                        clen += 1;
-                                        doList.push({
-                                            func: crud.doDelete,
-                                            payload: {
-                                                name: relation,
-                                                id: cid,
-                                                client: theClient
-                                            }
-                                        });
-                                    }
-                                });
-
-                                /* Process inserts and updates */
-                                updRec[key].forEach(function (cNewRec) {
-                                    if (!cNewRec) {
-                                        return;
-                                    }
-
-                                    let cid = cNewRec.id || null;
-                                    let cOldRec = find(oldRec[key], cid);
-
-                                    if (cOldRec) {
-                                        cpatches = jsonpatch.compare(
-                                            cOldRec,
-                                            cNewRec
-                                        );
-
-                                        if (cpatches.length) {
+                                        if (!find(updRec[key], cid)) {
                                             clen += 1;
                                             doList.push({
-                                                func: crud.doUpdate,
+                                                func: crud.doDelete,
                                                 payload: {
                                                     name: relation,
                                                     id: cid,
-                                                    data: cpatches,
                                                     client: theClient
                                                 }
                                             });
                                         }
-                                    } else {
-                                        cNewRec[props[key].type.parentOf] = {
-                                            id: updRec.id
-                                        };
-                                        clen += 1;
-                                        doList.push({
-                                            func: crud.doInsert,
-                                            payload: {
-                                                name: relation,
-                                                data: cNewRec,
-                                                client: theClient
+                                    });
+
+                                    /* Process inserts and updates */
+                                    updRec[key].forEach(function (cNewRec) {
+                                        if (!cNewRec) {
+                                            return;
+                                        }
+
+                                        let cid = cNewRec.id || null;
+                                        let cOldRec = find(oldRec[key], cid);
+
+                                        if (cOldRec) {
+                                            cpatches = jsonpatch.compare(
+                                                cOldRec,
+                                                cNewRec
+                                            );
+
+                                            if (cpatches.length) {
+                                                clen += 1;
+                                                doList.push({
+                                                    func: crud.doUpdate,
+                                                    payload: {
+                                                        name: relation,
+                                                        id: cid,
+                                                        data: cpatches,
+                                                        client: theClient
+                                                    }
+                                                });
                                             }
-                                        });
+                                        } else {
+                                            cNewRec[props[key].type.parentOf] = {
+                                                id: updRec.id
+                                            };
+                                            clen += 1;
+                                            doList.push({
+                                                func: crud.doInsert,
+                                                payload: {
+                                                    name: relation,
+                                                    data: cNewRec,
+                                                    client: theClient
+                                                }
+                                            });
+                                        }
+                                    });
+
+                                /* Handle child relation updates */
+                                } else if (props[key].type.isChild) {
+                                    /* Do delete */
+                                    if (oldRec[key] && !updRec[key]) {
+                                        crud.doDelete({
+                                            eventKey: obj.eventKey,
+                                            name: props[key].type.relation,
+                                            id: oldRec[key].id,
+                                            client: theClient,
+                                            isHard: true
+                                        }, true, true).then(function () {
+                                            afterGetRelKey(null, -1);
+                                        }).catch(reject);
+
+                                        return;
                                     }
-                                });
 
-                            /* Handle child relation updates */
-                            } else if (props[key].type.isChild) {
-                                /* Do delete */
-                                if (oldRec[key] && !updRec[key]) {
-                                    crud.doDelete({
-                                        eventKey: obj.eventKey,
-                                        name: props[key].type.relation,
-                                        id: oldRec[key].id,
-                                        client: theClient,
-                                        isHard: true
-                                    }, true, true).then(function () {
-                                        afterGetRelKey(null, -1);
-                                    }).catch(reject);
-
-                                    return;
-                                }
-
-                                /* Do insert */
-                                if (updRec[key] && !oldRec[key]) {
-                                    crud.doInsert({
-                                        name: props[key].type.relation,
-                                        id: updRec[key].id,
-                                        data: updRec[key],
-                                        client: theClient
-                                    }, true, true).then(function () {
-                                        tools.getKey({
+                                    /* Do insert */
+                                    if (updRec[key] && !oldRec[key]) {
+                                        crud.doInsert({
+                                            name: props[key].type.relation,
                                             id: updRec[key].id,
+                                            data: updRec[key],
                                             client: theClient
-                                        }).then(
-                                            afterGetRelKey
-                                        ).catch(
-                                            reject
-                                        );
-                                    }).catch(reject);
+                                        }, true, true).then(function () {
+                                            tools.getKey({
+                                                id: updRec[key].id,
+                                                client: theClient
+                                            }).then(
+                                                afterGetRelKey
+                                            ).catch(
+                                                reject
+                                            );
+                                        }).catch(reject);
 
+                                        return;
+                                    }
+
+                                    if (
+                                        updRec[key] && oldRec[key] &&
+                                        updRec[key].id !== oldRec[key].id
+                                    ) {
+                                        msg = "Id cannot be changed on child";
+                                        msg += "relation '" + key + "'";
+                                        reject(new Error(msg));
+                                        return;
+                                    }
+
+                                    /* Do update */
+                                    cpatches = jsonpatch.compare(
+                                        oldRec[key] || {},
+                                        updRec[key] || {}
+                                    );
+
+                                    if (cpatches.length) {
+                                        crud.doUpdate({
+                                            eventKey: obj.eventKey,
+                                            name: props[key].type.relation,
+                                            id: updRec[key].id,
+                                            data: cpatches,
+                                            client: theClient
+                                        }, true, true).then(function () {
+                                            tools.getKey({
+                                                id: updRec[key].id,
+                                                client: theClient
+                                            }).then(
+                                                afterGetRelKey
+                                            ).catch(
+                                                reject
+                                            );
+                                        }).catch(reject);
+                                        return;
+                                    }
+
+                                    nextProp();
                                     return;
                                 }
 
+                                /* Handle regular to one relations */
                                 if (
-                                    updRec[key] && oldRec[key] &&
-                                    updRec[key].id !== oldRec[key].id
+                                    !props[key].type.childOf &&
+                                    updProp.id !== oldProp.id
                                 ) {
-                                    msg = "Id cannot be changed on child";
-                                    msg += "relation '" + key + "'";
-                                    reject(new Error(msg));
-                                    return;
-                                }
 
-                                /* Do update */
-                                cpatches = jsonpatch.compare(
-                                    oldRec[key] || {},
-                                    updRec[key] || {}
-                                );
-
-                                if (cpatches.length) {
-                                    crud.doUpdate({
-                                        eventKey: obj.eventKey,
-                                        name: props[key].type.relation,
-                                        id: updRec[key].id,
-                                        data: cpatches,
-                                        client: theClient
-                                    }, true, true).then(function () {
+                                    if (updProp.id) {
                                         tools.getKey({
                                             id: updRec[key].id,
                                             client: theClient
-                                        }).then(
-                                            afterGetRelKey
-                                        ).catch(
-                                            reject
-                                        );
-                                    }).catch(reject);
+                                        }).then(afterGetRelKey).catch(reject);
+                                    } else {
+                                        afterGetRelKey(null, -1);
+                                    }
                                     return;
                                 }
 
-                                nextProp();
-                                return;
-                            }
-
-                            /* Handle regular to one relations */
-                            if (
-                                !props[key].type.childOf &&
-                                updProp.id !== oldProp.id
-                            ) {
-
-                                if (updProp.id) {
-                                    tools.getKey({
-                                        id: updRec[key].id,
-                                        client: theClient
-                                    }).then(afterGetRelKey).catch(reject);
-                                } else {
-                                    afterGetRelKey(null, -1);
-                                }
-                                return;
-                            }
-
-                            /* Handle non-relational composites */
-                        } else if (
-                            updRec[key] !== oldRec[key] &&
-                            props[key].type === "object" &&
-                            formats[props[key].format] &&
-                            formats[props[key].format].isMoney
-                        ) {
-
-                            Object.keys(updRec[key]).forEach(
-                                function (attr) {
-                                    tokens.push(key.toSnakeCase());
-                                    tokens.push(attr.toSnakeCase());
-                                    ary.push("%I.%I = $" + p);
-                                    params.push(updRec[key][attr]);
-                                    p += 1;
-                                }
-                            );
-
-                            /* Handle regular data types */
-                        } else if (
-                            updRec[key] !== oldRec[key] && key !== "objectType"
-                        ) {
-
-                            // Handle objects whose values are actually
-                            // strings
-                            if (
+                                /* Handle non-relational composites */
+                            } else if (
+                                updRec[key] !== oldRec[key] &&
                                 props[key].type === "object" &&
-                                typeof updRec[key] === "string" &&
-                                updRec[key].slice(0, 1) !== "["
+                                formats[props[key].format] &&
+                                formats[props[key].format].isMoney
                             ) {
-                                updRec[key] = "\"" + updRec[key] + "\"";
-                            } else if (props[key].type === "array") {
-                                updRec[key] = JSON.stringify(updRec[key]);
-                            }
 
-                            if (props[key].isEncrypted) {
-                                ary.push(
-                                    "%I = pgp_sym_encrypt($" + p + ", $" +
-                                    (p + 1) + ")"
+                                Object.keys(updRec[key]).forEach(
+                                    function (attr) {
+                                        tokens.push(key.toSnakeCase());
+                                        tokens.push(attr.toSnakeCase());
+                                        ary.push("%I.%I = $" + p);
+                                        params.push(updRec[key][attr]);
+                                        p += 1;
+                                    }
                                 );
+
+                                /* Handle regular data types */
+                            } else if (
+                                updRec[key] !== oldRec[key] && key !== "objectType"
+                            ) {
+
+                                // Handle objects whose values are actually
+                                // strings
+                                if (
+                                    props[key].type === "object" &&
+                                    typeof updRec[key] === "string" &&
+                                    updRec[key].slice(0, 1) !== "["
+                                ) {
+                                    updRec[key] = "\"" + updRec[key] + "\"";
+                                } else if (props[key].type === "array") {
+                                    updRec[key] = JSON.stringify(updRec[key]);
+                                }
+
+                                if (props[key].isEncrypted) {
+                                    ary.push(
+                                        "%I = pgp_sym_encrypt($" + p + ", $" +
+                                        (p + 1) + ")"
+                                    );
+                                    p += 1;
+                                    params.push(updRec[key]);
+                                    params.push(db.cryptoKey());
+                                } else {
+                                    ary.push("%I = $" + p);
+                                    params.push(updRec[key]);
+                                }
+
                                 p += 1;
-                                params.push(updRec[key]);
-                                params.push(db.cryptoKey());
-                            } else {
-                                ary.push("%I = $" + p);
-                                params.push(updRec[key]);
+                                tokens.push(key.toSnakeCase());
                             }
 
-                            p += 1;
-                            tokens.push(key.toSnakeCase());
+                            nextProp();
+                            return;
                         }
 
+                        // Done, move on
+                        // Execute child changes first so all captured in any
+                        // notification
+                        children = doList.map(
+                            (item) => item.func(item.payload, true)
+                        );
+
+                        // Execute top level object change
+                        sql = (
+                            "UPDATE %I SET " + ary.join(",") +
+                            " WHERE _pk = $" + p
+                        );
+                        sql = sql.format(tokens);
+                        params.push(pk);
+                        clen += 1;
+
+                        await Promise.all(children);
+                        await theClient.query(sql, params);
+                        afterUpdate();
+                    }
+
+                    function afterGetRelKey(resp) {
+                        let msg;
+
+                        value = resp;
+                        relation = props[key].type.relation;
+
+                        if (value === undefined) {
+                            msg = "Relation not found in \"";
+                            msg += relation + "\" for \"" + key;
+                            msg += "\" with id \"" + updRec[key].id + "\"";
+                            reject(new Error(msg));
+                            return;
+                        }
+
+                        tokens.push(tools.relationColumn(key, relation));
+                        ary.push("%I = $" + p);
+                        params.push(value);
+                        p += 1;
+
                         nextProp();
-                        return;
                     }
 
-                    // Done, move on
-                    afterProperties();
-                };
+                    async function afterUpdate() {
+                        // If child, we're done here
+                        if (isChild) {
+                            resolve();
+                            return;
+                        }
 
-                afterGetRelKey = function (resp) {
-                    let msg;
-
-                    value = resp;
-                    relation = props[key].type.relation;
-
-                    if (value === undefined) {
-                        msg = "Relation not found in \"";
-                        msg += relation + "\" for \"" + key;
-                        msg += "\" with id \"" + updRec[key].id + "\"";
-                        reject(new Error(msg));
-                        return;
-                    }
-
-                    tokens.push(tools.relationColumn(key, relation));
-                    ary.push("%I = $" + p);
-                    params.push(value);
-                    p += 1;
-
-                    nextProp();
-                };
-
-                afterProperties = function () {
-                    // Execute child changes first so all captured in any
-                    // notification
-                    children = doList.map(
-                        (item) => item.func(item.payload, true)
-                    );
-
-                    // Execute top level object change
-                    sql = (
-                        "UPDATE %I SET " + ary.join(",") +
-                        " WHERE _pk = $" + p
-                    );
-                    sql = sql.format(tokens);
-                    params.push(pk);
-                    clen += 1;
-
-                    Promise.all(children).then(
-                        () => theClient.query(sql, params)
-                    ).then(
-                        afterUpdate
-                    ).catch(
-                        reject
-                    );
-                };
-
-                afterUpdate = function () {
-                    // If child, we're done here
-                    if (isChild) {
-                        resolve();
-                        return;
-                    }
-
-                    // If a top level record, return patch of what changed
-                    crud.doSelect({
-                        name: feather.name,
-                        id: theId,
-                        client: theClient
-                    }).then(afterSelectUpdated).catch(reject);
-                };
-
-                afterSelectUpdated = function (resp) {
-                    result = resp;
-
-                    doUnlock();
-                    return;
-
-                    // Won't get here because of above
-                    // TODO: Make logging optional
-                    // Handle change log
-                    /*
-                    if (updRec) {
-                        crud.doInsert({
-                            name: "Log",
-                            data: {
-                                objectId: id,
-                                action: "PATCH",
-                                created: updRec.updated,
-                                createdBy: updRec.updatedBy,
-                                updated: updRec.updated,
-                                updatedBy: updRec.updatedBy,
-                                change: JSON.stringify(jsonpatch.compare(
-                                    oldRec,
-                                    result
-                                ))
-                            },
+                        // If a top level record, return patch of what changed
+                        result = await crud.doSelect({
+                            name: feather.name,
+                            id: theId,
                             client: theClient
-                        }, true).then(doUnlock).catch(reject);
-                        return;
-                    }
-                    doUnlock();
-                    */
-                };
+                        });
 
-                doUnlock = function () {
-                    crud.unlock(theClient, {
-                        id: obj.id
-                    }).then(
-                        done
-                    ).catch(
-                        reject
-                    );
-                };
+                        await crud.unlock(theClient, {
+                            id: obj.id
+                        });
 
-                done = function () {
-                    let ret = jsonpatch.compare(cacheRec, result);
+                        let ret = jsonpatch.compare(cacheRec, result);
 
-                    // Update newRec for "trigger after" use if applicable
-                    if (obj.newRec) {
-                        obj.newRec = result;
+                        // Update newRec for "trigger after" use if applicable
+                        if (obj.newRec) {
+                            obj.newRec = result;
+                        }
+
+                        ret = ret.filter(
+                            (r) => r.path.slice(r.path.length - 5) !== "/lock"
+                        );
+
+                        // Send back the differences between what user asked
+                        // for and result
+                        resolve(ret);
                     }
 
-                    ret = ret.filter(
-                        (r) => r.path.slice(r.path.length - 5) !== "/lock"
-                    );
+                    async function afterGetKey(resp) {
+                        pk = val;
+                        keys = Object.keys(props);
 
-                    // Send back the differences between what user asked
-                    // for and result
-                    resolve(ret);
-                };
+                        // Get existing record
+                        resp = await crud.doSelect({
+                            name: obj.name,
+                            id: obj.id,
+                            isForUpdate: true,
+                            properties: keys.filter(noChildProps),
+                            client: theClient,
+                            sanitize: false
+                        }, isChild);
 
-                // Kick off query by getting feather, the rest falls
-                // through callbacks
-                feathers.getFeather({
+                        let eventKey = "_eventkey"; // JSLint no underscore
+                        let msg;
+
+                        if (
+                            resp && resp.lock &&
+                            resp.lock[eventKey] !== obj.eventKey
+                        ) {
+                            msg = (
+                                "Record " + resp.id +
+                                " object type " + resp.objectType +
+                                " is locked by " + resp.lock.username +
+                                " and cannot be updated."
+                            );
+                            return Promise.reject(new Error(msg));
+                        }
+
+                        oldRec = tools.sanitize(resp);
+
+                        if (!Object.keys(oldRec).length || oldRec.isDeleted) {
+                            return false;
+                        }
+
+                        newRec = f.copy(oldRec);
+                        jsonpatch.applyPatch(newRec, patches);
+
+                        // Capture changes from original request
+                        if (obj.cache) {
+                            cacheRec = f.copy(oldRec);
+                            jsonpatch.applyPatch(cacheRec, obj.cache);
+                        }
+
+                        if (!patches.length) {
+                            afterUpdate();
+                            return;
+                        }
+
+                        updRec = f.copy(newRec);
+
+                        // Revert data that may not be updated directly
+                        updRec.created = oldRec.created;
+                        updRec.createdBy = oldRec.createdBy;
+                        updRec.updated = new Date().toJSON();
+                        updRec.updatedBy = theClient.currentUser();
+                        updRec.isDeleted = false;
+                        updRec.lock = oldRec.lock;
+
+                        if (props.etag) {
+                            updRec.etag = f.createId();
+                        }
+
+                        // Check required properties
+                        if (keys.some(requiredIsNull)) {
+                            return Promise.reject("\"" + key + "\" is required.");
+                        }
+
+                        // Check unique properties
+                        if (keys.some(uniqueChanged)) {
+                            resp = await tools.getKeys({
+                                client: theClient,
+                                name: unique.feather,
+                                filter: {
+                                    criteria: [{
+                                        property: unique.prop,
+                                        value: unique.value
+                                    }]
+                                }
+                            });
+
+                            if (resp && resp.length) {
+                                msg = "Value '" + unique.value + "' assigned to ";
+                                msg += unique.label.toName() + " on ";
+                                msg += feather.name.toName();
+                                msg += " is not unique to data type ";
+                                msg += unique.feather.toName() + ".";
+                                reject(new Error(msg));
+                                return;
+                            }
+                        }
+
+                        // Process properties
+                        nextProp();
+                    }
+                    afterGetKey(val);
+                });
+            }
+
+            // Kick off query by getting feather, the rest falls
+            // through callbacks
+            try {
+                resp = await feathers.getFeather({
                     client: theClient,
-                    data: {
-                        name: obj.name
-                    }
-                }).then(afterGetFeather).catch(reject);
-            });
+                    data: {name: obj.name}
+                });
+
+                if (!resp) {
+                    return Promise.reject(
+                        "Feather \"" + obj.name + "\" not found."
+                    );
+                }
+
+                feather = resp;
+                tokens = [feather.name.toSnakeCase()];
+                props = feather.properties;
+
+                let authorized = true;
+                if (isSuperUser === false) {
+                    authorized = await feathers.isAuthorized({
+                        client: theClient,
+                        data: {
+                            id: theId,
+                            action: "canUpdate"
+                        }
+                    });
+                }
+
+                if (!authorized) {
+                    return Promise.reject("Not authorized to update \"" + theId + "\"");
+
+                }
+
+                resp = await tools.getKey({
+                    id: theId,
+                    client: theClient
+                });
+
+                return await callback(resp);
+            } catch (e) {
+                return Promise.reject(e);
+            }
         };
 
         /**
