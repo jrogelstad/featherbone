@@ -1657,6 +1657,7 @@ function createModel(data, feather) {
             doPreProcess(context.viewModel).then(function () {
                 patch = jsonpatch.compare(lastFetched, model.toJSON());
                 if (!patch.length) {
+                    doUnlock();
                     return Promise.resolve([]);
                 }
                 return datasource.request({
