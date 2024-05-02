@@ -2016,8 +2016,48 @@
                 p += 1;
             }
 
-            async function callback(val) {
-                pk = val;
+            // Kick off query by getting feather, the rest falls
+            // through callbacks
+            try {
+                resp = await feathers.getFeather({
+                    client: theClient,
+                    data: {name: obj.name}
+                });
+
+                if (!resp) {
+                    return Promise.reject(
+                        "Feather \"" + obj.name + "\" not found."
+                    );
+                }
+
+                feather = resp;
+                tokens = [feather.name.toSnakeCase()];
+                props = feather.properties;
+
+                let authorized = true;
+                if (isSuperUser === false) {
+                    authorized = await feathers.isAuthorized({
+                        client: theClient,
+                        data: {
+                            id: theId,
+                            action: "canUpdate"
+                        }
+                    });
+                }
+
+                if (!authorized) {
+                    return Promise.reject(
+                        "Not authorized to update \"" + theId + "\""
+                    );
+
+                }
+
+                pk = await tools.getKey({
+                    id: theId,
+                    client: theClient
+                });
+
+                // DO WORK
                 keys = Object.keys(props);
 
                 // Get existing record
@@ -2360,50 +2400,6 @@
                 // Send back the differences between what user asked
                 // for and result
                 return ret;
-            }
-
-            // Kick off query by getting feather, the rest falls
-            // through callbacks
-            try {
-                resp = await feathers.getFeather({
-                    client: theClient,
-                    data: {name: obj.name}
-                });
-
-                if (!resp) {
-                    return Promise.reject(
-                        "Feather \"" + obj.name + "\" not found."
-                    );
-                }
-
-                feather = resp;
-                tokens = [feather.name.toSnakeCase()];
-                props = feather.properties;
-
-                let authorized = true;
-                if (isSuperUser === false) {
-                    authorized = await feathers.isAuthorized({
-                        client: theClient,
-                        data: {
-                            id: theId,
-                            action: "canUpdate"
-                        }
-                    });
-                }
-
-                if (!authorized) {
-                    return Promise.reject(
-                        "Not authorized to update \"" + theId + "\""
-                    );
-
-                }
-
-                resp = await tools.getKey({
-                    id: theId,
-                    client: theClient
-                });
-
-                return await callback(resp);
             } catch (e) {
                 return Promise.reject(e);
             }
