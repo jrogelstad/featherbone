@@ -1927,7 +1927,14 @@
             let pk;
             let relation;
             let key;
-            let keys;
+            let keys = [
+                "created",
+                "createdBy",
+                "updated",
+                "updatedBy",
+                "isDeleted",
+                "lock"
+            ];
             let oldRec;
             let newRec;
             let cpatches;
@@ -1946,7 +1953,10 @@
             let n = 0;
             let theClient = obj.client;
             let resp;
-            //console.log(obj.data);
+            if (obj.oldRec && obj.oldRec.etag) {
+                keys.push("etag");
+            }
+            //console.log("PATCHES", obj.data);
 
             if (!patches.length) {
                 await crud.unlock(theClient, {
@@ -2057,8 +2067,12 @@
                     client: theClient
                 });
 
-                // DO WORK
-                keys = Object.keys(props);
+                patches.forEach(function (patch) {
+                    let k = patch.path.split("/")[1];
+                    if (keys.indexOf(k) === -1) {
+                        keys.push(k);
+                    }
+                });
 
                 // Get existing record
                 resp = await crud.doSelect({
@@ -2097,11 +2111,14 @@
 
                 // Capture changes from original request
                 if (obj.cache) {
-                    cacheRec = f.copy(oldRec);
+                    cacheRec = f.copy(obj.oldRec);
                     jsonpatch.applyPatch(cacheRec, obj.cache);
                 }
 
                 if (!patches.length) {
+                    await crud.unlock(theClient, {
+                        id: obj.id
+                    });
                     return [];
                 }
 
@@ -2367,9 +2384,9 @@
                 clen += 1;
 
                 await Promise.all(children);
+                // console.log("SQL", sql);
                 await theClient.query(sql, params);
 
-                // Finish
                 // If child, we're done here
                 if (isChild) {
                     return;
@@ -2399,6 +2416,7 @@
 
                 // Send back the differences between what user asked
                 // for and result
+                // console.log("RETURN", ret);
                 return ret;
             } catch (e) {
                 return Promise.reject(e);
