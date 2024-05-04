@@ -36,12 +36,20 @@ const gantt = {};
 gantt.viewModel = function (options) {
     options = options || {};
     let vm = {};
+    let gc = f.catalog().register("ganttCache");
 
     vm.chart = f.prop();
     vm.id = f.prop(options.id || f.createId());
-    vm.showDetail = f.prop(false);
-    vm.showLinks = f.prop(true);
-    vm.viewMode = f.prop("week");
+    if (!gc[vm.id()]) {
+        gc[vm.id()] = {
+            showDetail: f.prop(false),
+            showLinks: f.prop(true),
+            viewMode: f.prop("week")
+        };
+    }
+    vm.showDetail = gc[vm.id()].showDetail;
+    vm.showLinks = gc[vm.id()].showLinks;
+    vm.viewMode = gc[vm.id()].viewMode;
 
     return vm;
 };
