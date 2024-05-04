@@ -1456,12 +1456,14 @@
                 case "PATCH":
                     await begin();
                     obj.oldRec = await getOld(theClient, obj);
+                    Object.freeze(obj.oldRec);
                     obj.newRec = f.copy(obj.oldRec);
                     jsonpatch.applyPatch(obj.newRec, obj.data);
                     break;
                 case "DELETE":
                     await begin();
                     obj.oldRec = await getOld(theClient, obj);
+                    Object.freeze(obj.oldRec);
                     break;
                 default:
                     throw "Unknown trigger method " + obj.method;

@@ -57,7 +57,7 @@
         "BEGIN" +
         "  FOR node IN " +
         "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
-        "    WHERE objectid = NEW.id LOOP " +
+        "    WHERE (objectid = NEW.id OR objectid = TG_TABLE_NAME) LOOP " +
         "    IF NEW.is_deleted THEN " +
         "      change := 'delete'; " +
         "      data := '\"' || OLD.id || '\"'; " +
@@ -102,13 +102,13 @@
         "BEGIN" +
         "  FOR node IN " +
         "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
-        "    WHERE objectid = OLD.id LOOP " +
+        "    WHERE (objectid = OLD.id OR objectid = TG_TABLE_NAME) LOOP " +
         "      data := '\"' || OLD.id || '\"'; " +
         "    FOR sub IN" +
         "      SELECT change AS change, eventkey, subscriptionid " +
         "      FROM \"$subscription\"" +
         "      WHERE nodeid = node.nodeid " +
-        "          AND objectid = OLD.id " +
+        "          AND (objectid = OLD.id OR objectid = TG_TABLE_NAME)" +
         "    LOOP" +
         "        payload := '{\"subscription\": ' || " +
         "        row_to_json(sub)::text || ',\"data\":' || data || '}';" +
