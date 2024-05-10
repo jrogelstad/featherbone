@@ -2226,7 +2226,7 @@ function createModel(data, feather) {
             this.event("unlock", function () {
                 doThaw();
                 d.lock(null);
-                this.goto("/Ready");
+                this.goto("/Ready/Fetched/Clean");
             });
             this.event("copy", doCopy);
 
