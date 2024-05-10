@@ -1825,8 +1825,8 @@
                 jobs.forEach(function (thejob) {
                     let idx = pending.indexOf(thejob);
                     pending.splice(idx, 1);
-                    thejob.callback(resp);
                 });
+                job.callback(resp);
                 isFetching = false;
                 processFetch();
             }).catch(function (e) {
