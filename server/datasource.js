@@ -1799,7 +1799,9 @@
             resp = await crud.doSelect(payload, false, isSuperUser);
             if (resp) {
                 obj.name = resp.objectType;
+                obj.oldRec = Object.freeze(f.copy(resp));
                 overlay(obj.data, resp);
+                obj.newRec = f.copy(obj.data);
                 patch = jsonpatch.compare(
                     resp,
                     obj.data
