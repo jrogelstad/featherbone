@@ -2042,6 +2042,7 @@ f.processEvent = function (obj) {
     let subscriptionId;
     let change;
     let patching = "/Busy/Saving/Patching";
+    let deleting = "/Busy/Deleting";
     let data;
     let event = obj.event;
     let formsSid = obj.formsSubscrId;
@@ -2204,7 +2205,8 @@ f.processEvent = function (obj) {
             currState = instance.state().current()[0];
             // Only update if not caused by this instance
             if (
-                currState !== patching && (
+                currState !== patching &&
+                currState !== deleting && (
                     !data.etag || (
                         data.etag && instance.data.etag &&
                         data.etag !== instance.data.etag()
