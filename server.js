@@ -163,6 +163,8 @@
     let googleOauth2ClientId;
     let googleOauth2ClientSecret;
     let googleOauth2CallbackUrl;
+    let splashUrl;
+    let splashTitle;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -326,6 +328,8 @@
                 (process.env.RPID || resp.rpId || "localhost"),
                 (process.env.ORIGIN || resp.origin || "http://localhost")
             );
+            splashUrl = resp.splashUrl;
+            splashTitle = resp.splashTitle;
 
         } catch (err) {
             logger.error(err.message);
@@ -2042,6 +2046,10 @@
             }
 
             let user = await datasource.deserializeUser(req, name);
+            if (user) {
+                user.splashUrl = splashUrl;
+                user.splashTitle = splashTitle;
+            }
             done(null, user);
         } catch (e) {
             req.isAuthenticated = false;

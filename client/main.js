@@ -139,203 +139,214 @@ const home = {
                 m(components.dialog, {
                     viewModel: deleteWbTemplateDlg
                 }),
-                m("span", {
-                    class: toolbarClass + " fb-toolbar-home"
-                }, [
-                    m("div", {
-                        class: "fb-header-home"
-                    }, "Home"),
-                    m("div", {
-                        id: "wb-manage-div",
-                        class: (
-                            "pure-menu " +
-                            "custom-restricted-width " +
-                            "fb-menu fb-menu-setup"
-                        ),
-                        onclick: function (e) {
-                            if (
-                                dlgsClosed &&
-                                e.srcElement.nodeName !== "BUTTON" &&
-                                e.target.parentElement.nodeName !== "BUTTON"
-                            ) {
-                                showMenuWorkbook(true);
-                            }
-                        },
-                        onmouseout: function (ev) {
-                            if (
-                                !ev || !ev.relatedTarget ||
-                                !ev.relatedTarget.id ||
-                                ev.relatedTarget.id.indexOf(
-                                    "wb-manage"
-                                ) === -1
-                            ) {
-                                showMenuWorkbook(false);
-                            }
-                        }
+                m("div", {style: {width: "100%"}}, [
+                    m("span", {
+                        class: toolbarClass + " fb-toolbar-home"
                     }, [
-                        m("span", {
-                            id: "wb-manage-button",
-                            title: "Manage Workbooks",
-                            class: menuButtonClass
-                        }, "edit_notearrow_drop_down"),
-                        m("ul", {
-                            id: "wb-manage-list",
+                        m("div", {
+                            class: "fb-header-home"
+                        }, f.currentUser().splashTitle),
+                        m("div", {
+                            id: "wb-manage-div",
                             class: (
-                                "pure-menu-list fb-menu-list " +
-                                "fb-menu-list-setup" + (
-                                    showMenuWorkbook()
-                                    ? " fb-menu-list-show"
-                                    : ""
-                                )
-                            )
+                                "pure-menu " +
+                                "custom-restricted-width " +
+                                "fb-menu fb-menu-setup"
+                            ),
+                            onclick: function (e) {
+                                if (
+                                    dlgsClosed &&
+                                    e.srcElement.nodeName !== "BUTTON" &&
+                                    e.target.parentElement.nodeName !== "BUTTON"
+                                ) {
+                                    showMenuWorkbook(true);
+                                }
+                            },
+                            onmouseout: function (ev) {
+                                if (
+                                    !ev || !ev.relatedTarget ||
+                                    !ev.relatedTarget.id ||
+                                    ev.relatedTarget.id.indexOf(
+                                        "wb-manage"
+                                    ) === -1
+                                ) {
+                                    showMenuWorkbook(false);
+                                }
+                            }
                         }, [
-                            m("li", {
-                                id: "wb-manage-add",
-                                class: menuAuthLinkClass,
-                                title: "Change password",
-                                onclick: function () {
-                                    if (isSuper) {
-                                        addWorkbookViewModel.show();
-                                    }
-                                }
-                            }, [m("i", {
-                                id: "wb-manage-add-icon",
-                                class: "material-icons fb-menu-list-icon"
-                            }, "add")], "Add Workbook"),
-                            m("li", {
-                                id: "wb-manage-from-template",
-                                class: menuAuthLinkClass,
-                                title: "Add workbook from template",
-                                onclick: function () {
-                                    if (isSuper) {
-                                        template("");
-                                        newname("");
-                                        addWbFromTemplateDlg.show();
-                                    }
-                                }
-                            }, [m("i", {
-                                id: "wb-manage-from-template-icon",
+                            m("span", {
+                                id: "wb-manage-button",
+                                title: "Manage Workbooks",
+                                class: menuButtonClass
+                            }, "edit_notearrow_drop_down"),
+                            m("ul", {
+                                id: "wb-manage-list",
                                 class: (
-                                    "material-icons-outlined " +
-                                    "fb-menu-list-icon"
+                                    "pure-menu-list fb-menu-list " +
+                                    "fb-menu-list-setup" + (
+                                        showMenuWorkbook()
+                                        ? " fb-menu-list-show"
+                                        : ""
+                                    )
                                 )
-                            }, "copy")], "Copy From Template"),
-                            m("li", {
-                                id: "wb-manage-delete-template",
-                                class: menuAuthLinkClass,
-                                title: "Delete template",
-                                onclick: function () {
-                                    if (isSuper) {
-                                        template("");
-                                        deleteWbTemplateDlg.show();
+                            }, [
+                                m("li", {
+                                    id: "wb-manage-add",
+                                    class: menuAuthLinkClass,
+                                    title: "Change password",
+                                    onclick: function () {
+                                        if (isSuper) {
+                                            addWorkbookViewModel.show();
+                                        }
                                     }
-                                }
-                            }, [m("i", {
-                                id: "wb-manage-delete-template-icon",
-                                class: (
-                                    "material-icons-outlined " +
-                                    "fb-menu-list-icon"
-                                )
-                            }, "playlist_remove")], "Delete Template")
-                        ])
+                                }, [m("i", {
+                                    id: "wb-manage-add-icon",
+                                    class: "material-icons fb-menu-list-icon"
+                                }, "add")], "Add Workbook"),
+                                m("li", {
+                                    id: "wb-manage-from-template",
+                                    class: menuAuthLinkClass,
+                                    title: "Add workbook from template",
+                                    onclick: function () {
+                                        if (isSuper) {
+                                            template("");
+                                            newname("");
+                                            addWbFromTemplateDlg.show();
+                                        }
+                                    }
+                                }, [m("i", {
+                                    id: "wb-manage-from-template-icon",
+                                    class: (
+                                        "material-icons-outlined " +
+                                        "fb-menu-list-icon"
+                                    )
+                                }, "copy")], "Copy From Template"),
+                                m("li", {
+                                    id: "wb-manage-delete-template",
+                                    class: menuAuthLinkClass,
+                                    title: "Delete template",
+                                    onclick: function () {
+                                        if (isSuper) {
+                                            template("");
+                                            deleteWbTemplateDlg.show();
+                                        }
+                                    }
+                                }, [m("i", {
+                                    id: "wb-manage-delete-template-icon",
+                                    class: (
+                                        "material-icons-outlined " +
+                                        "fb-menu-list-icon"
+                                    )
+                                }, "playlist_remove")], "Delete Template")
+                            ])
+                        ]),
+                        m("button", {
+                            id: "global-settings",
+                            class: (
+                                "pure-button fb-menu-setup fb-menu-button " +
+                                "fb-menu-button-middle-side"
+                            ),
+                            title: "Global settings",
+                            onclick: function () {
+                                m.route.set("/settings/:settings", {
+                                    settings: "globalSettings"
+                                }, {
+                                    state: {
+                                        form: {
+                                            "name": "globalSettings",
+                                            "description": "Global settings",
+                                            "tabs": [{
+                                                name: "Address"
+                                            }, {
+                                                name: "SMTP Credentials"
+                                            }],
+                                            "attrs": [
+                                                {
+                                                    "attr": "logo",
+                                                    "grid": 0
+                                                },
+                                                {
+                                                    "attr": "name",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "street",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "unit",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "city",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "state",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "postalCode",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "country",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "phone",
+                                                    "grid": 1
+                                                },
+                                                {
+                                                    "attr": "smtpType",
+                                                    "grid": 2,
+                                                    "label": "Type"
+                                                },
+                                                {
+                                                    "attr": "smtpHost",
+                                                    "grid": 2,
+                                                    "label": "Host"
+                                                },
+                                                {
+                                                    "attr": "smtpUser",
+                                                    "grid": 2,
+                                                    "label": "Email"
+                                                },
+                                                {
+                                                    "attr": "smtpPassword",
+                                                    "grid": 2,
+                                                    "label": "Password"
+                                                },
+                                                {
+                                                    "attr": "smtpSecure",
+                                                    "grid": 2,
+                                                    "label": "Secure"
+                                                },
+                                                {
+                                                    "attr": "smtpPort",
+                                                    "grid": 2,
+                                                    "label": "Port"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                });
+                            }
+                        }, [m("i", {
+                            id: "logo-edit-icon",
+                            class: "material-icons fb-button-icon"
+                        }, "public")]),
+                        m(components.accountMenu)
                     ]),
-                    m("button", {
-                        id: "global-settings",
-                        class: (
-                            "pure-button fb-menu-setup fb-menu-button " +
-                            "fb-menu-button-middle-side"
-                        ),
-                        title: "Global settings",
-                        onclick: function () {
-                            m.route.set("/settings/:settings", {
-                                settings: "globalSettings"
-                            }, {
-                                state: {
-                                    form: {
-                                        "name": "globalSettings",
-                                        "description": "Global settings",
-                                        "tabs": [{
-                                            name: "Address"
-                                        }, {
-                                            name: "SMTP Credentials"
-                                        }],
-                                        "attrs": [
-                                            {
-                                                "attr": "logo",
-                                                "grid": 0
-                                            },
-                                            {
-                                                "attr": "name",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "street",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "unit",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "city",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "state",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "postalCode",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "country",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "phone",
-                                                "grid": 1
-                                            },
-                                            {
-                                                "attr": "smtpType",
-                                                "grid": 2,
-                                                "label": "Type"
-                                            },
-                                            {
-                                                "attr": "smtpHost",
-                                                "grid": 2,
-                                                "label": "Host"
-                                            },
-                                            {
-                                                "attr": "smtpUser",
-                                                "grid": 2,
-                                                "label": "Email"
-                                            },
-                                            {
-                                                "attr": "smtpPassword",
-                                                "grid": 2,
-                                                "label": "Password"
-                                            },
-                                            {
-                                                "attr": "smtpSecure",
-                                                "grid": 2,
-                                                "label": "Secure"
-                                            },
-                                            {
-                                                "attr": "smtpPort",
-                                                "grid": 2,
-                                                "label": "Port"
-                                            }
-                                        ]
-                                    }
-                                }
-                            });
-                        }
-                    }, [m("i", {
-                        id: "logo-edit-icon",
-                        class: "material-icons fb-button-icon"
-                    }, "public")]),
-                    m(components.accountMenu)
+                    m("iframe", {
+                        style: {
+                            border: "none",
+                            display: "block",
+                            height: "100%",
+                            width: "100%"
+                        },
+                        src: f.currentUser().splashUrl
+                    })
                 ])
             ]
         ]);
