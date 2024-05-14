@@ -653,6 +653,7 @@ textarea {
     padding-left: 10px;
     display: inline-block;
     margin-top: 3px;
+    padding-top: 2px;
 }
 
 .fb-title {
@@ -891,7 +892,7 @@ textarea {
 }
 
 .fb-toolbar-home {
-    display: inline;
+    display: block;
     position: relative;
     width: 100%;
     color: white;

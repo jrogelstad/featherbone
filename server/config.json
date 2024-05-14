@@ -33,6 +33,8 @@
     "smtpHost": "smtp.yourdomain.com",
     "smtpSecure": true,
     "smtpPort":  465,
+    "splashTitle": "Home",
+    "splashUrl": "",
     "ssl": false,
     "twoFactorAuth": false
 }
