@@ -653,6 +653,7 @@ textarea {
     padding-left: 10px;
     display: inline-block;
     margin-top: 3px;
+    padding-top: 2px;
 }
 
 .fb-title {
@@ -891,7 +892,7 @@ textarea {
 }
 
 .fb-toolbar-home {
-    display: inline;
+    display: block;
     position: relative;
     width: 100%;
     color: white;
@@ -1024,7 +1025,7 @@ textarea {
   border-radius: 50%;
   border: 2px solid black;
   border-color: black transparent black transparent;
-  animation: lds-dual-ring 1.2s linear infinite;
+  animation: lds-dual-ring 0.5s linear infinite;
 }
 
 @keyframes spinning {
@@ -1058,7 +1059,7 @@ textarea {
   border-radius: 50%;
   border: 12px solid steelblue;
   border-color: steelblue transparent steelblue transparent;
-  animation: lds-dual-ring 1.2s linear infinite;
+  animation: lds-dual-ring 0.5s linear infinite;
 }
 
 @keyframes lds-dual-ring {

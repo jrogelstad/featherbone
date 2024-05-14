@@ -2628,11 +2628,6 @@ tableWidget.viewModel = function (options) {
                         candidates.forEach(function (selection) {
                             return selection.delete(
                                 true
-                            ).then(
-                                function () {
-                                    vm.unselect(selection);
-                                    vm.models().remove(selection);
-                                }
                             ).catch(
                                 function (err) {
                                     vm.errorDialog().message(err.message);
