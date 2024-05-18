@@ -44,6 +44,7 @@
     const dbRouter = new express.Router();
     const GoogleStrategy = require("passport-google-oauth20").Strategy;
     const jsn = "_json"; // Lint tyranny
+    const crypto = require("crypto");
 
     async function googleVerify(req, ignore, refreshToken, profile, cb) {
         const pool = req.sessionStore.pool;
@@ -165,6 +166,8 @@
     let googleOauth2CallbackUrl;
     let splashUrl;
     let splashTitle;
+    let webhookSecret;
+    let webhookHeader;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -330,6 +333,8 @@
             );
             splashUrl = resp.splashUrl;
             splashTitle = resp.splashTitle;
+            webhookHeader = resp.webhookHeader || "";
+            webhookSecret = resp.webhookSecret || "";
 
         } catch (err) {
             logger.error(err.message);
@@ -1307,6 +1312,47 @@
         );
     }
 
+    async function doNotice(req, res, next) {
+        let signature;
+        let hash;
+
+        try {
+            if (webhookHeader) {
+                signature = req.header(webhookHeader);
+                hash = crypto.createHmac(
+                    "SHA256",
+                    webhookSecret
+                ).update(
+                    req.rawBody
+                ).digest("base64");
+                // console.log(JSON.stringify(req.headers, null, 2));
+            }
+
+            // console.log("SIGNATURE->", signature);
+            // console.log("HASH->", hash);
+            if (hash === signature) {
+                await datasource.request({
+                    data: {payload: req.body},
+                    method: "POST",
+                    name: "Notice",
+                    tenant: req.tenant,
+                    user: systemUser
+                }, true);
+                res.statusCode = 200;
+                res.send("Success");
+            } else {
+                res.statusCode = 401;
+                logger.error("Invalid webhook credentials");
+                next("Invalid webhook credentials");
+            }
+        } catch (e) {
+            res.statusCode = 500;
+            logger.error(e);
+            console.error(e);
+            next(e);
+        }
+    }
+
     async function doSignIn(req, res) {
         let message;
         let rows;
@@ -2076,13 +2122,28 @@
             );
         });
 
+        // For webhook notifications
+        function rawBodySaver(req, ignore, buf, encoding) {
+            if (buf && buf.length) {
+                req.rawBody = buf.toString(encoding || "utf8");
+            }
+        }
+
         // static pages
         // configure app to use bodyParser()
         // this will let us get the data from a POST
         app.use(bodyParser.urlencoded({
-            extended: true
+            extended: true,
+            verify: rawBodySaver
         }));
-        app.use(bodyParser.json({limit: "5mb"}));
+        app.use(bodyParser.json({
+            limit: "5mb",
+            verify: rawBodySaver
+        }));
+        app.use(bodyParser.raw({
+            verify: rawBodySaver,
+            type: "*/*"
+        }));
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
@@ -2337,6 +2398,7 @@
             );
         }
 
+        dbRouter.post("/:db/notice", doNotice);
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);
         dbRouter.post("/:db/reset-password", doResetPassword);
