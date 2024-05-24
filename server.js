@@ -1089,7 +1089,7 @@
                 user: req.user.name,
                 data: {
                     message: {
-                        from: req.body.message.from,
+                        from: req.body.message.from || theSmtp.auth.user,
                         to: req.body.message.to,
                         cc: req.body.message.cc,
                         bcc: req.body.message.bcc,
@@ -2140,9 +2140,11 @@
             limit: "5mb",
             verify: rawBodySaver
         }));
+
+        // This is exclusively for web hooks
         app.use(bodyParser.raw({
             verify: rawBodySaver,
-            type: "*/*"
+            type: "*/json"
         }));
 
         // Set up authentication with passport
