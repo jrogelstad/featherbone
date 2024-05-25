@@ -1448,7 +1448,7 @@
 
         // Add old/new record objects for convenience
         async function doPrepareTrigger(obj) {
-            if (!obj.newRec && !obj.oldRec) {
+            if (!obj.newRec) {
                 switch (obj.method) {
                 case "POST":
                     obj.newRec = f.copy(obj.data);
