@@ -1454,12 +1454,10 @@
                     obj.newRec = f.copy(obj.data);
                     break;
                 case "PATCH":
-                    await begin();
                     obj.newRec = f.copy(obj.oldRec);
                     jsonpatch.applyPatch(obj.newRec, obj.data);
                     break;
                 case "DELETE":
-                    await begin();
                     break;
                 default:
                     throw "Unknown trigger method " + obj.method;
@@ -1877,6 +1875,7 @@
                     if (obj.data) {
                         obj.cache = Object.freeze(f.copy(obj.data));
                     }
+                    await begin();
                     obj.oldRec = await getOld(theClient, obj);
                     Object.freeze(obj.oldRec);
 
