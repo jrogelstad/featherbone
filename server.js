@@ -1326,13 +1326,13 @@
                     req.rawBody
                 ).digest("base64");
                 logger.verbose(
-                    "WEBHOOK HEADERS",
+                    "WEBHOOK HEADERS->" +
                     JSON.stringify(req.headers, null, 2)
                 );
             }
 
-            logger.verbose("WEBHOOK SIGNATURE->", signature);
-            logger.verbose("WEBHOOK HASH->", hash);
+            logger.verbose("WEBHOOK SIGNATURE->" + signature);
+            logger.verbose("WEBHOOK HASH->" + hash);
             if (hash === signature) {
                 await datasource.request({
                     data: {payload: req.body},
