@@ -1325,11 +1325,14 @@
                 ).update(
                     req.rawBody
                 ).digest("base64");
-                // console.log(JSON.stringify(req.headers, null, 2));
+                logger.verbose(
+                    "WEBHOOK HEADERS",
+                    JSON.stringify(req.headers, null, 2)
+                );
             }
 
-            // console.log("SIGNATURE->", signature);
-            // console.log("HASH->", hash);
+            logger.verbose("WEBHOOK SIGNATURE->", signature);
+            logger.verbose("WEBHOOK HASH->", hash);
             if (hash === signature) {
                 await datasource.request({
                     data: {payload: req.body},
