@@ -1576,11 +1576,13 @@
             },
             "isProcessed": {
                 "description": "Flag to indicate whether processed",
-                "type": "boolean"
+                "type": "boolean",
+                "isAlwaysLoad": true
             },
             "error": {
                 "description": "Error message if processing fails",
-                "type": "string"
+                "type": "string",
+                "isAlwaysLoad": true
             }
         }
     }
