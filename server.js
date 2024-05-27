@@ -2440,11 +2440,8 @@
 
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
-            if (req.database) { // remove database
-                target = target.slice(req.database.length);
-            }
-            target = target.slice(0, target.indexOf("/"));
-            if (!req.user && check.indexOf(target) !== -1) {
+            target = target.split("/");
+            if (!req.user && check.indexOf(target[1]) !== -1) {
                 res.status(401).json("Unauthorized session");
                 return;
             }
