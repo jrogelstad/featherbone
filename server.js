@@ -468,6 +468,9 @@
             error.bind(res)
         );
     }
+    f.datasource.magicLoginSend = async function (opts) {
+        await magicLogin.send(opts, {json: () => ""});
+    };
 
     function doPatchUserAccount(req, res) {
         let payload = {
