@@ -44,6 +44,7 @@
     const dbRouter = new express.Router();
     const GoogleStrategy = require("passport-google-oauth20").Strategy;
     const jsn = "_json"; // Lint tyranny
+    const crypto = require("crypto");
 
     async function googleVerify(req, ignore, refreshToken, profile, cb) {
         const pool = req.sessionStore.pool;
@@ -165,6 +166,8 @@
     let googleOauth2CallbackUrl;
     let splashUrl;
     let splashTitle;
+    let webhookSecret;
+    let webhookHeader;
 
     // Work around linter dogma
     let existssync = "existsSync";
@@ -330,6 +333,8 @@
             );
             splashUrl = resp.splashUrl;
             splashTitle = resp.splashTitle;
+            webhookHeader = resp.webhookHeader || "";
+            webhookSecret = resp.webhookSecret || "";
 
         } catch (err) {
             logger.error(err.message);
@@ -463,6 +468,9 @@
             error.bind(res)
         );
     }
+    f.datasource.magicLoginSend = async function (opts) {
+        await magicLogin.send(opts, {json: () => ""});
+    };
 
     function doPatchUserAccount(req, res) {
         let payload = {
@@ -1084,7 +1092,7 @@
                 user: req.user.name,
                 data: {
                     message: {
-                        from: req.body.message.from,
+                        from: req.body.message.from || theSmtp.auth.user,
                         to: req.body.message.to,
                         cc: req.body.message.cc,
                         bcc: req.body.message.bcc,
@@ -1305,6 +1313,50 @@
                 magicLogin.send(req, res);
             }
         );
+    }
+
+    async function doNotice(req, res, next) {
+        let signature;
+        let hash;
+
+        try {
+            if (webhookHeader) {
+                signature = req.header(webhookHeader);
+                hash = crypto.createHmac(
+                    "SHA256",
+                    webhookSecret
+                ).update(
+                    req.rawBody
+                ).digest("base64");
+                logger.verbose(
+                    "WEBHOOK HEADERS->" +
+                    JSON.stringify(req.headers, null, 2)
+                );
+            }
+
+            logger.verbose("WEBHOOK SIGNATURE->" + signature);
+            logger.verbose("WEBHOOK HASH->" + hash);
+            if (hash === signature) {
+                await datasource.request({
+                    data: {payload: req.body},
+                    method: "POST",
+                    name: "Notice",
+                    tenant: req.tenant,
+                    user: systemUser
+                }, true);
+                res.statusCode = 200;
+                res.send("Success");
+            } else {
+                res.statusCode = 401;
+                logger.error("Invalid webhook credentials");
+                next("Invalid webhook credentials");
+            }
+        } catch (e) {
+            res.statusCode = 500;
+            logger.error(e);
+            console.error(e);
+            next(e);
+        }
     }
 
     async function doSignIn(req, res) {
@@ -2076,13 +2128,30 @@
             );
         });
 
+        // For webhook notifications
+        function rawBodySaver(req, ignore, buf, encoding) {
+            if (buf && buf.length) {
+                req.rawBody = buf.toString(encoding || "utf8");
+            }
+        }
+
         // static pages
         // configure app to use bodyParser()
         // this will let us get the data from a POST
         app.use(bodyParser.urlencoded({
-            extended: true
+            extended: true,
+            verify: rawBodySaver
         }));
-        app.use(bodyParser.json({limit: "5mb"}));
+        app.use(bodyParser.json({
+            limit: "5mb",
+            verify: rawBodySaver
+        }));
+
+        // This is exclusively for web hooks
+        app.use(bodyParser.raw({
+            verify: rawBodySaver,
+            type: "*/json"
+        }));
 
         // Set up authentication with passport
         passport.use(new LocalStrategy(
@@ -2337,6 +2406,7 @@
             );
         }
 
+        dbRouter.post("/:db/notice", doNotice);
         dbRouter.post("/:db/sign-in", doSignIn);
         dbRouter.post("/:db/sign-out", doSignOut);
         dbRouter.post("/:db/reset-password", doResetPassword);
@@ -2373,11 +2443,8 @@
 
             let target = req.url.slice(1);
             let interval = req.session.cookie.expires - new Date();
-            if (req.database) { // remove database
-                target = target.slice(req.database.length);
-            }
-            target = target.slice(0, target.indexOf("/"));
-            if (!req.user && check.indexOf(target) !== -1) {
+            target = target.split("/");
+            if (!req.user && check.indexOf(target[1]) !== -1) {
                 res.status(401).json("Unauthorized session");
                 return;
             }
