@@ -36,5 +36,7 @@
     "splashTitle": "Home",
     "splashUrl": "",
     "ssl": false,
-    "twoFactorAuth": false
+    "twoFactorAuth": false,
+    "webhookHeader": "",
+    "webhookSecret": ""
 }

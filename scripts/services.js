@@ -1380,9 +1380,10 @@ async function createUserAccount(obj) {
         name: obj.newRec.name.toLowerCase(),
         isLogin: obj.newRec.isActive,
         isSuper: obj.newRec.isSuper,
-        password: obj.newRec.password,
+        password: obj.newRec.password || f.createId(),
         isInherits: false
     };
+    obj.newRec.password = "";
 }
 
 f.datasource.registerFunction(

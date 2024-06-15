@@ -1561,5 +1561,29 @@
                 "type": "string"
             }
         }
+    },
+    {
+        "name": "Notice",
+        "plural": "Notices",
+        "module": "Core",
+        "description": "Model for receiving web hook generated payloads",
+        "isSystem": true,
+        "properties": {
+            "payload": {
+                "description": "JSON payload",
+                "type": "object",
+                "isAlwaysLoad": true
+            },
+            "isProcessed": {
+                "description": "Flag to indicate whether processed",
+                "type": "boolean",
+                "isAlwaysLoad": true
+            },
+            "error": {
+                "description": "Error message if processing fails",
+                "type": "string",
+                "isAlwaysLoad": true
+            }
+        }
     }
 ]

@@ -113,7 +113,8 @@
             },
             host: resp.smtpHost,
             port: resp.smtpPort,
-            secure: resp.smtpSecure
+            secure: resp.smtpSecure,
+            type: "SMTP"
         };
 
         credentials.userEmail = resp.googleEmailUserAccount;
@@ -178,6 +179,7 @@
             let opts = obj.data.pdf;
             let theSmtp = obj.data.smtp || smtp;
             let thePath = false;
+            message.from = message.from || theSmtp.auth.user;
 
             function attachPdf(resp) {
                 return new Promise(function (resolve) {
