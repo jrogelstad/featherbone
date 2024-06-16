@@ -190,7 +190,10 @@
                 let attr = kys.find(function (key) {
                     return fthr.properties[key].isNaturalKey;
                 });
-                return value[attr];
+                if (attr) {
+                    return value[attr];
+                }
+                return value.id;
             }
 
             function resolveProperty(key, fthr) {
