@@ -339,7 +339,7 @@
         sql = sql.format([dbName, template]);
 
         try {
-            isSuper = tools.isSuperUser({
+            isSuper = await tools.isSuperUser({
                 client: conn1.client,
                 user: pClient.currentUser()
             });
@@ -394,6 +394,51 @@
         } finally {
             conn1.done();
             conn2.done();
+        }
+
+    };
+
+    /**
+        Delete a tenant database.
+
+        @method deleteDatabase
+        @param {Object} client Postgres client
+        @param {String} database Target database name
+        @return {Object} Promise
+    */
+    that.deleteDatabase = async function (pClient, dbName) {
+        let sql = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
+        let conn1 = await db.connect();
+        let tenant;
+        let isSuper;
+
+        sql = sql.format([dbName]);
+
+        try {
+            isSuper = await tools.isSuperUser({
+                client: conn1.client,
+                user: pClient.currentUser()
+            });
+
+            if (!isSuper) {
+                return Promise.reject(
+                    "User must be a super user to drop databases"
+                );
+            }
+
+            // Remove tenant reference
+            tenant = tenants.find((t) => t.pgDatabase === dbName);
+            if (tenant) {
+                let idx = tenants.indexOf(tenant);
+                tenants.splice(idx, 0);
+            }
+
+            // Delete the datbase
+            await conn1.client.query(sql);
+        } catch (err) {
+            return Promise.reject(err);
+        } finally {
+            conn1.done();
         }
 
     };
@@ -1447,7 +1492,7 @@
         }
 
         // Add old/new record objects for convenience
-        async function doPrepareTrigger(obj) {
+        function doPrepareTrigger(obj) {
             if (!obj.newRec) {
                 switch (obj.method) {
                 case "POST":
