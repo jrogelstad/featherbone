@@ -1525,6 +1525,12 @@
             "isDemo": {
                 "description": "Flag whether demo database",
                 "type": "boolean"
+            },
+            "expiration": {
+                "description": "Expiration date",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null"
             }
         }
     },
