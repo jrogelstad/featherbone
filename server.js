@@ -2029,6 +2029,7 @@
         "/node_modules/typeface-raleway/files",
         "/node_modules/print-js/dist",
         "/node_modules/tinymce",
+        "/node_modules/tinymce/models/dom",
         "/node_modules/tinymce/icons/default",
         "/node_modules/tinymce/skins/ui/oxide",
         "/node_modules/tinymce/skins/ui/oxide/fonts",
