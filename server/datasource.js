@@ -408,7 +408,7 @@
     */
     that.deleteDatabase = async function (pClient, dbName) {
         let sql = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
-        let conn1 = await db.connect();
+        let conn1;
         let tenant;
         let isSuper;
 
@@ -416,7 +416,7 @@
 
         try {
             isSuper = await tools.isSuperUser({
-                client: conn1.client,
+                client: pClient,
                 user: pClient.currentUser()
             });
 
@@ -429,18 +429,19 @@
             // Remove tenant reference
             tenant = tenants.find((t) => t.pgDatabase === dbName);
             if (tenant) {
-                let idx = tenants.indexOf(tenant);
-                tenants.splice(idx, 0);
+                tenants.splice(tenants.indexOf(tenant), 0);
             }
+            conn1 = await db.connect();
 
             // Delete the datbase
             await conn1.client.query(sql);
         } catch (err) {
             return Promise.reject(err);
         } finally {
-            conn1.done();
+            if (conn1) {
+                conn1.done();
+            }
         }
-
     };
 
     /**
@@ -2482,10 +2483,6 @@
         }, true);
         let pTenants = await that.request({
             client: conn.client,
-            filter: {criteria: [{
-                property: "isActive",
-                value: true
-            }]},
             method: "GET",
             name: "Tenant",
             properties: ["id", "name", "pgService", "pgDatabase", "edition"],
