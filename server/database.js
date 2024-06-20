@@ -346,6 +346,9 @@
                     } else {
                         pool = new Pool(cache.postgres);
                     }
+                    pool.on("error", function (err) {
+                        console.error(err.message);
+                    });
                     pool.setMaxListeners(cache.postgres.max || 10);
                     pools[db] = pool;
                 }
@@ -353,6 +356,7 @@
                 let callbacks = [];
                 let rollbacks = [];
                 let c;
+                let events = "_events";
 
                 function doOnCommit(callback) {
                     callbacks.push(callback);
@@ -377,6 +381,11 @@
                     c.onRollback = doOnRollback;
                     c.callbacks = callbacks;
                     c.rollbacks = rollbacks;
+                    if (!c[events] || !c[events].error) {
+                        c.on("error", function (err) {
+                            console.error(err.message);
+                        });
+                    }
 
                     return {
                         client: c,
@@ -538,6 +547,9 @@
                     } else {
                         pool = new Pool(cache.postgres);
                     }
+                    pool.on("error", function (err) {
+                        console.error(err.message);
+                    });
                     pool.setMaxListeners(cache.postgres.max);
                     pools[db] = pool;
                     resolve(pool);
