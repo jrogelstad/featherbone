@@ -190,7 +190,10 @@
                 let attr = kys.find(function (key) {
                     return fthr.properties[key].isNaturalKey;
                 });
-                return value[attr];
+                if (attr) {
+                    return value[attr];
+                }
+                return value.id;
             }
 
             function resolveProperty(key, fthr) {
@@ -762,6 +765,7 @@
 
                     // Handle child object
                     } else if (props[key].type.isChild) {
+                        rel = props[key].type.relation;
                         if (sheets[rel]) {
                             rel = props[key].type.relation;
                             ret[key] = sheets[rel].find(

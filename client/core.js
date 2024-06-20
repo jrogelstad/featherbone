@@ -990,6 +990,7 @@ formats.richText.editor = function (options) {
             tinymce.init({
                 target: e,
                 height: 500,
+                license_key: "gpl",
                 setup: function (editor) {
                     editor.on("change", function (e) {
                         prop(e.level.content);
