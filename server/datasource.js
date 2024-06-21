@@ -329,6 +329,11 @@
         @return {Object} Promise
     */
     that.createDatabase = async function (pClient, dbName, template) {
+        if (!template) {
+            return Promise.reject(
+                "Template argument is required to create database"
+            );
+        }
         let sql = "CREATE DATABASE %I TEMPLATE %I;";
         let conn1 = await db.connect();
         let conn2;
