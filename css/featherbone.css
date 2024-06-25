@@ -97,6 +97,14 @@ textarea {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.tox-promotion {
+   display: none;
+}
+
+.tox-statusbar__branding {
+   display: none;
+}
+
 .fb-info {
   color: #0000FF
 }

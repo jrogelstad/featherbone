@@ -329,6 +329,11 @@
         @return {Object} Promise
     */
     that.createDatabase = async function (pClient, dbName, template) {
+        if (!template) {
+            return Promise.reject(
+                "Template argument is required to create database"
+            );
+        }
         let sql = "CREATE DATABASE %I TEMPLATE %I;";
         let conn1 = await db.connect();
         let conn2;
@@ -339,7 +344,7 @@
         sql = sql.format([dbName, template]);
 
         try {
-            isSuper = tools.isSuperUser({
+            isSuper = await tools.isSuperUser({
                 client: conn1.client,
                 user: pClient.currentUser()
             });
@@ -396,6 +401,52 @@
             conn2.done();
         }
 
+    };
+
+    /**
+        Delete a tenant database.
+
+        @method deleteDatabase
+        @param {Object} client Postgres client
+        @param {String} database Target database name
+        @return {Object} Promise
+    */
+    that.deleteDatabase = async function (pClient, dbName) {
+        let sql = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
+        let conn1;
+        let tenant;
+        let isSuper;
+
+        sql = sql.format([dbName]);
+
+        try {
+            isSuper = await tools.isSuperUser({
+                client: pClient,
+                user: pClient.currentUser()
+            });
+
+            if (!isSuper) {
+                return Promise.reject(
+                    "User must be a super user to drop databases"
+                );
+            }
+
+            // Remove tenant reference
+            tenant = tenants.find((t) => t.pgDatabase === dbName);
+            if (tenant) {
+                tenants.splice(tenants.indexOf(tenant), 0);
+            }
+            conn1 = await db.connect();
+
+            // Delete the datbase
+            await conn1.client.query(sql);
+        } catch (err) {
+            return Promise.reject(err);
+        } finally {
+            if (conn1) {
+                conn1.done();
+            }
+        }
     };
 
     /**
@@ -1447,7 +1498,7 @@
         }
 
         // Add old/new record objects for convenience
-        async function doPrepareTrigger(obj) {
+        function doPrepareTrigger(obj) {
             if (!obj.newRec) {
                 switch (obj.method) {
                 case "POST":
@@ -2437,10 +2488,6 @@
         }, true);
         let pTenants = await that.request({
             client: conn.client,
-            filter: {criteria: [{
-                property: "isActive",
-                value: true
-            }]},
             method: "GET",
             name: "Tenant",
             properties: ["id", "name", "pgService", "pgDatabase", "edition"],
