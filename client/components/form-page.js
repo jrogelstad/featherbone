@@ -503,6 +503,7 @@ formPage.viewModel = function (options) {
     ).enableRowAuthorization;
     let hasHelp = form.helpLink && form.helpLink.resource;
     let pathname = "/" + location.pathname.replaceAll("/", "");
+    let isCopy = false;
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -752,6 +753,20 @@ formPage.viewModel = function (options) {
     vm.doApply = function () {
         vm.model().save(vm).then(function () {
             callReceiver();
+            if (!isCopy) {
+                return;
+            }
+            m.route.set("/edit/:feather/:key", {
+                feather: options.feather,
+                key: vm.model().id()
+            }, {
+                state: {
+                    form: options.form,
+                    index: pageIdx + 1,
+                    create: false,
+                    receiver: options.receiver
+                }
+            });
         });
     };
     /**
@@ -794,31 +809,11 @@ formPage.viewModel = function (options) {
     */
     vm.doCopy = function () {
         let id = vm.model().id();
-        let inst = formInstances[id];
 
         delete instances[id];
         delete formInstances[id];
         vm.model().copy();
-        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
-            if (!vm.model().subscribe()) {
-                vm.model().subscribe(true);
-            }
-        });
-        pageIdx += 1;
-        id = vm.model().id();
-        instances[id] = vm.model();
-        formInstances[id] = inst;
-        m.route.set("/edit/:feather/:key", {
-            feather: options.feather,
-            key: id
-        }, {
-            state: {
-                form: options.form,
-                index: pageIdx,
-                create: false,
-                receiver: options.receiver
-            }
-        });
+        isCopy = true;
     };
     /**
         @method doNew
