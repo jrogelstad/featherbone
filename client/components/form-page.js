@@ -503,7 +503,6 @@ formPage.viewModel = function (options) {
     ).enableRowAuthorization;
     let hasHelp = form.helpLink && form.helpLink.resource;
     let pathname = "/" + location.pathname.replaceAll("/", "");
-    let isCopy = false;
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -750,10 +749,10 @@ formPage.viewModel = function (options) {
     /**
         @method doApply
     */
-    vm.doApply = function () {
+    vm.doApply = function (isCopy) {
         vm.model().save(vm).then(function () {
             callReceiver();
-            if (!isCopy) {
+            if (isCopy !== true) {
                 return;
             }
             m.route.set("/edit/:feather/:key", {
@@ -813,7 +812,8 @@ formPage.viewModel = function (options) {
         delete instances[id];
         delete formInstances[id];
         vm.model().copy();
-        isCopy = true;
+        vm.doApply(true);
+
     };
     /**
         @method doNew
