@@ -41,6 +41,7 @@ sortDialog.viewModel = function (options) {
     options.propertyName = "sort";
     options.title = options.title || "Sort";
     options.icon = options.icon || "sort_by_alpha";
+    options.enableShowDeleted = false;
 
     // ..........................................................
     // PUBLIC
