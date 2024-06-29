@@ -824,7 +824,10 @@ function resolveFeatherProp(feather, attr) {
 
     if (idx > -1) {
         prefix = attr.slice(0, idx);
-        if (feather.properties[prefix].format === "money") {
+        if (
+            feather.properties[prefix].format &&
+            f.formats()[feather.properties[prefix].format].isMoney
+        ) {
             return feather.properties[prefix];
         }
         suffix = attr.slice(idx + 1, attr.length);
