@@ -446,6 +446,7 @@ formats.richText = {
 formats.money = {
     type: "object",
     default: () => f.money(),
+    isMoney: true,
     fromType: function (value) {
         let style;
         let amount = value.amount || 0;

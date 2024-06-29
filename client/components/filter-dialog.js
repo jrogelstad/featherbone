@@ -59,6 +59,12 @@ filterDialog.viewModel = function (options) {
         if (idx > -1) {
             prefix = property.slice(0, idx);
             suffix = property.slice(idx + 1, property.length);
+            if (
+                feather.properties[prefix].format &&
+                f.formats()[feather.properties[prefix].format].isMoney
+            ) {
+                return feather.properties[prefix];
+            }
             rel = (
                 feather.properties[prefix].type.relation ||
                 feather.properties[prefix].format.toProperCase()
@@ -164,6 +170,26 @@ filterDialog.viewModel = function (options) {
         );
 
         // Handle input types
+        if (
+            prop.format &&
+            f.formats()[prop.format] &&
+            f.formats()[prop.format].isMoney
+        ) {
+            return m("input", {
+                autocomplete: "off",
+                class: "fb-input fb-input-number",
+                id: theId,
+                key: theId,
+                type: "number",
+                onchange: (e) => vm.itemChanged.bind(
+                    this,
+                    index,
+                    "value"
+                )(e.target.value),
+                value: theValue
+            });
+        }
+
         if (typeof type === "string") {
             if (
                 prop.dataList &&
@@ -396,7 +422,11 @@ filterDialog.viewModel = function (options) {
 
         if (attr) {
             prop = resolveProperty(feather, attr);
-            format = prop.format || prop.type;
+            format = (
+                (prop.format && f.formats()[prop.format].isMoney)
+                ? "money"
+                : prop.format || prop.type
+            );
 
             switch (format) {
             case "date":
@@ -623,7 +653,9 @@ filterDialog.viewModel = function (options) {
         }
     });
 
-    vm.buttons().push(showDeletedButton);
+    if (options.enableShowDeleted !== false) {
+        vm.buttons().push(showDeletedButton);
+    }
 
     vm.reset();
 

@@ -231,7 +231,6 @@ workbookPage.viewModel = function (options) {
     }
 
     let sheetId = the_sheet.id;
-    let receiverKey = f.createId();
     let vm = {};
     let toolbarButtonClass = "fb-toolbar-button";
     let formWorkbookClass = "fb-form-workbook";
@@ -519,7 +518,6 @@ workbookPage.viewModel = function (options) {
             }, {
                 state: {
                     form: form.id,
-                    receiver: receiverKey,
                     create: true
                 }
             });
@@ -542,10 +540,7 @@ workbookPage.viewModel = function (options) {
                 feather: type,
                 key: selection.id()
             }, {
-                state: {
-                    form: form.id,
-                    receiver: receiverKey
-                }
+                state: {form: form.id}
             });
         }
     };
@@ -1071,17 +1066,6 @@ workbookPage.viewModel = function (options) {
     // PRIVATE
     //
     theFeather = f.catalog().getFeather(vm.sheet().feather);
-
-    // Register callback
-    f.catalog().register("receivers", receiverKey, {
-        callback: function (model) {
-            let tableModel = vm.tableWidget().selection();
-
-            if (!(tableModel && tableModel.id() === model.id())) {
-                vm.tableWidget().models().add(model, true, true);
-            }
-        }
-    });
 
     // Create search widget view model
     vm.searchInput(f.createViewModel("SearchInput", {

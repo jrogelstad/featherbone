@@ -749,9 +749,23 @@ formPage.viewModel = function (options) {
     /**
         @method doApply
     */
-    vm.doApply = function () {
+    vm.doApply = function (isCopy) {
         vm.model().save(vm).then(function () {
             callReceiver();
+            if (isCopy !== true) {
+                return;
+            }
+            m.route.set("/edit/:feather/:key", {
+                feather: options.feather,
+                key: vm.model().id()
+            }, {
+                state: {
+                    form: options.form,
+                    index: pageIdx + 1,
+                    create: false,
+                    receiver: options.receiver
+                }
+            });
         });
     };
     /**
@@ -794,31 +808,12 @@ formPage.viewModel = function (options) {
     */
     vm.doCopy = function () {
         let id = vm.model().id();
-        let inst = formInstances[id];
 
         delete instances[id];
         delete formInstances[id];
         vm.model().copy();
-        vm.model().state().resolve("/Ready/Fetched/Clean").enter(function () {
-            if (!vm.model().subscribe()) {
-                vm.model().subscribe(true);
-            }
-        });
-        pageIdx += 1;
-        id = vm.model().id();
-        instances[id] = vm.model();
-        formInstances[id] = inst;
-        m.route.set("/edit/:feather/:key", {
-            feather: options.feather,
-            key: id
-        }, {
-            state: {
-                form: options.form,
-                index: pageIdx,
-                create: false,
-                receiver: options.receiver
-            }
-        });
+        vm.doApply(true);
+
     };
     /**
         @method doNew
