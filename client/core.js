@@ -2335,6 +2335,12 @@ f.resolveProperty = function (model, property) {
     if (idx > -1) {
         prefix = property.slice(0, idx);
         suffix = property.slice(idx + 1, property.length);
+        if (
+            model.data[prefix].format &&
+            f.formats()[model.data[prefix]].isMoney
+        ) {
+            return model.data.property[prefix];
+        }
         return f.resolveProperty(model.data[prefix](), suffix);
     }
 
