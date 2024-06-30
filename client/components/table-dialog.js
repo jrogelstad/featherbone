@@ -308,10 +308,7 @@ tableDialog.viewModel = function (options) {
                 );
             }
 
-            if (
-                prop.format &&
-                f.formats()[prop.format].isMoney
-            ) {
+            if (f.isMoney(prop.format)) {
                 path += ".amount";
             } else if (
                 prop.type === "object" || (
