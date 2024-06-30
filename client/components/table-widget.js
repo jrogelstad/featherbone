@@ -1571,10 +1571,12 @@ tableWidget.viewModel = function (options) {
         let props = [];
         let fp = vm.feather().properties;
         let sort = vm.filter().sort || [];
+        let crit = vm.filter().criteria || [];
 
         if (!vm.isLoadAllProperties() && !vm.isEditModeEnabled()) {
             attrs = vm.config().columns.map((col) => col.attr);
             attrs = attrs.concat(sort.map((s) => s.property));
+            attrs = attrs.concat(crit.map((c) => c.property));
             // Purge dot notation
             attrs.forEach(function (a) {
                 let i = a.indexOf(".");
