@@ -1208,6 +1208,15 @@ f.inputMap = {
 };
 
 /**
+    Test whether a format is a money format.
+
+    @method feathers
+    @param {String} format
+    @return {Boolean}
+*/
+f.isMoney = (frmt) => frmt && f.formats()[frmt].isMoney;
+
+/**
     Return an array of feathers organized as options.
     Useful for models that need to offer a selection
     of feathers.
