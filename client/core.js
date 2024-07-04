@@ -2348,7 +2348,7 @@ f.resolveProperty = function (model, property) {
             model.data[prefix].format &&
             f.formats()[model.data[prefix].format].isMoney
         ) {
-            return model.data.property[prefix];
+            return model.data[prefix];
         }
         return f.resolveProperty(model.data[prefix](), suffix);
     }
