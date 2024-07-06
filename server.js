@@ -2269,7 +2269,7 @@
                             data: {
                                 message: {
                                     to: destination,
-                                    subject: "New account created",
+                                    subject: `New account ${acctType}created`,
                                     from: smtpAuthUser,
                                     html: theHtml
                                 }
