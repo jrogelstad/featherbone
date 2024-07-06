@@ -2249,7 +2249,7 @@
                         );
                         let msg = (
                             req.body.message
-                            ? `<p><b>${req.body.message}</b></p>`
+                            ? `${req.body.message}`
                             : ""
                         );
                         let theHtml = (
