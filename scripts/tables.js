@@ -35,9 +35,6 @@
         "      FROM \"$subscription\"" +
         "      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME" +
         "    LOOP" +
-        "        INSERT INTO \"$subscription\" " +
-        "        VALUES (node.nodeid, sub.eventkey, sub.subscriptionid, " +
-        "        NEW.id);" +
         "        payload := '{\"subscription\": ' || " +
         "        row_to_json(sub)::text || ',\"data\": {\"id\":\"' || " +
         "        NEW.id || '\",\"table\": \"' || TG_TABLE_NAME || '\"}}';" +

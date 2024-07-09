@@ -2242,12 +2242,24 @@
 
                     // New account
                     if (req.body.newAccount) {
+                        let acctType = (
+                            req.body.accountType
+                            ? req.body.accountType + " "
+                            : ""
+                        );
+                        let msg = (
+                            req.body.message
+                            ? `${req.body.message}`
+                            : ""
+                        );
                         let theHtml = (
-                            `<html><p>A new account has been created` +
+                            `<html><p>A new ${acctType}` +
+                            `account has been created` +
                             ` for you at: <b>${req.get("host")}</b></p>` +
                             `<p>Your user name is: ` +
                             `<b>${req.body.user.name}</b></p>` +
-                            `<html><p>Click <a href=` +
+                            `${msg}` +
+                            `<p>Click <a href=` +
                             `\"${url}\"` +
                             `>here</a> to sign in.</p><html>`
                         );
@@ -2257,7 +2269,7 @@
                             data: {
                                 message: {
                                     to: destination,
-                                    subject: "New account created",
+                                    subject: `New ${acctType} account created`,
                                     from: smtpAuthUser,
                                     html: theHtml
                                 }

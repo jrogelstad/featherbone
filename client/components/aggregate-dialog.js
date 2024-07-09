@@ -53,6 +53,9 @@ aggregateDialog.viewModel = function (options) {
         if (idx > -1) {
             prefix = property.slice(0, idx);
             suffix = property.slice(idx + 1, property.length);
+            if (f.isMoney(feather.properties[prefix].format)) {
+                return feather.properties[prefix];
+            }
             rel = (
                 feather.properties[prefix].type.relation ||
                 feather.properties[prefix].format.toProperCase()
@@ -153,7 +156,8 @@ aggregateDialog.viewModel = function (options) {
 
             if (
                 prop.type !== "number" &&
-                prop.type !== "integer"
+                prop.type !== "integer" &&
+                !f.isMoney(prop.format)
             ) {
                 methods = ["COUNT"];
 

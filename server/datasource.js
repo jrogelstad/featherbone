@@ -1909,6 +1909,7 @@
                     }
                     return resp2;
                 } else if (obj.method === "POST" && obj.id) {
+                    obj.newRec = f.copy(obj.data);
                     await begin();
                     await doUpsert();
                     return await doTraverseBefore(obj.name);
@@ -1955,6 +1956,7 @@
                     }
 
                     try {
+                        obj.newRec = f.copy(obj.data);
                         return await doTraverseBefore(obj.name);
                     } catch (err) {
                         await rollback(err);
