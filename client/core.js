@@ -1208,6 +1208,15 @@ f.inputMap = {
 };
 
 /**
+    Test whether a format is a money format.
+
+    @method feathers
+    @param {String} format
+    @return {Boolean}
+*/
+f.isMoney = (frmt) => frmt && f.formats()[frmt].isMoney;
+
+/**
     Return an array of feathers organized as options.
     Useful for models that need to offer a selection
     of feathers.
@@ -2335,6 +2344,12 @@ f.resolveProperty = function (model, property) {
     if (idx > -1) {
         prefix = property.slice(0, idx);
         suffix = property.slice(idx + 1, property.length);
+        if (
+            model.data[prefix].format &&
+            f.formats()[model.data[prefix].format].isMoney
+        ) {
+            return model.data[prefix];
+        }
         return f.resolveProperty(model.data[prefix](), suffix);
     }
 

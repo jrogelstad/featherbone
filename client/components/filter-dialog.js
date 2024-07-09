@@ -59,10 +59,7 @@ filterDialog.viewModel = function (options) {
         if (idx > -1) {
             prefix = property.slice(0, idx);
             suffix = property.slice(idx + 1, property.length);
-            if (
-                feather.properties[prefix].format &&
-                f.formats()[feather.properties[prefix].format].isMoney
-            ) {
+            if (f.isMoney(feather.properties[prefix].format)) {
                 return feather.properties[prefix];
             }
             rel = (
@@ -170,11 +167,7 @@ filterDialog.viewModel = function (options) {
         );
 
         // Handle input types
-        if (
-            prop.format &&
-            f.formats()[prop.format] &&
-            f.formats()[prop.format].isMoney
-        ) {
+        if (f.isMoney(prop.format)) {
             return m("input", {
                 autocomplete: "off",
                 class: "fb-input fb-input-number",
@@ -423,7 +416,7 @@ filterDialog.viewModel = function (options) {
         if (attr) {
             prop = resolveProperty(feather, attr);
             format = (
-                (prop.format && f.formats()[prop.format].isMoney)
+                f.isMoney(prop.format)
                 ? "money"
                 : prop.format || prop.type
             );

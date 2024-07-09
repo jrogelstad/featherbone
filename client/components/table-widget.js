@@ -824,10 +824,7 @@ function resolveFeatherProp(feather, attr) {
 
     if (idx > -1) {
         prefix = attr.slice(0, idx);
-        if (
-            feather.properties[prefix].format &&
-            f.formats()[feather.properties[prefix].format].isMoney
-        ) {
+        if (f.isMoney(feather.properties[prefix].format)) {
             return feather.properties[prefix];
         }
         suffix = attr.slice(idx + 1, attr.length);
@@ -857,7 +854,7 @@ function createTableFooter(options, col) {
     let attr = col.attr;
 
     if (
-        prop && prop.format === "money" &&
+        prop && f.isMoney(prop.format) &&
         !(agg && agg.method === "COUNT")
     ) {
         attr += ".amount";
@@ -879,7 +876,7 @@ function createTableFooter(options, col) {
                 tableData = f.formats().dateTime.tableData;
             } else if (prop.type === "string") {
                 tableData = f.types.string.tableData;
-            } else if (prop.format === "money") {
+            } else if (f.isMoney(prop.format)) {
                 tableData = f.formats().money.tableData;
             } else {
                 tableData = f.types.number.tableData;
@@ -1375,12 +1372,12 @@ tableWidget.viewModel = function (options) {
             let agg = aggs[col.attr];
             let aggVal = theValue;
 
-            if (theProp.format === "money") {
+            if (f.isMoney(theProp.format)) {
                 agg = aggs[col.attr + ".amount"];
             }
 
             if (agg) {
-                if (theProp.format === "money") {
+                if (f.isMoney(theProp.format)) {
                     aggVal = theProp.toJSON().amount;
                     agg.currency = theProp().currency;
                 }
@@ -1574,10 +1571,12 @@ tableWidget.viewModel = function (options) {
         let props = [];
         let fp = vm.feather().properties;
         let sort = vm.filter().sort || [];
+        let crit = vm.filter().criteria || [];
 
         if (!vm.isLoadAllProperties() && !vm.isEditModeEnabled()) {
             attrs = vm.config().columns.map((col) => col.attr);
             attrs = attrs.concat(sort.map((s) => s.property));
+            attrs = attrs.concat(crit.map((c) => c.property));
             // Purge dot notation
             attrs.forEach(function (a) {
                 let i = a.indexOf(".");
@@ -1638,7 +1637,7 @@ tableWidget.viewModel = function (options) {
                 let prop = resolveFeatherProp(vm.feather(), p);
 
                 if (
-                    prop.format === "money" &&
+                    f.isMoney(prop.format) &&
                     aggregates[i].method !== "COUNT"
                 ) {
                     val = f.money(val); // Hack, what if mixed currency?
