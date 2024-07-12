@@ -2263,7 +2263,7 @@
                                     data: updRec[key],
                                     client: theClient
                                 }, true, true);
-                                resp = tools.getKey({
+                                resp = await tools.getKey({
                                     id: updRec[key].id,
                                     client: theClient
                                 });
