@@ -902,8 +902,9 @@
                 "SELECT to_json((" +
                 obj.data.aggregations.map(toCols).toString(",") +
                 ")) AS result FROM (" +
-                "SELECT %I." + sub.toString(",").format(subt) + " FROM %I"
+                "SELECT %I." + sub.toString(",").format(subt) + " FROM _%I %I"
             );
+            tokens.push(table);
             tokens.push(table);
             tokens.push(table);
             sql += await buildWhere(
@@ -2263,7 +2264,7 @@
                                     data: updRec[key],
                                     client: theClient
                                 }, true, true);
-                                resp = tools.getKey({
+                                resp = await tools.getKey({
                                     id: updRec[key].id,
                                     client: theClient
                                 });

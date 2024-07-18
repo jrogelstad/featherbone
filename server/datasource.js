@@ -1278,15 +1278,6 @@
     */
     that.getPool = db.getPool;
 
-    async function getOld(theClient, obj) {
-        return await that.request({
-            method: "GET",
-            name: obj.name,
-            id: obj.id,
-            client: theClient
-        }, true);
-    }
-
     /**
         This function is the gateway for all
         {{#crossLinkModule "CRUD"}}{{/crossLinkModule}} requests and data
@@ -1489,6 +1480,7 @@
             ? obj.client.isTriggering()
             : false
         );
+        let resolved = false;
 
         async function begin() {
             if (!theClient.wrapped()) {
@@ -1765,6 +1757,9 @@
         }
 
         async function resolveType() {
+            if (resolved) {
+                return obj.name;
+            }
             let resp;
             let sql = (
                 "SELECT tableoid::regclass::text AS object_type " +
@@ -1928,7 +1923,13 @@
                         obj.cache = Object.freeze(f.copy(obj.data));
                     }
                     await begin();
-                    obj.oldRec = await getOld(theClient, obj);
+                    let objectType = await resolveType();
+                    obj.oldRec = await f.datasource.request({
+                        method: "GET",
+                        name: objectType,
+                        id: obj.id,
+                        client: theClient
+                    }, true);
                     Object.freeze(obj.oldRec);
 
                     if (!isExternalClient) {
