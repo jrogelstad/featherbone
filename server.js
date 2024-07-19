@@ -944,6 +944,7 @@
             } else {
                 file.mv(filePath, function (err) {
                     if (err) {
+                        logger.error(err);
                         console.error(err);
                         return res.status(500).json({
                             message: "Failed to persist file",
@@ -1135,6 +1136,7 @@
             req.params.targetname || req.params.sourcename,
             function (err) {
                 if (err) {
+                    logger.error(err);
                     console.error(err);
                     return;
                 }
@@ -1886,6 +1888,7 @@
                 isFetching = false;
                 processFetch();
             }).catch(function (e) {
+                logger.error(e);
                 console.error(e);
             });
         }
@@ -1988,6 +1991,7 @@
                 try {
                     await datasource.listen(tenant, receiver);
                 } catch (err) {
+                    logger.error(err.message);
                     console.error(err.message);
                 }
             }
@@ -2116,6 +2120,10 @@
         dbRouter.param("db", function (req, res, next, id) {
             id = id.toCamelCase().toSnakeCase();
             let tenant = tenants.find((t) => id === t.pgDatabase);
+            let msg = (
+                "Database " + id +
+                " is not a registered tenant"
+            );
             if (tenant) {
                 req.database = id;
                 req.tenant = tenant;
@@ -2123,10 +2131,8 @@
                 return;
             }
             res.sendStatus(404);
-            console.error(
-                "Database " + id +
-                " is not a registered tenant"
-            );
+            logger.error(msg);
+            console.error(msg);
         });
 
         // For webhook notifications
@@ -2194,6 +2200,7 @@
                     }
                 ).catch(
                     function (err) {
+                        logger.error("/signin: " + err);
                         console.error("/signin: " + err);
                         return done(null, false, {
                             message: err.message
@@ -2300,6 +2307,7 @@
                         });
                     }
                 } catch (e) {
+                    logger.error(e);
                     console.error(e);
                 }
             },
