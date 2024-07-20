@@ -50,6 +50,18 @@ gantt.viewModel = function (options) {
     vm.showDetail = gc[vm.id()].showDetail;
     vm.showLinks = gc[vm.id()].showLinks;
     vm.viewMode = gc[vm.id()].viewMode;
+    vm.buttonRefresh = f.prop();
+    vm.buttonRefresh(f.createViewModel("Button", {
+        onclick: function () {
+            if (vm.data && vm.data.refresh) {
+                vm.data.refresh();
+            }
+        },
+        icon: "sync",
+        title: "Refresh",
+        class: "fb-icon-button",
+        style: {backgroundColor: "white"}
+    }));
 
     return vm;
 };
@@ -172,7 +184,13 @@ gantt.component = {
     view: function () {
         let vm = this.viewModel;
         let id = vm.id();
+        let btn = f.getComponent("Button");
         let cb = f.getComponent("checkbox");
+        vm.buttonRefresh().style().display = (
+            vm.data.refresh
+            ? "inherits"
+            : "none"
+        );
 
         return m("div", {
             id: "gantt-cont" + id,
@@ -185,6 +203,11 @@ gantt.component = {
                     paddingBottom: "20px"
                 }
             }, [
+                m(btn, {
+                    id: "gantt-refresh" + id,
+                    key: "gantt-refresh" + id,
+                    viewModel: vm.buttonRefresh()
+                }),
                 m("label", {
                     id: "gantt-sel-label" + id,
                     key: "gantt-sel-label" + id,
