@@ -2083,11 +2083,7 @@
             }
 
             if (!req.tenant) {
-                let db = (
-                    (req.session && req.session.database)
-                    ? req.session.database
-                    : req.url.slice(1)
-                );
+                let db = req.url.slice(1);
                 if (db.indexOf("/") !== -1) {
                     db = db.slice(0, db.indexOf("/"));
                 }
