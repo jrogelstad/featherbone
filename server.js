@@ -2087,6 +2087,13 @@
                 if (db.indexOf("/") !== -1) {
                     db = db.slice(0, db.indexOf("/"));
                 }
+                if (db === "oauth2") {
+                    if (req.session && req.session.database) {
+                        db = req.session.database;
+                    } else {
+                        return Promise.reject("Invalid session for oauth2");
+                    }
+                }
                 db = db.toCamelCase().toSnakeCase();
                 req.database = db;
                 req.tenant = tenants.find((t) => t.pgDatabase === db);
