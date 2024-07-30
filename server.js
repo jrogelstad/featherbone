@@ -2366,7 +2366,6 @@
         app.use(passport.session());
 
         // Google Oauth2
-        console.log("GID", googleOauth2ClientId);
         if (googleOauth2ClientId) {
             passport.use(new GoogleStrategy(
                 {

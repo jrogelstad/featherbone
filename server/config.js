@@ -36,12 +36,10 @@
                         return reject(err);
                     }
                     data = JSON.parse(data);
-                    console.log("CONF", data)
 
                     // Environment values over-ride file if they exist
                     Object.keys(data).forEach(function (key) {
                         if (process.env[key] !== undefined) {
-                            console.log("check", key);
                             if (process.env[key].toLowerCase() === "true") {
                                 data[key] = true;
                             } else if (process.env[key].toLowerCase() === "false") {
