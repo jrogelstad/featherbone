@@ -2171,6 +2171,7 @@
                             let sql = (
                                 "SELECT sid FROM \"$session\" " +
                                 "WHERE sess->>'database'=$1 " +
+                                " AND sess->>'passport' IS NOT NULL " +
                                 " AND expire > now();"
                             );
                             let resp = await req.sessionStore.pool.query(
