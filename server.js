@@ -1469,6 +1469,7 @@
             "SELECT * FROM \"$session\" " +
             "WHERE sess->>'database'=$1 " +
             " AND expire > now() " +
+            " AND sess->>'passport' IS NOT NULL " +
             "ORDER BY expire;"
         );
         let resp = await req.sessionStore.pool.query(sql, [req.database]);
