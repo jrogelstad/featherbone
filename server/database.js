@@ -469,10 +469,17 @@
                 "contact.last_name as last_name, " +
                 "contact.email AS email, " +
                 "contact.phone AS phone," +
-                "user_account.id  " +
+                "user_account.id,  " +
+                "CASE WHEN rm.role IS NULL " +
+                "  THEN false " +
+                "  ELSE true END AS is_admin " +
                 "FROM user_account " +
                 "LEFT OUTER JOIN contact ON " +
                 "  (_contact_contact_pk = contact._pk) " +
+                "LEFT OUTER JOIN role_membership rm ON" +
+                "  (rm._parent_role_pk = user_account._pk " +
+                " AND rm.role='administrator' " +
+                " AND NOT rm.is_deleted) " +
                 "WHERE name = $1;"
             );
             let obj;
@@ -494,17 +501,18 @@
                 }
 
                 row = resp.rows[0];
+                row.isAdmin = row.is_admin;
                 row.isSuper = row.is_super;
                 row.firstName = row.first_name || "";
                 row.lastName = row.last_name || "";
                 row.email = row.email || "";
                 row.phone = row.phone || "";
                 row.changePassword = row.change_password;
-                row.googleId = row.google_id;
                 delete row.is_super;
                 delete row.first_name;
                 delete row.last_name;
                 delete row.change_password;
+                delete row.is_admin;
                 // Send back result
                 return row;
             } catch (e) {
