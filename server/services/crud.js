@@ -902,7 +902,8 @@
                 "SELECT to_json((" +
                 obj.data.aggregations.map(toCols).toString(",") +
                 ")) AS result FROM (" +
-                "SELECT %I." + sub.toString(",").format(subt) + " FROM _%I %I " +
+                "SELECT %I." + sub.toString(",").format(subt) +
+                " FROM _%I %I " +
                 "WHERE EXISTS (" +
                 "  SELECT * FROM %I"
             );
