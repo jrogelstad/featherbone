@@ -902,18 +902,28 @@
                 "SELECT to_json((" +
                 obj.data.aggregations.map(toCols).toString(",") +
                 ")) AS result FROM (" +
-                "SELECT %I." + sub.toString(",").format(subt) + " FROM _%I %I"
+                "SELECT %I." + sub.toString(",").format(subt) + " FROM _%I %I " +
+                "WHERE EXISTS (" +
+                "  SELECT * FROM %I"
             );
+            tokens.push("v1");
             tokens.push(table);
+            tokens.push("v1");
             tokens.push(table);
+            tokens.push("v1");
             tokens.push(table);
+
             sql += await buildWhere(
                 data,
                 params,
                 isSuperUser,
                 feather.enableRowAuthorization
             );
-            sql += ") AS data;";
+            sql = sql.slice(0, sql.indexOf("ORDER BY"));
+            sql += (
+                "AND %I._pk=%I._pk" +
+                ")) AS data;"
+            );
             sql = sql.format(tokens);
 
             //console.log(sql, params);
