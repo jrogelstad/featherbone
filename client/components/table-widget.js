@@ -489,6 +489,16 @@ function createTableHeader(options, col) {
         let ary = filter[name] || [];
         let i = 0;
 
+        if (
+            options.feather.properties[col] &&
+            options.feather.properties[col].format &&
+            f.formats()[
+                options.feather.properties[col].format
+            ].isMoney
+        ) {
+            col += ".amount";
+        }
+
         hasCol = function (item) {
             if (item.property === col) {
                 return true;
