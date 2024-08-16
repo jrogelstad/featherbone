@@ -99,7 +99,7 @@ const editSheetConfig = {
     }, {
         attr: "columns",
         showLabel: false,
-        height: "208px",
+        height: "144px",
         grid: 2,
         columns: [{
             attr: "attr",
@@ -112,7 +112,7 @@ const editSheetConfig = {
     }, {
         attr: "actions",
         showLabel: false,
-        height: "208px",
+        height: "144px",
         grid: 3,
         columns: [{
             attr: "name",
@@ -1227,7 +1227,6 @@ workbookPage.viewModel = function (options) {
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
-    vm.sheetConfigureDialog().style().height = "475px";
     vm.sheetConfigureDialog().state().resolve(
         "/Display/Showing"
     ).exit(() => sheetEditModel.state().send("clear"));

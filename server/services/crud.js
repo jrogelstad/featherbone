@@ -307,7 +307,11 @@
             }
             tokens.push(sort[i].table || table);
             tokens.push(sort[i].property.toSnakeCase());
-            parts.push("%I.%I " + order);
+            if (!sort[i].isMoney) {
+                parts.push("%I.%I " + order);
+            } else {
+                parts.push("(%I.%I).amount " + order);
+            }
             i += 1;
         }
 
@@ -394,11 +398,24 @@
                 if (idx !== -1) {
                     attr = prop.slice(0, idx);
                     fp = fthr.properties[attr];
-                    prop = prop.slice(idx + 1, prop.length);
-                    fthr = await feathers.getFeather({
-                        client: obj.client,
-                        data: {name: fp.type.relation}
-                    });
+                    if (
+                        fp.format &&
+                        f.formats[fp.format] &&
+                        f.formats[fp.format].isMoney
+                    ) {
+                        item.isMoney = true;
+                        item.property = item.property.slice(
+                            0,
+                            item.property.indexOf(".")
+                        );
+                        idx = -1;
+                    } else {
+                        prop = prop.slice(idx + 1, prop.length);
+                        fthr = await feathers.getFeather({
+                            client: obj.client,
+                            data: {name: fp.type.relation}
+                        });
+                    }
                 } else {
                     fp = fthr.properties[prop];
                     if (typeof fp.type === "object") {
@@ -491,8 +508,8 @@
                         }
 
                         joinArrays.parts.push(part);
-                        idx = -1;
                     }
+                    idx = -1;
                 } else {
                     // Join
                     theTable = fp.type.relation.toSnakeCase();
@@ -902,18 +919,29 @@
                 "SELECT to_json((" +
                 obj.data.aggregations.map(toCols).toString(",") +
                 ")) AS result FROM (" +
-                "SELECT %I." + sub.toString(",").format(subt) + " FROM _%I %I"
+                "SELECT %I." + sub.toString(",").format(subt) +
+                " FROM _%I %I " +
+                "WHERE EXISTS (" +
+                "  SELECT * FROM %I"
             );
+            tokens.push("v1");
             tokens.push(table);
+            tokens.push("v1");
             tokens.push(table);
+            tokens.push("v1");
             tokens.push(table);
+
             sql += await buildWhere(
                 data,
                 params,
                 isSuperUser,
                 feather.enableRowAuthorization
             );
-            sql += ") AS data;";
+            sql = sql.slice(0, sql.indexOf("ORDER BY"));
+            sql += (
+                "AND %I._pk=%I._pk" +
+                ")) AS data;"
+            );
             sql = sql.format(tokens);
 
             //console.log(sql, params);

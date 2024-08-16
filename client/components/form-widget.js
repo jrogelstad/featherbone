@@ -332,6 +332,7 @@ function buildFieldset(vm, attrs) {
     });
 }
 
+/*
 function resizeWidget(vm, vnode) {
     let e = document.getElementById(vnode.dom.id);
     let height = vm.height();
@@ -358,6 +359,7 @@ function resizeWidget(vm, vnode) {
 
     e.style.maxHeight = bodyHeight - 5 + "px";
 }
+*/
 
 function buildUnit(vm, attrs, n) {
     let fieldset = buildFieldset(vm, attrs);
@@ -647,8 +649,8 @@ formWidget.component = {
                 ? "fb-form-content"
                 : ""
             ),
-            oncreate: resizeWidget.bind(null, vm),
-            onupdate: resizeWidget.bind(null, vm)
+            //oncreate: resizeWidget.bind(null, vm),
+            //onupdate: resizeWidget.bind(null, vm)
         }, grids);
     }
 };

@@ -478,6 +478,7 @@ function createTableHeader(options, col) {
     let key = col.attr;
     let icon = [];
     let fidx;
+    let fval;
     let operators = f.operators;
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
@@ -488,6 +489,16 @@ function createTableHeader(options, col) {
         let hasCol;
         let ary = filter[name] || [];
         let i = 0;
+
+        if (
+            options.feather.properties[col] &&
+            options.feather.properties[col].format &&
+            f.formats()[
+                options.feather.properties[col].format
+            ].isMoney
+        ) {
+            col += ".amount";
+        }
 
         hasCol = function (item) {
             if (item.property === col) {
@@ -535,11 +546,15 @@ function createTableHeader(options, col) {
     // Add filter icons
     fidx = findFilterIndex(key);
     if (fidx !== false) {
+        fval = filter.criteria[fidx].value;
+        if (typeof fval === "object") {
+            fval = fval.naturalKey;
+        }
         icon.push(m("i", {
             class: "material-icons-outlined fb-column-filter-icon",
             title: operators[
                 (filter.criteria[fidx].operator || "=")
-            ] + " " + filter.criteria[fidx].value,
+            ] + " \"" + fval + "\"",
             style: {
                 fontSize: vm.zoom() * 0.80 + "%"
             }
