@@ -51,15 +51,6 @@
         const theProfile = profile; // Lint tyranny
         const theRefreshToken = refreshToken; // Lint tyranny
 
-        if (profile[jsn].email !== req.user.email) {
-            cb(
-                "Gmail account authorized must match user email of " +
-                req.user.email + ". Go back to select the " +
-                "matching Google account."
-            );
-            return;
-        }
-
         try {
             let sql = (
                 "INSERT INTO \"$session\" " +
@@ -944,6 +935,7 @@
             } else {
                 file.mv(filePath, function (err) {
                     if (err) {
+                        logger.error(err);
                         console.error(err);
                         return res.status(500).json({
                             message: "Failed to persist file",
@@ -1135,6 +1127,7 @@
             req.params.targetname || req.params.sourcename,
             function (err) {
                 if (err) {
+                    logger.error(err);
                     console.error(err);
                     return;
                 }
@@ -1476,6 +1469,7 @@
             "SELECT * FROM \"$session\" " +
             "WHERE sess->>'database'=$1 " +
             " AND expire > now() " +
+            " AND sess->>'passport' IS NOT NULL " +
             "ORDER BY expire;"
         );
         let resp = await req.sessionStore.pool.query(sql, [req.database]);
@@ -1886,6 +1880,7 @@
                 isFetching = false;
                 processFetch();
             }).catch(function (e) {
+                logger.error(e);
                 console.error(e);
             });
         }
@@ -1988,6 +1983,7 @@
                 try {
                     await datasource.listen(tenant, receiver);
                 } catch (err) {
+                    logger.error(err.message);
                     console.error(err.message);
                 }
             }
@@ -2079,13 +2075,16 @@
             }
 
             if (!req.tenant) {
-                let db = (
-                    (req.session && req.session.database)
-                    ? req.session.database
-                    : req.url.slice(1)
-                );
+                let db = req.url.slice(1);
                 if (db.indexOf("/") !== -1) {
                     db = db.slice(0, db.indexOf("/"));
+                }
+                if (db === "oauth2") {
+                    if (req.session && req.session.database) {
+                        db = req.session.database;
+                    } else {
+                        return Promise.reject("Invalid session for oauth2");
+                    }
                 }
                 db = db.toCamelCase().toSnakeCase();
                 req.database = db;
@@ -2116,6 +2115,10 @@
         dbRouter.param("db", function (req, res, next, id) {
             id = id.toCamelCase().toSnakeCase();
             let tenant = tenants.find((t) => id === t.pgDatabase);
+            let msg = (
+                "Database " + id +
+                " is not a registered tenant"
+            );
             if (tenant) {
                 req.database = id;
                 req.tenant = tenant;
@@ -2123,10 +2126,8 @@
                 return;
             }
             res.sendStatus(404);
-            console.error(
-                "Database " + id +
-                " is not a registered tenant"
-            );
+            logger.error(msg);
+            console.error(msg);
         });
 
         // For webhook notifications
@@ -2170,6 +2171,7 @@
                             let sql = (
                                 "SELECT sid FROM \"$session\" " +
                                 "WHERE sess->>'database'=$1 " +
+                                " AND sess->>'passport' IS NOT NULL " +
                                 " AND expire > now();"
                             );
                             let resp = await req.sessionStore.pool.query(
@@ -2194,6 +2196,7 @@
                     }
                 ).catch(
                     function (err) {
+                        logger.error("/signin: " + err);
                         console.error("/signin: " + err);
                         return done(null, false, {
                             message: err.message
@@ -2300,6 +2303,7 @@
                         });
                     }
                 } catch (e) {
+                    logger.error(e);
                     console.error(e);
                 }
             },

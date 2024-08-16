@@ -45,7 +45,7 @@ let deleteWbTemplateDlg;
 let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let initialized = false;
-let isSuper = false;
+let isAdmin = false;
 
 // For workbook management
 const showMenuWorkbook = f.prop(false);
@@ -106,7 +106,7 @@ const home = {
         );
         let menuAuthLinkClass = (
             "pure-menu-link " + (
-                isSuper
+                isAdmin
                 ? ""
                 : " pure-menu-disabled"
             )
@@ -193,9 +193,9 @@ const home = {
                                 m("li", {
                                     id: "wb-manage-add",
                                     class: menuAuthLinkClass,
-                                    title: "Change password",
+                                    title: "Add a new workbook",
                                     onclick: function () {
-                                        if (isSuper) {
+                                        if (isAdmin) {
                                             addWorkbookViewModel.show();
                                         }
                                     }
@@ -208,7 +208,7 @@ const home = {
                                     class: menuAuthLinkClass,
                                     title: "Add workbook from template",
                                     onclick: function () {
-                                        if (isSuper) {
+                                        if (isAdmin) {
                                             template("");
                                             newname("");
                                             addWbFromTemplateDlg.show();
@@ -226,7 +226,7 @@ const home = {
                                     class: menuAuthLinkClass,
                                     title: "Delete template",
                                     onclick: function () {
-                                        if (isSuper) {
+                                        if (isAdmin) {
                                             template("");
                                             deleteWbTemplateDlg.show();
                                         }
@@ -244,10 +244,17 @@ const home = {
                             id: "global-settings",
                             class: (
                                 "pure-button fb-menu-setup fb-menu-button " +
-                                "fb-menu-button-middle-side"
+                                "fb-menu-button-middle-side " + (
+                                    isAdmin
+                                    ? "pure-button-active"
+                                    : "pure-button-disabled"
+                                )
                             ),
                             title: "Global settings",
                             onclick: function () {
+                                if (!isAdmin) {
+                                    return;
+                                }
                                 m.route.set("/settings/:settings", {
                                     settings: "globalSettings"
                                 }, {
@@ -923,7 +930,10 @@ function initApp() {
         fetchRequests.push(ary().fetch({}));
     });
     Promise.all(fetchRequests).then(function () {
-        isSuper = f.currentUser().isSuper;
+        isAdmin = (
+            f.currentUser().isAdmin ||
+            f.currentUser().isSuper
+        );
 
         // Menu
         menu = viewModels.navigatorMenu();
