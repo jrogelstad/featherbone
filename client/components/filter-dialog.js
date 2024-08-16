@@ -628,17 +628,14 @@ filterDialog.viewModel = function (options) {
                 let items = vm.items();
                 items.forEach(function (item) {
                     let value;
+                    let nv;
                     if (item.property === key) {
-                        value = prop.newValue();
-                        value = (
-                            value
-                            ? {
-                                id: value.data.id()
-                            }
-                            : {
-                                id: ""
-                            }
-                        );
+                        value = {id: "", naturalKey: ""};
+                        nv = prop.newValue();
+                        if (nv) {
+                            value.id = nv.id();
+                            value.naturalKey = nv.naturalKey();
+                        }
                         vm.itemChanged(item.index, "value", value);
                     }
                 });

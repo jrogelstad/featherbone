@@ -158,17 +158,12 @@
         that.changeRolePassword = async function (obj) {
             try {
                 let name = obj.data.name;
-                let pwd = obj.data.password;
+                let pwd = obj.data.password || "";
                 let sql = "ALTER ROLE %I PASSWORD %L;";
                 let client = obj.client;
                 let conf = await config.read();
                 let plen = conf.passwordLength || 0;
 
-                if (!pwd) {
-                    return Promise.reject(
-                        "Password cannot be blank"
-                    );
-                }
                 if (plen > pwd.length) {
                     return Promise.reject(
                         "Password must be at least " + plen +
