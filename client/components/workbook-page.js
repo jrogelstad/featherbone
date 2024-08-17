@@ -535,7 +535,7 @@ workbookPage.viewModel = function (options) {
         }) || {};
         let type = vm.tableWidget().model().data.objectType();
 
-        if (selection) {
+        if (selection && !selection.data.isDeleted()) {
             m.route.set("/edit/:feather/:key", {
                 feather: type,
                 key: selection.id()
