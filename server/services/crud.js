@@ -922,7 +922,7 @@
                 "SELECT %I." + sub.toString(",").format(subt) +
                 " FROM _%I %I " +
                 "WHERE EXISTS (" +
-                "  SELECT * FROM %I"
+                "  SELECT FROM %I"
             );
             tokens.push("v1");
             tokens.push(table);
@@ -937,7 +937,7 @@
                 isSuperUser,
                 feather.enableRowAuthorization
             );
-            sql = sql.slice(0, sql.indexOf("ORDER BY"));
+            sql = sql.slice(0, sql.lastIndexOf("ORDER BY"));
             sql += (
                 "AND %I._pk=%I._pk" +
                 ")) AS data;"
