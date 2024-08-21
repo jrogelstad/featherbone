@@ -1213,10 +1213,10 @@ workbookPage.viewModel = function (options) {
             class: "fb-button-delete"
         }))
     );
-    if (!f.currentUser().isSuper) {
+    if (!f.currentUser().isSuper && !f.currentUser().isAdmin) {
         vm.editWorkbookDialog().buttons()[2]().disable();
         vm.editWorkbookDialog().buttons()[2]().title(
-            "Must be a super user to delete this workbook"
+            "Must be an administrator to delete this workbook"
         );
     }
 
