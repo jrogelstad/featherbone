@@ -1602,12 +1602,13 @@ workbookPage.component = {
             let tab;
             let tabOpts;
             let csheet = vm.config().find((sh) => sh.name === sheet);
+            let isActive = activeSheet.name.toName() === sheet.toName();
 
             // Build tab
             tabOpts = {
                 class: (
                     "fb-workbook-tab pure-button" + (
-                        activeSheet.name.toName() === sheet.toName()
+                        isActive
                         ? " pure-button-primary"
                         : ""
                     )
@@ -1615,7 +1616,7 @@ workbookPage.component = {
                 onclick: vm.tabClicked.bind(this, sheet)
             };
 
-            if (vm.config().length > 1) {
+            if (vm.config().length > 1 && !isActive) {
                 tabOpts.ondragover = vm.ondragover;
                 tabOpts.draggable = true;
                 tabOpts.ondragstart = vm.ondragstart.bind(this, idx);
