@@ -724,7 +724,6 @@ function createTableRow(options, pModel) {
         fontSize: theZoom,
         minWidth: "25px"
     };
-
     if (currentState.slice(0, 5) === "/Busy") {
         thContent = m("div", {
             onclick: onClick,
@@ -751,6 +750,14 @@ function createTableRow(options, pModel) {
                 class: "lds-small-dual-ring"
             });
         }
+    } else if (data.isDeleted()) {
+        iconStyle.color = "red";
+        thContent = m("i", {
+            onclick: onClick,
+            title: "Deleted",
+            style: iconStyle,
+            class: "material-icons-outlined fb-table-icon"
+        }, "block");
     } else if (!pModel.isValid()) {
         thContent = m("i", {
             onclick: onClick,
