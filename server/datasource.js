@@ -1856,6 +1856,7 @@
                     obj.cache = Object.freeze(f.copy(obj.data));
                 }
                 obj.data.id = obj.id;
+                obj.newRec.id = obj.id;
             }
         }
 

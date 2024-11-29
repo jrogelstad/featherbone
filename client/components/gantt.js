@@ -257,7 +257,10 @@ gantt.component = {
             ]),
             m("canvas", {
                 id: "gantt" + id,
-                key: "gantt" + id
+                key: "gantt" + id,
+                style: {
+                    paddingBottom: "30px"
+                }
             })
         ]);
     }
