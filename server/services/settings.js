@@ -120,7 +120,7 @@ settings.getSettings = async function (obj) {
                 return dbsettings[db].data[name].data;
             }
 
-            Promise.reject(false);
+            return false;
         } catch (e) {
             return Promise.reject(e);
         }
