@@ -2160,6 +2160,15 @@
                                 }
 
                                 if (
+                                    (
+                                        pformat === "date" ||
+                                        pformat === "dateTime"
+                                    ) && props[add].default === "null"
+                                ) {
+                                    defaultValue = null;
+                                }
+
+                                if (
                                     typeof defaultValue === "string" &&
                                     defaultValue.match(/\(\)$/)
                                 ) {
