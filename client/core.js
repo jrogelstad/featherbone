@@ -467,7 +467,7 @@ formats.money = {
         if (hasDisplayUnit) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    amount = amount.div(conv.data.ratio.toJSON()).round(minorUnit);
+                    amount = amount.times(conv.data.ratio.toJSON()).round(minorUnit);
                     return true;
                 }
             });
@@ -499,7 +499,7 @@ formats.money = {
         if (curr.data.hasDisplayUnit() && theCurrency !== curr.data.code()) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    theAmount = theAmount.times(
+                    theAmount = theAmount.div(
                         conv.data.ratio.toJSON().round(curr.data.minorUnit.toJSON())
                     );
                     return true;
