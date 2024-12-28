@@ -329,7 +329,7 @@
         id = id || 1;
         let conn = await db.connect();
 
-        await conn.client.query("SELECT pg_advisory_lock($1);", id);
+        await conn.client.query("SELECT pg_advisory_lock($1);", [id]);
 
     };
 
@@ -344,7 +344,7 @@
         id = id || 1;
         let conn = await db.connect();
 
-        await conn.client.query("SELECT pg_advisory_unlock($1);", id);
+        await conn.client.query("SELECT pg_advisory_unlock($1);", [id]);
 
     };
 
