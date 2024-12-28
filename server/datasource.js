@@ -334,7 +334,7 @@
         let conn = await db.connect(tenant);
 
         await conn.client.query("SELECT pg_advisory_lock($1);", [id]);
-        return;
+        conn.done();
     };
 
     /**
@@ -353,7 +353,7 @@
         let conn = await db.connect(tenant);
 
         await conn.client.query("SELECT pg_advisory_unlock($1);", [id]);
-        return;
+        conn.done();
     };
 
     that.createProcess = createProcess.bind(that);
