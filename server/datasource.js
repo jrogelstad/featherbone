@@ -317,6 +317,37 @@
     // ..........................................................
     // PUBLIC
     //
+
+    /**
+        Set an application level lock.
+
+        @method advisoryLock
+        @param {Integer} Id Defaults 1
+        @return {Object} Promise
+    */
+    that.advisoryLock = async function (id) {
+        id = id || 1;
+        let conn = await db.connect();
+
+        await conn.client.query("SELECT pg_advisory_lock($1);", id);
+
+    };
+
+    /**
+        Unlock an application level lock.
+
+        @method advisoryUnlock
+        @param {Integer} Id Defaults 1
+        @return {Object} Promise
+    */
+    that.advisoryUnlock = async function (id) {
+        id = id || 1;
+        let conn = await db.connect();
+
+        await conn.client.query("SELECT pg_advisory_unlock($1);", id);
+
+    };
+
     that.createProcess = createProcess.bind(that);
 
     /**
