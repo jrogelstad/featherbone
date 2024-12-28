@@ -322,30 +322,38 @@
         Set an application level lock.
 
         @method advisoryLock
+        @param {String} Tenant
         @param {Integer} Id Defaults 1
         @return {Object} Promise
     */
-    that.advisoryLock = async function (id) {
+    that.advisoryLock = async function (tenant, id) {
         id = id || 1;
-        let conn = await db.connect();
+        if (!tenant) {
+            throw "Tenant is required.";
+        }
+        let conn = await db.connect(tenant);
 
         await conn.client.query("SELECT pg_advisory_lock($1);", [id]);
-
+        return;
     };
 
     /**
         Unlock an application level lock.
 
         @method advisoryUnlock
+        @param {String} Tenant
         @param {Integer} Id Defaults 1
         @return {Object} Promise
     */
-    that.advisoryUnlock = async function (id) {
+    that.advisoryUnlock = async function (tenant, id) {
         id = id || 1;
-        let conn = await db.connect();
+        if (!tenant) {
+            throw "Tenant is required.";
+        }
+        let conn = await db.connect(tenant);
 
         await conn.client.query("SELECT pg_advisory_unlock($1);", [id]);
-
+        return;
     };
 
     that.createProcess = createProcess.bind(that);
