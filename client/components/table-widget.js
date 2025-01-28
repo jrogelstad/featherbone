@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2024  Featherbone LLC
+    Copyright (C) 2025  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -724,7 +724,6 @@ function createTableRow(options, pModel) {
         fontSize: theZoom,
         minWidth: "25px"
     };
-
     if (currentState.slice(0, 5) === "/Busy") {
         thContent = m("div", {
             onclick: onClick,
@@ -751,6 +750,14 @@ function createTableRow(options, pModel) {
                 class: "lds-small-dual-ring"
             });
         }
+    } else if (data.isDeleted()) {
+        iconStyle.color = "red";
+        thContent = m("i", {
+            onclick: onClick,
+            title: "Deleted",
+            style: iconStyle,
+            class: "material-icons-outlined fb-table-icon"
+        }, "block");
     } else if (!pModel.isValid()) {
         thContent = m("i", {
             onclick: onClick,

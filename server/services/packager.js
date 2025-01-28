@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2024  Featherbone LLC
+    Copyright (C) 2025  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -730,6 +730,14 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Help files
+                sql = (
+                    "SELECT *  FROM help_link WHERE module = $1 " +
+                    "AND NOT is_deleted " +
+                    "ORDER BY label"
+                );
+                requests.push(client.query(sql, params));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = name;
                     let pathname = path.format({
@@ -741,11 +749,13 @@
                         addFeathers(manifest, zip, resp[1], folder);
                         addRelWidgets(manifest, zip, resp[8], folder);
                         addServices(manifest, zip, resp[3], folder);
+                        addBatch("HelpLink", manifest, zip, resp[9], folder);
                         addForms(manifest, zip, resp[2], folder);
                         addBatch("Route", manifest, zip, resp[4], folder);
                         addBatch("Style", manifest, zip, resp[5], folder);
                         addSettings(manifest, zip, resp[6], folder);
                         addWorkbooks(manifest, zip, resp[7], folder);
+
                         if (sub.module) {
                             addModule(manifest, zip, [sub.module], folder);
                         } else {

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2024  Featherbone LLC
+    Copyright (C) 2025  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -455,8 +455,8 @@ formats.money = {
         let hasDisplayUnit = curr.data.hasDisplayUnit();
         let minorUnit = (
             hasDisplayUnit
-            ? curr.data.displayUnit().data.minorUnit()
-            : curr.data.minorUnit()
+            ? curr.data.displayUnit().data.minorUnit.toJSON()
+            : curr.data.minorUnit.toJSON()
         );
 
         style = {
@@ -467,7 +467,7 @@ formats.money = {
         if (hasDisplayUnit) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    amount = amount.div(conv.data.ratio()).round(minorUnit);
+                    amount = amount.times(conv.data.ratio.toJSON()).round(minorUnit);
                     return true;
                 }
             });
@@ -499,8 +499,8 @@ formats.money = {
         if (curr.data.hasDisplayUnit() && theCurrency !== curr.data.code()) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    theAmount = theAmount.times(
-                        conv.data.ratio().round(curr.data.minorUnit())
+                    theAmount = theAmount.div(
+                        conv.data.ratio.toJSON().round(curr.data.minorUnit.toJSON())
                     );
                     return true;
                 }
@@ -797,10 +797,10 @@ formats.money.tableData = function (obj) {
         if (curr.data.hasDisplayUnit()) {
             du = curr.data.displayUnit();
             symbol = du.data.symbol();
-            minorUnit = du.data.minorUnit();
+            minorUnit = du.data.minorUnit.toJSON();
         } else {
             symbol = curr.data.symbol();
-            minorUnit = curr.data.minorUnit();
+            minorUnit = curr.data.minorUnit.toJSON();
         }
     }
 

@@ -1,6 +1,6 @@
  /*
     Framework for building object relational database apps
-    Copyright (C) 2024  Featherbone LLC
+    Copyright (C) 2025  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -535,7 +535,7 @@ workbookPage.viewModel = function (options) {
         }) || {};
         let type = vm.tableWidget().model().data.objectType();
 
-        if (selection) {
+        if (selection && !selection.data.isDeleted()) {
             m.route.set("/edit/:feather/:key", {
                 feather: type,
                 key: selection.id()
@@ -1213,10 +1213,10 @@ workbookPage.viewModel = function (options) {
             class: "fb-button-delete"
         }))
     );
-    if (!f.currentUser().isSuper) {
+    if (!f.currentUser().isSuper && !f.currentUser().isAdmin) {
         vm.editWorkbookDialog().buttons()[2]().disable();
         vm.editWorkbookDialog().buttons()[2]().title(
-            "Must be a super user to delete this workbook"
+            "Must be an administrator to delete this workbook"
         );
     }
 
@@ -1602,12 +1602,13 @@ workbookPage.component = {
             let tab;
             let tabOpts;
             let csheet = vm.config().find((sh) => sh.name === sheet);
+            let isActive = activeSheet.name.toName() === sheet.toName();
 
             // Build tab
             tabOpts = {
                 class: (
                     "fb-workbook-tab pure-button" + (
-                        activeSheet.name.toName() === sheet.toName()
+                        isActive
                         ? " pure-button-primary"
                         : ""
                     )
@@ -1615,7 +1616,7 @@ workbookPage.component = {
                 onclick: vm.tabClicked.bind(this, sheet)
             };
 
-            if (vm.config().length > 1) {
+            if (vm.config().length > 1 && !isActive) {
                 tabOpts.ondragover = vm.ondragover;
                 tabOpts.draggable = true;
                 tabOpts.ondragstart = vm.ondragstart.bind(this, idx);

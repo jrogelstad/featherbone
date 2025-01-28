@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2024  Featherbone LLC
+    Copyright (C) 2025  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -922,7 +922,7 @@
                 "SELECT %I." + sub.toString(",").format(subt) +
                 " FROM _%I %I " +
                 "WHERE EXISTS (" +
-                "  SELECT * FROM %I"
+                "  SELECT FROM %I"
             );
             tokens.push("v1");
             tokens.push(table);
@@ -937,7 +937,7 @@
                 isSuperUser,
                 feather.enableRowAuthorization
             );
-            sql = sql.slice(0, sql.indexOf("ORDER BY"));
+            sql = sql.slice(0, sql.lastIndexOf("ORDER BY"));
             sql += (
                 "AND %I._pk=%I._pk" +
                 ")) AS data;"
@@ -972,7 +972,12 @@
                 let afterDoSelect;
                 let afterDelete;
                 let afterLog;
-                let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
+                let sql = (
+                    "UPDATE object SET is_deleted = true, " +
+                    "  lock = null, updated = now(), updated_by = $2 " +
+                    "WHERE id=$1;"
+                );
+                let params = [obj.id, obj.client.currentUser()];
                 let sql2 = "DELETE from \"$subscription\" WHERE objectid=$1;";
                 let clen = 1;
                 let c = 0;
@@ -980,6 +985,7 @@
 
                 if (obj.isHard === true) {
                     sql = "DELETE FROM object WHERE id=$1;";
+                    params = [obj.id];
                 }
 
                 noChildProps = function (key) {
@@ -1083,7 +1089,7 @@
 
                     // Finally, delete parent object
                     await theClient.query(sql2, [obj.id]);
-                    theClient.query(sql, [obj.id], afterDelete);
+                    theClient.query(sql, params, afterDelete);
                 };
 
                 // Handle change log
@@ -1097,29 +1103,6 @@
                     await theClient.query(sql2, [obj.id]);
                     afterLog();
                     return;
-
-                    // Won't get here as code above prevents it
-                    // TODO add flag in feather to make optional
-                    /*
-                    if (isChild || obj.isHard) {
-                        afterLog();
-                        return;
-                    }
-
-                    // Log the completed deletion
-                    crud.doInsert({
-                        name: "Log",
-                        data: {
-                            objectId: obj.id,
-                            action: "DELETE",
-                            created: now,
-                            createdBy: now,
-                            updated: now,
-                            updatedBy: now
-                        },
-                        client: theClient
-                    }, true).then(afterLog).catch(reject);
-                    */
                 };
 
                 afterLog = function () {
