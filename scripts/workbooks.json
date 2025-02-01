@@ -1,357 +1,358 @@
-[{
-		"name": "Development",
-		"module": "Core",
-		"description": "Integrated development environment",
-		"icon": "architecture",
+[
+    {
+        "name": "Development",
+        "module": "Core",
+        "description": "Integrated development environment",
+        "icon": "architecture",
                 "isTemplate": true,
                 "label": "Develop",
-		"authorizations": [],
-		"defaultConfig": [{
-				"name": "Modules",
-				"feather": "Module",
-				"isEditModeEnabled": false,
-				"actions": [{
-					"name": "Install",
-					"title": "Install a package",
-					"icon": "download",
-					"method": "install",
-					"authorization": "InstallModules"
-				}, {
-					"name": "Package",
-					"title": "Package and download module",
-					"icon": "archive",
-					"method": "package",
-					"authorization": "PackageModules",
-					"validator": "packageCheck"
-				}, {
-					"name": "Upgrade",
-					"title": "Upgrade core software",
-					"icon": "upgrade",
-					"method": "upgrade",
-					"authorization": "InstallModules",
-					"hasSeparator": true
-				}],
-				"list": {
-					"columns": [{
-						"attr": "name"
-					}, {
-						"attr": "version"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "name",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "Feathers",
-				"feather": "Feather",
-				"isEditModeEnabled": false,
-				"openInNewWindow": true,
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "name"
-					}, {
-						"attr": "description"
-					}, {
-						"attr": "plural"
-					}, {
-						"attr": "inherits"
-					}, {
-						"attr": "isSystem"
-					}, {
-						"attr": "isChild"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "name",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "Forms",
-				"feather": "Form",
-				"openInNewWindow": true,
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "name"
-					}, {
-						"attr": "description"
-					}, {
-						"attr": "feather"
-					}, {
-						"attr": "updated"
-					}, {
-						"attr": "updatedBy"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "name",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "Relations",
-				"feather": "RelationWidget",
-				"openInNewWindow": false,
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "name"
-					}, {
-						"attr": "description"
-					}, {
-						"attr": "feather"
-					}, {
-						"attr": "updated"
-					}, {
-						"attr": "updatedBy"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "name",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "Services",
-				"feather": "DataService",
-				"isEditModeEnabled": false,
-				"openInNewWindow": true,
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "name"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "name",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "Routes",
-				"feather": "Route",
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "path"
-					}, {
-						"attr": "function"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "path",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "Styles",
-				"feather": "Style",
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "name"
-					}, {
-						"attr": "description"
-					}, {
-						"attr": "hasColor",
-						"width": 100
-					}, {
-						"attr": "color",
-						"width": 100
-					}, {
-						"attr": "fontWeight",
-						"width": 100
-					}, {
-						"attr": "hasBackgroundColor",
-						"label": "Has Background"
-					}, {
-						"attr": "backgroundColor"
-					}, {
-						"attr": "underline",
-						"width": 100
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "name",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "HelpFiles",
-				"feather": "HelpLink",
-				"list": {
-					"columns": [{
-						"attr": "module"
-					}, {
-						"attr": "label"
-					}, {
-						"attr": "notes"
-					}, {
-						"attr": "resource"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "module",
-							"order": "ASC"
-						}, {
-							"property": "label",
-							"order": "ASC"
-						}]
-					}
-				}
-			}
-		]
-	},
-	{
-		"name": "User Administration",
-		"module": "Core",
-		"description": "User account and role administration",
-		"icon": "manage_accounts",
+        "authorizations": [],
+        "defaultConfig": [{
+                "name": "Modules",
+                "feather": "Module",
+                "isEditModeEnabled": false,
+                "actions": [{
+                    "name": "Install",
+                    "title": "Install a package",
+                    "icon": "download",
+                    "method": "install",
+                    "authorization": "InstallModules"
+                }, {
+                    "name": "Package",
+                    "title": "Package and download module",
+                    "icon": "archive",
+                    "method": "package",
+                    "authorization": "PackageModules",
+                    "validator": "packageCheck"
+                }, {
+                    "name": "Upgrade",
+                    "title": "Upgrade core software",
+                    "icon": "upgrade",
+                    "method": "upgrade",
+                    "authorization": "InstallModules",
+                    "hasSeparator": true
+                }],
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "version"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Feathers",
+                "feather": "Feather",
+                "isEditModeEnabled": false,
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "plural"
+                    }, {
+                        "attr": "inherits"
+                    }, {
+                        "attr": "isSystem"
+                    }, {
+                        "attr": "isChild"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Forms",
+                "feather": "Form",
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "feather"
+                    }, {
+                        "attr": "updated"
+                    }, {
+                        "attr": "updatedBy"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Relations",
+                "feather": "RelationWidget",
+                "openInNewWindow": false,
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "feather"
+                    }, {
+                        "attr": "updated"
+                    }, {
+                        "attr": "updatedBy"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Services",
+                "feather": "DataService",
+                "isEditModeEnabled": false,
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "name"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Routes",
+                "feather": "Route",
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "path"
+                    }, {
+                        "attr": "function"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "path",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Styles",
+                "feather": "Style",
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "hasColor",
+                        "width": 100
+                    }, {
+                        "attr": "color",
+                        "width": 100
+                    }, {
+                        "attr": "fontWeight",
+                        "width": 100
+                    }, {
+                        "attr": "hasBackgroundColor",
+                        "label": "Has Background"
+                    }, {
+                        "attr": "backgroundColor"
+                    }, {
+                        "attr": "underline",
+                        "width": 100
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "HelpFiles",
+                "feather": "HelpLink",
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "label"
+                    }, {
+                        "attr": "notes"
+                    }, {
+                        "attr": "resource"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "label",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "User Administration",
+        "module": "Core",
+        "description": "User account and role administration",
+        "icon": "manage_accounts",
                 "isTemplate": true,
                 "label": "Admin",
-		"authorizations": [],
-		"defaultConfig": [{
-			"name": "UserAccounts",
-			"feather": "UserAccount",
-			"list": {
-				"columns": [{
-					"attr": "name"
-				}, {
-					"attr": "contact.fullName"
-				}, {
-					"attr": "contact.email"
-				}, {
-					"attr": "contact.phone"
-				}]
-			}
-		}, {
-			"name": "Roles",
-			"feather": "Role",
-			"list": {
-				"columns": [{
-					"attr": "name"
-				}, {
-					"attr": "createdBy"
-				}, {
-					"attr": "updated"
-				}, {
-					"attr": "updatedBy"
-				}],
-				"filter": {
-					"criteria": [{
-						"property": "objectType",
-						"value": "Role"
-					}],
-					"sort": [{
-						"property": "name",
-						"order": "ASC"
-					}]
-				}
-			}
-		}]
-	},
-	{
-		"name": "Currency Maintenance",
-		"module": "Core",
-		"description": "Currency and exchange rate maintenance",
-		"icon": "payments",
+        "authorizations": [],
+        "defaultConfig": [{
+            "name": "UserAccounts",
+            "feather": "UserAccount",
+            "list": {
+                "columns": [{
+                    "attr": "name"
+                }, {
+                    "attr": "contact.fullName"
+                }, {
+                    "attr": "contact.email"
+                }, {
+                    "attr": "contact.phone"
+                }]
+            }
+        }, {
+            "name": "Roles",
+            "feather": "Role",
+            "list": {
+                "columns": [{
+                    "attr": "name"
+                }, {
+                    "attr": "createdBy"
+                }, {
+                    "attr": "updated"
+                }, {
+                    "attr": "updatedBy"
+                }],
+                "filter": {
+                    "criteria": [{
+                        "property": "objectType",
+                        "value": "Role"
+                    }],
+                    "sort": [{
+                        "property": "name",
+                        "order": "ASC"
+                    }]
+                }
+            }
+        }]
+    },
+    {
+        "name": "Currency Maintenance",
+        "module": "Core",
+        "description": "Currency and exchange rate maintenance",
+        "icon": "payments",
                 "isTemplate": true,
                 "label": "Currency",
-		"defaultConfig": [{
-				"name": "Conversions",
-				"feather": "CurrencyConversion",
-				"list": {
-					"columns": [{
-						"attr": "fromCurrency",
-						"label": "From"
-					}, {
-						"attr": "toCurrency",
-						"label": "To"
-					}, {
-						"attr": "ratio"
-					}, {
-						"attr": "effective"
-					}, {
-						"attr": "updatedBy"
-					}]
-				}
-			},
-			{
-				"name": "Currencies",
-				"feather": "Currency",
-				"list": {
-					"columns": [{
-						"attr": "code"
-					}, {
-						"attr": "description"
-					}, {
-						"attr": "symbol"
-					}, {
-						"attr": "isBase"
-					}],
-					"filter": {
-						"sort": [{
-							"property": "code",
-							"order": "ASC"
-						}]
-					}
-				}
-			},
-			{
-				"name": "CurrencyUnits",
-				"feather": "CurrencyUnit",
-				"list": {
-					"columns": [{
-						"attr": "code"
-					}, {
-						"attr": "description"
-					}, {
-						"attr": "symbol"
-					}]
-				}
-			}
-		]
-	}
+        "defaultConfig": [{
+                "name": "Conversions",
+                "feather": "CurrencyConversion",
+                "list": {
+                    "columns": [{
+                        "attr": "fromCurrency",
+                        "label": "From"
+                    }, {
+                        "attr": "toCurrency",
+                        "label": "To"
+                    }, {
+                        "attr": "ratio"
+                    }, {
+                        "attr": "effective"
+                    }, {
+                        "attr": "updatedBy"
+                    }]
+                }
+            },
+            {
+                "name": "Currencies",
+                "feather": "Currency",
+                "list": {
+                    "columns": [{
+                        "attr": "code"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "symbol"
+                    }, {
+                        "attr": "isBase"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "code",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "CurrencyUnits",
+                "feather": "CurrencyUnit",
+                "list": {
+                    "columns": [{
+                        "attr": "code"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "symbol"
+                    }]
+                }
+            }
+        ]
+    }
 ]
