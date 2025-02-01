@@ -1,4 +1,4 @@
-	[
+    [
     {
         "name": "Document",
         "module": "Core",
@@ -354,6 +354,13 @@
                 "type": "string",
                 "isNaturalKey": true,
                 "isRequired": true
+            },
+            "isLogin": {
+                "description": "Flag whether db login role",
+                "type": "boolean",
+                "isRequired": true,
+                "isReadOnly": true,
+                "default": false
             }
         }
     },

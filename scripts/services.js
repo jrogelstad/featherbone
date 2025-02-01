@@ -1157,7 +1157,7 @@ function createRole(obj) {
         let re = new RegExp(" ", "g");
         let options = obj.roleOptions || {
             name: obj.newRec.name.toLowerCase().replace(re, "_"),
-            isLogin: true,
+            isLogin: obj.newRec.isLogin,
             password: obj.newRec.password,
             isInherits: false
         };
@@ -1347,6 +1347,22 @@ async function createUserAccount(obj) {
         return Promise.reject("Contact is required.");
     }
 
+    let sql = "SELECT rolname FROM pg_roles WHERE NOT rolcanlogin";
+    let roles = await obj.client.query(sql);
+    let role;
+    let name = obj.newRec.name.toLowerCase();
+
+    obj.newRec.isLogin = true;
+
+    while (roles.rows) {
+        role = roles.rows.shift();
+        if (role.rolname === name) {
+            throw (
+                `Name ${name} is already a reserved role name ` +
+                `and cannot be used`
+            );
+        }
+    }
     let cntct = await f.datasource.request({
         client: obj.client,
         id: obj.newRec.contact.id,
