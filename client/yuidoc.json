@@ -1,7 +1,7 @@
 {
     "name": "Featherbone Client",
     "description": "Framework for building object relational database apps",
-    "version": "2.1.9",
+    "version": "2.2.0",
     "url": "https://github.com/FeatherboneJS/featherbone",
     "logo": "../featherbone-client.png",
     "options": {
