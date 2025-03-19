@@ -1354,7 +1354,7 @@ async function createUserAccount(obj) {
 
     obj.newRec.isLogin = true;
 
-    while (roles.rows) {
+    while (roles.rows.length) {
         role = roles.rows.shift();
         if (role.rolname === name) {
             throw (
