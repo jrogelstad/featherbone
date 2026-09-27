@@ -1,0 +1,257 @@
+[
+  {
+    "feathers": [
+      "Alert",
+      "ServerProcess"
+    ],
+    "icon": "notifications",
+    "label": "Alerts",
+    "module": "JobShop",
+    "name": "Alerts"
+  },
+  {
+    "feathers": [
+      "SalesOrderShipment",
+      "Invoice",
+      "PrepaidInvoice",
+      "Invoice",
+      "SalesHistory"
+    ],
+    "icon": "attach_money",
+    "label": "",
+    "module": "JobShop",
+    "name": "Bill"
+  },
+  {
+    "feathers": [
+      "PurchaseOrder",
+      "PlannedPurchase",
+      "OutsideProcessShipment",
+      "PurchaseOrderReceipt",
+      "Supplier",
+      "SupplierContact",
+      "ItemSupplier",
+      "PurchaseOrder"
+    ],
+    "icon": "shopping_cart",
+    "label": "",
+    "module": "JobShop",
+    "name": "Buy"
+  },
+  {
+    "feathers": [
+      "Contact"
+    ],
+    "icon": "contacts",
+    "label": "",
+    "module": "JobShop",
+    "name": "Contacts"
+  },
+  {
+    "feathers": [
+      "PhysicalCount",
+      "PhysicalCountTag",
+      "PhysicalCountTag"
+    ],
+    "icon": "format_list_numbered_rtl",
+    "label": "",
+    "module": "JobShop",
+    "name": "Count"
+  },
+  {
+    "feathers": [
+      "CurrencyConversion",
+      "Currency",
+      "CurrencyUnit"
+    ],
+    "icon": "payments",
+    "label": "Currency",
+    "module": "Core",
+    "name": "Currency Maintenance"
+  },
+  {
+    "feathers": [
+      "Module",
+      "Form",
+      "Feather",
+      "RelationWidget",
+      "DataService",
+      "Route",
+      "Style",
+      "HelpLink",
+      "FeatherAuthorization",
+      "SystemPrintForm",
+      "Role"
+    ],
+    "icon": "architecture",
+    "label": "",
+    "module": "JobShop",
+    "name": "Develop"
+  },
+  {
+    "feathers": [
+      "Module",
+      "Feather",
+      "Form",
+      "RelationWidget",
+      "DataService",
+      "Route",
+      "Style",
+      "HelpLink"
+    ],
+    "icon": "architecture",
+    "label": "Develop",
+    "module": "Core",
+    "name": "Development"
+  },
+  {
+    "feathers": [
+      "WorkOrderOperation",
+      "OperationCompletion"
+    ],
+    "icon": "engineering",
+    "label": "Execute",
+    "module": "JobShop",
+    "name": "Execute"
+  },
+  {
+    "feathers": [
+      "Product",
+      "ProposedCost",
+      "ItemUnitConversion",
+      "Service"
+    ],
+    "icon": "edit",
+    "label": "Design",
+    "module": "JobShop",
+    "name": "Items"
+  },
+  {
+    "feathers": [
+      "WorkOrder",
+      "PlannedWorkOrder",
+      "OutsideProcess",
+      "WorkOrderReceipt",
+      "WorkOrder"
+    ],
+    "icon": "factory",
+    "label": "",
+    "module": "JobShop",
+    "name": "Make"
+  },
+  {
+    "feathers": [
+      "Inventory",
+      "Inventory",
+      "Supply",
+      "Demand",
+      "Allocation"
+    ],
+    "icon": "calendar_today",
+    "label": "",
+    "module": "JobShop",
+    "name": "Plan"
+  },
+  {
+    "feathers": [
+      "Project"
+    ],
+    "icon": "view_timeline",
+    "label": "",
+    "module": "JobShop",
+    "name": "Project"
+  },
+  {
+    "feathers": [
+      "Inventory",
+      "WorkOrder",
+      "SalesHistory",
+      "SalesHistory",
+      "SalesHistory",
+      "InventoryTransaction"
+    ],
+    "icon": "account_balance",
+    "label": "Report",
+    "module": "JobShop",
+    "name": "Report"
+  },
+  {
+    "feathers": [
+      "SalesOrder",
+      "SalesOrderLine",
+      "Customer",
+      "CustomerContact",
+      "SalesOrder",
+      "TaxRate"
+    ],
+    "icon": "check_circle",
+    "label": "",
+    "module": "JobShop",
+    "name": "Sell"
+  },
+  {
+    "feathers": [
+      "UserAccount",
+      "Employee",
+      "State",
+      "Country",
+      "Carrier",
+      "ShipMethod",
+      "TaxType",
+      "Site",
+      "Location",
+      "PrintForm",
+      "LaborResource",
+      "MachineResource"
+    ],
+    "icon": "settings",
+    "label": "",
+    "module": "JobShop",
+    "name": "Settings"
+  },
+  {
+    "feathers": [
+      "SalesOrder",
+      "SalesOrder",
+      "SalesOrderShipment",
+      "SalesOrderShipment"
+    ],
+    "icon": "local_shipping",
+    "label": "",
+    "module": "JobShop",
+    "name": "Ship"
+  },
+  {
+    "feathers": [
+      "ShipEngineCarrier"
+    ],
+    "icon": "label",
+    "label": "",
+    "module": "JobShop",
+    "name": "Ship Engine"
+  },
+  {
+    "feathers": [
+      "Inventory",
+      "InventoryLocation",
+      "InventoryTransaction",
+      "WorkOrderIssue",
+      "InventoryAdjustment",
+      "MoveInventory"
+    ],
+    "icon": "inventory_2",
+    "label": "",
+    "module": "JobShop",
+    "name": "Stock"
+  },
+  {
+    "feathers": [
+      "UserAccount",
+      "Role"
+    ],
+    "icon": "manage_accounts",
+    "label": "Admin",
+    "module": "Core",
+    "name": "User Administration"
+  }
+]

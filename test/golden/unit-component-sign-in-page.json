@@ -1,0 +1,148 @@
+{
+  "attrs": {
+    "class": "pure-form pure-form-aligned"
+  },
+  "children": [
+    {
+      "attrs": {
+        "class": "fb-sign-in fb-sign-in-header"
+      },
+      "children": [
+        "Sign in to Featherbone"
+      ],
+      "tag": "div"
+    },
+    {
+      "attrs": {
+        "class": "fb-sign-in fb-sign-in-error"
+      },
+      "children": [
+        ""
+      ],
+      "tag": "div"
+    },
+    {
+      "attrs": {
+        "class": "pure-control-group fb-sign-in"
+      },
+      "children": [
+        {
+          "attrs": {
+            "class": "fb-sign-in-label",
+            "for": "username",
+            "id": "usernameLabel"
+          },
+          "children": [
+            "Username"
+          ],
+          "tag": "label"
+        },
+        {
+          "attrs": {
+            "autocomplete": "on",
+            "autofocus": true,
+            "id": "username"
+          },
+          "tag": "input"
+        }
+      ],
+      "tag": "div"
+    },
+    {
+      "attrs": {
+        "class": "pure-control-group fb-sign-in"
+      },
+      "children": [
+        {
+          "attrs": {
+            "class": "fb-sign-in-label",
+            "for": "password",
+            "id": "passwordLabel"
+          },
+          "children": [
+            "Password"
+          ],
+          "tag": "label"
+        },
+        {
+          "attrs": {
+            "autocomplete": "current-password",
+            "id": "password",
+            "onkeydown": "<fn>",
+            "type": "password"
+          },
+          "tag": "input"
+        }
+      ],
+      "tag": "div"
+    },
+    {
+      "attrs": {
+        "class": "pure-control-group fb-sign-in"
+      },
+      "children": [
+        {
+          "attrs": {
+            "class": "fb-sign-in-label",
+            "for": "signin",
+            "id": "signinLabel"
+          },
+          "children": [
+            ""
+          ],
+          "tag": "label"
+        },
+        {
+          "attrs": {
+            "class": "pure-button pure-button-primary fb-input",
+            "id": "signin",
+            "onclick": "<fn>",
+            "style": {
+              "width": "215px"
+            }
+          },
+          "children": [
+            "Sign in"
+          ],
+          "tag": "button"
+        }
+      ],
+      "tag": "div"
+    },
+    {
+      "attrs": {
+        "class": "pure-control-group fb-sign-in"
+      },
+      "children": [
+        {
+          "attrs": {
+            "class": "fb-sign-in-label",
+            "for": "forgotPassword",
+            "id": "forgotPasswordLabel"
+          },
+          "children": [
+            ""
+          ],
+          "tag": "label"
+        },
+        {
+          "attrs": {
+            "class": "fb-click-text",
+            "id": "forgotPassword",
+            "onclick": "<fn>",
+            "style": {
+              "color": "darkslateblue",
+              "width": "215px"
+            }
+          },
+          "children": [
+            "Forgot password"
+          ],
+          "tag": "a"
+        }
+      ],
+      "tag": "div"
+    }
+  ],
+  "tag": "form"
+}
