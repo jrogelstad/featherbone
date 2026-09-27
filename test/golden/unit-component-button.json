@@ -1,0 +1,49 @@
+{
+  "attrs": {
+    "class": "pure-button undefined  ",
+    "disabled": false,
+    "id": "<id>",
+    "oncreate": "<fn>",
+    "onremove": "<fn>",
+    "style": {},
+    "title": "Save record (Alt + S)",
+    "type": "button"
+  },
+  "children": [
+    {
+      "fragment": [
+        {
+          "attrs": {
+            "class": "material-icons-outlined fb-button-icon"
+          },
+          "children": [
+            "cloud_upload"
+          ],
+          "tag": "i"
+        }
+      ]
+    },
+    {
+      "fragment": [
+        {
+          "attrs": {
+            "style": {
+              "textDecoration": "underline"
+            }
+          },
+          "children": [
+            "S"
+          ],
+          "tag": "span"
+        },
+        {
+          "children": [
+            "ave"
+          ],
+          "tag": "span"
+        }
+      ]
+    }
+  ],
+  "tag": "button"
+}

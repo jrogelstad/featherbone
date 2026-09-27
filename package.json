@@ -7,6 +7,11 @@
   "author": "Featherbone LLC",
   "license": "GPL v3",
   "main": "server.js",
+  "scripts": {
+    "test": "node test/run.js",
+    "test:unit": "node test/run.js unit",
+    "test:integration": "node test/run.js integration"
+  },
   "repository": {
     "type": "git",
     "url": "http://github.com/FeatherboneJS/Featherbone.git"
