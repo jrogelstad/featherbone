@@ -23,17 +23,51 @@
 
 const relationWidget = {};
 
+/*
+    Place a grid cell's Search/Open/New menu directly under its button,
+    touching it (a gap would fire mouseout on the way to the menu and
+    close it). Open it upward instead only when it would run past the
+    bottom of the grid's visible area AND there's room for it above,
+    below the sticky header -- measured against the grid's scroll box,
+    not the rows, so the first row of a short list no longer gets its
+    menu flipped up behind the header.
+*/
 function positionMenu(vnode) {
-    let e = document.getElementById(vnode.dom.id);
-    let menuRect = e.getBoundingClientRect();
-    let pe = "parentElement"; // Keep short for lint;
-    let tbl = e[pe][pe][pe][pe][pe][pe];
-    let tblRect = tbl.getBoundingClientRect();
+    let list = vnode.dom;
+    let anchor = list.parentElement;
+    let button = anchor.querySelector(".fb-relation-button");
+    let box = list.closest(".fb-table-scroll");
+    let head;
+    let below = (
+        button
+        ? button.offsetHeight
+        : 20
+    );
+    let anchorTop;
+    let boxRect;
+    let height;
 
-    // If menu spills out of table, move up and right
-    if (menuRect.bottom > tblRect.bottom) {
-        e.style.top = "-60px";
-        e.style.right = "-155px";
+    list.style.top = below + "px";
+    list.style.right = "-100px";
+
+    if (!box || list.style.display === "none") {
+        return;
+    }
+
+    head = box.querySelector("thead");
+    anchorTop = anchor.getBoundingClientRect().top;
+    boxRect = box.getBoundingClientRect();
+    height = list.offsetHeight;
+
+    if (
+        anchorTop + below + height > boxRect.bottom &&
+        anchorTop - height >= boxRect.top + (
+            head
+            ? head.offsetHeight
+            : 0
+        )
+    ) {
+        list.style.top = -height + "px";
     }
 }
 

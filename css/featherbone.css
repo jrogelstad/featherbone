@@ -275,6 +275,24 @@ a.pure-button-selected {
     background-color: var(--fb-accent-strong);
 }
 
+/* Buttons placed side by side in plain (non-flex) markup -- e.g. an app
+   module's own row of buttons, like the Hierarchy tab's refresh/collapse/
+   expand -- get the same 6px spacing the flex rows get from their gap.
+   Those flex rows, dialogs and tab strips reset it so it isn't doubled. */
+.pure-button + .pure-button {
+    margin-left: 6px;
+}
+
+.fb-toolbar .pure-button,
+.fb-toolbar-visible .pure-button,
+.fb-child-table-toolbar .pure-button,
+.fb-toolbar-overflow-item .pure-button,
+.fb-form-tabs .pure-button,
+.fb-sheet-tabs .pure-button,
+.fb-dialog-content-frame .pure-button {
+    margin-left: 0;
+}
+
 /* Button's icon glyph -- the gap on .pure-button spaces it from the
    label, so no margins of its own. Two classes so it wins over the
    24px .material-icons(-outlined) rules further down. */
@@ -922,10 +940,14 @@ a.pure-button-selected {
   text-align: left;
 }
 
+/* 16px menu glyph beside 13px label text: dropping its baseline 3px
+   below the text's puts the glyph's ink center exactly on the text's
+   cap-height center (vertical-align: middle left it ~1.5px low). */
 .fb-form-label-button-icon {
   font-size: 16px;
+  line-height: 1;
   margin-right: 4px;
-  vertical-align: middle;
+  vertical-align: -3px;
   color: var(--fb-text-muted);
 }
 
@@ -1061,10 +1083,21 @@ a.pure-button-selected {
   position: absolute;
 }
 
-/* The dropdown triggers render their glyphs as ligature text directly on
-   the button element ("perm_identityarrow_drop_down" = person + caret),
-   in the icon font, so the size is set here rather than on an <i>. Both
-   classes on one selector to beat the bare 24px .material-icons rule. */
+/* Some buttons are also the icon element itself -- the dropdown triggers
+   render "perm_identityarrow_drop_down" (person + caret) as ligature
+   text directly on a .pure-button span in the icon font. The
+   .material-icons(-outlined) rules further down set display:
+   inline-block and line-height: 1 with the same specificity as
+   .pure-button and win on source order, which dropped these out of
+   flex centering and left the glyphs pinned to the top of the 30px
+   button. Two classes here so the button layout wins back. */
+.pure-button.material-icons,
+.pure-button.material-icons-outlined {
+  display: inline-flex;
+  align-items: center;
+  line-height: 16px;
+}
+
 .fb-menu-button.material-icons,
 .fb-menu-button.material-icons-outlined {
   font-size: 16px;
@@ -1395,6 +1428,10 @@ a.pure-button-selected {
 .fb-table td.fb-table-cell-edit {
   padding-top: 3px;
   padding-bottom: 3px;
+  /* A relation editor's Search/Open/New menu drops out below its cell;
+     clipping it (as view cells clip long text) made the menu invisible
+     and unclickable. */
+  overflow: visible;
 }
 
 .fb-table .fb-table-cell-edit input:not([type="checkbox"]),
