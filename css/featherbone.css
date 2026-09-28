@@ -46,13 +46,18 @@
        page. */
     color-scheme: light dark;
 
-    /* Brand / accent -- unchanged from Featherbone's existing indigo. */
-    --fb-accent: #3f51b5;
-    --fb-accent-text: #3f51b5;
-    --fb-accent-strong: #303f9f;
+    /* Every value in both blocks below is ddom's own (Documents/ddom,
+       public/css/app.css), so the two apps share one palette. */
+
+    /* Brand / accent. --fb-accent is a solid FILL (primary buttons,
+       focus rings); --fb-accent-text is the same blue painting text or
+       an icon directly on a neutral surface, lightened in dark mode. */
+    --fb-accent: #1a73e8;
+    --fb-accent-text: #1a73e8;
+    --fb-accent-strong: #1558b0;
     --fb-danger: #c62828;
     --fb-warning: #b06a00;
-    --fb-info: #1565c0;
+    --fb-info: #1a73e8;
 
     /* Base surfaces & text */
     --fb-bg: #f4f5f7;
@@ -62,35 +67,43 @@
     --fb-text-secondary: #52514e;
     --fb-text-muted: #5f6368;
     --fb-label-text: #444444;
-    --fb-muted-icon: #b3b3b3;
+    --fb-muted-icon: #999999;
     --fb-border: #d7dbe0;
     --fb-border-subtle: #eeeeee;
 
-    /* Hover / selected tints -- --fb-selected-bg keeps the exact indigo
-       tint (#e7e9f3) the previous stylesheet already used for a selected
-       table row, so this is a rename, not a re-color. */
-    --fb-hover-accent-tint: #eef0fb;
+    /* Hover / selected tints */
+    --fb-hover-accent-tint: #eef4fd;
     --fb-hover-neutral-tint: #eef1f5;
-    --fb-selected-bg: #e7e9f3;
-    --fb-selected-hover-bg: #d7dbf0;
+    --fb-selected-bg: #e8f0fe;
+    --fb-selected-hover-bg: #dbe7fd;
 
-    /* Navigator sidebar -- stays a dark navy in both themes; only gets
-       darker still under prefers-color-scheme: dark. */
-    --fb-nav-bg: #102f5e;
-    --fb-nav-text: #ffffff;
-    --fb-nav-hover-bg: #1a3f78;
+    /* Tab strips (worksheet tabs and form tabs) */
+    --fb-tab-bg: #e9ebee;
+    --fb-tab-hover-bg: #f4f6f9;
 
-    /* Shadows -- same values the old stylesheet already used inline for
-       buttons (-sm) and dialogs/selected nav items (-md), just named. */
-    --fb-shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.1);
-    --fb-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(0, 0, 0, 0.19);
+    /* Navigator sidebar -- dark in both themes. */
+    --fb-nav-bg: #20242b;
+    --fb-nav-text: #e8eaed;
+    --fb-nav-hover-bg: #2f333b;
+    --fb-nav-category-text: #8a8f98;
+
+    /* One control height for buttons, text inputs and selects, so
+       anything sitting side by side in a toolbar or form row lines up
+       exactly (ddom's buttons render at 30px). */
+    --fb-control-height: 30px;
+
+    --fb-font: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+    --fb-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --fb-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.2);
     --fb-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --fb-accent-text: #8c9eff;
-        --fb-accent-strong: #7986cb;
+        --fb-accent-text: #6ba8f5;
+        --fb-accent-strong: #8ab4f8;
+        --fb-info: #6ba8f5;
 
         --fb-bg: #16181c;
         --fb-surface: #1e2126;
@@ -99,34 +112,66 @@
         --fb-text-secondary: #c7c5bd;
         --fb-text-muted: #9aa0a6;
         --fb-label-text: #c9ccd1;
-        --fb-muted-icon: #8a8f98;
+        --fb-muted-icon: #9aa0a6;
         --fb-border: #3a3e45;
         --fb-border-subtle: #33373d;
 
-        --fb-hover-accent-tint: #242a42;
+        --fb-hover-accent-tint: #1d3a5c;
         --fb-hover-neutral-tint: #2a2e35;
-        --fb-selected-bg: #262c48;
-        --fb-selected-hover-bg: #313866;
+        --fb-selected-bg: #1d3a5c;
+        --fb-selected-hover-bg: #234873;
 
-        --fb-nav-bg: #0b1a33;
-        --fb-nav-hover-bg: #142848;
+        --fb-tab-bg: #2a2e35;
+        --fb-tab-hover-bg: #32363d;
 
-        --fb-shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.3);
-        --fb-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.45), 0 6px 20px rgba(0, 0, 0, 0.4);
-        --fb-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+        --fb-nav-bg: #16181c;
+        --fb-nav-hover-bg: #262a30;
+
+        --fb-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+        --fb-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+        --fb-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.55);
     }
 }
 
 /* =========================================================================
-   Pure CSS overrides
+   Base
    -------------------------------------------------------------------------
-   Pure CSS loads before this file and ships its own light-theme-only
-   styling for bare form controls and table headers -- a white fill,
-   black text and an inset shadow on inputs, a light grey thead -- none of
-   it aware of the tokens above, so it stayed put through every previous
-   pass. Re-themed here, and per feedback that the inset shadow made forms
-   look "half done," dropped entirely for a crisper edge instead.
+   No global `* { box-sizing: border-box }` here on purpose. Upstream
+   Featherbone never had one, and every pixel width in the app -- grid
+   column widths above all -- was tuned for the default content-box model.
+   A blanket border-box rule (added in an earlier round of this refresh)
+   silently took each cell's padding OUT of its configured width, which is
+   exactly what started cutting column headers off with ellipses. Controls
+   that need a fixed outer size (buttons, inputs) opt in individually below.
    ========================================================================= */
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--fb-bg);
+    color: var(--fb-text);
+    font-family: var(--fb-font);
+    font-size: 13px;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+/* Pure's grid sets its own font-family on every column
+   (`.pure-g [class*="pure-u"] { font-family: sans-serif }`), which is
+   what every form field sits in. */
+.pure-g,
+.pure-g [class*="pure-u"] {
+    font-family: var(--fb-font);
+}
+
 input,
 select,
 textarea {
@@ -134,6 +179,119 @@ textarea {
     color: var(--fb-text);
 }
 
+textarea {
+    overflow: auto;
+    width: 60%;
+}
+
+/* =========================================================================
+   Buttons -- ddom's button, applied to every .pure-button in the app
+   -------------------------------------------------------------------------
+   Plain surface, 1px neutral border, 4px radius, no shadow, text (and
+   icon) in the normal text color -- never the accent blue, which is kept
+   for .pure-button-primary. Every button is exactly
+   --fb-control-height tall, the same as a text input or select, so a
+   toolbar or form row of mixed controls lines up edge to edge. Variant
+   classes further down (.fb-toolbar-button, .fb-icon-button,
+   .fb-menu-button ...) only adjust spacing now; none of them re-color or
+   re-shape a button any more.
+
+   font-family/font-size are deliberately NOT set here: several
+   .pure-button elements are also .material-icons(-outlined) spans whose
+   text is an icon ligature, and they need the icon font.
+   ========================================================================= */
+.pure-button {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: var(--fb-control-height);
+    padding: 0 12px;
+    margin: 0;
+    line-height: 16px;
+    color: var(--fb-text);
+    background: var(--fb-surface);
+    background-image: none;
+    border: 1px solid var(--fb-border);
+    border-radius: 4px;
+    box-shadow: none;
+    vertical-align: middle;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.pure-button:hover,
+.pure-button:focus {
+    background-color: var(--fb-hover-neutral-tint);
+    background-image: none;
+}
+
+.pure-button:focus-visible {
+    outline: 2px solid var(--fb-accent);
+    outline-offset: 1px;
+}
+
+.pure-button:active,
+.pure-button-active {
+    background-color: var(--fb-hover-neutral-tint);
+    background-image: none;
+    box-shadow: none;
+    border-color: var(--fb-border);
+}
+
+/* Pure's own `display: none` for a hidden button has the same
+   specificity as .pure-button above and loses to it (this file loads
+   after Pure), so it has to be restated. */
+.pure-button.pure-button-hidden {
+    display: none;
+}
+
+/* Pure's own disabled rule also drops the border (border: none) with a
+   more specific selector, which made disabled buttons look like bare
+   text next to enabled ones; ddom keeps the border and just fades. */
+.pure-button[disabled],
+.pure-button-disabled,
+.pure-button.fb-button-disabled {
+    opacity: 0.5;
+    cursor: default;
+    background-color: var(--fb-surface);
+    background-image: none;
+    border: 1px solid var(--fb-border);
+    box-shadow: none;
+}
+
+.pure-button-primary,
+.pure-button-selected,
+a.pure-button-primary,
+a.pure-button-selected {
+    background-color: var(--fb-accent);
+    border-color: var(--fb-accent);
+    color: #ffffff;
+}
+
+.pure-button-primary:hover,
+.pure-button-primary:focus {
+    background-color: var(--fb-accent-strong);
+}
+
+/* Button's icon glyph -- the gap on .pure-button spaces it from the
+   label, so no margins of its own. Two classes so it wins over the
+   24px .material-icons(-outlined) rules further down. */
+.material-icons.fb-button-icon,
+.material-icons-outlined.fb-button-icon {
+    font-size: 16px;
+    line-height: 16px;
+    margin: 0;
+}
+
+.fb-button-label {
+    display: inline-block;
+}
+
+/* =========================================================================
+   Text inputs and selects -- ddom's field look, same height as a button
+   ========================================================================= */
 .pure-form input:not([type]),
 .pure-form input[type="text"],
 .pure-form input[type="password"],
@@ -143,14 +301,33 @@ textarea {
 .pure-form input[type="number"],
 .pure-form input[type="search"],
 .pure-form input[type="date"],
+.pure-form input[type="datetime-local"],
+.pure-form input[type="time"],
 .pure-form input[type="month"],
 .pure-form input[type="week"],
 .pure-form input[type="color"],
-.pure-form select,
-.pure-form textarea {
+.pure-form select {
+    box-sizing: border-box;
+    height: var(--fb-control-height);
+    padding: 0 8px;
+    font-size: 13px;
+    line-height: 16px;
     background-color: var(--fb-surface) !important;
     color: var(--fb-text) !important;
     border: 1px solid var(--fb-border) !important;
+    border-radius: 4px;
+    box-shadow: none !important;
+    vertical-align: middle;
+}
+
+.pure-form textarea {
+    box-sizing: border-box;
+    padding: 6px 8px;
+    font-size: 13px;
+    background-color: var(--fb-surface) !important;
+    color: var(--fb-text) !important;
+    border: 1px solid var(--fb-border) !important;
+    border-radius: 4px;
     box-shadow: none !important;
 }
 
@@ -158,6 +335,7 @@ textarea {
 .pure-form select:focus,
 .pure-form textarea:focus {
     border-color: var(--fb-accent) !important;
+    outline: none;
     box-shadow: none !important;
 }
 
@@ -183,16 +361,6 @@ textarea {
     box-shadow: none !important;
 }
 
-.pure-table thead,
-.fb-table-header {
-    background-color: var(--fb-surface-alt) !important;
-}
-
-.pure-table th,
-.fb-column-header {
-    color: var(--fb-text) !important;
-}
-
 /* =========================================================================
    Link contrast
    -------------------------------------------------------------------------
@@ -213,35 +381,6 @@ textarea {
 .fb-link:hover,
 .fb-link:focus-visible {
     text-decoration: underline;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-html,
-body {
-    height: 100%;
-}
-
-body {
-    margin: 0;
-    background: var(--fb-bg);
-    color: var(--fb-text);
-    font-size: 13px;
-}
-
-.pure-button-primary,
-.pure-button-selected,
-a.pure-button-primary,
-a.pure-button-selected {
-    background-color: var(--fb-accent);
-    color: #fbfcfe;
-}
-
-textarea {
-    overflow: auto;
-    width: 60%;
 }
 
 .CodeMirror {
@@ -390,10 +529,6 @@ textarea {
   text-align: right;
 }
 
-.fb-dialog-button {
-  margin-right: 10px;
-}
-
 .fb-button-disabled {
     pointer-events: auto !important;
 }
@@ -417,17 +552,12 @@ textarea {
     background: var(--fb-surface);
 }
 
+/* ddom's danger button: red outline and text, not a solid red fill. */
 .fb-button-delete {
-    background: var(--fb-danger);
-    color: #fbfcfe;
+    background: var(--fb-surface);
+    border-color: var(--fb-danger);
+    color: var(--fb-danger);
     float: right;
-}
-
-.fb-button-icon {
-    margin-right: 4px;
-    margin-bottom: -2px;
-    font-size: 24px;
-    vertical-align: bottom;
 }
 .fb-button-radio {
     background-color: var(--fb-surface);
@@ -489,55 +619,6 @@ textarea {
   cursor:pointer;
 }
 
-.fb-cell-view {
-  white-space: nowrap;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-.fb-column-filter-icon {
-  float: right;
-  color: var(--fb-accent-text);
-  margin-right: 3px;
-}
-
-.fb-column-header {
-  white-space: nowrap;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  cursor: move;
-}
-
-.fb-column-footer {
-  background-color: var(--fb-surface);
-  white-space: nowrap;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  text-align: right;
-}
-
-.fb-column-sort-icon {
-  float: right;
-  color: var(--fb-text-muted);
-}
-
-.fb-column-sort-number {
-  float: right;
-  color: var(--fb-text-muted);
-  margin-right: 3px;
-}
-
-.fb-column-header-grabber {
-  cursor: w-resize;
-}
-
-.fb-column-spacer {
-  padding: 0px !important;
-  min-width: 6px !important;
-  max-width: 6px !important;
-  border-left: none !important;
-}
-
 .fb-contact-relation-icon {
   margin-left: 12px;
   margin-top: 6px;
@@ -578,27 +659,35 @@ textarea {
     background-color: var(--fb-selected-bg);
 }
 
+/* Dialogs -- ddom's .fb-modal. */
 .fb-dialog {
   background: var(--fb-surface);
   color: var(--fb-text);
-  border-width: thin;
-  border-color: var(--fb-border);
-  border-radius: 10px;
-  box-shadow: var(--fb-shadow-md);
-  padding: 0px;
+  border: 1px solid var(--fb-border);
+  border-radius: 8px;
+  box-shadow: var(--fb-shadow-lg);
+  padding: 0;
+}
+
+.fb-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.fb-dialog-button {
+  margin-right: 8px;
 }
 
 .fb-dialog-button-ok {
-  margin-right: 5px;
+  margin-right: 8px;
 }
 
 .fb-dialog-content-frame {
-  padding: 1em;
+  padding: 16px;
 }
 
 .fb-dialog-icon {
-  margin-right: 5px;
-  vertical-align: bottom;
+  font-size: 18px;
+  color: var(--fb-text-muted);
 }
 
 .fb-filter-dialog-input {
@@ -630,85 +719,111 @@ textarea {
   min-width: 225px;
 }
 
-.fb-icon-button {
-  color: var(--fb-accent-text);
-}
-
 .fb-main-button {
   border-radius: 4px;
   margin: 3px;
-  min-width: 110px;
+  min-width: 92px;
 }
 
 .fb-navigator-menu-container {
-  display: inline-flex;
+  display: flex;
   position: absolute;
   height: 100%;
   width: 100%;
 }
 
+/* Page content beside the navigator takes the rest of the width. */
+.fb-navigator-menu-container > .fb-navigator-menu ~ div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* --- Navigator sidebar -- ddom's .fb-navigator ---------------------------
+   220px wide when expanded, 15px bold white title, 14px entries with
+   8px 16px padding and 18px icons, a full-width highlight (no pill) for
+   the hovered and current entry. */
 .fb-navigator-menu {
-  font-family: Raleway;
+  box-sizing: border-box;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0 8px;
   background-color: var(--fb-nav-bg);
   color: var(--fb-nav-text);
-  font-size: 13px;
-  padding: 8px;
-  border-right: var(--fb-border) thin solid;
+  font-family: var(--fb-font);
+  font-size: 14px;
   white-space: nowrap;
 }
 
-.fb-navigator-menu-test {
-  background-color: lightseagreen;
+.fb-navigator-menu-expanded {
+  width: 220px;
 }
 
-.fb-navigator-menu-dev {
-  background-color: #B7472A;
+.fb-navigator-menu .pure-menu-list {
+  flex: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Pure gives every .pure-menu-item height: 100% (for horizontal menus). */
+.fb-navigator-menu .pure-menu-item {
+  height: auto;
+}
+
+.fb-navigator-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .fb-navigator-menu-header-collapsed {
-  transform: rotate(180deg);
   writing-mode: vertical-lr;
-  font-size: small;
-  margin-left: 8px;
+  transform: rotate(180deg);
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
 }
+
 .fb-navigator-header-icon {
-    font-size: 18px;
-    margin-left: 8px;
+  font-size: 18px;
+  color: var(--fb-nav-category-text);
+  cursor: pointer;
 }
 
-.fb-navigator-header-icon-expanded {
-    vertical-align: bottom;
-}
-
-.fb-navigator-item-icon {
-    display: inline;
-	margin-right: 8px;
-	margin-left: 8px;
-	min-width: 18px;
-    vertical-align: text-bottom;
-    font-size: 18px;
+.fb-navigator-header-icon:hover {
+  color: var(--fb-nav-text);
 }
 
 .fb-navigator-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
   color: var(--fb-nav-text);
-  font-size: 13px;
-  font-family:sans-serif;
-  padding-bottom: 5px;
-  padding-top: 4.5px;
+  font-size: 14px;
+  line-height: 18px;
   white-space: nowrap;
+  cursor: pointer;
 }
 
-.fb-navigator-item-selected {
-  color: var(--fb-nav-text);
-  background: var(--fb-nav-hover-bg);
-  border-radius: 6px;
-  box-shadow: var(--fb-shadow-sm);
+.fb-navigator-item-icon {
+  flex: none;
+  width: 18px;
+  font-size: 18px;
 }
 
+.fb-navigator-item-selected,
 .fb-navigator-item-mouseover {
   background: var(--fb-nav-hover-bg);
   color: var(--fb-nav-text);
-  border-radius: 6px;
 }
 
 .fb-table-dialog-table-body {
@@ -724,40 +839,83 @@ textarea {
   display: inherit;
 }
 .fb-title-icon {
-  margin-right: 5px;
   font-size: 18px;
-  vertical-align: bottom;
+  color: var(--fb-text-muted);
 }
 
 .fb-form-workbook {
   background-color: var(--fb-bg);
 }
 
+/* A form page is one white (surface) sheet, like ddom's form panel, so
+   the active form tab reads as part of the page below it. */
 .fb-form-content {
   overflow: auto;
   position: absolute;
   height: 100%;
   width: 100%;
+  background-color: var(--fb-surface);
+}
+
+/* Gantt.SVGGantt draws a real, inspectable <svg> (colors read from the
+   tokens above at render time -- see ganttStyleOptions() in gantt.js)
+   sized to the full date range, not the container, so it can be wider
+   than its box; let it scroll horizontally on its own rather than
+   relying only on an ancestor happening to also allow overflow. */
+.fb-gantt {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* A fieldset's default min-width is its min-content width, which for a
+   form holding a wide grid is the grid's full column width -- that let
+   an embedded grid push the whole form wider than the window instead of
+   scrolling inside its own box. */
+.pure-form fieldset {
+  min-width: 0;
+}
+
+/* --- Form fields (form-widget.js; Pure's aligned form) ------------------
+   Labels are centered on the same --fb-control-height line as the input
+   beside them, instead of nudged down with a top margin. */
+.pure-form-aligned .pure-control-group {
+  margin-bottom: 8px;
 }
 
 .fb-form-label {
   vertical-align: top !important;
-  margin-top: 9px !important;
-  margin-bottom: 3px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: var(--fb-control-height);
+  color: var(--fb-label-text);
 }
 
+/* A relation field's label doubles as the button for its Search / Open /
+   New menu. It reads as a label -- same size, alignment and color as
+   every other label in the column -- with a small menu icon, and only
+   shows a button surface on hover. The extra 6px of width/padding on the
+   right puts its text on the same edge as the plain labels above/below
+   while leaving room for the hover background. */
 .fb-form-label-button {
-  margin-bottom: 9px !important;
-  vertical-align: top !important;
-  background-color: var(--fb-surface);
-  border: thin solid var(--fb-border);
-  border-radius: 4px;
-  text-align: right;
+  box-sizing: border-box;
   display: inline-block;
-  width: 10em;
-  margin-right: 1em;
-  margin-left: 0px;
-  padding: 7.5px;
+  vertical-align: top !important;
+  width: calc(10em + 6px);
+  height: var(--fb-control-height);
+  margin: 0 calc(1em - 6px) 0 0 !important;
+  padding: 0 6px 0 4px;
+  line-height: calc(var(--fb-control-height) - 2px);
+  text-align: right;
+  color: var(--fb-label-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.fb-form-label-button:hover,
+.fb-form-label-button:focus {
+  background-color: var(--fb-hover-neutral-tint);
+  border-color: var(--fb-border);
 }
 
 .fb-form-label-menu-item {
@@ -765,9 +923,10 @@ textarea {
 }
 
 .fb-form-label-button-icon {
-  vertical-align: text-bottom;
-  font-size: 18px;
+  font-size: 16px;
   margin-right: 4px;
+  vertical-align: middle;
+  color: var(--fb-text-muted);
 }
 
 .fb-sheet-configure-content {
@@ -784,172 +943,178 @@ textarea {
   top: 1px;
 }
 
-.fb-group-tab {
-  background-color: var(--fb-surface);
-  color: var(--fb-text-muted);
-  border-width: thin;
+/* --- Grid embedded in a form (child-table.js) ---------------------------- */
+.fb-child-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
-.fb-group-tab-form {
-  position: relative;
-  top: -38px;
+.fb-child-table .fb-table-scroll {
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
 }
 
-.fb-group-tab-active {
-  border-top-right-radius: 2px;
-  border-top-left-radius: 2px;
-  color: var(--fb-text);
-  border-top-color: var(--fb-accent);
-  border-left-color: var(--fb-border);
-  border-right-color: var(--fb-border);
-  border-top-width: 1.5px;
-  border-style: solid;
-  border-bottom-color: var(--fb-surface);
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  top: -37px;
-}
-
-.fb-group-tab-middle {
-}
-
-.fb-group-tab-left {
-}
-
-.fb-group-tab-right {
-}
-
-.fb-group-tab-lonely {
-}
-
-.fb-table-row-selected {
-  background-color: var(--fb-selected-bg);
-  border-top: thin solid;
-  border-bottom: thin solid;
-  border-color: var(--fb-accent-text);
-}
-
-.fb-table-row-editor {
-  background-color: var(--fb-hover-accent-tint);
-}
-
-.fb-top-pane {
-  margin: 10px;
-}
-
-.fb-tabbed-pane {
-  text-align: left;
-  position: relative;
-  top: -25px;
-}
-
-.fb-tabbed-panes {
-  border-top: solid thin var(--fb-border);
-}
-
+/* --- Form tab strip (form-widget.js) -- ddom's .fb-tabs / .fb-tab ------ */
 .fb-tabbed-panes-form {
-  width: 98%;
-  margin: 20px;
-  margin-top: 35px;
-  margin-bottom: -35px;
+  margin: 16px 20px 0;
 }
 
 .fb-tabbed-panes-hidden {
   display: none;
 }
 
-.fb-header {
-  background-color: var(--fb-surface-alt);
-  border-bottom-color: var(--fb-border);
-  border-bottom-style: solid;
-  border-bottom-width: thin;
-  font-weight: normal;
-  margin: 2px;
-  padding: 6px;
-}
-
-.fb-header-home {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: var(--fb-accent-text);
-    padding-left: 10px;
-    display: inline-block;
-    margin-top: 3px;
-    padding-top: 2px;
-}
-
-.fb-title {
-  background-color: var(--fb-surface-alt);
-  font-family: Raleway;
-  border-top: 1px solid var(--fb-border);
+.fb-form-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--fb-border);
-  margin: 2px;
-  margin-top: 0px;
-  padding: 6px;
+}
+
+.fb-group-tab,
+.pure-button.fb-group-tab {
+  box-sizing: border-box;
+  height: auto;
+  padding: 8px 16px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--fb-text);
+  background-color: var(--fb-tab-bg);
+  border: 1px solid var(--fb-border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  top: 1px;
+}
+
+.pure-button.fb-group-tab:hover {
+  background-color: var(--fb-tab-hover-bg);
+}
+
+.fb-group-tab.fb-group-tab-active,
+.pure-button.fb-group-tab.fb-group-tab-active {
+  background-color: var(--fb-surface);
+  border-bottom: 1px solid var(--fb-surface);
+  font-weight: 600;
+  color: var(--fb-accent-text);
+}
+
+.fb-top-pane {
+  margin: 16px 20px 0;
+}
+
+/* Dialog title bar (dialog.js). */
+.fb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  background-color: var(--fb-surface);
+  border-bottom: 1px solid var(--fb-border);
+}
+
+/* Page heading in the home page's toolbar -- ddom's toolbar h2. */
+.fb-header-home {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fb-text);
+}
+
+/* Record title bar under a form's toolbar ("Work Order" + state icon). */
+.fb-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fb-text);
+  background-color: var(--fb-surface);
+  border-bottom: 1px solid var(--fb-border);
+}
+
+.fb-title label {
+  cursor: default;
 }
 
 .fb-menu {
   display: inline-block;
-  top: 2px;
+  position: relative;
+  vertical-align: middle;
 }
 
 .fb-menu-setup {
-  float: right;
+  float: none;
 }
 
 .fb-menu-list-setup {
-  right: 8px;
+  right: 0;
 }
 
 .fb-context-menu {
   position: absolute;
 }
 
-.fb-menu-button {
-  background-color: var(--fb-surface);
-  color: var(--fb-accent-text);
-  margin: 2px;
-  min-height: 34px;
-  box-shadow: var(--fb-shadow-sm);
-  border-radius: 6px;
-  margin-left: 4px;
-  margin-bottom: 6px;
-  padding-top: .2em;
-  padding-bottom: .2em;
-  padding-left: .4em;
-  padding-right: .5em;
+/* The dropdown triggers render their glyphs as ligature text directly on
+   the button element ("perm_identityarrow_drop_down" = person + caret),
+   in the icon font, so the size is set here rather than on an <i>. Both
+   classes on one selector to beat the bare 24px .material-icons rule. */
+.fb-menu-button.material-icons,
+.fb-menu-button.material-icons-outlined {
+  font-size: 16px;
+  padding: 0 4px 0 8px;
+  gap: 0;
 }
 
-.fb-menu-button-left-side {
-  border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
-  margin-right: 0px !important;
-}
-
-.fb-menu-button-right-side {
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  margin-left: 0px !important;
-  margin-right: 4px !important;
-}
-
-.fb-menu-button-middle-side {
-  border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  margin-left: 0px !important;
-  margin-right: 0px !important;
-}
-
+/* Dropdown menus -- ddom's small popup menu: surface, 1px border, 4px
+   radius, small shadow, 13px rows with a hover tint. */
 .fb-menu-list {
   background-color: var(--fb-surface);
   position: absolute;
+  top: calc(100% + 4px);
   z-index: 9999;
+  min-width: 160px;
+  margin: 0;
+  padding: 4px;
   border: 1px solid var(--fb-border);
-  border-radius: 6px;
+  border-radius: 4px;
   box-shadow: var(--fb-shadow-sm);
   display: none;
+}
+
+.fb-menu-list .pure-menu-link,
+.fb-relation-menu-list .pure-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  font-size: 13px;
+  color: var(--fb-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fb-menu-list .pure-menu-link:hover,
+.fb-relation-menu-list .pure-menu-link:hover {
+  background-color: var(--fb-hover-accent-tint);
+}
+
+.fb-menu-list .pure-menu-disabled,
+.fb-relation-menu-list .pure-menu-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fb-menu-list .pure-menu-disabled:hover,
+.fb-relation-menu-list .pure-menu-disabled:hover {
+  background-color: transparent;
 }
 
 .fb-menu-list-item {
@@ -957,22 +1122,28 @@ textarea {
 }
 
 .fb-menu-list-icon {
-  margin-right: 4px;
-  font-size: 24px;
-  vertical-align: text-bottom;
+  margin: 0;
+  font-size: 16px;
+  color: var(--fb-text-muted);
 }
 
 .fb-menu-list-separator {
-  border-top: solid thin var(--fb-border);
+  margin-top: 4px;
+  border-top: 1px solid var(--fb-border);
+  border-radius: 0 0 3px 3px;
 }
 
 .fb-menu-list-show {
   display: block;
 }
 
+/* Relation picker trigger inside a grid cell (relation-widget.js); its
+   glyph is ligature text on the element itself, in the icon font. */
 .fb-relation-button {
   margin-left: 3px;
-  padding: 6px;
+  padding: 0 4px;
+  font-size: 16px !important;
+  color: var(--fb-text-muted);
 }
 
 .fb-relation-label {
@@ -997,18 +1168,22 @@ textarea {
   background-color: var(--fb-surface);
   position: absolute;
   z-index: 9999;
+  margin: 0;
+  padding: 4px;
   border: 1px solid var(--fb-border);
-  border-radius: 6px;
+  border-radius: 4px;
   box-shadow: var(--fb-shadow-sm);
 }
 
+/* Search box -- ddom's .fb-search: a plain 4px-radius field, 220px. */
+.pure-form .fb-search-input,
 .fb-search-input {
-  border-radius: 25px !important;
-  height: 28px;
-  margin-top: 4px !important;
-  margin-bottom: 6px !important;
-  margin-left: 10px !important;
-  margin-right: 6px !important;
+  box-sizing: border-box;
+  width: 220px;
+  height: var(--fb-control-height);
+  margin: 0 !important;
+  padding: 0 10px;
+  border-radius: 4px !important;
 }
 
 .fb-search-watermark {
@@ -1042,7 +1217,7 @@ textarea {
 }
 
 .fb-sign-in-header {
-    font-family: raleway;
+    font-family: inherit;
     font-size: x-large;
     margin-bottom: 20px;
     margin-top: 50px;
@@ -1052,62 +1227,208 @@ textarea {
     width: 5em !important;
 }
 
+/* =========================================================================
+   Grids (client/components/table-widget.js) -- ddom's list table
+   -------------------------------------------------------------------------
+   One <table> in one scrolling box (.fb-table-scroll); the header and any
+   totals footer are position: sticky inside it. Column widths come from
+   the header row (table-layout: fixed), so every row lines up with the
+   header by construction -- nothing in a row (an icon, an editor, a
+   selection) can widen a column. Cells are content-box: a column's
+   configured width is the room its TEXT gets, as upstream intended, with
+   padding added outside it.
+
+   Look is ddom's: 13px, 6px 10px cell padding, bottom borders only (no
+   vertical grid lines), a light header, hover and selection tints.
+   ========================================================================= */
+.fb-table-scroll {
+  overflow: auto;
+  background-color: var(--fb-surface);
+}
+
 .fb-table {
   table-layout: fixed;
   width: 100%;
+  border: none;
+  border-collapse: separate; /* collapse breaks sticky th in Chromium */
+  border-spacing: 0;
   background-color: var(--fb-surface);
-  border-left: none;
+  font-size: 13px;
 }
 
-.fb-table-cell-edit {
-  border-color: var(--fb-info);
-  border-width: thin !important;
+.fb-table th,
+.fb-table td {
+  box-sizing: content-box;
+  padding: 6px 10px;
+  line-height: 1.25;
+  border-width: 0 0 1px 0;
   border-style: solid;
-}
-
-.fb-table-cell-edit-header {
-  border-left-style: none;
-}
-
-.fb-table-cell-edit-cell {
-  border-right: none !important;
-}
-
-.fb-table-cell-edit-required {
-  border-color: var(--fb-danger);
-  border-style: ridge;
-}
-
-.fb-table-body {
-  display: inline-block;
-  width: 100%;
-  overflow: auto;
-  background-color: var(--fb-surface);
-  border-left: solid var(--fb-border) thin;
-  border-right: solid var(--fb-border) thin;
-}
-
-.fb-table-body-with-footer {
-  overflow-x: hidden;
-}
-
-.fb-table-header {
-  display: inline-block;
-  width: 100%;
+  border-color: var(--fb-border);
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fb-text);
 }
 
-.fb-table-footer {
-  display: inline-block;
-  width: 100%;
-  overflow-x: auto;
-  border-top-style: solid;
-  border-top-color: var(--fb-text-muted);
+.fb-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--fb-surface-alt);
+  font-weight: 700;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.fb-table tfoot th,
+.fb-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background-color: var(--fb-surface-alt);
+  font-weight: 600;
+  border-width: 1px 0 0 0;
+}
+
+.fb-table tbody tr:hover {
+  background-color: var(--fb-hover-accent-tint);
+}
+
+/* Leading status column (selection / lock / new / deleted icon). */
+.fb-table .fb-table-lead {
+  width: 20px;
+  min-width: 20px;
+  max-width: 20px;
+  padding: 0 4px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* Icons inside cells are kept inside the text line box (15px, sitting
+   3px below the baseline) so a row with an icon is exactly as tall as
+   one without -- and as tall as a row being edited. */
+.fb-table .fb-table-lead .fb-table-icon {
+  font-size: 15px !important;
+  line-height: 1;
+  vertical-align: -3px;
+}
+
+/* Takes whatever width is left of the table after the real columns. */
+.fb-table .fb-table-fill {
+  padding: 0;
+  min-width: 0;
+}
+
+/* Each column is a content cell plus a 6px spacer; in the header the
+   spacer is the drag handle for resizing the column. */
+.fb-table .fb-column-spacer {
+  width: 6px;
+  min-width: 6px !important;
+  max-width: 6px !important;
+  padding: 0 !important;
+}
+
+.fb-table thead .fb-column-header-grabber {
+  cursor: col-resize;
+  background-image: linear-gradient(
+    to right,
+    transparent 2px,
+    var(--fb-border) 2px,
+    var(--fb-border) 3px,
+    transparent 3px
+  );
+  background-size: 100% 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.fb-column-header {
+  cursor: move;
+}
+
+.fb-cell-view {
+  cursor: default;
+}
+
+.fb-column-footer {
+  text-align: right;
+}
+
+.fb-column-sort-icon {
+  float: right;
+  color: var(--fb-text-muted);
+  font-size: 16px !important;
+}
+
+.fb-column-sort-number {
+  float: right;
+  color: var(--fb-text-muted);
+  margin-right: 2px;
+}
+
+.fb-column-filter-icon {
+  float: right;
+  color: var(--fb-accent-text);
+  margin-right: 3px;
+  font-size: 14px !important;
+}
+
+/* Selected row: ddom's plain tint, no lines. */
+.fb-table tbody tr.fb-table-row-selected,
+.fb-table tbody tr.fb-table-row-editor {
+  background-color: var(--fb-selected-bg);
+}
+
+.fb-table tbody tr.fb-table-row-selected:hover,
+.fb-table tbody tr.fb-table-row-editor:hover {
+  background-color: var(--fb-selected-hover-bg);
+}
+
+.fb-table-row-deleted td {
+  text-decoration: line-through;
+  color: var(--fb-text-muted);
+}
+
+/* Row being edited in place: same cell box as a view row (same
+   horizontal padding, so nothing shifts), less vertical padding, and
+   editors sized to fill the cell at the same row height. */
+.fb-table td.fb-table-cell-edit {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.fb-table .fb-table-cell-edit input:not([type="checkbox"]),
+.fb-table .fb-table-cell-edit select {
+  box-sizing: border-box;
+  height: calc(1.25em + 6px);
+  padding: 0 6px;
+  font-size: inherit;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.fb-table .fb-table-cell-edit-required input,
+.fb-table .fb-table-cell-edit-required select {
+  border-color: var(--fb-danger) !important;
+}
+
+.fb-table .fb-relation-button {
+  height: auto;
+  min-width: 0;
+  padding: 1px 2px;
+  line-height: 1;
 }
 
 .fb-table-icon {
   font-size: 120%;
   vertical-align: bottom;
+}
+
+/* Small list inside the data-type dialog (data-type.js) -- a separate,
+   simple table that still scrolls its own tbody. */
+.fb-data-type-dialog-list-body {
+  display: inline-block;
+  overflow: auto;
 }
 
 /* --- Relation cell (grid "jump to record" link) -------------------------
@@ -1125,7 +1446,6 @@ textarea {
   color: var(--fb-accent-text);
   text-decoration: none;
   padding-left: 4px;
-  vertical-align: middle;
 }
 
 .fb-table tbody tr:hover .fb-relation-open,
@@ -1134,132 +1454,286 @@ textarea {
 }
 
 .fb-relation-open-icon {
-  font-size: 16px !important;
-  vertical-align: middle;
+  font-size: 14px !important;
+  line-height: 1;
+  vertical-align: -2px;
 }
 
-.fb-toolbar {
-  background-color: var(--fb-surface-alt);
-  height: 38px;
-  padding-top: 3px;
-  border-color: var(--fb-border);
+/* Test/dev safety banner (see client/components/env-banner.js) -- loud
+   and persistent on purpose, unlike the muted .fb-message-* classes
+   used for transient inline warnings/errors elsewhere, so a test or
+   dev session can't be mistaken for production at a glance. Rendered
+   as a normal, in-flow element ahead of each page's own content, so
+   it simply pushes everything below it down rather than overlapping
+   it. */
+.fb-env-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-align: center;
 }
 
+.fb-env-banner-test {
+  background-color: var(--fb-danger);
+}
+
+.fb-env-banner-dev {
+  background-color: var(--fb-warning);
+}
+
+.fb-env-banner-icon {
+  font-size: 16px;
+}
+
+/* Home page header bar -- the same toolbar, with the page title in it
+   the way ddom puts its page heading in its toolbar. */
 .fb-toolbar-home {
-    display: block;
-    position: relative;
-    width: 100%;
-    color: var(--fb-nav-text);
-    border-bottom: thin solid var(--fb-border);
-    height: 41px;
+  width: 100%;
 }
 
-.fb-toolbar-button {
-  background-color: var(--fb-surface);
-  color: var(--fb-accent-text);
-  box-shadow: var(--fb-shadow-sm) !important;
-  border-radius: 6px;
-  margin-left: 4px;
-  margin-bottom: 4px;
-  padding-top: .3em;
-  padding-bottom: .4em;
-  padding-left: .6em;
-  padding-right: .7em;
-  min-height: 34px;
+/* Responsive toolbar (see client/components/toolbar.js) -- collapses
+   overflowing buttons into a "more" (ellipsis) menu instead of
+   wrapping to a second row. */
+.fb-toolbar-responsive {
+  position: relative;
 }
 
-.fb-toolbar-button-clear {
-  background: none;
-  background-image: none !important;
-  box-shadow: none !important;
-  color: var(--fb-text-muted);
-  font-size: 6px;
-  margin-left: -45px;
-  margin-right: 10px;
+.fb-toolbar-measure {
+  visibility: hidden;
+  position: absolute;
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
 }
 
-.fb-toolbar-button-left-side {
-  border-top-right-radius: 0px !important;
-  border-bottom-right-radius: 0px !important;
+.fb-toolbar-visible {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
 }
 
-.fb-toolbar-button-middle-side {
-  border-radius: 0px !important;
-  margin-left: 0px !important;
+.fb-toolbar-overflow-group {
+  margin-left: auto;
 }
 
-.fb-toolbar-button-right-side {
-  border-top-left-radius: 0px !important;
-  border-bottom-left-radius: 0px !important;
-  margin-left: 0px !important;
-  margin-right: 4px !important;
-}
-
-.fb-toolbar-button-right {
-  float: right
-}
-
-.fb-toolbar-button-home {
-    float: right;
-    margin: 2px;
-    border: none;
-    height: 34px;
-    width: 40px;
-}
-
-.fb-toolbar-spacer {
-  width: 20px;
+.fb-toolbar-overflow-menu {
   display: inline-block;
 }
 
-.fb-workbook-tab {
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  border-right-style: solid;
-  border-right-color: var(--fb-border);
-  border-right-width: thin;
-  border-bottom-style: solid;
-  border-bottom-color: var(--fb-border);
-  border-bottom-width: thin;
+.fb-toolbar-overflow-list {
+  left: auto;
+  right: 0;
+  top: calc(100% + 4px);
+  padding: 4px;
+  margin: 0;
+}
+
+.fb-toolbar-overflow-item {
+  list-style: none;
+}
+
+.fb-toolbar-overflow-item .pure-button {
+  width: 100%;
+  justify-content: flex-start;
+  border: none;
+  background: transparent;
+}
+
+.fb-toolbar-overflow-item .pure-button:hover {
+  background: var(--fb-hover-neutral-tint);
+}
+
+/* An icon-only button has no label to show in the menu, so show its
+   tooltip text there instead. */
+.fb-toolbar-overflow-item .pure-button.fb-icon-only::after {
+  content: attr(title);
+}
+
+/* Toolbar button variants. Every one of these is a normal .pure-button
+   now (see "Buttons" near the top) -- the old joined-pill groups
+   (-left/-middle/-right-side), floats and per-variant colors are gone,
+   so these only exist because JS still sets them. */
+.fb-toolbar-button,
+.fb-toolbar-button-left-side,
+.fb-toolbar-button-middle-side,
+.fb-toolbar-button-right-side,
+.fb-menu-button-left-side,
+.fb-menu-button-middle-side,
+.fb-menu-button-right-side {
+  margin: 0;
+}
+
+/* Icon-only button: square, same height as everything else. */
+.pure-button.fb-icon-button,
+.pure-button.fb-icon-only {
+  padding: 0 7px;
+  min-width: var(--fb-control-height);
+}
+
+/* Toolbar layout -- ddom's: one flex row, even spacing, controls
+   centered. .fb-toolbar-fill pushes whatever follows it to the right
+   edge; .fb-toolbar-spacer adds a little extra space between groups. */
+.fb-toolbar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 47px;
+  padding: 8px 12px;
+  background-color: var(--fb-surface);
+  border-bottom: 1px solid var(--fb-border);
+}
+
+.fb-toolbar-fill {
+  flex: 1 1 auto;
+}
+
+.fb-toolbar-spacer {
+  flex: none;
+  width: 8px;
+}
+
+/* Search box with its clear (x) button inside the right edge. */
+.fb-search-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.fb-search-group .fb-search-input {
+  padding-right: 28px !important;
+}
+
+.pure-button.fb-toolbar-button-clear {
+  position: absolute;
+  right: 3px;
+  height: 24px;
+  min-width: 0;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--fb-text-muted);
+}
+
+.pure-button.fb-toolbar-button-clear .fb-button-icon {
+  font-size: 14px;
+}
+
+.pure-button.fb-toolbar-button-clear[disabled] {
+  visibility: hidden;
+}
+
+.fb-toolbar-button-right {
+  float: none;
+}
+
+.fb-toolbar-button-home {
+  float: none;
+}
+
+/* --- Worksheet tabs (workbook-page.js) -- ddom's tabs, flipped ---------
+   ddom's .fb-tab strip sits ABOVE its content (rounded top corners, the
+   active tab loses its bottom border to merge into the page below it).
+   Featherbone's sheet tabs sit BELOW the grid, Excel-style, so the same
+   tab is used upside down: rounded bottom corners, and the active tab
+   loses its TOP border and is nudged up 1px over the bar's top edge, so
+   it reads as a continuation of the grid above. Same padding, font,
+   colors and radius as ddom's and as the form tabs (.fb-group-tab). */
+.fb-sheet-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 12px 6px;
+  background-color: var(--fb-bg);
+  border-top: 1px solid var(--fb-border);
+}
+
+.fb-sheet-tabs {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pure-button.fb-workbook-tab {
+  height: auto;
+  padding: 8px 16px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--fb-text);
+  background-color: var(--fb-tab-bg);
+  border: 1px solid var(--fb-border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  position: relative;
+  top: -1px;
+}
+
+.pure-button.fb-workbook-tab:hover {
+  background-color: var(--fb-tab-hover-bg);
+}
+
+.pure-button.fb-workbook-tab-active,
+.pure-button.fb-workbook-tab-active:hover {
+  background-color: var(--fb-surface);
+  font-weight: 600;
+  color: var(--fb-accent-text);
 }
 
 .fb-workbook-tab-draggable {
   -webkit-user-drag: element;
 }
 
-.fb-workbook-tab-edit {
-  background-color: var(--fb-surface);
-  padding: 0em;
-  padding-left: .75em;
+/* "+" (add sheet) and the drag-here-to-delete target. */
+.fb-workbook-tab-edit,
+.pure-button.fb-workbook-tab-edit {
+  height: 32px;
+  min-width: 32px;
+  padding: 0 6px;
+  color: var(--fb-text-muted);
+  background: transparent;
+  border: none;
+}
+
+.fb-workbook-tab-edit .material-icons-outlined {
+  font-size: 18px;
 }
 
 .fb-workbook-tab-edit-show {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.fb-workbook-tab-edit-hide {
+.fb-workbook-tab-edit-hide,
+.pure-button.fb-workbook-tab-edit-hide {
   display: none;
 }
 
 .fb-zoom-control {
-  float: right;
-  margin-top: 6px;
+  align-self: center;
+  width: 110px;
+  margin: 0;
+  accent-color: var(--fb-accent);
   cursor: pointer;
 }
 
 .fb-zoom-icon {
+  align-self: center;
+  font-size: 16px;
   color: var(--fb-muted-icon);
-  margin-top: 9px;
-  float: right;
-}
-
-.fb-zoom-left-icon {
-  margin-right: 5px;
-}
-
-.fb-zoom-right-icon {
-  margin-left: 5px;
-  margin-right: 8px;
 }
 
 .lds-small-dual-ring {

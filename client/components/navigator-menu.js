@@ -26,27 +26,14 @@ const navigator = {};
 
 // Define state (global)
 const state = f.State.define(function () {
-    function navmode() {
-        switch (f.currentUser().mode) {
-        case "test":
-            return "fb-navigator-menu-test ";
-        case "dev":
-            return "fb-navigator-menu-dev ";
-        }
-        return "";
-    }
-
     this.state("Expanded", function () {
         this.event("toggle", function () {
             this.goto("../Collapsed");
         });
         this.classMenu = function () {
-            return (
-                "pure-menu fb-navigator-menu " +
-                navmode()
-            );
+            return "pure-menu fb-navigator-menu fb-navigator-menu-expanded";
         };
-        this.classHeader = "";
+        this.classHeader = "fb-navigator-menu-header";
         this.classHeaderIcon = (
             "material-icons-outlined " +
             "fb-navigator-header-icon " +
@@ -65,12 +52,11 @@ const state = f.State.define(function () {
             this.goto("../Expanded");
         });
         this.classMenu = function () {
-            return (
-                "pure-menu fb-navigator-menu " +
-                navmode()
-            );
+            return "pure-menu fb-navigator-menu fb-navigator-menu-collapsed";
         };
-        this.classHeader = "fb-navigator-menu-header-collapsed";
+        this.classHeader = (
+            "fb-navigator-menu-header fb-navigator-menu-header-collapsed"
+        );
         this.classHeaderIcon = (
             "material-icons-outlined " +
             "fb-navigator-header-icon"

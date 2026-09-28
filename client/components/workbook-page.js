@@ -1312,7 +1312,7 @@ workbookPage.viewModel = function (options) {
         title: "Refresh",
         hotkey: "R",
         icon: "autorenew",
-        class: "fb-toolbar-button fb-toolbar-button-left-side"
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonClear(f.createViewModel("Button", {
@@ -1332,7 +1332,7 @@ workbookPage.viewModel = function (options) {
         icon: "sort_by_alpha",
         hotkey: "T",
         title: "Sort results",
-        class: "fb-toolbar-button fb-toolbar-button-middle-side"
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonFilter(f.createViewModel("Button", {
@@ -1340,14 +1340,14 @@ workbookPage.viewModel = function (options) {
         icon: "filter_list",
         hotkey: "F",
         title: "Filter results",
-        class: "fb-toolbar-button fb-toolbar-button-middle-side"
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonAggregate(f.createViewModel("Button", {
         onclick: vm.aggregateDialog().show,
         icon: "calculate",
         title: "Calculate sum, count and other aggregations",
-        class: "fb-toolbar-button fb-toolbar-button-right-side"
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonHelp(f.createViewModel("Button", {
@@ -1361,7 +1361,7 @@ workbookPage.viewModel = function (options) {
         icon: "help",
         hotkey: "H",
         title: "Open help page",
-        class: "fb-menu-button fb-menu-setup fb-toolbar-button-right-side"
+        class: "fb-toolbar-button"
     }));
 
     // Bind button states to list statechart events
@@ -1458,7 +1458,7 @@ function spinButtonView() {
     }
 
     return m("button", {
-        class: "pure-button " + vm.class(),
+        class: "pure-button fb-icon-only " + vm.class(),
         id: vm.id(),
         type: "button",
         style: vm.style(),
@@ -1475,7 +1475,7 @@ function spinButtonView() {
         m("i", {
             class: iclass
         }, vm.icon())
-    ], vm.label());
+    ]);
 }
 
 workbookPage.component = {
@@ -1551,6 +1551,7 @@ workbookPage.component = {
         let tw = f.getComponent("TableWidget");
         let dlg = f.getComponent("Dialog");
         let nav = f.getComponent("NavigatorMenu");
+        let banner = f.getComponent("EnvBanner");
         let menu = f.getComponent("AccountMenu");
         let toolbarClass = "fb-toolbar";
         let menuButtonClass = "fb-menu-button";
@@ -1570,18 +1571,13 @@ workbookPage.component = {
         };
 
         let hbtn = vm.buttonHelp();
-        let setstyle = {};
 
         if (!vm.sheet().helpLink || !vm.sheet().helpLink.resource) {
             hbtn.disable();
             hbtn.title("No help page assigned to this worksheet");
-            setstyle.borderTopRightRadius = "6px";
-            setstyle.borderBottomRightRadius = "6px";
         } else {
             hbtn.enable();
             hbtn.title("Open help page (Alt+H)");
-            setstyle.borderTopRightRadius = "0px";
-            setstyle.borderBottomRightRadius = "0px";
         }
 
         if (formWidget) {
@@ -1609,7 +1605,7 @@ workbookPage.component = {
                 class: (
                     "fb-workbook-tab pure-button" + (
                         isActive
-                        ? " pure-button-primary"
+                        ? " fb-workbook-tab-active"
                         : ""
                     )
                 ),
@@ -1683,6 +1679,7 @@ workbookPage.component = {
                 document.getElementById("fb-title").text = title;
             }
         }, [
+            m(banner),
             m(srtdlg, {
                 viewModel: vm.sortDialog()
             }),
@@ -1764,12 +1761,16 @@ workbookPage.component = {
                         m("div", {
                             class: "fb-toolbar-spacer"
                         }),
-                        m(srch, {
-                            viewModel: vm.searchInput()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonClear()
-                        }),
+                        m("div", {
+                            class: "fb-search-group"
+                        }, [
+                            m(srch, {
+                                viewModel: vm.searchInput()
+                            }),
+                            m(btn, {
+                                viewModel: vm.buttonClear()
+                            })
+                        ]),
                         m(spbtn, {
                             viewModel: vm
                         }),
@@ -1782,9 +1783,10 @@ workbookPage.component = {
                         m(btn, {
                             viewModel: vm.buttonAggregate()
                         }),
-                        m(btn, {
-                            viewModel: vm.buttonHelp()
+                        m("div", {
+                            class: "fb-toolbar-fill"
                         }),
+                        m(menu),
                         m("div", {
                             id: "nav-menu-div",
                             class: (
@@ -1801,10 +1803,8 @@ workbookPage.component = {
                                 class: (
                                     "pure-button " +
                                     "material-icons-outlined " +
-                                    menuButtonClass +
-                                    " fb-menu-button-middle-side"
-                                ),
-                                style: setstyle
+                                    menuButtonClass
+                                )
                             }, "settingsarrow_drop_down"),
                             m("ul", {
                                 id: "nav-menu-list",
@@ -1887,38 +1887,41 @@ workbookPage.component = {
                                 }, "build")], "Settings")
                             ])
                         ]),
-                        m(menu)
+                        m(btn, {
+                            viewModel: vm.buttonHelp()
+                        })
                     ]),
                     m(tw, {
                         viewModel: vm.tableWidget()
                     }),
                     m("div", {
-                        id: vm.footerId()
+                        id: vm.footerId(),
+                        class: "fb-workbook-footer"
                     }, [
                         drawerForm,
-                        tabs,
-                        m("i", {
-                            class: (
-                                "fa fa-search-plus " +
-                                "fb-zoom-icon fb-zoom-right-icon"
-                            )
-                        }),
-                        m("input", {
-                            class: "fb-zoom-control",
-                            title: "Zoom " + vm.zoom() + "%",
-                            type: "range",
-                            step: "5",
-                            min: "50",
-                            max: "150",
-                            value: vm.zoom(),
-                            oninput: (e) => vm.zoom(e.target.value)
-                        }),
-                        m("i", {
-                            class: (
-                                "fa fa-search-minus " +
-                                "fb-zoom-icon fb-zoom-left-icon"
-                            )
-                        })
+                        m("div", {
+                            class: "fb-sheet-bar"
+                        }, [
+                            m("div", {
+                                class: "fb-sheet-tabs"
+                            }, tabs),
+                            m("i", {
+                                class: "material-icons-outlined fb-zoom-icon"
+                            }, "zoom_out"),
+                            m("input", {
+                                class: "fb-zoom-control",
+                                title: "Zoom " + vm.zoom() + "%",
+                                type: "range",
+                                step: "5",
+                                min: "50",
+                                max: "150",
+                                value: vm.zoom(),
+                                oninput: (e) => vm.zoom(e.target.value)
+                            }),
+                            m("i", {
+                                class: "material-icons-outlined fb-zoom-icon"
+                            }, "zoom_in")
+                        ])
                     ])
                 ])
             ])
