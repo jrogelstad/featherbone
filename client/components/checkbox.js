@@ -37,7 +37,6 @@ const checkbox = {};
 checkbox.viewModel = function (options) {
     let vm = {};
 
-    vm.hasFocus = f.prop(false);
     vm.id = f.prop(options.id || f.createId());
     /**
         @method isCell
@@ -50,7 +49,15 @@ checkbox.viewModel = function (options) {
 };
 
 /**
-    Checkbox component
+    Checkbox component.
+
+    Renders a real `<input type="checkbox">` rather than hiding one
+    off-screen and redrawing a checkmark by hand: the native control
+    already paints its own check in the theme's accent color (see
+    `.fb-checkbox-input` in featherbone.css, which sets `accent-color`)
+    and already knows whether it's checked, so nothing here has to
+    compute a `visibility` style on every render to fake that. The
+    focus ring is plain CSS (`:focus-visible`) for the same reason.
 
     @class Checkbox
     @static
@@ -93,50 +100,21 @@ checkbox.component = {
         let labelClass = vnode.attrs.labelClass || "fb-checkbox-label";
         let vm = this.viewModel;
         let theclass = vnode.attrs.inputClass || "fb-checkbox-input";
-        let thestyle;
-        let label;
+        let wrapClass = "fb-checkbox";
+        let thestyle = vnode.attrs.style || {};
 
-        function createLabel() {
-            if (vm.isCell()) {
-                labelClass += " fb-checkbox-cell";
-            }
-
-            thestyle = vnode.attrs.style || {};
-
-            if (vnode.attrs.readonly) {
-                labelClass += " fb-checkbox-readonly";
-            }
-
-            if (vm.hasFocus()) {
-                labelClass += " fb-checkbox-focus";
-            }
-
-            return m("label", {
-                for: vm.id(),
-                title: vnode.attrs.title,
-                class: labelClass
-            }, m("div", {
-                class: "material-icons",
-                style: {
-                    fontWeight: "bold",
-                    visibility: (
-                        vnode.attrs.value
-                        ? "visible"
-                        : "hidden"
-                    )
-                }
-            }, "done"));
+        if (vm.isCell()) {
+            wrapClass += " fb-checkbox-cell";
         }
 
-        label = createLabel();
-
         return m("div", {
-            class: "fb-checkbox"
+            class: wrapClass
         }, [
             m("input", {
                 id: vm.id(),
                 class: theclass,
                 type: "checkbox",
+                title: vnode.attrs.title,
                 onclick: function (e) {
                     vnode.attrs.onclick(e.target.checked);
                 },
@@ -146,20 +124,17 @@ checkbox.component = {
                 style: thestyle,
                 disabled: vnode.attrs.readonly,
                 required: Boolean(vnode.attrs.required),
-                onfocus: function () {
-                    if (vnode.attrs.onFocus) {
-                        vnode.attrs.onFocus();
-                    }
-                    vm.hasFocus(true);
-                },
-                onblur: function () {
-                    if (vnode.attrs.onBlur) {
-                        vnode.attrs.onBlur();
-                    }
-                    vm.hasFocus(false);
-                }
+                onfocus: vnode.attrs.onFocus,
+                onblur: vnode.attrs.onBlur
             }),
-            label
+            (
+                vnode.attrs.label
+                ? m("label", {
+                    for: vm.id(),
+                    class: labelClass
+                }, vnode.attrs.label)
+                : undefined
+            )
         ]);
     }
 };

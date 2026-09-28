@@ -380,13 +380,20 @@ function buildGrid(grid, idx) {
     let header;
     let orient = vm.config().orientation || HORIZONTAL_TABS;
 
+    // Tab strip in normal flow above the pane (ddom's .fb-tabs), rather
+    // than tabs pulled up over the pane's border with relative offsets.
     if (orient === HORIZONTAL_TABS) {
-        header = buildButtons(vm);
+        header = m("div", {
+            class: "fb-form-tabs"
+        }, buildButtons(vm));
     } else if (idx) {
         header = m("div", {
-            style: {padding: ".5em 1em", display: "inline-block"},
-            class: "fb-group-tab fb-group-tab-form fb-group-tab-active"
-        }, vm.config().tabs[idx - 1].name);
+            class: "fb-form-tabs"
+        }, [
+            m("div", {
+                class: "fb-group-tab fb-group-tab-form fb-group-tab-active"
+            }, vm.config().tabs[idx - 1].name)
+        ]);
     }
 
     units = grid.map(function (unit) {

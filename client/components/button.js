@@ -22,6 +22,35 @@
 */
 
 const button = {};
+const WHITE = ["white", "#fff", "#ffffff", "rgb(255,255,255)"];
+
+/*
+    App modules (Design, Plan, Make, Bill) copied core's old child-table
+    buttons, which forced `backgroundColor: "white"` inline. That paints
+    a white button in dark mode and blocks the hover tint. "White" only
+    ever meant "the normal button surface", which every button gets from
+    the stylesheet anyway, so a plain white background is dropped here;
+    any other inline style passes through unchanged.
+*/
+function buttonStyle(style) {
+    let ret = {};
+    let bg = String(style.backgroundColor || "").replace(
+        /\s/g,
+        ""
+    ).toLowerCase();
+
+    if (WHITE.indexOf(bg) === -1) {
+        return style;
+    }
+
+    Object.keys(style).forEach(function (key) {
+        if (key !== "backgroundColor") {
+            ret[key] = style[key];
+        }
+    });
+
+    return ret;
+}
 
 /**
     Generate view model for button.
@@ -386,17 +415,17 @@ button.component = {
         opts = {
             id: vm.id(),
             type: "button",
-            style: vm.style(),
+            style: buttonStyle(vm.style()),
             disabled: vm.isDisabled(),
             onclick: vm.onclick()
         };
 
-        if (!icon) {
-            opts.style.paddingTop = "8px";
-        }
-
         if (vm.isDisabled()) {
             classes.push("fb-button-disabled");
+        }
+
+        if (icon && !label) {
+            classes.push("fb-icon-only");
         }
 
         if (vm.class()) {
@@ -427,7 +456,14 @@ button.component = {
             opts.title = title;
         }
 
-        view = m("button", opts, iconView, label);
+        // Label gets its own span so the button's flex gap spaces it from
+        // the icon (a hotkey label is several spans that must stay one
+        // run of text).
+        view = m("button", opts, iconView, (
+            label
+            ? m("span", {class: "fb-button-label"}, label)
+            : undefined
+        ));
 
         return view;
     }

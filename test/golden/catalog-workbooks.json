@@ -1,0 +1,297 @@
+[
+  {
+    "icon": "notifications",
+    "isTemplate": false,
+    "label": "Alerts",
+    "module": "JobShop",
+    "name": "Alerts",
+    "sequence": 0,
+    "sheets": [
+      "Alerts:Alert",
+      "Processes:ServerProcess"
+    ]
+  },
+  {
+    "icon": "attach_money",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Bill",
+    "sequence": 120,
+    "sheets": [
+      "Uninvoiced Shipments:SalesOrderShipment",
+      "Active Invoices:Invoice",
+      "Unused Prepayments:PrepaidInvoice",
+      "Closed Invoices:Invoice",
+      "Sales History:SalesHistory"
+    ]
+  },
+  {
+    "icon": "shopping_cart",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Buy",
+    "sequence": 80,
+    "sheets": [
+      "Open Purchase Orders:PurchaseOrder",
+      "Planned Purchases:PlannedPurchase",
+      "Outside Process Shipments:OutsideProcessShipment",
+      "Receipts:PurchaseOrderReceipt",
+      "Suppliers:Supplier",
+      "Supplier Contacts:SupplierContact",
+      "Item Suppliers:ItemSupplier",
+      "Closed Purchase Orders:PurchaseOrder"
+    ]
+  },
+  {
+    "icon": "contacts",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Contacts",
+    "sequence": 70,
+    "sheets": [
+      "Contacts:Contact"
+    ]
+  },
+  {
+    "icon": "format_list_numbered_rtl",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Count",
+    "sequence": 60,
+    "sheets": [
+      "PhysicalCount:PhysicalCount",
+      "Tag Status:PhysicalCountTag",
+      "Tags Complete:PhysicalCountTag"
+    ]
+  },
+  {
+    "icon": "payments",
+    "isTemplate": true,
+    "label": "Currency",
+    "module": "Core",
+    "name": "Currency Maintenance",
+    "sequence": 0,
+    "sheets": [
+      "Conversions:CurrencyConversion",
+      "Currencies:Currency",
+      "CurrencyUnits:CurrencyUnit"
+    ]
+  },
+  {
+    "icon": "architecture",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Develop",
+    "sequence": 0,
+    "sheets": [
+      "Modules:Module",
+      "Forms:Form",
+      "Feathers:Feather",
+      "Relations:RelationWidget",
+      "Services:DataService",
+      "Routes:Route",
+      "Styles:Style",
+      "HelpFiles:HelpLink",
+      "Feather Authorizations:FeatherAuthorization",
+      "System Print Forms:SystemPrintForm",
+      "Roles:Role"
+    ]
+  },
+  {
+    "icon": "architecture",
+    "isTemplate": true,
+    "label": "Develop",
+    "module": "Core",
+    "name": "Development",
+    "sequence": 0,
+    "sheets": [
+      "Modules:Module",
+      "Feathers:Feather",
+      "Forms:Form",
+      "Relations:RelationWidget",
+      "Services:DataService",
+      "Routes:Route",
+      "Styles:Style",
+      "HelpFiles:HelpLink"
+    ]
+  },
+  {
+    "icon": "engineering",
+    "isTemplate": false,
+    "label": "Execute",
+    "module": "JobShop",
+    "name": "Execute",
+    "sequence": 90,
+    "sheets": [
+      "Dispatch:WorkOrderOperation",
+      "Operation Completions:OperationCompletion"
+    ]
+  },
+  {
+    "icon": "edit",
+    "isTemplate": false,
+    "label": "Design",
+    "module": "JobShop",
+    "name": "Items",
+    "sequence": 35,
+    "sheets": [
+      "Products:Product",
+      "Proposed Costs:ProposedCost",
+      "Conversions:ItemUnitConversion",
+      "Services:Service"
+    ]
+  },
+  {
+    "icon": "factory",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Make",
+    "sequence": 90,
+    "sheets": [
+      "Open Work Orders:WorkOrder",
+      "Planned Work Orders:PlannedWorkOrder",
+      "Outside Processes:OutsideProcess",
+      "Receipts:WorkOrderReceipt",
+      "Closed Work Orders:WorkOrder"
+    ]
+  },
+  {
+    "icon": "calendar_today",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Plan",
+    "sequence": 70,
+    "sheets": [
+      "Shortages:Inventory",
+      "Reorder:Inventory",
+      "On Order:Supply",
+      "Demand:Demand",
+      "Allocations:Allocation"
+    ]
+  },
+  {
+    "icon": "view_timeline",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Project",
+    "sequence": 75,
+    "sheets": [
+      "Project:Project"
+    ]
+  },
+  {
+    "icon": "account_balance",
+    "isTemplate": false,
+    "label": "Report",
+    "module": "JobShop",
+    "name": "Report",
+    "sequence": 130,
+    "sheets": [
+      "Inventory Value:Inventory",
+      "Work In Process Value:WorkOrder",
+      "Prepaid Revenue:SalesHistory",
+      "Sales Revenue:SalesHistory",
+      "Tax Revenue:SalesHistory",
+      "Cost of Goods Sold:InventoryTransaction"
+    ]
+  },
+  {
+    "icon": "check_circle",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Sell",
+    "sequence": 100,
+    "sheets": [
+      "Sales Order Backlog:SalesOrder",
+      "Sales Line Backlog:SalesOrderLine",
+      "Customers:Customer",
+      "Customer Contacts:CustomerContact",
+      "Closed Sales Orders:SalesOrder",
+      "TaxRates:TaxRate"
+    ]
+  },
+  {
+    "icon": "settings",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Settings",
+    "sequence": 10,
+    "sheets": [
+      "User Accounts:UserAccount",
+      "Employees:Employee",
+      "States:State",
+      "Countries:Country",
+      "Carriers:Carrier",
+      "Ship Methods:ShipMethod",
+      "Tax Types:TaxType",
+      "Sites:Site",
+      "Locations:Location",
+      "Print Forms:PrintForm",
+      "Labor Resources:LaborResource",
+      "Machine Resources:MachineResource"
+    ]
+  },
+  {
+    "icon": "local_shipping",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Ship",
+    "sequence": 110,
+    "sheets": [
+      "Orders Due:SalesOrder",
+      "On Floor:SalesOrder",
+      "Pending Shipments:SalesOrderShipment",
+      "Shipment History:SalesOrderShipment"
+    ]
+  },
+  {
+    "icon": "label",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Ship Engine",
+    "sequence": 30,
+    "sheets": [
+      "Carriers:ShipEngineCarrier"
+    ]
+  },
+  {
+    "icon": "inventory_2",
+    "isTemplate": false,
+    "label": "",
+    "module": "JobShop",
+    "name": "Stock",
+    "sequence": 40,
+    "sheets": [
+      "Inventory:Inventory",
+      "Inventory By Location:InventoryLocation",
+      "Transactions:InventoryTransaction",
+      "Issues:WorkOrderIssue",
+      "Adjustments:InventoryAdjustment",
+      "Moves:MoveInventory"
+    ]
+  },
+  {
+    "icon": "manage_accounts",
+    "isTemplate": true,
+    "label": "Admin",
+    "module": "Core",
+    "name": "User Administration",
+    "sequence": 0,
+    "sheets": [
+      "UserAccounts:UserAccount",
+      "Roles:Role"
+    ]
+  }
+]

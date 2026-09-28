@@ -64,15 +64,6 @@ childFormPage.viewModel = function (options) {
     let isNew = options.create && options.isNew !== false;
     let toolbarButtonClass = "fb-toolbar-button";
 
-    switch (f.currentUser().mode) {
-    case "test":
-        toolbarButtonClass += " fb-toolbar-button-test";
-        break;
-    case "dev":
-        toolbarButtonClass += " fb-toolbar-button-dev";
-        break;
-    }
-
     /**
         Done button view model.
         @method buttonDone
@@ -303,16 +294,8 @@ childFormPage.component = {
         let model = vm.model();
         let icon = "file-alt";
         let btn = f.getComponent("Button");
+        let banner = f.getComponent("EnvBanner");
         let toolbarClass = "fb-toolbar";
-
-        switch (f.currentUser().mode) {
-        case "test":
-            toolbarClass += " fb-toolbar-test";
-            break;
-        case "dev":
-            toolbarClass += " fb-toolbar-dev";
-            break;
-        }
 
         if (model.isValid()) {
             switch (model.state().current()[0]) {
@@ -339,40 +322,43 @@ childFormPage.component = {
         }
 
         // Build view
-        return m("div", [
-            m("div", {
-                id: "toolbar",
-                class: toolbarClass
-            }, [
-                m(btn, {
-                    viewModel: vm.buttonDone()
+        return [
+            m(banner),
+            m("div", [
+                m("div", {
+                    id: "toolbar",
+                    class: toolbarClass
+                }, [
+                    m(btn, {
+                        viewModel: vm.buttonDone()
+                    }),
+                    m(btn, {
+                        viewModel: vm.buttonPrevious()
+                    }),
+                    m(btn, {
+                        viewModel: vm.buttonNext()
+                    }),
+                    m(btn, {
+                        viewModel: vm.buttonNew()
+                    })
+                ]),
+                m("div", {
+                    class: "fb-title"
+                }, [
+                    m("i", {
+                        class: "fa fa-" + icon + " fb-title-icon",
+                        title: theTitle
+                    }),
+                    m("label", vm.title())
+                ]),
+                m(f.getComponent("Dialog"), {
+                    viewModel: vm.sseErrorDialog()
                 }),
-                m(btn, {
-                    viewModel: vm.buttonPrevious()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonNext()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonNew()
+                m(f.getComponent("FormWidget"), {
+                    viewModel: vm.formWidget()
                 })
-            ]),
-            m("div", {
-                class: "fb-title"
-            }, [
-                m("i", {
-                    class: "fa fa-" + icon + " fb-title-icon",
-                    title: theTitle
-                }),
-                m("label", vm.title())
-            ]),
-            m(f.getComponent("Dialog"), {
-                viewModel: vm.sseErrorDialog()
-            }),
-            m(f.getComponent("FormWidget"), {
-                viewModel: vm.formWidget()
-            })
-        ]);
+            ])
+        ];
     }
 };
 

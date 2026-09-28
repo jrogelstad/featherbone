@@ -140,7 +140,7 @@ searchInput.viewModel = function (options) {
                 });
                 this.style = function () {
                     return {
-                        color: "LightGrey",
+                        color: "var(--fb-text-muted)",
                         margin: "2px"
                     };
                 };
@@ -163,7 +163,7 @@ searchInput.viewModel = function (options) {
                 });
                 this.style = function () {
                     return {
-                        color: "Black",
+                        color: "var(--fb-text)",
                         margin: "2px"
                     };
                 };
