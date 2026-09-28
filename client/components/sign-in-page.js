@@ -102,7 +102,7 @@ signInPage.component = {
                 }, ""),
                 m("a", {
                     class: "fb-click-text",
-                    style: {width: "215px", color: "darkslateblue"},
+                    style: {width: "215px", color: "var(--fb-accent-text)"},
                     id: "forgotPassword",
                     onclick: function () {
                         f.state().send("resetPassword");

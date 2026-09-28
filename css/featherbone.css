@@ -1,4 +1,4 @@
-﻿/**
+/**
     Framework for building object relational database apps
     Copyright (C) 2024  Featherbone LLC
 
@@ -15,11 +15,227 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+
+/* =========================================================================
+   Design tokens
+   -------------------------------------------------------------------------
+   Colors used across this file are named custom properties rather than
+   literal values, so the whole app can be retinted (or put in dark mode)
+   from one place instead of hunting through every rule below.
+
+   --fb-accent and --fb-danger are solid FILL colors (buttons, active tab
+   underline, the delete button) and stay constant across themes, same as
+   the text painted on top of them -- a filled button's own contrast is
+   controlled by the pairing, not by the theme. --fb-accent-text/-strong
+   are for when that same brand color paints TEXT, an icon, or a thin
+   border directly against a neutral surface instead of filling a shape --
+   those get a lighter tint in dark mode or they read as too dim against a
+   dark background.
+
+   Structure and shadow values are unchanged from the previous stylesheet
+   (same button shadow, same dialog shadow, same "selected row" tint) --
+   only now they're named, and re-tuned for dark surfaces in the
+   prefers-color-scheme block below.
+   ========================================================================= */
+:root {
+    /* Tells the browser this page supports both themes, so native
+       widgets it draws itself -- scrollbars, <select> popups, the
+       date-input calendar, and the checkbox's own check mark (see
+       .fb-checkbox-input's accent-color below) -- switch with the OS
+       preference too, instead of staying light chrome around a dark
+       page. */
+    color-scheme: light dark;
+
+    /* Brand / accent -- unchanged from Featherbone's existing indigo. */
+    --fb-accent: #3f51b5;
+    --fb-accent-text: #3f51b5;
+    --fb-accent-strong: #303f9f;
+    --fb-danger: #c62828;
+    --fb-warning: #b06a00;
+    --fb-info: #1565c0;
+
+    /* Base surfaces & text */
+    --fb-bg: #f4f5f7;
+    --fb-surface: #ffffff;
+    --fb-surface-alt: #fafbfc;
+    --fb-text: #1f2328;
+    --fb-text-secondary: #52514e;
+    --fb-text-muted: #5f6368;
+    --fb-label-text: #444444;
+    --fb-muted-icon: #b3b3b3;
+    --fb-border: #d7dbe0;
+    --fb-border-subtle: #eeeeee;
+
+    /* Hover / selected tints -- --fb-selected-bg keeps the exact indigo
+       tint (#e7e9f3) the previous stylesheet already used for a selected
+       table row, so this is a rename, not a re-color. */
+    --fb-hover-accent-tint: #eef0fb;
+    --fb-hover-neutral-tint: #eef1f5;
+    --fb-selected-bg: #e7e9f3;
+    --fb-selected-hover-bg: #d7dbf0;
+
+    /* Navigator sidebar -- stays a dark navy in both themes; only gets
+       darker still under prefers-color-scheme: dark. */
+    --fb-nav-bg: #102f5e;
+    --fb-nav-text: #ffffff;
+    --fb-nav-hover-bg: #1a3f78;
+
+    /* Shadows -- same values the old stylesheet already used inline for
+       buttons (-sm) and dialogs/selected nav items (-md), just named. */
+    --fb-shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.1);
+    --fb-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(0, 0, 0, 0.19);
+    --fb-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fb-accent-text: #8c9eff;
+        --fb-accent-strong: #7986cb;
+
+        --fb-bg: #16181c;
+        --fb-surface: #1e2126;
+        --fb-surface-alt: #262a30;
+        --fb-text: #e8eaed;
+        --fb-text-secondary: #c7c5bd;
+        --fb-text-muted: #9aa0a6;
+        --fb-label-text: #c9ccd1;
+        --fb-muted-icon: #8a8f98;
+        --fb-border: #3a3e45;
+        --fb-border-subtle: #33373d;
+
+        --fb-hover-accent-tint: #242a42;
+        --fb-hover-neutral-tint: #2a2e35;
+        --fb-selected-bg: #262c48;
+        --fb-selected-hover-bg: #313866;
+
+        --fb-nav-bg: #0b1a33;
+        --fb-nav-hover-bg: #142848;
+
+        --fb-shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.3);
+        --fb-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.45), 0 6px 20px rgba(0, 0, 0, 0.4);
+        --fb-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* =========================================================================
+   Pure CSS overrides
+   -------------------------------------------------------------------------
+   Pure CSS loads before this file and ships its own light-theme-only
+   styling for bare form controls and table headers -- a white fill,
+   black text and an inset shadow on inputs, a light grey thead -- none of
+   it aware of the tokens above, so it stayed put through every previous
+   pass. Re-themed here, and per feedback that the inset shadow made forms
+   look "half done," dropped entirely for a crisper edge instead.
+   ========================================================================= */
+input,
+select,
+textarea {
+    background-color: var(--fb-surface);
+    color: var(--fb-text);
+}
+
+.pure-form input:not([type]),
+.pure-form input[type="text"],
+.pure-form input[type="password"],
+.pure-form input[type="email"],
+.pure-form input[type="url"],
+.pure-form input[type="tel"],
+.pure-form input[type="number"],
+.pure-form input[type="search"],
+.pure-form input[type="date"],
+.pure-form input[type="month"],
+.pure-form input[type="week"],
+.pure-form input[type="color"],
+.pure-form select,
+.pure-form textarea {
+    background-color: var(--fb-surface) !important;
+    color: var(--fb-text) !important;
+    border: 1px solid var(--fb-border) !important;
+    box-shadow: none !important;
+}
+
+.pure-form input:focus,
+.pure-form select:focus,
+.pure-form textarea:focus {
+    border-color: var(--fb-accent) !important;
+    box-shadow: none !important;
+}
+
+/* Pure has its own hardcoded [readonly] and [disabled] colors, each
+   more specific than the base override above, so both need their own
+   pass -- a relation display field (product, site, ...) is typically
+   a readonly, untyped input and would otherwise fall straight back
+   to Pure's light grey/dark grey text. */
+.pure-form input[readonly],
+.pure-form select[readonly],
+.pure-form textarea[readonly] {
+    background-color: var(--fb-surface-alt) !important;
+    color: var(--fb-text-secondary) !important;
+    border-color: var(--fb-border) !important;
+    box-shadow: none !important;
+}
+
+.pure-form input[disabled],
+.pure-form select[disabled],
+.pure-form textarea[disabled] {
+    background-color: var(--fb-surface-alt) !important;
+    color: var(--fb-text-muted) !important;
+    box-shadow: none !important;
+}
+
+.pure-table thead,
+.fb-table-header {
+    background-color: var(--fb-surface-alt) !important;
+}
+
+.pure-table th,
+.fb-column-header {
+    color: var(--fb-text) !important;
+}
+
+/* =========================================================================
+   Link contrast
+   -------------------------------------------------------------------------
+   A bare <a> falls back to the browser's own blue/underline, which reads
+   fine on a white page but is hard to see against a dark one. .fb-link is
+   opt-in (applied only where an element is genuinely an external/URL
+   link) rather than a blanket `a` rule, because several places in this
+   app reuse <a> purely for its click/focus/tab-order behavior on things
+   that are not links at all -- a field label with a hover tooltip
+   (.fb-tags below), an icon-only button -- and those already carry, or
+   now get, their own neutral color instead.
+   ========================================================================= */
+.fb-link {
+    color: var(--fb-accent-text);
+    text-decoration: none;
+}
+
+.fb-link:hover,
+.fb-link:focus-visible {
+    text-decoration: underline;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--fb-bg);
+    color: var(--fb-text);
+    font-size: 13px;
+}
+
 .pure-button-primary,
 .pure-button-selected,
 a.pure-button-primary,
 a.pure-button-selected {
-    background-color: #3F51B5;
+    background-color: var(--fb-accent);
     color: #fbfcfe;
 }
 
@@ -30,7 +246,7 @@ textarea {
 
 .CodeMirror {
   height: auto !important;
-  border: 1px solid #eee;
+  border: 1px solid var(--fb-border-subtle);
 }
 
 @font-face {
@@ -106,24 +322,27 @@ textarea {
 }
 
 .fb-info {
-  color: #0000FF
+  color: var(--fb-info);
 }
 
 .fb-warning {
-  color: #FFA500
+  color: var(--fb-warning);
 }
 
 .fb-error {
-  color: red
+  color: var(--fb-danger);
 }
 
 .fb-checkbox-readonly {
-  background: #eee !important;
+  background: var(--fb-border-subtle) !important;
 }
 
 .fb-tags {
   display: inline-block;
   position: relative;
+  color: inherit;
+  text-decoration: none;
+  cursor: help;
 }
 
 .fb-tags:hover:before {
@@ -181,26 +400,26 @@ textarea {
 
 .fb-button-checkbox {
     float: right;
-    background: white;
+    background: var(--fb-surface);
 }
 
 .fb-button-checkbox:hover {
-    background: white;
+    background: var(--fb-surface);
 }
 
 .fb-button-checkbox:active {
     box-shadow: none;
-    background: white;
+    background: var(--fb-surface);
 }
 
 .fb-button-checkbox:focus {
     box-shadow: none;
-    background: white;
+    background: var(--fb-surface);
 }
 
 .fb-button-delete {
-    background: red;
-    color: white;
+    background: var(--fb-danger);
+    color: #fbfcfe;
     float: right;
 }
 
@@ -211,70 +430,63 @@ textarea {
     vertical-align: bottom;
 }
 .fb-button-radio {
-    background-color: white;
+    background-color: var(--fb-surface);
 }
 
 .fb-radio-icon {
     vertical-align: middle;
+    color: var(--fb-text);
 }
+
+/* --- Checkbox -----------------------------------------------------------
+   A real, native `<input type=checkbox>` painted with `accent-color`
+   rather than hidden off-screen and redrawn from scratch (border + inset
+   shadow on the <label>, a Material Icons glyph toggled by an inline
+   `visibility` style computed in JS on every render). The native control
+   already themes itself from --fb-accent, needs no icon font, and never
+   needs JS to know whether it's checked -- that's what `:checked` is for.
+   See client/components/checkbox.js. */
 .fb-checkbox {
-    display: inline-block;
-}
-
-.fb-checkbox-cell {
-    top: -10px;
-    left: -6px !important;
-}
-
-.fb-checkbox-focus {
-    border: thin solid #1ba0e8 !important;
+    display: inline-flex;
+    align-items: center;
 }
 
 .fb-checkbox-input {
-  position: relative;
-  left: -9999px;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--fb-accent);
+}
+
+.fb-checkbox-input:not(:disabled) {
+    cursor: pointer;
+}
+
+.fb-checkbox-input:disabled {
+    opacity: 0.6;
+}
+
+.fb-checkbox-input:focus-visible {
+    outline: 2px solid var(--fb-accent);
+    outline-offset: 1px;
+    border-radius: 2px;
+}
+
+.fb-checkbox-cell {
+    justify-content: center;
+    width: 100%;
 }
 
 .fb-filter-checkbox-input {
-  position: absolute;
-  left: -9999px;
-}
-
-.fb-filter-checkbox-label {
-  border-width: thin;
-  border-style: solid;
-  border-radius: 4px;
-  border-color: #ccc;
-  box-shadow: inset 0 1px 3px #ddd;
-  padding-left: 3px;
-  padding-right: 13px;
-  padding-top: 3px;
-  padding-bottom: 1px;
-  max-width: 15px;
-  min-width: 15px;
-  background-color: White;
-  display: table-cell;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--fb-accent);
+    cursor: pointer;
 }
 
 .fb-click-text:hover {
   cursor:pointer;
-}
-
-.fb-checkbox-label {
-  border-width: thin;
-  border-style: solid;
-  border-radius: 4px;
-  border-color: #ccc;
-  box-shadow: inset 0 1px 3px #ddd;
-  padding-left: 3px;
-  padding-right: 13px;
-  padding-top: 3px;
-  padding-bottom: 1px;
-  max-width: 15px;
-  min-width: 15px;
-  background-color: White;
-  position: relative;
-  left: -13px;
 }
 
 .fb-cell-view {
@@ -285,7 +497,7 @@ textarea {
 
 .fb-column-filter-icon {
   float: right;
-  color: DarkBlue;
+  color: var(--fb-accent-text);
   margin-right: 3px;
 }
 
@@ -297,7 +509,7 @@ textarea {
 }
 
 .fb-column-footer {
-  background-color: white;
+  background-color: var(--fb-surface);
   white-space: nowrap;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -306,12 +518,12 @@ textarea {
 
 .fb-column-sort-icon {
   float: right;
-  color: Grey;
+  color: var(--fb-text-muted);
 }
 
 .fb-column-sort-number {
   float: right;
-  color: Grey;
+  color: var(--fb-text-muted);
   margin-right: 3px;
 }
 
@@ -341,13 +553,13 @@ textarea {
 }
 
 .fb-data-type-edit-button {
-    background-color: #dedede;
+    background-color: var(--fb-surface-alt);
     margin-left: 5px;
     max-height: 36px;
     max-width: 52px;
     border-width: 1px;
     border-style: solid;
-    border-color: #lightgrey;
+    border-color: var(--fb-border);
     border-radius: 5px;
     padding: .6em;
     padding-top: .3em;
@@ -363,14 +575,16 @@ textarea {
 }
 
 .fb-data-type-dialog-list-selected {
-    background-color: #e7e9f3;
+    background-color: var(--fb-selected-bg);
 }
 
 .fb-dialog {
+  background: var(--fb-surface);
+  color: var(--fb-text);
   border-width: thin;
-  border-color: grey;
+  border-color: var(--fb-border);
   border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  box-shadow: var(--fb-shadow-md);
   padding: 0px;
 }
 
@@ -417,7 +631,7 @@ textarea {
 }
 
 .fb-icon-button {
-  color: MediumBlue;
+  color: var(--fb-accent-text);
 }
 
 .fb-main-button {
@@ -435,11 +649,11 @@ textarea {
 
 .fb-navigator-menu {
   font-family: Raleway;
-  background-color: #102F5E;
-  color: white;
-  font-size: 16px;
+  background-color: var(--fb-nav-bg);
+  color: var(--fb-nav-text);
+  font-size: 13px;
   padding: 8px;
-  border-right: lightgrey thin solid;
+  border-right: var(--fb-border) thin solid;
   white-space: nowrap;
 }
 
@@ -476,8 +690,8 @@ textarea {
 }
 
 .fb-navigator-item {
-  color: white;
-  font-size: 15px;
+  color: var(--fb-nav-text);
+  font-size: 13px;
   font-family:sans-serif;
   padding-bottom: 5px;
   padding-top: 4.5px;
@@ -485,15 +699,15 @@ textarea {
 }
 
 .fb-navigator-item-selected {
-  color: darkblue;
-  background: #E1E1E1;
+  color: var(--fb-nav-text);
+  background: var(--fb-nav-hover-bg);
   border-radius: 6px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  box-shadow: var(--fb-shadow-sm);
 }
 
 .fb-navigator-item-mouseover {
-  background: #D1D0CE;
-  color: darkblue;
+  background: var(--fb-nav-hover-bg);
+  color: var(--fb-nav-text);
   border-radius: 6px;
 }
 
@@ -516,7 +730,7 @@ textarea {
 }
 
 .fb-form-workbook {
-  background-color: whitesmoke;
+  background-color: var(--fb-bg);
 }
 
 .fb-form-content {
@@ -535,8 +749,8 @@ textarea {
 .fb-form-label-button {
   margin-bottom: 9px !important;
   vertical-align: top !important;
-  background-color: white;
-  border: thin lightgrey solid;
+  background-color: var(--fb-surface);
+  border: thin solid var(--fb-border);
   border-radius: 4px;
   text-align: right;
   display: inline-block;
@@ -561,7 +775,7 @@ textarea {
 }
 
 .fb-sheet-configure-group-box {
-  border-top: thin #3F51B5 solid;
+  border-top: thin var(--fb-accent) solid;
   padding-top: 20px;
 }
 
@@ -571,8 +785,8 @@ textarea {
 }
 
 .fb-group-tab {
-  background-color: #fff;
-  color: #a6a6a6;
+  background-color: var(--fb-surface);
+  color: var(--fb-text-muted);
   border-width: thin;
 }
 
@@ -584,13 +798,13 @@ textarea {
 .fb-group-tab-active {
   border-top-right-radius: 2px;
   border-top-left-radius: 2px;
-  color: #474747;
-  border-top-color: #3F51B5;
-  border-left-color: #b0bcdd;
-  border-right-color: #b0bcdd;
+  color: var(--fb-text);
+  border-top-color: var(--fb-accent);
+  border-left-color: var(--fb-border);
+  border-right-color: var(--fb-border);
   border-top-width: 1.5px;
   border-style: solid;
-  border-bottom-color: white;
+  border-bottom-color: var(--fb-surface);
   border-bottom-style: solid;
   border-bottom-width: 2px;
   top: -37px;
@@ -609,14 +823,14 @@ textarea {
 }
 
 .fb-table-row-selected {
-  background-color: #e7e9f3;
+  background-color: var(--fb-selected-bg);
   border-top: thin solid;
   border-bottom: thin solid;
-  border-color: lightsteelblue;
+  border-color: var(--fb-accent-text);
 }
 
 .fb-table-row-editor {
-  background-color: azure;
+  background-color: var(--fb-hover-accent-tint);
 }
 
 .fb-top-pane {
@@ -630,7 +844,7 @@ textarea {
 }
 
 .fb-tabbed-panes {
-  border-top: solid thin #b0bcdd;
+  border-top: solid thin var(--fb-border);
 }
 
 .fb-tabbed-panes-form {
@@ -645,8 +859,8 @@ textarea {
 }
 
 .fb-header {
-  background-color: Snow;
-  border-bottom-color: LightGrey;
+  background-color: var(--fb-surface-alt);
+  border-bottom-color: var(--fb-border);
   border-bottom-style: solid;
   border-bottom-width: thin;
   font-weight: normal;
@@ -657,7 +871,7 @@ textarea {
 .fb-header-home {
     font-size: 1.5em;
     font-weight: bold;
-    color: royalblue;
+    color: var(--fb-accent-text);
     padding-left: 10px;
     display: inline-block;
     margin-top: 3px;
@@ -665,10 +879,10 @@ textarea {
 }
 
 .fb-title {
-  background-color: #dedede;
+  background-color: var(--fb-surface-alt);
   font-family: Raleway;
-  border-top: 1px solid #cbcbcb;
-  border-bottom: 1px solid #cbcbcb;
+  border-top: 1px solid var(--fb-border);
+  border-bottom: 1px solid var(--fb-border);
   margin: 2px;
   margin-top: 0px;
   padding: 6px;
@@ -692,11 +906,11 @@ textarea {
 }
 
 .fb-menu-button {
-  background-color: white;
-  color: royalblue;
+  background-color: var(--fb-surface);
+  color: var(--fb-accent-text);
   margin: 2px;
   min-height: 34px;
-  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 10%), 0 0px 1px 0 rgb(0 0 0 / 10%);
+  box-shadow: var(--fb-shadow-sm);
   border-radius: 6px;
   margin-left: 4px;
   margin-bottom: 6px;
@@ -729,15 +943,17 @@ textarea {
 }
 
 .fb-menu-list {
-  background-color: White;
+  background-color: var(--fb-surface);
   position: absolute;
   z-index: 9999;
-  border: 1px solid LightGrey;
+  border: 1px solid var(--fb-border);
+  border-radius: 6px;
+  box-shadow: var(--fb-shadow-sm);
   display: none;
 }
 
 .fb-menu-list-item {
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .fb-menu-list-icon {
@@ -747,7 +963,7 @@ textarea {
 }
 
 .fb-menu-list-separator {
-  border-top: solid thin lightgrey;
+  border-top: solid thin var(--fb-border);
 }
 
 .fb-menu-list-show {
@@ -778,10 +994,12 @@ textarea {
 }
 
 .fb-relation-menu-list {
-  background-color: White;
+  background-color: var(--fb-surface);
   position: absolute;
   z-index: 9999;
-  border: 1px solid lightgrey;
+  border: 1px solid var(--fb-border);
+  border-radius: 6px;
+  box-shadow: var(--fb-shadow-sm);
 }
 
 .fb-search-input {
@@ -800,7 +1018,7 @@ textarea {
   width: 100%;
   text-align: center;
   font-size: xxx-large;
-  color: lightgrey;
+  color: var(--fb-muted-icon);
 }
 
 .fb-search-watermark-icon {
@@ -819,7 +1037,7 @@ textarea {
 }
 
 .fb-sign-in-error {
-    color: red;
+    color: var(--fb-danger);
     margin-bottom: 10px;
 }
 
@@ -837,12 +1055,12 @@ textarea {
 .fb-table {
   table-layout: fixed;
   width: 100%;
-  background-color: white;
+  background-color: var(--fb-surface);
   border-left: none;
 }
 
 .fb-table-cell-edit {
-  border-color: blue;
+  border-color: var(--fb-info);
   border-width: thin !important;
   border-style: solid;
 }
@@ -856,7 +1074,7 @@ textarea {
 }
 
 .fb-table-cell-edit-required {
-  border-color: red;
+  border-color: var(--fb-danger);
   border-style: ridge;
 }
 
@@ -864,9 +1082,9 @@ textarea {
   display: inline-block;
   width: 100%;
   overflow: auto;
-  background-color: white;
-  border-left: solid #cbcbcb thin;
-  border-right: solid #cbcbcb thin;
+  background-color: var(--fb-surface);
+  border-left: solid var(--fb-border) thin;
+  border-right: solid var(--fb-border) thin;
 }
 
 .fb-table-body-with-footer {
@@ -884,7 +1102,7 @@ textarea {
   width: 100%;
   overflow-x: auto;
   border-top-style: solid;
-  border-top-color: black;
+  border-top-color: var(--fb-text-muted);
 }
 
 .fb-table-icon {
@@ -892,26 +1110,54 @@ textarea {
   vertical-align: bottom;
 }
 
+/* --- Relation cell (grid "jump to record" link) -------------------------
+   Previously an always-visible underlined <a> around the cell's display
+   value -- busy-looking, and hard to read in dark mode since it fell back
+   to the browser's default link blue. Now the value is plain themed text
+   and a small open-record icon-button appears only on row hover or
+   keyboard focus, ddom-style. */
+.fb-relation-value {
+  color: var(--fb-text);
+}
+
+.fb-relation-open {
+  visibility: hidden;
+  color: var(--fb-accent-text);
+  text-decoration: none;
+  padding-left: 4px;
+  vertical-align: middle;
+}
+
+.fb-table tbody tr:hover .fb-relation-open,
+.fb-relation-open:focus-visible {
+  visibility: visible;
+}
+
+.fb-relation-open-icon {
+  font-size: 16px !important;
+  vertical-align: middle;
+}
+
 .fb-toolbar {
-  background-color: whitesmoke;
+  background-color: var(--fb-surface-alt);
   height: 38px;
   padding-top: 3px;
-  border-color: darkslateblue;
+  border-color: var(--fb-border);
 }
 
 .fb-toolbar-home {
     display: block;
     position: relative;
     width: 100%;
-    color: white;
-    border-bottom: thin lightgrey solid;
+    color: var(--fb-nav-text);
+    border-bottom: thin solid var(--fb-border);
     height: 41px;
 }
 
 .fb-toolbar-button {
-  background-color: white;
-  color: royalblue;
-  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 10%), 0 0px 1px 0 rgb(0 0 0 / 10%) !important;
+  background-color: var(--fb-surface);
+  color: var(--fb-accent-text);
+  box-shadow: var(--fb-shadow-sm) !important;
   border-radius: 6px;
   margin-left: 4px;
   margin-bottom: 4px;
@@ -926,7 +1172,7 @@ textarea {
   background: none;
   background-image: none !important;
   box-shadow: none !important;
-  color: grey;
+  color: var(--fb-text-muted);
   font-size: 6px;
   margin-left: -45px;
   margin-right: 10px;
@@ -970,10 +1216,10 @@ textarea {
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
   border-right-style: solid;
-  border-right-color: Silver;
+  border-right-color: var(--fb-border);
   border-right-width: thin;
   border-bottom-style: solid;
-  border-bottom-color: Silver;
+  border-bottom-color: var(--fb-border);
   border-bottom-width: thin;
 }
 
@@ -982,13 +1228,13 @@ textarea {
 }
 
 .fb-workbook-tab-edit {
-  background-color: white;
+  background-color: var(--fb-surface);
   padding: 0em;
   padding-left: .75em;
 }
 
 .fb-workbook-tab-edit-show {
-  display: inline-block;	
+  display: inline-block;
 }
 
 .fb-workbook-tab-edit-hide {
@@ -1002,7 +1248,7 @@ textarea {
 }
 
 .fb-zoom-icon {
-  color: LightGrey;
+  color: var(--fb-muted-icon);
   margin-top: 9px;
   float: right;
 }
@@ -1031,8 +1277,8 @@ textarea {
   margin-top: 1px;
   margin-right: 1px;
   border-radius: 50%;
-  border: 2px solid black;
-  border-color: black transparent black transparent;
+  border: 2px solid var(--fb-text);
+  border-color: var(--fb-text) transparent var(--fb-text) transparent;
   animation: lds-dual-ring 0.5s linear infinite;
 }
 
@@ -1065,8 +1311,8 @@ textarea {
   height: 128px;
   margin: 8px;
   border-radius: 50%;
-  border: 12px solid steelblue;
-  border-color: steelblue transparent steelblue transparent;
+  border: 12px solid var(--fb-accent);
+  border-color: var(--fb-accent) transparent var(--fb-accent) transparent;
   animation: lds-dual-ring 0.5s linear infinite;
 }
 
@@ -1086,7 +1332,7 @@ textarea {
   width: 90px;
   height: 70px;
   border-radius: 50%;
-  background: white;
+  background: var(--fb-surface);
   cursor: pointer;
   box-shadow: 0 0 0 rgba(0,0,0, 0.4);
   animation: pulse 2s infinite;
@@ -1131,7 +1377,7 @@ textarea {
   margin-bottom: 5px;
   width: 400px;
   display: flex;
-  border-radius: 2px; 
+  border-radius: 2px;
 }
 
 .fb-snackbar-progress {
@@ -1143,7 +1389,7 @@ textarea {
 }
 
 .fb-snackbar-cancel {
-  color: red;
+  color: var(--fb-danger);
 }
 
 /* The snackbar - position it at the bottom and in the middle of the screen */

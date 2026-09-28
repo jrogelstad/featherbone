@@ -384,7 +384,7 @@ authTable.viewModel = function (options) {
         icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
 
@@ -395,7 +395,7 @@ authTable.viewModel = function (options) {
         icon: "delete",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
     vm.buttonRemove().disable();
@@ -407,7 +407,7 @@ authTable.viewModel = function (options) {
         icon: "undo",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
     vm.buttonUndo().hide();
