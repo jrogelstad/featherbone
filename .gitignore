@@ -54,3 +54,6 @@ client/out
 client/api.js
 server/out
 
+
+# Regression test run output
+test/.artifacts
