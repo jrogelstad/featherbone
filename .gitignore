@@ -48,6 +48,7 @@ files/upload
 node/node_modules
 node/npm-debug.log
 node_modules
+server/config.json
 logs
 api.json
 client/out
