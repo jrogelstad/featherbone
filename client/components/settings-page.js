@@ -149,6 +149,7 @@ settingsPage.component = {
 
         // Build view
         return m("div", [
+            m(f.getComponent("EnvBanner")),
             m("div", {
                 id: "toolbar",
                 class: "fb-toolbar"
