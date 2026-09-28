@@ -206,17 +206,17 @@ childTable.viewModel = function (options) {
     let config = f.copy(options.config);
     config.actions = config.actions || [];
     let modelName = options.feather.name.toCamelCase();
-    let actidx = config.actions.length - 1;
+    let actidx = 0;
     let action;
     let fn;
-    let theClass = "fb-toolbar-button fb-toolbar-button-right ";
+    let theClass = "fb-toolbar-button";
     let btn;
     let validator = function (check) {
         return !Boolean(check(vm.tableWidget().selections(), vm));
     };
     let onClick = (act) => act(vm);
 
-    while (actidx >= 0) {
+    while (actidx < config.actions.length) {
         action = config.actions[actidx];
         fn = f.catalog().store().models()[modelName];
 
@@ -234,7 +234,7 @@ childTable.viewModel = function (options) {
             );
         }
         vm.actionButtons().push(btn);
-        actidx -= 1;
+        actidx += 1;
     }
 
     // Create table widget view model
@@ -255,10 +255,7 @@ childTable.viewModel = function (options) {
         hotkey: "I",
         label: "Add",
         icon: "add_circle_outline",
-        class: "fb-icon-button",
-        style: {
-            backgroundColor: "var(--fb-surface)"
-        }
+        class: "fb-icon-button"
     }));
 
     vm.buttonRemove(f.createViewModel("Button", {
@@ -267,10 +264,7 @@ childTable.viewModel = function (options) {
         hotkey: "D",
         label: "Remove",
         icon: "delete",
-        class: "fb-icon-button",
-        style: {
-            backgroundColor: "var(--fb-surface)"
-        }
+        class: "fb-icon-button"
     }));
     vm.buttonRemove().disable();
 
@@ -279,10 +273,7 @@ childTable.viewModel = function (options) {
         title: "Undo",
         hotkey: "U",
         icon: "undo",
-        class: "fb-icon-button",
-        style: {
-            backgroundColor: "var(--fb-surface)"
-        }
+        class: "fb-icon-button"
     }));
     vm.buttonUndo().hide();
 
@@ -292,32 +283,21 @@ childTable.viewModel = function (options) {
         hotkey: "O",
         icon: "file_open",
         outline: false,
-        class: "fb-icon-button",
-        style: {
-            backgroundColor: "var(--fb-surface)"
-        }
+        class: "fb-icon-button"
     }));
 
     vm.buttonUp(f.createViewModel("Button", {
         onclick: vm.moveUp,
         icon: "keyboard_arrow_up",
         title: "Move up",
-        class: "fb-icon-button",
-        style: {
-            backgroundColor: "var(--fb-surface)",
-            float: "right"
-        }
+        class: "fb-icon-button"
     }));
 
     vm.buttonDown(f.createViewModel("Button", {
         onclick: vm.moveDown,
         icon: "keyboard_arrow_down",
         title: "Move down",
-        class: "fb-icon-button",
-        style: {
-            backgroundColor: "var(--fb-surface)",
-            float: "right"
-        }
+        class: "fb-icon-button"
     }));
 
     // Bind buttons to table widget state change events
@@ -468,26 +448,29 @@ childTable.component = {
             }
         }
 
+        // One flex row: row actions on the left, form-defined actions
+        // and move up/down pushed to the right.
         controls = [
             m(btn, {viewModel: vm.buttonAdd()}),
             m(btn, {viewModel: vm.buttonRemove()}),
             m(btn, {viewModel: vm.buttonUndo()}),
             m(btn, {viewModel: vm.buttonOpen()}),
-            m(btn, {viewModel: vm.buttonDown()}),
-            m(btn, {viewModel: vm.buttonUp()})
+            m("div", {class: "fb-toolbar-fill"})
         ];
 
         vm.actionButtons().forEach(function (ab) {
             return controls.push(m(btn, {viewModel: ab}));
         });
 
-        controls.push(
+        controls.push(m(btn, {viewModel: vm.buttonUp()}));
+        controls.push(m(btn, {viewModel: vm.buttonDown()}));
+
+        return m("div", {class: "fb-child-table"}, [
+            m("div", {class: "fb-child-table-toolbar"}, controls),
             m(f.getComponent("TableWidget"), {
                 viewModel: vm.tableWidget()
             })
-        );
-
-        return m("div", controls);
+        ]);
     }
 };
 

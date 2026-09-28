@@ -1017,22 +1017,23 @@ formPage.viewModel = function (options) {
     // zooming deeper into detail
     instances[vm.model().id()] = vm.model();
 
-    // Add action buttons defined in form
+    // Add action buttons defined in form, in the form's own order (they
+    // used to be built last-to-first because float: right reversed them
+    // back on screen; the toolbar is a plain left-to-right row now).
     form.actions = form.actions || [];
-    let actidx = form.actions.length - 1;
+    let actidx = 0;
     let action;
     let fn;
-    let theClass = toolbarButtonClass + " fb-toolbar-button-right ";
+    let theClass = toolbarButtonClass;
     let btn;
     let validator = function (check) {
         return !Boolean(check(vm.selections()));
     };
     let onClick = (act) => act(vm);
 
-    while (actidx >= 0) {
+    while (actidx < form.actions.length) {
         action = form.actions[actidx];
         fn = f.catalog().store().models()[options.feather.toCamelCase()];
-        theClass = toolbarButtonClass + " fb-toolbar-button-right ";
 
         btn = f.createViewModel("Button", {
             onclick: onClick.bind(null, fn.static()[action.method]),
@@ -1048,7 +1049,7 @@ formPage.viewModel = function (options) {
             );
         }
         vm.actionButtons().push(btn);
-        actidx -= 1;
+        actidx += 1;
     }
 
     // Create button view models
@@ -1078,13 +1079,7 @@ formPage.viewModel = function (options) {
             onclick: vm.editAuthDialog().show,
             icon: "key",
             title: "Edit Authorizations",
-            class: toolbarButtonClass +
-            " fb-toolbar-button-right" +
-            (
-                hasHelp
-                ? " fb-toolbar-button-middle-side "
-                : " fb-toolbar-button-right-side"
-            )
+            class: "fb-icon-button"
         }));
     }
 
@@ -1092,26 +1087,14 @@ formPage.viewModel = function (options) {
         onclick: vm.doCopy,
         icon: "copy_all",
         title: "Copy",
-        class: (
-            toolbarButtonClass +
-            " fb-toolbar-button-right" +
-            " fb-toolbar-button-left-side "
-        )
+        class: "fb-icon-button"
     }));
 
     vm.buttonPdf(f.createViewModel("Button", {
         onclick: doPrintPdf,
         icon: "picture_as_pdf",
         title: "Print to PDF",
-        class: (
-            toolbarButtonClass +
-            " fb-toolbar-button-right" +
-            (
-                (isRowAuth || hasHelp)
-                ? " fb-toolbar-button-middle-side "
-                : " fb-toolbar-button-right-side"
-            )
-        )
+        class: "fb-icon-button"
     }));
 
     vm.buttonHelp(f.createViewModel("Button", {
@@ -1122,11 +1105,7 @@ formPage.viewModel = function (options) {
         },
         icon: "help",
         title: "Open help file",
-        class: (
-            toolbarButtonClass +
-            " fb-toolbar-button-right" +
-            " fb-toolbar-button-right-side"
-        )
+        class: "fb-icon-button"
     }));
 
     if (!hasHelp) {
@@ -1245,23 +1224,15 @@ formPage.component = {
         let vm = this.viewModel;
         let fmodel = vm.model();
         let icon = "article";
-        let btn = f.getComponent("Button");
         let dlg = f.getComponent("Dialog");
         let fw = f.getComponent("FormWidget");
+        let banner = f.getComponent("EnvBanner");
+        let toolbar = f.getComponent("Toolbar");
         let toolbarClass = "fb-toolbar";
         let eClass = "lds-small-dual-ring";
-        let buttonAuthView;
         let editAuthDialogView;
-        let buttons;
-
-        switch (f.currentUser().mode) {
-        case "test":
-            toolbarClass += " fb-toolbar-test";
-            break;
-        case "dev":
-            toolbarClass += " fb-toolbar-dev";
-            break;
-        }
+        let overflowButtons;
+        let primaryButtons;
 
         vm.toggleNew();
         if (vm.rowAuthEnabled()) {
@@ -1310,61 +1281,66 @@ formPage.component = {
         }
 
         if (vm.rowAuthEnabled()) {
-            buttonAuthView = m(btn, {
-                viewModel: vm.buttonAuth()
-            });
             editAuthDialogView = m(dlg, {
                 viewModel: vm.editAuthDialog()
             });
         }
 
-        buttons = [
-            m(btn, {viewModel: vm.buttonHelp()}),
-            buttonAuthView,
-            m(btn, {viewModel: vm.buttonPdf()}),
-            m(btn, {viewModel: vm.buttonCopy()})
+        // Right-hand group, shown left to right in this order; when the
+        // toolbar gets too narrow they collapse into a "more" menu
+        // starting from the end (Help first, form actions last).
+        overflowButtons = vm.actionButtons().slice();
+        overflowButtons.push(vm.buttonCopy());
+        overflowButtons.push(vm.buttonPdf());
+        if (vm.rowAuthEnabled()) {
+            overflowButtons.push(vm.buttonAuth());
+        }
+        overflowButtons.push(vm.buttonHelp());
+
+        // Buttons that always stay visible, no matter how narrow.
+        primaryButtons = [
+            vm.buttonBack(),
+            vm.buttonApply(),
+            vm.buttonSave(),
+            vm.buttonSaveAndNew()
         ];
-        vm.actionButtons().forEach(function (ab) {
-            return buttons.push(m(btn, {viewModel: ab}));
-        });
-        buttons = buttons.concat([
-            m(btn, {viewModel: vm.buttonBack()}),
-            m(btn, {viewModel: vm.buttonApply()}),
-            m(btn, {viewModel: vm.buttonSave()}),
-            m(btn, {viewModel: vm.buttonSaveAndNew()})
-        ]);
 
         // Build view
-        return m("div", [
-            m("div", {
-                id: "toolbar",
-                class: toolbarClass
-            }, buttons),
-            m("div", {
-                class: "fb-title",
-                id: "title"
-            }, [
+        return [
+            m(banner),
+            m("div", [
+                m(toolbar, {
+                    id: "toolbar",
+                    class: toolbarClass,
+                    primaryButtons,
+                    overflowButtons
+                }),
                 m("div", {
-                    class: eClass,
-                    title: theTitle
-                }, icon),
-                m("label", vm.title())
-            ]),
-            f.snackbar(),
-            m(dlg, {
-                viewModel: vm.confirmDialog()
-            }),
-            m(dlg, {
-                viewModel: vm.sseErrorDialog()
-            }),
-            editAuthDialogView,
-            m(dlg, {
-                viewModel: vm.waitDialog()
-            }),
-            m(fw, {
-                viewModel: vm.formWidget()
-            })
-        ]);
+                    class: "fb-title",
+                    id: "title"
+                }, [
+                    m("div", {
+                        class: eClass,
+                        title: theTitle
+                    }, icon),
+                    m("label", vm.title())
+                ]),
+                f.snackbar(),
+                m(dlg, {
+                    viewModel: vm.confirmDialog()
+                }),
+                m(dlg, {
+                    viewModel: vm.sseErrorDialog()
+                }),
+                editAuthDialogView,
+                m(dlg, {
+                    viewModel: vm.waitDialog()
+                }),
+                m(fw, {
+                    viewModel: vm.formWidget()
+                })
+            ])
+        ];
     },
     onremove: function (vnode) {
         let frminstances = f.catalog().store().formInstances();

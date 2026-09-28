@@ -391,12 +391,12 @@ button.component = {
             onclick: vm.onclick()
         };
 
-        if (!icon) {
-            opts.style.paddingTop = "8px";
-        }
-
         if (vm.isDisabled()) {
             classes.push("fb-button-disabled");
+        }
+
+        if (icon && !label) {
+            classes.push("fb-icon-only");
         }
 
         if (vm.class()) {
@@ -427,7 +427,14 @@ button.component = {
             opts.title = title;
         }
 
-        view = m("button", opts, iconView, label);
+        // Label gets its own span so the button's flex gap spaces it from
+        // the icon (a hotkey label is several spans that must stay one
+        // run of text).
+        view = m("button", opts, iconView, (
+            label
+            ? m("span", {class: "fb-button-label"}, label)
+            : undefined
+        ));
 
         return view;
     }
