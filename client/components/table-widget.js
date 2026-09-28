@@ -362,19 +362,33 @@ function createTableDataView(options, col) {
                         "/" + theProp().id()
                     );
 
-                    return m("a", {
-                        href: url,
-                        onclick: function (e) {
-                            theVm.canToggle(false);
-                            e.preventDefault();
-                            m.route.set("/edit/:feather/:key", {
-                                feather: type,
-                                key: theProp().id()
-                            }, {
-                                state: {}
-                            });
-                        }
-                    }, theValue);
+                    return [
+                        m("span", {
+                            class: "fb-relation-value"
+                        }, theValue),
+                        m("a", {
+                            class: "fb-relation-open",
+                            href: url,
+                            title: "Open " + (theValue || "record"),
+                            onclick: function (e) {
+                                theVm.canToggle(false);
+                                e.preventDefault();
+                                m.route.set("/edit/:feather/:key", {
+                                    feather: type,
+                                    key: theProp().id()
+                                }, {
+                                    state: {}
+                                });
+                            }
+                        }, [
+                            m("i", {
+                                class: (
+                                    "material-icons-outlined " +
+                                    "fb-relation-open-icon"
+                                )
+                            }, "open_in_new")
+                        ])
+                    ];
                 }
             };
         }
@@ -2932,7 +2946,9 @@ tableWidget.component = {
                     style: {
                         minWidth: "25px",
                         fontSize: theZoom,
-                        color: "White" // Hack to get default height
+                        // Hack to get default height; invisible
+                        // against the footer's own background
+                        color: "var(--fb-surface)"
                     }
                 }, "-"));
 

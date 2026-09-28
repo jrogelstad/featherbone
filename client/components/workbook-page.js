@@ -1627,7 +1627,7 @@ workbookPage.component = {
 
             if (csheet && f.hiddenFeathers().indexOf(csheet.feather) !== -1) {
                 if (f.currentUser().isSuper) {
-                    tabOpts.style = {color: "red"};
+                    tabOpts.style = {color: "var(--fb-danger)"};
                     tabOpts.title = (
                         "Feather hidden: " +
                         "this tab is only visible to super users"

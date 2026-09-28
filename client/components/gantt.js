@@ -60,7 +60,7 @@ gantt.viewModel = function (options) {
         icon: "sync",
         title: "Refresh",
         class: "fb-icon-button",
-        style: {backgroundColor: "white"}
+        style: {backgroundColor: "var(--fb-surface)"}
     }));
 
     return vm;

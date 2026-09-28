@@ -434,7 +434,7 @@ dataType.viewModel = function (options) {
         icon: "chevron_right",
         style: {
             display: "block",
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
 
@@ -443,7 +443,7 @@ dataType.viewModel = function (options) {
         title: "Remove",
         icon: "chevron_left",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
 
