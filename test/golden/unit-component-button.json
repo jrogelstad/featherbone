@@ -24,7 +24,10 @@
       ]
     },
     {
-      "fragment": [
+      "attrs": {
+        "class": "fb-button-label"
+      },
+      "children": [
         {
           "attrs": {
             "style": {
@@ -42,7 +45,8 @@
           ],
           "tag": "span"
         }
-      ]
+      ],
+      "tag": "span"
     }
   ],
   "tag": "button"

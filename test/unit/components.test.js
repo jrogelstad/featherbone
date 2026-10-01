@@ -100,12 +100,12 @@ describe("client components", function () {
             "autonumber", "button", "changePasswordPage", "checkEmailPage",
             "checkbox", "childFormPage", "childTable", "confirmCodePage",
             "contactRelation", "dataList", "dataType", "dialog",
-            "filterDialog", "formDialog", "formPage", "formWidget", "gantt",
+            "envBanner", "filterDialog", "formDialog", "formPage", "formWidget", "gantt",
             "helpLinkRelation", "moneyRelation", "navigatorMenu",
             "relationWidget", "resendCodePage", "resourceLinkRelation",
             "searchInput", "searchPage", "sendMailPage", "settingsPage",
             "signInPage", "sortDialog", "tableDialog", "tableWidget",
-            "urlWidget", "workbookPage"
+            "toolbar", "urlWidget", "workbookPage"
         ]);
         assert.deepEqual(Object.keys(vms).sort(), [
             "accountMenu", "aggregateDialog", "button", "childFormPage",
@@ -113,7 +113,7 @@ describe("client components", function () {
             "formDialog", "formWidget", "gantt", "helpLinkRelation",
             "navigatorMenu", "relationWidget", "resourceLinkRelation",
             "searchInput", "searchPage", "sortDialog", "tableDialog",
-            "tableWidget"
+            "tableWidget", "toolbar"
         ]);
     });
 
@@ -285,7 +285,11 @@ describe("client components", function () {
             assert.ok(byLabel["Amount:"].tags.includes("select"),
                     "money has a currency selector");
             assert.ok(byLabel["Address:"].tags.includes("textarea"));
-            assert.ok(byLabel["Plan:"].tags.includes("canvas"), "gantt");
+            let planGroup = R.findAll(
+                out.tree,
+                R.byClass("pure-control-group")
+            ).find((g) => R.text(R.find(g, R.byTag("label"))) === "Plan:");
+            assert.ok(R.find(planGroup, R.byClass("fb-gantt")), "gantt");
             assert.deepEqual(byLabel["When:"].inputs, ["date#when"]);
             assert.deepEqual(byLabel["At:"].inputs, ["datetime-local#at"]);
             assert.deepEqual(byLabel["Email:"].inputs, ["text#email"],
@@ -346,9 +350,19 @@ describe("client components", function () {
                 onclick: (v) => clicked.push(v)
             }).tree;
             let input = R.find(tree, R.byTag("input"));
+            assert.equal(input.attrs.type, "checkbox");
             assert.equal(input.attrs.checked, true);
             assert.equal(input.attrs.disabled, true);
-            assert.equal(R.find(tree, R.byTag("label")).attrs.for, "cb");
+            assert.equal(R.find(tree, R.byTag("label")), undefined);
+
+            tree = R.render(comps.checkbox, {
+                id: "cb2",
+                value: false,
+                label: "Active",
+                onclick: (v) => clicked.push(v)
+            }).tree;
+            assert.equal(R.find(tree, R.byTag("label")).attrs.for, "cb2");
+            assert.equal(R.text(R.find(tree, R.byTag("label"))), "Active");
         });
 
         it("money-relation.js shows amount and currency", function () {
@@ -429,10 +443,10 @@ describe("client components", function () {
             assert.ok(R.find(tree, R.byTag("datalist")));
         });
 
-        it("gantt.js renders its toolbar and canvas", function () {
+        it("gantt.js renders its toolbar and chart container", function () {
             let tree = editor("gantt", "plan");
-            assert.ok(R.find(tree, R.byTag("canvas")) ||
-                    R.text(tree).includes("View mode"));
+            assert.ok(R.find(tree, R.byClass("fb-gantt")), "SVG chart host");
+            assert.ok(R.text(tree).includes("View mode"));
             assert.ok(R.text(tree).includes("Show links"));
         });
     });
@@ -522,7 +536,7 @@ describe("client components", function () {
             let titles = buttons(out.tree).map((b) => b.title);
             assert.deepEqual(titles.slice(0, 6), [
                 "Insert (Alt + I)", "Delete (Alt + D)", "Undo (Alt + U)",
-                "Open (Alt + O)", "Move down", "Move up"
+                "Open (Alt + O)", "Move up", "Move down"
             ]);
             assert.ok(R.text(out.tree).includes("Product"));
         });

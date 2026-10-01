@@ -411,11 +411,55 @@ describe("user accounts", function () {
         let user;
         let other;
         let session;
+        let savedGrants = [];
+
+        // These tests check the code's authorization, so they need the
+        // grants a fresh install gives "everyone" on Role (read only) and
+        // UserAccount (none). A database whose administrators widened
+        // those grants would otherwise fail them for a data reason. Only
+        // the throwaway copy is changed, and it is put back afterwards.
+        const GRANT_FEATHERS = ["role", "user_account"];
 
         before(async function () {
+            let resp = await db.query(
+                "SELECT a.object_pk, a.role, a.can_create, a.can_read, " +
+                "  a.can_update, a.can_delete " +
+                "FROM \"$auth\" a JOIN \"$feather\" f ON f._pk = a.object_pk " +
+                "WHERE f.id = ANY($1) AND a.role = 'everyone'",
+                [GRANT_FEATHERS]
+            );
+            savedGrants = resp.rows;
+            await db.query(
+                "DELETE FROM \"$auth\" a USING \"$feather\" f " +
+                "WHERE f._pk = a.object_pk AND f.id = ANY($1) " +
+                "  AND a.role = 'everyone'",
+                [GRANT_FEATHERS]
+            );
+            await db.query(
+                "INSERT INTO \"$auth\" (object_pk, role, can_create, " +
+                "  can_read, can_update, can_delete) " +
+                "SELECT _pk, 'everyone', false, true, false, false " +
+                "FROM \"$feather\" WHERE id = 'role'"
+            );
             user = await access.createUser(admin);
             other = await access.createUser(admin);
             session = await signedIn(user.name, user.password);
+        });
+
+        after(async function () {
+            await db.query(
+                "DELETE FROM \"$auth\" a USING \"$feather\" f " +
+                "WHERE f._pk = a.object_pk AND f.id = ANY($1) " +
+                "  AND a.role = 'everyone'",
+                [GRANT_FEATHERS]
+            );
+            await Promise.all(savedGrants.map((g) => db.query(
+                "INSERT INTO \"$auth\" (object_pk, role, can_create, " +
+                "  can_read, can_update, can_delete) " +
+                "VALUES ($1, $2, $3, $4, $5, $6)",
+                [g.object_pk, g.role, g.can_create, g.can_read,
+                        g.can_update, g.can_delete]
+            )));
         });
 
         it("cannot make themselves a super user", async function () {

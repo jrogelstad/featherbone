@@ -47,7 +47,7 @@
                     "id": "<id>",
                     "onclick": "<fn>",
                     "style": {
-                      "backgroundColor": "white"
+                      "backgroundColor": "var(--fb-surface)"
                     },
                     "type": "button"
                   },
@@ -65,7 +65,15 @@
                         }
                       ]
                     },
-                    "Add"
+                    {
+                      "attrs": {
+                        "class": "fb-button-label"
+                      },
+                      "children": [
+                        "Add"
+                      ],
+                      "tag": "span"
+                    }
                   ],
                   "tag": "button"
                 }
@@ -81,7 +89,7 @@
                     "id": "<id>",
                     "onclick": "<fn>",
                     "style": {
-                      "backgroundColor": "white"
+                      "backgroundColor": "var(--fb-surface)"
                     },
                     "type": "button"
                   },
@@ -99,7 +107,15 @@
                         }
                       ]
                     },
-                    "Remove"
+                    {
+                      "attrs": {
+                        "class": "fb-button-label"
+                      },
+                      "children": [
+                        "Remove"
+                      ],
+                      "tag": "span"
+                    }
                   ],
                   "tag": "button"
                 }
@@ -110,12 +126,12 @@
               "children": [
                 {
                   "attrs": {
-                    "class": "pure-button fb-icon-button  ",
+                    "class": "pure-button fb-icon-only fb-icon-button  ",
                     "disabled": false,
                     "id": "<id>",
                     "onclick": "<fn>",
                     "style": {
-                      "backgroundColor": "white"
+                      "backgroundColor": "var(--fb-surface)"
                     },
                     "title": "Clear",
                     "type": "button"
@@ -133,8 +149,7 @@
                           "tag": "i"
                         }
                       ]
-                    },
-                    ""
+                    }
                   ],
                   "tag": "button"
                 }
@@ -145,12 +160,12 @@
               "children": [
                 {
                   "attrs": {
-                    "class": "pure-button fb-button-disabled fb-icon-button  ",
+                    "class": "pure-button fb-button-disabled fb-icon-only fb-icon-button  ",
                     "disabled": true,
                     "id": "<id>",
                     "onclick": "<fn>",
                     "style": {
-                      "backgroundColor": "white",
+                      "backgroundColor": "var(--fb-surface)",
                       "float": "right"
                     },
                     "title": "Move down",
@@ -169,8 +184,7 @@
                           "tag": "i"
                         }
                       ]
-                    },
-                    ""
+                    }
                   ],
                   "tag": "button"
                 }
@@ -181,12 +195,12 @@
               "children": [
                 {
                   "attrs": {
-                    "class": "pure-button fb-button-disabled fb-icon-button  ",
+                    "class": "pure-button fb-button-disabled fb-icon-only fb-icon-button  ",
                     "disabled": true,
                     "id": "<id>",
                     "onclick": "<fn>",
                     "style": {
-                      "backgroundColor": "white",
+                      "backgroundColor": "var(--fb-surface)",
                       "float": "right"
                     },
                     "title": "Move up",
@@ -205,8 +219,7 @@
                           "tag": "i"
                         }
                       ]
-                    },
-                    ""
+                    }
                   ],
                   "tag": "button"
                 }
@@ -551,14 +564,15 @@
                 "onclick": "<fn>",
                 "oncreate": "<fn>",
                 "onremove": "<fn>",
-                "style": {
-                  "paddingTop": "8px"
-                },
+                "style": {},
                 "type": "button"
               },
               "children": [
                 {
-                  "fragment": [
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
                     {
                       "attrs": {
                         "style": {
@@ -576,7 +590,8 @@
                       ],
                       "tag": "span"
                     }
-                  ]
+                  ],
+                  "tag": "span"
                 }
               ],
               "tag": "button"
@@ -594,15 +609,16 @@
                 "onclick": "<fn>",
                 "oncreate": "<fn>",
                 "onremove": "<fn>",
-                "style": {
-                  "paddingTop": "8px"
-                },
+                "style": {},
                 "title": "Alt + C",
                 "type": "button"
               },
               "children": [
                 {
-                  "fragment": [
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
                     {
                       "attrs": {
                         "style": {
@@ -620,7 +636,8 @@
                       ],
                       "tag": "span"
                     }
-                  ]
+                  ],
+                  "tag": "span"
                 }
               ],
               "tag": "button"
@@ -653,7 +670,15 @@
                     }
                   ]
                 },
-                "Show Deleted"
+                {
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
+                    "Show Deleted"
+                  ],
+                  "tag": "span"
+                }
               ],
               "tag": "button"
             }
