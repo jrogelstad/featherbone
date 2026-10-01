@@ -345,12 +345,16 @@ describe("database schema", function () {
             matchGolden("schema-tables", out, KEEP_ALL);
         });
 
+        // Columns are compared in name order: CREATE OR REPLACE VIEW can
+        // only append columns, so a database upgraded over several
+        // versions has the same columns as a fresh install in another
+        // order.
         it("views and their columns", async function () {
             let resp = await db.query(
                 "SELECT c.relname AS v, " +
                 "  string_agg(a.attname || ' ' || " +
                 "    format_type(a.atttypid, a.atttypmod), ', ' " +
-                "    ORDER BY a.attnum) AS cols " +
+                "    ORDER BY a.attname) AS cols " +
                 "FROM pg_class c " +
                 "JOIN pg_namespace n ON n.oid = c.relnamespace " +
                 "JOIN pg_attribute a ON a.attrelid = c.oid " +
