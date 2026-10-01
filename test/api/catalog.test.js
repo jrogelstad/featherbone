@@ -77,17 +77,31 @@ function propertySignature(p, owner) {
     if (p.default !== undefined && p.default !== null && p.default !== "") {
         sig += " default=" + JSON.stringify(p.default);
     }
-    if (p.precision !== undefined) {
+    // The feather editor (client/models/feather.js, type change) writes
+    // precision/scale -1 and min/max 0 on non-numeric properties to mean
+    // "not applicable"; installed feathers leave them out. Treat both the
+    // same so a feather saved through the UI matches a fresh install.
+    // On number and integer properties these values are real settings
+    // (min 0 rejects negatives, see model.js validation), so keep them.
+    let numeric = (t === "number" || t === "integer");
+    let notApplicable = function (key, value) {
+        return !numeric && p[key] === value;
+    };
+    if (p.precision !== undefined && !notApplicable("precision", -1)) {
         sig += " numeric(" + p.precision + "," + p.scale + ")";
     }
-    if (p.min !== undefined) {
+    if (p.min !== undefined && !notApplicable("min", 0)) {
         sig += " min=" + p.min;
     }
-    if (p.max !== undefined) {
+    if (p.max !== undefined && !notApplicable("max", 0)) {
         sig += " max=" + p.max;
     }
     if (p.autonumber) {
-        sig += " autonumber=" + JSON.stringify(p.autonumber);
+        // Key order depends on how the catalog was stored (json vs jsonb)
+        sig += " autonumber=" + JSON.stringify(
+            p.autonumber,
+            Object.keys(p.autonumber).sort()
+        );
     }
     if (Array.isArray(p.dataList)) {
         sig += " list=" + p.dataList.map(
@@ -175,11 +189,16 @@ describe("catalog endpoints", function () {
             assert.equal(cat.properties.code.inheritedFrom, "Kind");
             assert.equal(cat.properties.code.isNaturalKey, true);
             assert.equal(cat.properties.parent.inheritedFrom, "Category");
-            assert.deepEqual(cat.properties.parent.type, {
-                relation: "Kind",
-                properties: ["code", "description"],
-                isChild: false
-            });
+            // isChild: false is written by some install paths and left
+            // out by others; both mean the same thing.
+            assert.deepEqual(
+                Object.assign({isChild: false}, cat.properties.parent.type),
+                {
+                    relation: "Kind",
+                    properties: ["code", "description"],
+                    isChild: false
+                }
+            );
         });
 
         it("merges SupplyChain feathers (Product <- Item)", async function () {

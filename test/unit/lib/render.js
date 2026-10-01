@@ -149,12 +149,23 @@ function toJSON(node) {
     return out;
 }
 
+// The toolbar renders an invisible copy of every button only to measure
+// widths (toolbar.js measureNode). Those copies are not what a user sees
+// or clicks, so searches skip them; golden snapshots (toJSON) keep them.
+function isMeasureOnly(node) {
+    let c = node.attrs && (node.attrs.className || node.attrs.class);
+    return (
+        typeof c === "string" &&
+        c.split(/\s+/).includes("fb-toolbar-measure")
+    );
+}
+
 function walk(node, fn) {
     if (Array.isArray(node)) {
         node.forEach((n) => walk(n, fn));
         return;
     }
-    if (!node || typeof node !== "object") {
+    if (!node || typeof node !== "object" || isMeasureOnly(node)) {
         return;
     }
     fn(node);
