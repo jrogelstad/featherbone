@@ -1,0 +1,664 @@
+[
+  {
+    "description": "Alert settings",
+    "module": "Common",
+    "name": "alertSettings",
+    "properties": {
+      "emailTo": {
+        "description": "Email addresses of alert recipients",
+        "format": "email",
+        "type": "string"
+      },
+      "severity": {
+        "dataList": [
+          {
+            "label": "Information",
+            "value": "Information"
+          },
+          {
+            "label": "Warning",
+            "value": "Warning"
+          },
+          {
+            "label": "Critical",
+            "value": "Critical"
+          }
+        ],
+        "default": "Information",
+        "description": "Email alerts at or above this severity",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "description": "Bill settings",
+    "module": "Bill",
+    "name": "billSettings",
+    "properties": {
+      "mailText": {
+        "description": "Default message text for invoice email",
+        "format": "textArea",
+        "type": "string"
+      },
+      "onCreate": {
+        "dataList": [
+          {
+            "label": "Do nothing",
+            "value": "N"
+          },
+          {
+            "label": "Email",
+            "value": "E"
+          },
+          {
+            "label": "Download",
+            "value": "D"
+          },
+          {
+            "label": "Open Invoice",
+            "value": "I"
+          },
+          {
+            "label": "Open PDF",
+            "value": "O"
+          },
+          {
+            "label": "Print",
+            "value": "P"
+          }
+        ],
+        "default": "N",
+        "description": "Select what to do on create shipment invoice",
+        "type": "string"
+      },
+      "prepaidInvoice": {
+        "description": "Standard invoice print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "shipmentInvoice": {
+        "description": "Standard invoice print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "standardInvoice": {
+        "description": "Standard invoice print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      }
+    }
+  },
+  {
+    "description": "Buy settings",
+    "module": "Buy",
+    "name": "buySettings",
+    "properties": {
+      "mailText": {
+        "description": "Default message text for emailed purchase orders",
+        "format": "richText",
+        "type": "string"
+      },
+      "onRelease": {
+        "dataList": [
+          {
+            "label": "Do nothing",
+            "value": "N"
+          },
+          {
+            "label": "Email",
+            "value": "E"
+          },
+          {
+            "label": "Download",
+            "value": "D"
+          },
+          {
+            "label": "Open PDF",
+            "value": "O"
+          },
+          {
+            "label": "Print",
+            "value": "P"
+          }
+        ],
+        "default": "N",
+        "description": "Select what to do on purchase order release",
+        "type": "string"
+      },
+      "packingSlip": {
+        "description": "Packing slip print form for outside processes",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "printOnShip": {
+        "description": "Print packing slip when shipment is shipped",
+        "type": "boolean"
+      },
+      "purchaseOrder": {
+        "description": "Purchase order print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      }
+    }
+  },
+  {
+    "description": "Common settings",
+    "module": "Common",
+    "name": "commonSettings",
+    "properties": {
+      "costDecimals": {
+        "default": 2,
+        "description": "Decimal places on costs",
+        "max": 6,
+        "min": 0,
+        "type": "integer"
+      },
+      "purchasePriceDecimals": {
+        "default": 2,
+        "description": "Decimal places on purchase prices",
+        "max": 6,
+        "min": 0,
+        "type": "integer"
+      },
+      "salesPriceDecimals": {
+        "default": 2,
+        "description": "Decimal places on sales prices",
+        "max": 6,
+        "min": 0,
+        "type": "integer"
+      }
+    }
+  },
+  {
+    "description": "Count settings",
+    "module": "Count",
+    "name": "countSettings",
+    "properties": {
+      "countForm": {
+        "description": "Physical count list print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "recountForm": {
+        "description": "Physical recount print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      }
+    }
+  },
+  {
+    "description": "Design settings",
+    "module": "Design",
+    "name": "designSettings",
+    "properties": {
+      "defaultIssueMethod": {
+        "dataList": [
+          {
+            "label": "Backflush",
+            "value": "B"
+          },
+          {
+            "label": "Manual",
+            "value": "M"
+          }
+        ],
+        "default": "B",
+        "description": "The default setting on products for the way work order materials are issued",
+        "type": "string"
+      },
+      "defaultManufacturePlanningPolicy": {
+        "dataList": [
+          {
+            "label": "Make to order",
+            "value": "M"
+          },
+          {
+            "label": "Plan to order",
+            "value": "L"
+          },
+          {
+            "label": "Reorder point",
+            "value": "R"
+          }
+        ],
+        "default": "M",
+        "description": "The default planning policy for manufactured products",
+        "type": "string"
+      },
+      "defaultPurchasePlanningPolicy": {
+        "dataList": [
+          {
+            "label": "Plan to order",
+            "value": "L"
+          },
+          {
+            "label": "Reorder point",
+            "value": "R"
+          }
+        ],
+        "default": "L",
+        "description": "The default planning policy for purchased products",
+        "type": "string"
+      },
+      "defaultSite": {
+        "description": "The default primary site for new products",
+        "type": {
+          "properties": [
+            "code",
+            "description"
+          ],
+          "relation": "Site"
+        }
+      }
+    }
+  },
+  {
+    "description": "Global settings",
+    "module": "Core",
+    "name": "globalSettings",
+    "properties": {
+      "city": {
+        "description": "City on printed forms",
+        "type": "string"
+      },
+      "country": {
+        "default": "United States",
+        "description": "Country on printed forms",
+        "type": "string"
+      },
+      "logo": {
+        "description": "User defined logo",
+        "type": {
+          "properties": [
+            "icon",
+            "label",
+            "resource",
+            "displayValue"
+          ],
+          "relation": "ResourceLink"
+        }
+      },
+      "name": {
+        "description": "Organization name on printed forms",
+        "type": "string"
+      },
+      "phone": {
+        "description": "Phone on printed forms",
+        "format": "tel",
+        "type": "string"
+      },
+      "postalCode": {
+        "description": "Postal code on printed forms",
+        "type": "string"
+      },
+      "smtpHost": {
+        "description": "SMTP host address",
+        "type": "string"
+      },
+      "smtpPassword": {
+        "description": "SMTP password",
+        "format": "password",
+        "isEncrypted": true,
+        "type": "string"
+      },
+      "smtpPort": {
+        "default": 465,
+        "description": "SMTP port",
+        "type": "integer"
+      },
+      "smtpSecure": {
+        "default": true,
+        "description": "Whether SMTP connection is secure",
+        "type": "boolean"
+      },
+      "smtpType": {
+        "dataList": [
+          {
+            "label": "No SMTP in use",
+            "value": "None"
+          },
+          {
+            "label": "Standard SMTP connection",
+            "value": "SMTP"
+          },
+          {
+            "label": "Google Gmail",
+            "value": "Gmail"
+          }
+        ],
+        "default": "None",
+        "description": "SMTP connection method",
+        "format": "enum",
+        "isRequired": true,
+        "type": "string"
+      },
+      "smtpUser": {
+        "description": "SMTP email account",
+        "type": "string"
+      },
+      "state": {
+        "description": "State or province on printed forms",
+        "type": "string"
+      },
+      "street": {
+        "description": "Street address on printed forms",
+        "type": "string"
+      },
+      "unit": {
+        "description": "Unit on printed forms",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "description": "Job shop settings",
+    "module": "JobShop",
+    "name": "jobShopSettings",
+    "properties": {
+      "edition": {
+        "dataList": [
+          {
+            "label": "Standard",
+            "value": "Standard"
+          },
+          {
+            "label": "Professional",
+            "value": "Professional"
+          },
+          {
+            "label": "Enterprise",
+            "value": "Enterprise"
+          }
+        ],
+        "default": "Standard",
+        "description": "Edition set to",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "description": "Make settings",
+    "module": "Make",
+    "name": "makeSettings",
+    "properties": {
+      "automaticClose": {
+        "default": true,
+        "description": "Close work orders automatically when all quantities are received",
+        "type": "boolean"
+      },
+      "defaultStatus": {
+        "dataList": [
+          {
+            "label": "Pending",
+            "value": "P"
+          },
+          {
+            "label": "Active",
+            "value": "A"
+          }
+        ],
+        "default": "P",
+        "description": "Default status for new work orders",
+        "type": "string"
+      },
+      "printOnRelease": {
+        "description": "Print traveler when work order is released",
+        "type": "boolean"
+      },
+      "traveler": {
+        "description": "Work order traveler print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      }
+    }
+  },
+  {
+    "description": "plan settings",
+    "module": "Plan",
+    "name": "planSettings",
+    "properties": {
+      "shippingBuffer": {
+        "description": "Time buffer between when supply and shipment is planned",
+        "type": "integer"
+      }
+    }
+  },
+  {
+    "description": "Project settings",
+    "module": "Tracker",
+    "name": "projectSettings",
+    "properties": {
+      "projectForm": {
+        "description": "Project print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      }
+    }
+  },
+  {
+    "description": "Sell settings",
+    "module": "Sell",
+    "name": "sellSettings",
+    "properties": {
+      "confirmation": {
+        "description": "Sales order confirmation print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "mailText": {
+        "description": "Default message text for email confirmations",
+        "format": "richText",
+        "type": "string"
+      },
+      "onRelease": {
+        "dataList": [
+          {
+            "label": "Do nothing",
+            "value": "N"
+          },
+          {
+            "label": "Email",
+            "value": "E"
+          },
+          {
+            "label": "Download",
+            "value": "D"
+          },
+          {
+            "label": "Open PDF",
+            "value": "O"
+          },
+          {
+            "label": "Print",
+            "value": "P"
+          }
+        ],
+        "default": "N",
+        "description": "Select what to do on sales order release",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "description": "Ship engine settings",
+    "module": "ShipEngine",
+    "name": "shipEngineSettings",
+    "properties": {
+      "apiKey": {
+        "description": "The account key for the ship engine interface",
+        "format": "textArea",
+        "isEncrypted": true,
+        "type": "string"
+      },
+      "createLabelOnShip": {
+        "description": "Create and print shipping label when shipped",
+        "type": "boolean"
+      },
+      "shipWeightUnit": {
+        "dataList": [
+          {
+            "label": "Pounds",
+            "value": "pound"
+          },
+          {
+            "label": "Ounces",
+            "value": "ounce"
+          },
+          {
+            "label": "Grams",
+            "value": "gram"
+          },
+          {
+            "label": "Kilograms",
+            "value": "kilogram"
+          }
+        ],
+        "description": "Shipping weight unit of measure",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "description": "Ship settings",
+    "module": "Ship",
+    "name": "shipSettings",
+    "properties": {
+      "packingSlip": {
+        "description": "Packing slip print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "pickList": {
+        "description": "Pick list print form",
+        "type": {
+          "properties": [
+            "name",
+            "description",
+            "title",
+            "feather"
+          ],
+          "relation": "PrintForm"
+        }
+      },
+      "printOnRelease": {
+        "description": "Print picklist when sales order is released",
+        "type": "boolean"
+      },
+      "printOnShip": {
+        "description": "Print packing slip when shipment is shipped",
+        "type": "boolean"
+      },
+      "useBackOrder": {
+        "default": true,
+        "description": "Put partially shipped orders in back order status",
+        "type": "boolean"
+      }
+    }
+  },
+  {
+    "description": "Stock settings",
+    "module": "Stock",
+    "name": "stockSettings",
+    "properties": {
+      "weightUnit": {
+        "dataList": [
+          {
+            "label": "Pound",
+            "value": "lb"
+          },
+          {
+            "label": "Ounce",
+            "value": "oz"
+          },
+          {
+            "label": "Grams",
+            "value": "g"
+          },
+          {
+            "label": "Kilogram",
+            "value": "kg"
+          }
+        ],
+        "description": "Weight unit of measure for items used for shipping weight calculations",
+        "type": "string"
+      }
+    }
+  }
+]

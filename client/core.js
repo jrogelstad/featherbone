@@ -987,11 +987,30 @@ formats.richText.editor = function (options) {
         oncreate: function (vnode) {
             let e = document.getElementById(vnode.dom.id);
             let prop = options.prop;
+            let isDark = window.matchMedia(
+                "(prefers-color-scheme: dark)"
+            ).matches;
 
+            // TinyMCE has no CSS-variable hook of its own, so it's told
+            // which prebuilt skin/content stylesheet to use up front
+            // (both already ship in node_modules -- see server.js's
+            // static dirs). This is decided once, at editor creation;
+            // an editor already open won't re-skin itself if the OS
+            // theme changes mid-session.
             tinymce.init({
                 target: e,
                 height: 500,
                 license_key: "gpl",
+                skin: (
+                    isDark
+                    ? "oxide-dark"
+                    : "oxide"
+                ),
+                content_css: (
+                    isDark
+                    ? "dark"
+                    : "default"
+                ),
                 setup: function (editor) {
                     editor.on("change", function (e) {
                         prop(e.level.content);
@@ -1033,6 +1052,7 @@ formats.url.tableData = function (obj) {
     return m("a", {
         href: url,
         target: "_blank",
+        class: "fb-link",
         onclick: function () {
             obj.viewModel.canToggle(false);
         }
@@ -1471,7 +1491,11 @@ f.types.resourceLink.tableData = function (obj, decorator) {
     if (decorator) {
         return decorator(obj, rec, icon, label);
     } else {
-        return m("a", {href: rec, target: "_blank"}, icon, label);
+        return m("a", {
+            href: rec,
+            target: "_blank",
+            class: "fb-link"
+        }, icon, label);
     }
 };
 f.types.helpLink = {};

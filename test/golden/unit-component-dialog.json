@@ -1,0 +1,147 @@
+{
+  "attrs": {
+    "class": "fb-dialog",
+    "id": "<id>",
+    "onupdate": "<fn>",
+    "style": {
+      "width": "500px"
+    }
+  },
+  "children": [
+    {
+      "attrs": {
+        "class": "fb-header",
+        "id": "<id>"
+      },
+      "children": [
+        {
+          "fragment": [
+            {
+              "attrs": {
+                "class": "material-icons-outlined fb-dialog-icon"
+              },
+              "children": [
+                "help_outline"
+              ],
+              "tag": "i"
+            }
+          ]
+        },
+        "Confirm"
+      ],
+      "tag": "h3"
+    },
+    {
+      "attrs": {
+        "class": "fb-dialog-content-frame"
+      },
+      "children": [
+        {
+          "attrs": {
+            "id": "<id>"
+          },
+          "children": [
+            "Are you sure?"
+          ],
+          "tag": "div"
+        },
+        {
+          "tag": "br"
+        },
+        {
+          "children": [
+            {
+              "attrs": {
+                "class": "pure-button fb-dialog-button  pure-button-primary ",
+                "disabled": false,
+                "id": "<id>",
+                "onclick": "<fn>",
+                "oncreate": "<fn>",
+                "onremove": "<fn>",
+                "style": {},
+                "type": "button"
+              },
+              "children": [
+                {
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
+                    {
+                      "attrs": {
+                        "style": {
+                          "textDecoration": "underline"
+                        }
+                      },
+                      "children": [
+                        "O"
+                      ],
+                      "tag": "span"
+                    },
+                    {
+                      "children": [
+                        "k"
+                      ],
+                      "tag": "span"
+                    }
+                  ],
+                  "tag": "span"
+                }
+              ],
+              "tag": "button"
+            }
+          ],
+          "component": true
+        },
+        {
+          "children": [
+            {
+              "attrs": {
+                "class": "pure-button fb-dialog-button  ",
+                "disabled": false,
+                "id": "<id>",
+                "onclick": "<fn>",
+                "oncreate": "<fn>",
+                "onremove": "<fn>",
+                "style": {},
+                "title": "Alt + C",
+                "type": "button"
+              },
+              "children": [
+                {
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
+                    {
+                      "attrs": {
+                        "style": {
+                          "textDecoration": "underline"
+                        }
+                      },
+                      "children": [
+                        "C"
+                      ],
+                      "tag": "span"
+                    },
+                    {
+                      "children": [
+                        "ancel"
+                      ],
+                      "tag": "span"
+                    }
+                  ],
+                  "tag": "span"
+                }
+              ],
+              "tag": "button"
+            }
+          ],
+          "component": true
+        }
+      ],
+      "tag": "div"
+    }
+  ],
+  "tag": "dialog"
+}

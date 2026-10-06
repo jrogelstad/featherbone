@@ -419,7 +419,7 @@ tableDialog.viewModel = function (options) {
         icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     });
 
@@ -429,7 +429,7 @@ tableDialog.viewModel = function (options) {
         icon: "remove_circle_outline",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     });
 
@@ -439,7 +439,7 @@ tableDialog.viewModel = function (options) {
         icon: "clear",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     });
 
@@ -449,7 +449,7 @@ tableDialog.viewModel = function (options) {
         title: "Move up",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white",
+            backgroundColor: "var(--fb-surface)",
             float: "right"
         }
     });
@@ -460,7 +460,7 @@ tableDialog.viewModel = function (options) {
         title: "Move down",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white",
+            backgroundColor: "var(--fb-surface)",
             float: "right"
         }
     });

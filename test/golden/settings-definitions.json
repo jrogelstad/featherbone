@@ -1,0 +1,151 @@
+{
+  "alertSettings": {
+    "encrypted": [],
+    "module": "Common",
+    "properties": [
+      "emailTo",
+      "severity"
+    ]
+  },
+  "billSettings": {
+    "encrypted": [],
+    "module": "Bill",
+    "properties": [
+      "mailText",
+      "onCreate",
+      "prepaidInvoice",
+      "shipmentInvoice",
+      "standardInvoice"
+    ]
+  },
+  "buySettings": {
+    "encrypted": [],
+    "module": "Buy",
+    "properties": [
+      "mailText",
+      "onRelease",
+      "packingSlip",
+      "printOnShip",
+      "purchaseOrder"
+    ]
+  },
+  "commonSettings": {
+    "encrypted": [],
+    "module": "Common",
+    "properties": [
+      "costDecimals",
+      "purchasePriceDecimals",
+      "salesPriceDecimals"
+    ]
+  },
+  "countSettings": {
+    "encrypted": [],
+    "module": "Count",
+    "properties": [
+      "countForm",
+      "recountForm"
+    ]
+  },
+  "designSettings": {
+    "encrypted": [],
+    "module": "Design",
+    "properties": [
+      "defaultIssueMethod",
+      "defaultManufacturePlanningPolicy",
+      "defaultPurchasePlanningPolicy",
+      "defaultSite"
+    ]
+  },
+  "globalSettings": {
+    "encrypted": [
+      "smtpPassword"
+    ],
+    "module": "Core",
+    "properties": [
+      "city",
+      "country",
+      "logo",
+      "name",
+      "phone",
+      "postalCode",
+      "smtpHost",
+      "smtpPassword",
+      "smtpPort",
+      "smtpSecure",
+      "smtpType",
+      "smtpUser",
+      "state",
+      "street",
+      "unit"
+    ]
+  },
+  "jobShopSettings": {
+    "encrypted": [],
+    "module": "JobShop",
+    "properties": [
+      "edition"
+    ]
+  },
+  "makeSettings": {
+    "encrypted": [],
+    "module": "Make",
+    "properties": [
+      "automaticClose",
+      "defaultStatus",
+      "printOnRelease",
+      "traveler"
+    ]
+  },
+  "planSettings": {
+    "encrypted": [],
+    "module": "Plan",
+    "properties": [
+      "shippingBuffer"
+    ]
+  },
+  "projectSettings": {
+    "encrypted": [],
+    "module": "Tracker",
+    "properties": [
+      "projectForm"
+    ]
+  },
+  "sellSettings": {
+    "encrypted": [],
+    "module": "Sell",
+    "properties": [
+      "confirmation",
+      "mailText",
+      "onRelease"
+    ]
+  },
+  "shipEngineSettings": {
+    "encrypted": [
+      "apiKey"
+    ],
+    "module": "ShipEngine",
+    "properties": [
+      "apiKey",
+      "createLabelOnShip",
+      "shipWeightUnit"
+    ]
+  },
+  "shipSettings": {
+    "encrypted": [],
+    "module": "Ship",
+    "properties": [
+      "packingSlip",
+      "pickList",
+      "printOnRelease",
+      "printOnShip",
+      "useBackOrder"
+    ]
+  },
+  "stockSettings": {
+    "encrypted": [],
+    "module": "Stock",
+    "properties": [
+      "weightUnit"
+    ]
+  }
+}

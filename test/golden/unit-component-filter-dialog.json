@@ -1,0 +1,693 @@
+{
+  "attrs": {
+    "class": "fb-dialog",
+    "id": "<id>",
+    "onupdate": "<fn>",
+    "style": {
+      "width": "750px"
+    }
+  },
+  "children": [
+    {
+      "attrs": {
+        "class": "fb-header",
+        "id": "<id>"
+      },
+      "children": [
+        {
+          "fragment": [
+            {
+              "attrs": {
+                "class": "material-icons-outlined fb-dialog-icon"
+              },
+              "children": [
+                "filter_list"
+              ],
+              "tag": "i"
+            }
+          ]
+        },
+        "Filter"
+      ],
+      "tag": "h3"
+    },
+    {
+      "attrs": {
+        "class": "fb-dialog-content-frame"
+      },
+      "children": [
+        {
+          "fragment": [
+            {
+              "children": [
+                {
+                  "attrs": {
+                    "class": "pure-button fb-icon-button  ",
+                    "disabled": false,
+                    "id": "<id>",
+                    "onclick": "<fn>",
+                    "style": {
+                      "backgroundColor": "var(--fb-surface)"
+                    },
+                    "type": "button"
+                  },
+                  "children": [
+                    {
+                      "fragment": [
+                        {
+                          "attrs": {
+                            "class": "material-icons-outlined fb-button-icon"
+                          },
+                          "children": [
+                            "add_circle_outline"
+                          ],
+                          "tag": "i"
+                        }
+                      ]
+                    },
+                    {
+                      "attrs": {
+                        "class": "fb-button-label"
+                      },
+                      "children": [
+                        "Add"
+                      ],
+                      "tag": "span"
+                    }
+                  ],
+                  "tag": "button"
+                }
+              ],
+              "component": true
+            },
+            {
+              "children": [
+                {
+                  "attrs": {
+                    "class": "pure-button fb-icon-button  ",
+                    "disabled": false,
+                    "id": "<id>",
+                    "onclick": "<fn>",
+                    "style": {
+                      "backgroundColor": "var(--fb-surface)"
+                    },
+                    "type": "button"
+                  },
+                  "children": [
+                    {
+                      "fragment": [
+                        {
+                          "attrs": {
+                            "class": "material-icons-outlined fb-button-icon"
+                          },
+                          "children": [
+                            "remove_circle_outline"
+                          ],
+                          "tag": "i"
+                        }
+                      ]
+                    },
+                    {
+                      "attrs": {
+                        "class": "fb-button-label"
+                      },
+                      "children": [
+                        "Remove"
+                      ],
+                      "tag": "span"
+                    }
+                  ],
+                  "tag": "button"
+                }
+              ],
+              "component": true
+            },
+            {
+              "children": [
+                {
+                  "attrs": {
+                    "class": "pure-button fb-icon-only fb-icon-button  ",
+                    "disabled": false,
+                    "id": "<id>",
+                    "onclick": "<fn>",
+                    "style": {
+                      "backgroundColor": "var(--fb-surface)"
+                    },
+                    "title": "Clear",
+                    "type": "button"
+                  },
+                  "children": [
+                    {
+                      "fragment": [
+                        {
+                          "attrs": {
+                            "class": "material-icons-outlined fb-button-icon"
+                          },
+                          "children": [
+                            "clear"
+                          ],
+                          "tag": "i"
+                        }
+                      ]
+                    }
+                  ],
+                  "tag": "button"
+                }
+              ],
+              "component": true
+            },
+            {
+              "children": [
+                {
+                  "attrs": {
+                    "class": "pure-button fb-button-disabled fb-icon-only fb-icon-button  ",
+                    "disabled": true,
+                    "id": "<id>",
+                    "onclick": "<fn>",
+                    "style": {
+                      "backgroundColor": "var(--fb-surface)",
+                      "float": "right"
+                    },
+                    "title": "Move down",
+                    "type": "button"
+                  },
+                  "children": [
+                    {
+                      "fragment": [
+                        {
+                          "attrs": {
+                            "class": "material-icons-outlined fb-button-icon"
+                          },
+                          "children": [
+                            "keyboard_arrow_down"
+                          ],
+                          "tag": "i"
+                        }
+                      ]
+                    }
+                  ],
+                  "tag": "button"
+                }
+              ],
+              "component": true
+            },
+            {
+              "children": [
+                {
+                  "attrs": {
+                    "class": "pure-button fb-button-disabled fb-icon-only fb-icon-button  ",
+                    "disabled": true,
+                    "id": "<id>",
+                    "onclick": "<fn>",
+                    "style": {
+                      "backgroundColor": "var(--fb-surface)",
+                      "float": "right"
+                    },
+                    "title": "Move up",
+                    "type": "button"
+                  },
+                  "children": [
+                    {
+                      "fragment": [
+                        {
+                          "attrs": {
+                            "class": "material-icons-outlined fb-button-icon"
+                          },
+                          "children": [
+                            "keyboard_arrow_up"
+                          ],
+                          "tag": "i"
+                        }
+                      ]
+                    }
+                  ],
+                  "tag": "button"
+                }
+              ],
+              "component": true
+            },
+            {
+              "attrs": {
+                "class": "pure-table"
+              },
+              "children": [
+                {
+                  "attrs": {
+                    "class": "fb-table-dialog-table-header"
+                  },
+                  "children": [
+                    {
+                      "attrs": {
+                        "class": "fb-filter-dialog-table-header-column",
+                        "id": "<id>"
+                      },
+                      "children": [
+                        "Column"
+                      ],
+                      "tag": "th"
+                    },
+                    {
+                      "attrs": {
+                        "class": "fb-filter-dialog-table-header-operator",
+                        "id": "<id>"
+                      },
+                      "children": [
+                        "Operator"
+                      ],
+                      "tag": "th"
+                    },
+                    {
+                      "attrs": {
+                        "class": "fb-filter-dialog-table-header-value",
+                        "id": "<id>"
+                      },
+                      "children": [
+                        "Value"
+                      ],
+                      "tag": "th"
+                    }
+                  ],
+                  "tag": "thead"
+                },
+                {
+                  "attrs": {
+                    "class": "fb-table-dialog-table-body",
+                    "id": "sortTbody",
+                    "oncreate": "<fn>"
+                  },
+                  "children": [
+                    {
+                      "attrs": {
+                        "onclick": "<fn>",
+                        "style": {
+                          "backgroundColor": "AliceBlue"
+                        }
+                      },
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "attrs": {
+                                "class": "fb-filter-dialog-property",
+                                "onchange": "<fn>",
+                                "style": {
+                                  "minWidth": "175px"
+                                },
+                                "value": "name"
+                              },
+                              "children": [
+                                {
+                                  "attrs": {
+                                    "value": "category"
+                                  },
+                                  "children": [
+                                    "Category"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "category.code"
+                                  },
+                                  "children": [
+                                    "Category Code"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "category.description"
+                                  },
+                                  "children": [
+                                    "Category Description"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "count"
+                                  },
+                                  "children": [
+                                    "Count"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "created"
+                                  },
+                                  "children": [
+                                    "Created"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "createdBy"
+                                  },
+                                  "children": [
+                                    "Created By"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "description"
+                                  },
+                                  "children": [
+                                    "Description"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "etag"
+                                  },
+                                  "children": [
+                                    "Etag"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "id"
+                                  },
+                                  "children": [
+                                    "Id"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "isActive"
+                                  },
+                                  "children": [
+                                    "Is Active"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "isDeleted"
+                                  },
+                                  "children": [
+                                    "Is Deleted"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "name"
+                                  },
+                                  "children": [
+                                    "Name"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "objectType"
+                                  },
+                                  "children": [
+                                    "Object Type"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "price"
+                                  },
+                                  "children": [
+                                    "Price"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "qty"
+                                  },
+                                  "children": [
+                                    "Qty"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "updated"
+                                  },
+                                  "children": [
+                                    "Updated"
+                                  ],
+                                  "tag": "option"
+                                },
+                                {
+                                  "attrs": {
+                                    "value": "updatedBy"
+                                  },
+                                  "children": [
+                                    "Updated By"
+                                  ],
+                                  "tag": "option"
+                                }
+                              ],
+                              "tag": "select"
+                            }
+                          ],
+                          "tag": "td"
+                        },
+                        {
+                          "attrs": {
+                            "class": "fb-filter-dialog-operator"
+                          },
+                          "children": [
+                            {
+                              "attrs": {
+                                "id": "filter_op_0",
+                                "onchange": "<fn>",
+                                "oncreate": "<fn>"
+                              },
+                              "children": [
+                                {
+                                  "fragment": [
+                                    {
+                                      "attrs": {
+                                        "value": "="
+                                      },
+                                      "children": [
+                                        "equals"
+                                      ],
+                                      "tag": "option"
+                                    },
+                                    {
+                                      "attrs": {
+                                        "value": "!="
+                                      },
+                                      "children": [
+                                        "not equals"
+                                      ],
+                                      "tag": "option"
+                                    },
+                                    {
+                                      "attrs": {
+                                        "value": "~*"
+                                      },
+                                      "children": [
+                                        "matches"
+                                      ],
+                                      "tag": "option"
+                                    },
+                                    {
+                                      "attrs": {
+                                        "value": "!~*"
+                                      },
+                                      "children": [
+                                        "not matches"
+                                      ],
+                                      "tag": "option"
+                                    },
+                                    {
+                                      "attrs": {
+                                        "value": "IN"
+                                      },
+                                      "children": [
+                                        "is one of"
+                                      ],
+                                      "tag": "option"
+                                    }
+                                  ]
+                                },
+                                "="
+                              ],
+                              "tag": "select"
+                            }
+                          ],
+                          "tag": "td"
+                        },
+                        {
+                          "attrs": {
+                            "class": "fb-filter-dialog-input-cell"
+                          },
+                          "children": [
+                            {
+                              "attrs": {
+                                "id": "fltr_value_editor_name0",
+                                "onchange": "<fn>",
+                                "type": "text",
+                                "value": "x"
+                              },
+                              "tag": "input"
+                            }
+                          ],
+                          "tag": "td"
+                        }
+                      ],
+                      "tag": "tr"
+                    }
+                  ],
+                  "tag": "tbody"
+                }
+              ],
+              "tag": "table"
+            }
+          ]
+        },
+        {
+          "tag": "br"
+        },
+        {
+          "children": [
+            {
+              "attrs": {
+                "class": "pure-button fb-dialog-button  pure-button-primary ",
+                "disabled": false,
+                "id": "<id>",
+                "onclick": "<fn>",
+                "oncreate": "<fn>",
+                "onremove": "<fn>",
+                "style": {},
+                "type": "button"
+              },
+              "children": [
+                {
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
+                    {
+                      "attrs": {
+                        "style": {
+                          "textDecoration": "underline"
+                        }
+                      },
+                      "children": [
+                        "O"
+                      ],
+                      "tag": "span"
+                    },
+                    {
+                      "children": [
+                        "k"
+                      ],
+                      "tag": "span"
+                    }
+                  ],
+                  "tag": "span"
+                }
+              ],
+              "tag": "button"
+            }
+          ],
+          "component": true
+        },
+        {
+          "children": [
+            {
+              "attrs": {
+                "class": "pure-button fb-dialog-button  ",
+                "disabled": false,
+                "id": "<id>",
+                "onclick": "<fn>",
+                "oncreate": "<fn>",
+                "onremove": "<fn>",
+                "style": {},
+                "title": "Alt + C",
+                "type": "button"
+              },
+              "children": [
+                {
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
+                    {
+                      "attrs": {
+                        "style": {
+                          "textDecoration": "underline"
+                        }
+                      },
+                      "children": [
+                        "C"
+                      ],
+                      "tag": "span"
+                    },
+                    {
+                      "children": [
+                        "ancel"
+                      ],
+                      "tag": "span"
+                    }
+                  ],
+                  "tag": "span"
+                }
+              ],
+              "tag": "button"
+            }
+          ],
+          "component": true
+        },
+        {
+          "children": [
+            {
+              "attrs": {
+                "class": "pure-button fb-button-checkbox fb-icon-button  ",
+                "disabled": false,
+                "id": "<id>",
+                "onclick": "<fn>",
+                "style": {},
+                "type": "button"
+              },
+              "children": [
+                {
+                  "fragment": [
+                    {
+                      "attrs": {
+                        "class": "material-icons-outlined fb-button-icon"
+                      },
+                      "children": [
+                        "check_box_outline_blank"
+                      ],
+                      "tag": "i"
+                    }
+                  ]
+                },
+                {
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
+                    "Show Deleted"
+                  ],
+                  "tag": "span"
+                }
+              ],
+              "tag": "button"
+            }
+          ],
+          "component": true
+        }
+      ],
+      "tag": "div"
+    }
+  ],
+  "tag": "dialog"
+}

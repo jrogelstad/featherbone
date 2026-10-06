@@ -260,11 +260,13 @@ searchPage.component = {
         let sdlg = f.getComponent("SortDialog");
         let fdlg = f.getComponent("FilterDialog");
         let tw = f.getComponent("TableWidget");
+        let banner = f.getComponent("EnvBanner");
 
         // Build view
         return m("div", {
             class: "pure-form"
         }, [
+            m(banner),
             m("div", {
                 class: "fb-toolbar"
             }, [
@@ -274,12 +276,16 @@ searchPage.component = {
                 m(btn, {
                     viewModel: vm.buttonSelect()
                 }),
-                m(srch, {
-                    viewModel: vm.searchInput()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonClear()
-                }),
+                m("div", {
+                    class: "fb-search-group"
+                }, [
+                    m(srch, {
+                        viewModel: vm.searchInput()
+                    }),
+                    m(btn, {
+                        viewModel: vm.buttonClear()
+                    })
+                ]),
                 m(btn, {
                     viewModel: vm.buttonRefresh()
                 }),

@@ -345,7 +345,7 @@ accountMenu.component = {
         let menuButtonClass = (
             "pure-button " +
             "material-icons-outlined " +
-            "fb-menu-button fb-menu-button-left-side"
+            "fb-menu-button"
         );
 
         return m("div", {
