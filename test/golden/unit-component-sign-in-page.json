@@ -131,7 +131,7 @@
             "id": "forgotPassword",
             "onclick": "<fn>",
             "style": {
-              "color": "darkslateblue",
+              "color": "var(--fb-accent-text)",
               "width": "215px"
             }
           },

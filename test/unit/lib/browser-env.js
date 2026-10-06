@@ -43,6 +43,7 @@ const MODEL_FILES = [
 
 const COMPONENT_FILES = [
     "relation-widget", "address-relation", "autonumber", "button",
+    "toolbar", "env-banner",
     "checkbox", "child-form-page", "child-table", "contact-relation",
     "data-list", "data-type", "dialog", "filter-dialog",
     "resource-link-relation", "aggregate-dialog", "form-dialog",
