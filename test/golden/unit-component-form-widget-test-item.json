@@ -67,14 +67,15 @@
                         "onclick": "<fn>",
                         "oncreate": "<fn>",
                         "onremove": "<fn>",
-                        "style": {
-                          "paddingTop": "8px"
-                        },
+                        "style": {},
                         "type": "button"
                       },
                       "children": [
                         {
-                          "fragment": [
+                          "attrs": {
+                            "class": "fb-button-label"
+                          },
+                          "children": [
                             {
                               "attrs": {
                                 "style": {
@@ -92,7 +93,8 @@
                               ],
                               "tag": "span"
                             }
-                          ]
+                          ],
+                          "tag": "span"
                         }
                       ],
                       "tag": "button"
@@ -110,15 +112,16 @@
                         "onclick": "<fn>",
                         "oncreate": "<fn>",
                         "onremove": "<fn>",
-                        "style": {
-                          "paddingTop": "8px"
-                        },
+                        "style": {},
                         "title": "Alt + C",
                         "type": "button"
                       },
                       "children": [
                         {
-                          "fragment": [
+                          "attrs": {
+                            "class": "fb-button-label"
+                          },
+                          "children": [
                             {
                               "attrs": {
                                 "style": {
@@ -136,7 +139,8 @@
                               ],
                               "tag": "span"
                             }
-                          ]
+                          ],
+                          "tag": "span"
                         }
                       ],
                       "tag": "button"
@@ -433,28 +437,6 @@
                                     "type": "checkbox"
                                   },
                                   "tag": "input"
-                                },
-                                {
-                                  "attrs": {
-                                    "class": "fb-checkbox-label",
-                                    "for": "isActive"
-                                  },
-                                  "children": [
-                                    {
-                                      "attrs": {
-                                        "class": "material-icons",
-                                        "style": {
-                                          "fontWeight": "bold",
-                                          "visibility": "visible"
-                                        }
-                                      },
-                                      "children": [
-                                        "done"
-                                      ],
-                                      "tag": "div"
-                                    }
-                                  ],
-                                  "tag": "label"
                                 }
                               ],
                               "tag": "div"
@@ -581,226 +563,241 @@
                         {
                           "children": [
                             {
+                              "attrs": {
+                                "class": "fb-child-table"
+                              },
                               "children": [
                                 {
+                                  "attrs": {
+                                    "class": "fb-child-table-toolbar"
+                                  },
                                   "children": [
                                     {
-                                      "attrs": {
-                                        "class": "pure-button fb-icon-button  ",
-                                        "disabled": false,
-                                        "id": "<id>",
-                                        "onclick": "<fn>",
-                                        "oncreate": "<fn>",
-                                        "onremove": "<fn>",
-                                        "style": {
-                                          "backgroundColor": "white"
-                                        },
-                                        "title": "Insert (Alt + I)",
-                                        "type": "button"
-                                      },
                                       "children": [
                                         {
-                                          "fragment": [
+                                          "attrs": {
+                                            "class": "pure-button fb-icon-button  ",
+                                            "disabled": false,
+                                            "id": "<id>",
+                                            "onclick": "<fn>",
+                                            "oncreate": "<fn>",
+                                            "onremove": "<fn>",
+                                            "style": {},
+                                            "title": "Insert (Alt + I)",
+                                            "type": "button"
+                                          },
+                                          "children": [
+                                            {
+                                              "fragment": [
+                                                {
+                                                  "attrs": {
+                                                    "class": "material-icons-outlined fb-button-icon"
+                                                  },
+                                                  "children": [
+                                                    "add_circle_outline"
+                                                  ],
+                                                  "tag": "i"
+                                                }
+                                              ]
+                                            },
                                             {
                                               "attrs": {
-                                                "class": "material-icons-outlined fb-button-icon"
+                                                "class": "fb-button-label"
                                               },
                                               "children": [
-                                                "add_circle_outline"
+                                                "Add"
                                               ],
-                                              "tag": "i"
+                                              "tag": "span"
                                             }
-                                          ]
-                                        },
-                                        "Add"
+                                          ],
+                                          "tag": "button"
+                                        }
                                       ],
-                                      "tag": "button"
-                                    }
-                                  ],
-                                  "component": true
-                                },
-                                {
-                                  "children": [
+                                      "component": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "attrs": {
+                                            "class": "pure-button fb-button-disabled fb-icon-button  ",
+                                            "disabled": true,
+                                            "id": "<id>",
+                                            "onclick": "<fn>",
+                                            "oncreate": "<fn>",
+                                            "onremove": "<fn>",
+                                            "style": {},
+                                            "title": "Delete (Alt + D)",
+                                            "type": "button"
+                                          },
+                                          "children": [
+                                            {
+                                              "fragment": [
+                                                {
+                                                  "attrs": {
+                                                    "class": "material-icons-outlined fb-button-icon"
+                                                  },
+                                                  "children": [
+                                                    "delete"
+                                                  ],
+                                                  "tag": "i"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "attrs": {
+                                                "class": "fb-button-label"
+                                              },
+                                              "children": [
+                                                "Remove"
+                                              ],
+                                              "tag": "span"
+                                            }
+                                          ],
+                                          "tag": "button"
+                                        }
+                                      ],
+                                      "component": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "attrs": {
+                                            "class": "pure-button fb-icon-only fb-icon-button  pure-button-hidden",
+                                            "disabled": false,
+                                            "id": "<id>",
+                                            "onclick": "<fn>",
+                                            "oncreate": "<fn>",
+                                            "onremove": "<fn>",
+                                            "style": {},
+                                            "title": "Undo (Alt + U)",
+                                            "type": "button"
+                                          },
+                                          "children": [
+                                            {
+                                              "fragment": [
+                                                {
+                                                  "attrs": {
+                                                    "class": "material-icons-outlined fb-button-icon"
+                                                  },
+                                                  "children": [
+                                                    "undo"
+                                                  ],
+                                                  "tag": "i"
+                                                }
+                                              ]
+                                            }
+                                          ],
+                                          "tag": "button"
+                                        }
+                                      ],
+                                      "component": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "attrs": {
+                                            "class": "pure-button fb-icon-only fb-icon-button  ",
+                                            "disabled": false,
+                                            "id": "<id>",
+                                            "onclick": "<fn>",
+                                            "oncreate": "<fn>",
+                                            "onremove": "<fn>",
+                                            "style": {},
+                                            "title": "Open (Alt + O)",
+                                            "type": "button"
+                                          },
+                                          "children": [
+                                            {
+                                              "fragment": [
+                                                {
+                                                  "attrs": {
+                                                    "class": "material-icons-outlined fb-button-icon"
+                                                  },
+                                                  "children": [
+                                                    "file_open"
+                                                  ],
+                                                  "tag": "i"
+                                                }
+                                              ]
+                                            }
+                                          ],
+                                          "tag": "button"
+                                        }
+                                      ],
+                                      "component": true
+                                    },
                                     {
                                       "attrs": {
-                                        "class": "pure-button fb-button-disabled fb-icon-button  ",
-                                        "disabled": true,
-                                        "id": "<id>",
-                                        "onclick": "<fn>",
-                                        "oncreate": "<fn>",
-                                        "onremove": "<fn>",
-                                        "style": {
-                                          "backgroundColor": "white"
-                                        },
-                                        "title": "Delete (Alt + D)",
-                                        "type": "button"
+                                        "class": "fb-toolbar-fill"
                                       },
-                                      "children": [
-                                        {
-                                          "fragment": [
-                                            {
-                                              "attrs": {
-                                                "class": "material-icons-outlined fb-button-icon"
-                                              },
-                                              "children": [
-                                                "delete"
-                                              ],
-                                              "tag": "i"
-                                            }
-                                          ]
-                                        },
-                                        "Remove"
-                                      ],
-                                      "tag": "button"
-                                    }
-                                  ],
-                                  "component": true
-                                },
-                                {
-                                  "children": [
+                                      "tag": "div"
+                                    },
                                     {
-                                      "attrs": {
-                                        "class": "pure-button fb-icon-button  pure-button-hidden",
-                                        "disabled": false,
-                                        "id": "<id>",
-                                        "onclick": "<fn>",
-                                        "oncreate": "<fn>",
-                                        "onremove": "<fn>",
-                                        "style": {
-                                          "backgroundColor": "white"
-                                        },
-                                        "title": "Undo (Alt + U)",
-                                        "type": "button"
-                                      },
                                       "children": [
                                         {
-                                          "fragment": [
+                                          "attrs": {
+                                            "class": "pure-button fb-button-disabled fb-icon-only fb-icon-button  ",
+                                            "disabled": true,
+                                            "id": "<id>",
+                                            "onclick": "<fn>",
+                                            "style": {},
+                                            "title": "Move up",
+                                            "type": "button"
+                                          },
+                                          "children": [
                                             {
-                                              "attrs": {
-                                                "class": "material-icons-outlined fb-button-icon"
-                                              },
-                                              "children": [
-                                                "undo"
-                                              ],
-                                              "tag": "i"
+                                              "fragment": [
+                                                {
+                                                  "attrs": {
+                                                    "class": "material-icons-outlined fb-button-icon"
+                                                  },
+                                                  "children": [
+                                                    "keyboard_arrow_up"
+                                                  ],
+                                                  "tag": "i"
+                                                }
+                                              ]
                                             }
-                                          ]
-                                        },
-                                        ""
+                                          ],
+                                          "tag": "button"
+                                        }
                                       ],
-                                      "tag": "button"
-                                    }
-                                  ],
-                                  "component": true
-                                },
-                                {
-                                  "children": [
+                                      "component": true
+                                    },
                                     {
-                                      "attrs": {
-                                        "class": "pure-button fb-icon-button  ",
-                                        "disabled": false,
-                                        "id": "<id>",
-                                        "onclick": "<fn>",
-                                        "oncreate": "<fn>",
-                                        "onremove": "<fn>",
-                                        "style": {
-                                          "backgroundColor": "white"
-                                        },
-                                        "title": "Open (Alt + O)",
-                                        "type": "button"
-                                      },
                                       "children": [
                                         {
-                                          "fragment": [
+                                          "attrs": {
+                                            "class": "pure-button fb-button-disabled fb-icon-only fb-icon-button  ",
+                                            "disabled": true,
+                                            "id": "<id>",
+                                            "onclick": "<fn>",
+                                            "style": {},
+                                            "title": "Move down",
+                                            "type": "button"
+                                          },
+                                          "children": [
                                             {
-                                              "attrs": {
-                                                "class": "material-icons-outlined fb-button-icon"
-                                              },
-                                              "children": [
-                                                "file_open"
-                                              ],
-                                              "tag": "i"
+                                              "fragment": [
+                                                {
+                                                  "attrs": {
+                                                    "class": "material-icons-outlined fb-button-icon"
+                                                  },
+                                                  "children": [
+                                                    "keyboard_arrow_down"
+                                                  ],
+                                                  "tag": "i"
+                                                }
+                                              ]
                                             }
-                                          ]
-                                        },
-                                        ""
+                                          ],
+                                          "tag": "button"
+                                        }
                                       ],
-                                      "tag": "button"
+                                      "component": true
                                     }
                                   ],
-                                  "component": true
-                                },
-                                {
-                                  "children": [
-                                    {
-                                      "attrs": {
-                                        "class": "pure-button fb-button-disabled fb-icon-button  ",
-                                        "disabled": true,
-                                        "id": "<id>",
-                                        "onclick": "<fn>",
-                                        "style": {
-                                          "backgroundColor": "white",
-                                          "float": "right"
-                                        },
-                                        "title": "Move down",
-                                        "type": "button"
-                                      },
-                                      "children": [
-                                        {
-                                          "fragment": [
-                                            {
-                                              "attrs": {
-                                                "class": "material-icons-outlined fb-button-icon"
-                                              },
-                                              "children": [
-                                                "keyboard_arrow_down"
-                                              ],
-                                              "tag": "i"
-                                            }
-                                          ]
-                                        },
-                                        ""
-                                      ],
-                                      "tag": "button"
-                                    }
-                                  ],
-                                  "component": true
-                                },
-                                {
-                                  "children": [
-                                    {
-                                      "attrs": {
-                                        "class": "pure-button fb-button-disabled fb-icon-button  ",
-                                        "disabled": true,
-                                        "id": "<id>",
-                                        "onclick": "<fn>",
-                                        "style": {
-                                          "backgroundColor": "white",
-                                          "float": "right"
-                                        },
-                                        "title": "Move up",
-                                        "type": "button"
-                                      },
-                                      "children": [
-                                        {
-                                          "fragment": [
-                                            {
-                                              "attrs": {
-                                                "class": "material-icons-outlined fb-button-icon"
-                                              },
-                                              "children": [
-                                                "keyboard_arrow_up"
-                                              ],
-                                              "tag": "i"
-                                            }
-                                          ]
-                                        },
-                                        ""
-                                      ],
-                                      "tag": "button"
-                                    }
-                                  ],
-                                  "component": true
+                                  "tag": "div"
                                 },
                                 {
                                   "children": [
@@ -872,14 +869,15 @@
                                                             "onclick": "<fn>",
                                                             "oncreate": "<fn>",
                                                             "onremove": "<fn>",
-                                                            "style": {
-                                                              "paddingTop": "8px"
-                                                            },
+                                                            "style": {},
                                                             "type": "button"
                                                           },
                                                           "children": [
                                                             {
-                                                              "fragment": [
+                                                              "attrs": {
+                                                                "class": "fb-button-label"
+                                                              },
+                                                              "children": [
                                                                 {
                                                                   "attrs": {
                                                                     "style": {
@@ -897,7 +895,8 @@
                                                                   ],
                                                                   "tag": "span"
                                                                 }
-                                                              ]
+                                                              ],
+                                                              "tag": "span"
                                                             }
                                                           ],
                                                           "tag": "button"
@@ -915,15 +914,16 @@
                                                             "onclick": "<fn>",
                                                             "oncreate": "<fn>",
                                                             "onremove": "<fn>",
-                                                            "style": {
-                                                              "paddingTop": "8px"
-                                                            },
+                                                            "style": {},
                                                             "title": "Alt + C",
                                                             "type": "button"
                                                           },
                                                           "children": [
                                                             {
-                                                              "fragment": [
+                                                              "attrs": {
+                                                                "class": "fb-button-label"
+                                                              },
+                                                              "children": [
                                                                 {
                                                                   "attrs": {
                                                                     "style": {
@@ -941,7 +941,8 @@
                                                                   ],
                                                                   "tag": "span"
                                                                 }
-                                                              ]
+                                                              ],
+                                                              "tag": "span"
                                                             }
                                                           ],
                                                           "tag": "button"
@@ -1020,14 +1021,15 @@
                                                             "onclick": "<fn>",
                                                             "oncreate": "<fn>",
                                                             "onremove": "<fn>",
-                                                            "style": {
-                                                              "paddingTop": "8px"
-                                                            },
+                                                            "style": {},
                                                             "type": "button"
                                                           },
                                                           "children": [
                                                             {
-                                                              "fragment": [
+                                                              "attrs": {
+                                                                "class": "fb-button-label"
+                                                              },
+                                                              "children": [
                                                                 {
                                                                   "attrs": {
                                                                     "style": {
@@ -1045,7 +1047,8 @@
                                                                   ],
                                                                   "tag": "span"
                                                                 }
-                                                              ]
+                                                              ],
+                                                              "tag": "span"
                                                             }
                                                           ],
                                                           "tag": "button"
@@ -1063,15 +1066,16 @@
                                                             "onclick": "<fn>",
                                                             "oncreate": "<fn>",
                                                             "onremove": "<fn>",
-                                                            "style": {
-                                                              "paddingTop": "8px"
-                                                            },
+                                                            "style": {},
                                                             "title": "Alt + C",
                                                             "type": "button"
                                                           },
                                                           "children": [
                                                             {
-                                                              "fragment": [
+                                                              "attrs": {
+                                                                "class": "fb-button-label"
+                                                              },
+                                                              "children": [
                                                                 {
                                                                   "attrs": {
                                                                     "style": {
@@ -1089,7 +1093,8 @@
                                                                   ],
                                                                   "tag": "span"
                                                                 }
-                                                              ]
+                                                              ],
+                                                              "tag": "span"
                                                             }
                                                           ],
                                                           "tag": "button"
@@ -1206,180 +1211,193 @@
                                         },
                                         {
                                           "attrs": {
-                                            "class": "pure-table fb-table"
+                                            "class": "fb-table-scroll",
+                                            "id": "<id>",
+                                            "oncreate": "<fn>",
+                                            "onscroll": "<fn>",
+                                            "onupdate": "<fn>"
                                           },
                                           "children": [
                                             {
                                               "attrs": {
-                                                "class": "fb-table-header",
-                                                "draggable": true,
-                                                "id": "<id>",
-                                                "ondragover": "<fn>"
-                                              },
-                                              "children": [
-                                                {
-                                                  "children": [
-                                                    {
-                                                      "attrs": {
-                                                        "style": {
-                                                          "fontSize": "100%",
-                                                          "minWidth": "25px"
-                                                        }
-                                                      },
-                                                      "tag": "th"
-                                                    },
-                                                    {
-                                                      "fragment": [
-                                                        {
-                                                          "attrs": {
-                                                            "class": "fb-column-header",
-                                                            "draggable": true,
-                                                            "ondragover": "<fn>",
-                                                            "ondragstart": "<fn>",
-                                                            "ondrop": "<fn>",
-                                                            "style": {
-                                                              "fontSize": "100%",
-                                                              "maxWidth": "144px",
-                                                              "minWidth": "144px"
-                                                            }
-                                                          },
-                                                          "children": [
-                                                            {
-                                                              "fragment": []
-                                                            },
-                                                            "Sequence"
-                                                          ],
-                                                          "tag": "th"
-                                                        },
-                                                        {
-                                                          "attrs": {
-                                                            "class": "fb-column-spacer fb-column-header-grabber",
-                                                            "draggable": true,
-                                                            "ondragover": "<fn>",
-                                                            "ondragstart": "<fn>",
-                                                            "style": {
-                                                              "fontSize": "100%"
-                                                            }
-                                                          },
-                                                          "tag": "th"
-                                                        }
-                                                      ]
-                                                    },
-                                                    {
-                                                      "fragment": [
-                                                        {
-                                                          "attrs": {
-                                                            "class": "fb-column-header",
-                                                            "draggable": true,
-                                                            "ondragover": "<fn>",
-                                                            "ondragstart": "<fn>",
-                                                            "ondrop": "<fn>",
-                                                            "style": {
-                                                              "fontSize": "100%",
-                                                              "maxWidth": "144px",
-                                                              "minWidth": "144px"
-                                                            }
-                                                          },
-                                                          "children": [
-                                                            {
-                                                              "fragment": []
-                                                            },
-                                                            "Product"
-                                                          ],
-                                                          "tag": "th"
-                                                        },
-                                                        {
-                                                          "attrs": {
-                                                            "class": "fb-column-spacer fb-column-header-grabber",
-                                                            "draggable": true,
-                                                            "ondragover": "<fn>",
-                                                            "ondragstart": "<fn>",
-                                                            "style": {
-                                                              "fontSize": "100%"
-                                                            }
-                                                          },
-                                                          "tag": "th"
-                                                        }
-                                                      ]
-                                                    },
-                                                    {
-                                                      "fragment": [
-                                                        {
-                                                          "attrs": {
-                                                            "class": "fb-column-header",
-                                                            "draggable": true,
-                                                            "ondragover": "<fn>",
-                                                            "ondragstart": "<fn>",
-                                                            "ondrop": "<fn>",
-                                                            "style": {
-                                                              "fontSize": "100%",
-                                                              "maxWidth": "144px",
-                                                              "minWidth": "144px"
-                                                            }
-                                                          },
-                                                          "children": [
-                                                            {
-                                                              "fragment": []
-                                                            },
-                                                            "Qty"
-                                                          ],
-                                                          "tag": "th"
-                                                        },
-                                                        {
-                                                          "attrs": {
-                                                            "class": "fb-column-spacer fb-column-header-grabber",
-                                                            "draggable": true,
-                                                            "ondragover": "<fn>",
-                                                            "ondragstart": "<fn>",
-                                                            "style": {
-                                                              "fontSize": "100%"
-                                                            }
-                                                          },
-                                                          "tag": "th"
-                                                        }
-                                                      ]
-                                                    },
-                                                    {
-                                                      "attrs": {
-                                                        "draggable": true,
-                                                        "ondragover": "<fn>",
-                                                        "ondrop": "<fn>",
-                                                        "style": {
-                                                          "maxWidth": "0px",
-                                                          "minWidth": "0px"
-                                                        }
-                                                      },
-                                                      "tag": "th"
-                                                    }
-                                                  ],
-                                                  "tag": "tr"
-                                                }
-                                              ],
-                                              "tag": "thead"
-                                            },
-                                            {
-                                              "attrs": {
-                                                "class": "fb-table-body",
-                                                "id": "<id>",
-                                                "oncreate": "<fn>",
-                                                "onremove": "<fn>",
-                                                "onscroll": "<fn>",
-                                                "onupdate": "<fn>"
+                                                "class": "pure-table fb-table"
                                               },
                                               "children": [
                                                 {
                                                   "attrs": {
-                                                    "style": {
-                                                      "height": "50px"
-                                                    }
+                                                    "class": "fb-table-header",
+                                                    "draggable": true,
+                                                    "id": "<id>",
+                                                    "ondragover": "<fn>"
                                                   },
-                                                  "tag": "tr"
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "attrs": {
+                                                            "class": "fb-table-lead",
+                                                            "style": {
+                                                              "fontSize": "100%"
+                                                            }
+                                                          },
+                                                          "tag": "th"
+                                                        },
+                                                        {
+                                                          "fragment": [
+                                                            {
+                                                              "attrs": {
+                                                                "class": "fb-column-header",
+                                                                "draggable": true,
+                                                                "ondragover": "<fn>",
+                                                                "ondragstart": "<fn>",
+                                                                "ondrop": "<fn>",
+                                                                "style": {
+                                                                  "fontSize": "100%",
+                                                                  "maxWidth": "144px",
+                                                                  "minWidth": "144px",
+                                                                  "width": "144px"
+                                                                },
+                                                                "title": "Sequence"
+                                                              },
+                                                              "children": [
+                                                                {
+                                                                  "fragment": []
+                                                                },
+                                                                "Sequence"
+                                                              ],
+                                                              "tag": "th"
+                                                            },
+                                                            {
+                                                              "attrs": {
+                                                                "class": "fb-column-spacer fb-column-header-grabber",
+                                                                "draggable": true,
+                                                                "ondragover": "<fn>",
+                                                                "ondragstart": "<fn>",
+                                                                "style": {
+                                                                  "fontSize": "100%"
+                                                                }
+                                                              },
+                                                              "tag": "th"
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "fragment": [
+                                                            {
+                                                              "attrs": {
+                                                                "class": "fb-column-header",
+                                                                "draggable": true,
+                                                                "ondragover": "<fn>",
+                                                                "ondragstart": "<fn>",
+                                                                "ondrop": "<fn>",
+                                                                "style": {
+                                                                  "fontSize": "100%",
+                                                                  "maxWidth": "144px",
+                                                                  "minWidth": "144px",
+                                                                  "width": "144px"
+                                                                },
+                                                                "title": "Product"
+                                                              },
+                                                              "children": [
+                                                                {
+                                                                  "fragment": []
+                                                                },
+                                                                "Product"
+                                                              ],
+                                                              "tag": "th"
+                                                            },
+                                                            {
+                                                              "attrs": {
+                                                                "class": "fb-column-spacer fb-column-header-grabber",
+                                                                "draggable": true,
+                                                                "ondragover": "<fn>",
+                                                                "ondragstart": "<fn>",
+                                                                "style": {
+                                                                  "fontSize": "100%"
+                                                                }
+                                                              },
+                                                              "tag": "th"
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "fragment": [
+                                                            {
+                                                              "attrs": {
+                                                                "class": "fb-column-header",
+                                                                "draggable": true,
+                                                                "ondragover": "<fn>",
+                                                                "ondragstart": "<fn>",
+                                                                "ondrop": "<fn>",
+                                                                "style": {
+                                                                  "fontSize": "100%",
+                                                                  "maxWidth": "144px",
+                                                                  "minWidth": "144px",
+                                                                  "width": "144px"
+                                                                },
+                                                                "title": "Qty"
+                                                              },
+                                                              "children": [
+                                                                {
+                                                                  "fragment": []
+                                                                },
+                                                                "Qty"
+                                                              ],
+                                                              "tag": "th"
+                                                            },
+                                                            {
+                                                              "attrs": {
+                                                                "class": "fb-column-spacer fb-column-header-grabber",
+                                                                "draggable": true,
+                                                                "ondragover": "<fn>",
+                                                                "ondragstart": "<fn>",
+                                                                "style": {
+                                                                  "fontSize": "100%"
+                                                                }
+                                                              },
+                                                              "tag": "th"
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "attrs": {
+                                                            "class": "fb-table-fill",
+                                                            "draggable": true,
+                                                            "ondragover": "<fn>",
+                                                            "ondrop": "<fn>"
+                                                          },
+                                                          "tag": "th"
+                                                        }
+                                                      ],
+                                                      "tag": "tr"
+                                                    }
+                                                  ],
+                                                  "tag": "thead"
+                                                },
+                                                {
+                                                  "attrs": {
+                                                    "class": "fb-table-body",
+                                                    "id": "<id>",
+                                                    "oncreate": "<fn>",
+                                                    "onremove": "<fn>"
+                                                  },
+                                                  "children": [
+                                                    {
+                                                      "attrs": {
+                                                        "style": {
+                                                          "height": "50px"
+                                                        }
+                                                      },
+                                                      "tag": "tr"
+                                                    }
+                                                  ],
+                                                  "tag": "tbody"
                                                 }
                                               ],
-                                              "tag": "tbody"
+                                              "tag": "table"
                                             }
                                           ],
-                                          "tag": "table"
+                                          "tag": "div"
                                         }
                                       ],
                                       "tag": "div"

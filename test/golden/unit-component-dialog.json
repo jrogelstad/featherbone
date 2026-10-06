@@ -58,14 +58,15 @@
                 "onclick": "<fn>",
                 "oncreate": "<fn>",
                 "onremove": "<fn>",
-                "style": {
-                  "paddingTop": "8px"
-                },
+                "style": {},
                 "type": "button"
               },
               "children": [
                 {
-                  "fragment": [
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
                     {
                       "attrs": {
                         "style": {
@@ -83,7 +84,8 @@
                       ],
                       "tag": "span"
                     }
-                  ]
+                  ],
+                  "tag": "span"
                 }
               ],
               "tag": "button"
@@ -101,15 +103,16 @@
                 "onclick": "<fn>",
                 "oncreate": "<fn>",
                 "onremove": "<fn>",
-                "style": {
-                  "paddingTop": "8px"
-                },
+                "style": {},
                 "title": "Alt + C",
                 "type": "button"
               },
               "children": [
                 {
-                  "fragment": [
+                  "attrs": {
+                    "class": "fb-button-label"
+                  },
+                  "children": [
                     {
                       "attrs": {
                         "style": {
@@ -127,7 +130,8 @@
                       ],
                       "tag": "span"
                     }
-                  ]
+                  ],
+                  "tag": "span"
                 }
               ],
               "tag": "button"
