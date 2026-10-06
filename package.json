@@ -17,7 +17,7 @@
     "url": "http://github.com/FeatherboneJS/Featherbone.git"
   },
   "dependencies": {
-    "adm-zip": "^0.5.9",
+    "adm-zip": "^0.6.1",
     "big.js": "^6.1.1",
     "body-parser": "^1.20.4",
     "codemirror": "^5.65.0",
