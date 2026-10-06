@@ -48,9 +48,14 @@ files/upload
 node/node_modules
 node/npm-debug.log
 node_modules
+server/config.json
 logs
 api.json
 client/out
 client/api.js
 server/out
 
+
+# Regression test run output
+test/.artifacts
+claude-branches/

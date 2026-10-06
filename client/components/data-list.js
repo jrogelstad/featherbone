@@ -66,7 +66,7 @@ table.viewModel = function (options) {
         icon: "add_circle",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
 
@@ -77,7 +77,7 @@ table.viewModel = function (options) {
         icon: "delete",
         class: "fb-icon-button",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
     vm.buttonRemove().disable();
@@ -88,7 +88,7 @@ table.viewModel = function (options) {
         hotkey: "U",
         icon: "undo",
         style: {
-            backgroundColor: "white"
+            backgroundColor: "var(--fb-surface)"
         }
     }));
     vm.buttonUndo().hide();

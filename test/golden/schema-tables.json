@@ -1,0 +1,3241 @@
+{
+  "$auth": {
+    "columns": {
+      "can_create": "boolean",
+      "can_delete": "boolean",
+      "can_read": "boolean",
+      "can_update": "boolean",
+      "object_pk": "bigint not null",
+      "pk": "integer not null default nextval('\"$auth_pk_seq\"'::regclass)",
+      "role": "text not null"
+    },
+    "inherits": [],
+    "triggers": []
+  },
+  "$feather": {
+    "columns": {
+      "is_child": "boolean",
+      "parent_pk": "bigint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": []
+  },
+  "$profiles": {
+    "columns": {
+      "data": "json",
+      "etag": "text",
+      "role": "text not null"
+    },
+    "inherits": [],
+    "triggers": []
+  },
+  "$session": {
+    "columns": {
+      "expire": "timestamp(6) without time zone not null",
+      "sess": "json not null",
+      "sid": "character varying not null"
+    },
+    "inherits": [],
+    "triggers": []
+  },
+  "$settings": {
+    "columns": {
+      "data": "json",
+      "definition": "json",
+      "etag": "text",
+      "module": "text",
+      "name": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER \"$settings_update_trigger\" AFTER UPDATE ON public.\"$settings\" FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "$subscription": {
+    "columns": {
+      "eventkey": "text not null",
+      "nodeid": "text not null",
+      "objectid": "text not null",
+      "subscriptionid": "text not null"
+    },
+    "inherits": [],
+    "triggers": []
+  },
+  "$workbook": {
+    "columns": {
+      "actions": "json",
+      "default_config": "json",
+      "description": "text",
+      "icon": "text",
+      "is_template": "boolean default false",
+      "label": "text default ''::text",
+      "launch_config": "json",
+      "local_config": "json",
+      "module": "text",
+      "name": "text",
+      "sequence": "smallint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": []
+  },
+  "address": {
+    "columns": {
+      "city": "text",
+      "country": "text",
+      "name": "text",
+      "phone": "text",
+      "postal_code": "text",
+      "state": "text",
+      "street": "text",
+      "type": "text",
+      "unit": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER address_delete_trigger AFTER DELETE ON public.address FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER address_insert_trigger AFTER INSERT ON public.address FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER address_update_trigger AFTER UPDATE ON public.address FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "alert": {
+    "columns": {
+      "category": "text",
+      "message": "text",
+      "relation": "json",
+      "severity": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER alert_delete_trigger AFTER DELETE ON public.alert FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER alert_insert_trigger AFTER INSERT ON public.alert FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER alert_update_trigger AFTER UPDATE ON public.alert FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "allocation": {
+    "columns": {
+      "_demand_demand_pk": "bigint",
+      "_sales_demand_demand_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "_supply_supply_pk": "bigint",
+      "is_firm": "boolean",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER allocation_delete_trigger AFTER DELETE ON public.allocation FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER allocation_insert_trigger AFTER INSERT ON public.allocation FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER allocation_update_trigger AFTER UPDATE ON public.allocation FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "base_currency": {
+    "columns": {
+      "_currency_currency_pk": "bigint",
+      "effective": "timestamp with time zone"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER base_currency_delete_trigger AFTER DELETE ON public.base_currency FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER base_currency_insert_trigger AFTER INSERT ON public.base_currency FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER base_currency_update_trigger AFTER UPDATE ON public.base_currency FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "bill_of_lading": {
+    "columns": {
+      "_attachment_resource_link_pk": "bigint",
+      "_bill_to_address_pk": "bigint",
+      "_carrier_carrier_pk": "bigint",
+      "_declared_value_unit_item_unit_pk": "bigint",
+      "_ship_from_address_pk": "bigint",
+      "_ship_to_address_pk": "bigint",
+      "cid_number": "text",
+      "cod_amount": "mono",
+      "date": "date",
+      "declared_value_limit": "mono",
+      "fee_terms": "text",
+      "freight_charge_terms": "text",
+      "freight_counted": "text",
+      "number": "text",
+      "pro_number": "text",
+      "purchase_orders": "text",
+      "sales_orders": "text",
+      "scac": "text",
+      "serial_numbers": "text",
+      "ship_from_info": "text",
+      "ship_to_info": "text",
+      "sid_number": "text",
+      "special_instructions": "text",
+      "trailer_loaded": "text",
+      "trailer_number": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER bill_of_lading_delete_trigger AFTER DELETE ON public.bill_of_lading FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER bill_of_lading_insert_trigger AFTER INSERT ON public.bill_of_lading FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER bill_of_lading_update_trigger AFTER UPDATE ON public.bill_of_lading FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "bill_of_lading_information": {
+    "columns": {
+      "_bill_of_lading_bill_of_lading_pk": "bigint",
+      "class": "text",
+      "commodity_description": "text",
+      "handling_quantity": "numeric(18,8)",
+      "handling_type": "text",
+      "is_hazardous_material": "boolean",
+      "nmfc_number": "text",
+      "package_quantity": "numeric(18,8)",
+      "package_type": "text",
+      "weight": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER bill_of_lading_information_delete_trigger AFTER DELETE ON public.bill_of_lading_information FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER bill_of_lading_information_insert_trigger AFTER INSERT ON public.bill_of_lading_information FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER bill_of_lading_information_update_trigger AFTER UPDATE ON public.bill_of_lading_information FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "bill_of_lading_order": {
+    "columns": {
+      "_bill_of_lading_bill_of_lading_pk": "bigint",
+      "additional_information": "text",
+      "is_pallet": "boolean",
+      "number_of_packages": "numeric(18,8)",
+      "order_number": "text",
+      "weight": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER bill_of_lading_order_delete_trigger AFTER DELETE ON public.bill_of_lading_order FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER bill_of_lading_order_insert_trigger AFTER INSERT ON public.bill_of_lading_order FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER bill_of_lading_order_update_trigger AFTER UPDATE ON public.bill_of_lading_order FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "bill_of_lading_shipment": {
+    "columns": {
+      "_bill_of_lading_bill_of_lading_pk": "bigint",
+      "_shipment_sales_order_shipment_pk": "bigint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER bill_of_lading_shipment_delete_trigger AFTER DELETE ON public.bill_of_lading_shipment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER bill_of_lading_shipment_insert_trigger AFTER INSERT ON public.bill_of_lading_shipment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER bill_of_lading_shipment_update_trigger AFTER UPDATE ON public.bill_of_lading_shipment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "bill_of_material_item": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "comments": "text",
+      "fixed_quantity": "numeric(18,8)",
+      "operation": "integer",
+      "quantity_per": "numeric(18,8)",
+      "ratio": "numeric(18,8)",
+      "reference": "text",
+      "sequence": "integer"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER bill_of_material_item_delete_trigger AFTER DELETE ON public.bill_of_material_item FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER bill_of_material_item_insert_trigger AFTER INSERT ON public.bill_of_material_item FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER bill_of_material_item_update_trigger AFTER UPDATE ON public.bill_of_material_item FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "bill_of_material_substitution": {
+    "columns": {
+      "_bill_of_material_item_bill_of_material_item_pk": "bigint",
+      "_item_item_pk": "bigint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER bill_of_material_substitution_delete_trigger AFTER DELETE ON public.bill_of_material_substitution FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER bill_of_material_substitution_insert_trigger AFTER INSERT ON public.bill_of_material_substitution FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER bill_of_material_substitution_update_trigger AFTER UPDATE ON public.bill_of_material_substitution FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "carrier": {
+    "columns": {
+      "code": "text",
+      "description": "text",
+      "is_active": "boolean",
+      "scac": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER carrier_delete_trigger AFTER DELETE ON public.carrier FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER carrier_insert_trigger AFTER INSERT ON public.carrier FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER carrier_update_trigger AFTER UPDATE ON public.carrier FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "category": {
+    "columns": {
+      "_parent_kind_pk": "bigint"
+    },
+    "inherits": [
+      "kind"
+    ],
+    "triggers": [
+      "CREATE TRIGGER category_delete_trigger AFTER DELETE ON public.category FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER category_insert_trigger AFTER INSERT ON public.category FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER category_update_trigger AFTER UPDATE ON public.category FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "comment": {
+    "columns": {
+      "text": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER comment_delete_trigger AFTER DELETE ON public.comment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER comment_insert_trigger AFTER INSERT ON public.comment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER comment_update_trigger AFTER UPDATE ON public.comment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "contact": {
+    "columns": {
+      "_address_address_pk": "bigint",
+      "_honorific_honorific_pk": "bigint",
+      "email": "text",
+      "email_type": "text",
+      "first_name": "text",
+      "full_name": "text",
+      "last_name": "text",
+      "phone": "text",
+      "phone_type": "text",
+      "web_site": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER contact_delete_trigger AFTER DELETE ON public.contact FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER contact_insert_trigger AFTER INSERT ON public.contact FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER contact_update_trigger AFTER UPDATE ON public.contact FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "contact_address": {
+    "columns": {
+      "_address_address_pk": "bigint",
+      "_parent_contact_pk": "bigint",
+      "is_primary": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER contact_address_delete_trigger AFTER DELETE ON public.contact_address FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER contact_address_insert_trigger AFTER INSERT ON public.contact_address FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER contact_address_update_trigger AFTER UPDATE ON public.contact_address FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "contact_email": {
+    "columns": {
+      "_parent_contact_pk": "bigint",
+      "email": "text",
+      "is_primary": "boolean",
+      "type": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER contact_email_delete_trigger AFTER DELETE ON public.contact_email FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER contact_email_insert_trigger AFTER INSERT ON public.contact_email FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER contact_email_update_trigger AFTER UPDATE ON public.contact_email FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "contact_phone": {
+    "columns": {
+      "_parent_contact_pk": "bigint",
+      "is_primary": "boolean",
+      "phone": "text",
+      "type": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER contact_phone_delete_trigger AFTER DELETE ON public.contact_phone FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER contact_phone_insert_trigger AFTER INSERT ON public.contact_phone FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER contact_phone_update_trigger AFTER UPDATE ON public.contact_phone FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "contact_social_account": {
+    "columns": {
+      "_network_social_network_pk": "bigint",
+      "_parent_contact_pk": "bigint",
+      "user_name": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER contact_social_account_delete_trigger AFTER DELETE ON public.contact_social_account FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER contact_social_account_insert_trigger AFTER INSERT ON public.contact_social_account FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER contact_social_account_update_trigger AFTER UPDATE ON public.contact_social_account FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "container": {
+    "columns": {
+      "_container_product_pk": "bigint",
+      "number": "text",
+      "weight": "numeric(18,8)"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER container_delete_trigger AFTER DELETE ON public.container FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER container_insert_trigger AFTER INSERT ON public.container FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER container_update_trigger AFTER UPDATE ON public.container FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "container_quantity": {
+    "columns": {
+      "_container_container_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "quantity": "numeric(18,8)",
+      "weight": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER container_quantity_delete_trigger AFTER DELETE ON public.container_quantity FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER container_quantity_insert_trigger AFTER INSERT ON public.container_quantity FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER container_quantity_update_trigger AFTER UPDATE ON public.container_quantity FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "country": {
+    "columns": {
+      "code": "text",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER country_delete_trigger AFTER DELETE ON public.country FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER country_insert_trigger AFTER INSERT ON public.country FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER country_update_trigger AFTER UPDATE ON public.country FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "currency": {
+    "columns": {
+      "_display_unit_currency_unit_pk": "bigint",
+      "has_display_unit": "boolean",
+      "is_base": "boolean",
+      "minor_unit": "integer",
+      "symbol": "text"
+    },
+    "inherits": [
+      "kind"
+    ],
+    "triggers": [
+      "CREATE TRIGGER currency_delete_trigger AFTER DELETE ON public.currency FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER currency_insert_trigger AFTER INSERT ON public.currency FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER currency_update_trigger AFTER UPDATE ON public.currency FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "currency_conversion": {
+    "columns": {
+      "_from_currency_currency_pk": "bigint",
+      "_to_currency_currency_pk": "bigint",
+      "effective": "timestamp with time zone",
+      "ratio": "numeric(18,8)"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER currency_conversion_delete_trigger AFTER DELETE ON public.currency_conversion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER currency_conversion_insert_trigger AFTER INSERT ON public.currency_conversion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER currency_conversion_update_trigger AFTER UPDATE ON public.currency_conversion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "currency_unit": {
+    "columns": {
+      "minor_unit": "integer",
+      "symbol": "text"
+    },
+    "inherits": [
+      "unit"
+    ],
+    "triggers": [
+      "CREATE TRIGGER currency_unit_delete_trigger AFTER DELETE ON public.currency_unit FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER currency_unit_insert_trigger AFTER INSERT ON public.currency_unit FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER currency_unit_update_trigger AFTER UPDATE ON public.currency_unit FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "currency_unit_conversion": {
+    "columns": {
+      "_parent_currency_pk": "bigint",
+      "_to_unit_unit_pk": "bigint",
+      "ratio": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER currency_unit_conversion_delete_trigger AFTER DELETE ON public.currency_unit_conversion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER currency_unit_conversion_insert_trigger AFTER INSERT ON public.currency_unit_conversion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER currency_unit_conversion_update_trigger AFTER UPDATE ON public.currency_unit_conversion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "customer": {
+    "columns": {
+      "_bill_to_address_pk": "bigint",
+      "_category_customer_category_pk": "bigint",
+      "_contact_contact_pk": "bigint",
+      "_currency_currency_pk": "bigint",
+      "_inco_terms_inco_terms_pk": "bigint",
+      "_ship_method_ship_method_pk": "bigint",
+      "_ship_to_address_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_terms_terms_pk": "bigint",
+      "bill_to_is_shipto": "boolean",
+      "credit_status": "text",
+      "discount": "numeric(18,2)",
+      "is_active": "boolean",
+      "name": "text",
+      "notes": "text",
+      "number": "text",
+      "tax_id": "text",
+      "taxable": "boolean"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER customer_delete_trigger AFTER DELETE ON public.customer FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER customer_insert_trigger AFTER INSERT ON public.customer FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER customer_update_trigger AFTER UPDATE ON public.customer FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "customer_category": {
+    "columns": {},
+    "inherits": [
+      "category"
+    ],
+    "triggers": [
+      "CREATE TRIGGER customer_category_delete_trigger AFTER DELETE ON public.customer_category FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER customer_category_insert_trigger AFTER INSERT ON public.customer_category FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER customer_category_update_trigger AFTER UPDATE ON public.customer_category FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "customer_comment": {
+    "columns": {
+      "_customer_customer_pk": "bigint"
+    },
+    "inherits": [
+      "comment"
+    ],
+    "triggers": [
+      "CREATE TRIGGER customer_comment_delete_trigger AFTER DELETE ON public.customer_comment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER customer_comment_insert_trigger AFTER INSERT ON public.customer_comment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER customer_comment_update_trigger AFTER UPDATE ON public.customer_comment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "customer_contact": {
+    "columns": {
+      "_contact_contact_pk": "bigint",
+      "_customer_customer_pk": "bigint",
+      "is_primary": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER customer_contact_delete_trigger AFTER DELETE ON public.customer_contact FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER customer_contact_insert_trigger AFTER INSERT ON public.customer_contact FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER customer_contact_update_trigger AFTER UPDATE ON public.customer_contact FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "data_service": {
+    "columns": {
+      "module": "text"
+    },
+    "inherits": [
+      "script"
+    ],
+    "triggers": [
+      "CREATE TRIGGER data_service_delete_trigger AFTER DELETE ON public.data_service FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER data_service_insert_trigger AFTER INSERT ON public.data_service FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER data_service_update_trigger AFTER UPDATE ON public.data_service FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "demand": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "allocated": "numeric(18,8)",
+      "due_date": "date",
+      "links": "json",
+      "number": "text",
+      "priority": "text",
+      "quantity_due": "numeric(18,8)",
+      "status": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER demand_delete_trigger AFTER DELETE ON public.demand FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER demand_insert_trigger AFTER INSERT ON public.demand FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER demand_update_trigger AFTER UPDATE ON public.demand FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "document": {
+    "columns": {
+      "etag": "text",
+      "owner": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER document_delete_trigger AFTER DELETE ON public.document FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER document_insert_trigger AFTER INSERT ON public.document FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER document_update_trigger AFTER UPDATE ON public.document FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "edition": {
+    "columns": {
+      "description": "text",
+      "max_sessions": "integer",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER edition_delete_trigger AFTER DELETE ON public.edition FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER edition_insert_trigger AFTER INSERT ON public.edition FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER edition_update_trigger AFTER UPDATE ON public.edition FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "employee": {
+    "columns": {
+      "is_active": "boolean",
+      "is_buyer": "boolean",
+      "is_sales_rep": "boolean",
+      "number": "text",
+      "user_account": "text"
+    },
+    "inherits": [
+      "contact"
+    ],
+    "triggers": [
+      "CREATE TRIGGER employee_delete_trigger AFTER DELETE ON public.employee FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER employee_insert_trigger AFTER INSERT ON public.employee FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER employee_update_trigger AFTER UPDATE ON public.employee FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "feather": {
+    "columns": {
+      "description": "text",
+      "enable_row_authorization": "boolean",
+      "inherits": "text",
+      "is_child": "boolean",
+      "is_fetch_on_startup": "boolean",
+      "is_read_only": "boolean",
+      "is_system": "boolean",
+      "module": "text",
+      "name": "text",
+      "plural": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER feather_delete_trigger AFTER DELETE ON public.feather FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER feather_insert_trigger AFTER INSERT ON public.feather FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER feather_update_trigger AFTER UPDATE ON public.feather FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "feather_authorization": {
+    "columns": {
+      "_parent_feather_pk": "bigint",
+      "can_create": "boolean",
+      "can_delete": "boolean",
+      "can_read": "boolean",
+      "can_update": "boolean",
+      "role": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER feather_authorization_delete_trigger AFTER DELETE ON public.feather_authorization FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER feather_authorization_insert_trigger AFTER INSERT ON public.feather_authorization FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER feather_authorization_update_trigger AFTER UPDATE ON public.feather_authorization FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "feather_overload": {
+    "columns": {
+      "_parent_feather_pk": "bigint",
+      "alias": "text",
+      "autonumber": "json",
+      "data_list": "json",
+      "default": "json",
+      "description": "text",
+      "name": "text",
+      "overload_alias": "boolean",
+      "overload_autonumber": "boolean",
+      "overload_data_list": "boolean",
+      "overload_default": "boolean",
+      "overload_description": "boolean",
+      "overload_type": "boolean",
+      "type": "json"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER feather_overload_delete_trigger AFTER DELETE ON public.feather_overload FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER feather_overload_insert_trigger AFTER INSERT ON public.feather_overload FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER feather_overload_update_trigger AFTER UPDATE ON public.feather_overload FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "feather_property": {
+    "columns": {
+      "_parent_feather_pk": "bigint",
+      "alias": "text",
+      "autonumber": "json",
+      "data_list": "json",
+      "default": "json",
+      "description": "text",
+      "format": "text",
+      "inherited_from": "text",
+      "is_always_load": "boolean",
+      "is_encrypted": "boolean",
+      "is_indexed": "boolean",
+      "is_label_key": "boolean",
+      "is_natural_key": "boolean",
+      "is_read_only": "boolean",
+      "is_required": "boolean",
+      "max": "numeric(18,8)",
+      "min": "numeric(18,8)",
+      "name": "text",
+      "precision": "numeric(18,8)",
+      "scale": "numeric(18,8)",
+      "type": "json"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER feather_property_delete_trigger AFTER DELETE ON public.feather_property FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER feather_property_insert_trigger AFTER INSERT ON public.feather_property FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER feather_property_update_trigger AFTER UPDATE ON public.feather_property FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "form": {
+    "columns": {
+      "_help_link_help_link_pk": "bigint",
+      "focus": "text",
+      "font": "text",
+      "hide_logo": "boolean",
+      "hide_title": "boolean",
+      "is_default": "boolean",
+      "orientation": "text",
+      "paper_size": "text",
+      "show_label_key": "boolean",
+      "title": "text"
+    },
+    "inherits": [
+      "layout"
+    ],
+    "triggers": [
+      "CREATE TRIGGER form_delete_trigger AFTER DELETE ON public.form FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER form_insert_trigger AFTER INSERT ON public.form FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER form_update_trigger AFTER UPDATE ON public.form FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "form_action": {
+    "columns": {
+      "_parent_form_pk": "bigint",
+      "icon": "text",
+      "method": "text",
+      "name": "text",
+      "title": "text",
+      "validator": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER form_action_delete_trigger AFTER DELETE ON public.form_action FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER form_action_insert_trigger AFTER INSERT ON public.form_action FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER form_action_update_trigger AFTER UPDATE ON public.form_action FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "form_attr": {
+    "columns": {
+      "_parent_form_pk": "bigint",
+      "_relation_widget_layout_pk": "bigint",
+      "attr": "text",
+      "data_list": "text",
+      "disable_currency": "boolean",
+      "filter": "json",
+      "font": "text",
+      "font_size": "numeric(18,8)",
+      "grid": "integer",
+      "label": "text",
+      "show_label": "boolean",
+      "unit": "integer"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER form_attr_delete_trigger AFTER DELETE ON public.form_attr FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER form_attr_insert_trigger AFTER INSERT ON public.form_attr FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER form_attr_update_trigger AFTER UPDATE ON public.form_attr FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "form_attr_action": {
+    "columns": {
+      "_parent_form_attr_pk": "bigint",
+      "icon": "text",
+      "method": "text",
+      "name": "text",
+      "title": "text",
+      "validator": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER form_attr_action_delete_trigger AFTER DELETE ON public.form_attr_action FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER form_attr_action_insert_trigger AFTER INSERT ON public.form_attr_action FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER form_attr_action_update_trigger AFTER UPDATE ON public.form_attr_action FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "form_attr_column": {
+    "columns": {
+      "_parent_form_attr_pk": "bigint",
+      "attr": "text",
+      "data_list": "text",
+      "filter": "json",
+      "font": "text",
+      "font_size": "numeric(18,8)",
+      "label": "text",
+      "print_blank": "boolean",
+      "show_currency": "boolean",
+      "width": "integer"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER form_attr_column_delete_trigger AFTER DELETE ON public.form_attr_column FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER form_attr_column_insert_trigger AFTER INSERT ON public.form_attr_column FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER form_attr_column_update_trigger AFTER UPDATE ON public.form_attr_column FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "form_tab": {
+    "columns": {
+      "_parent_form_pk": "bigint",
+      "name": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER form_tab_delete_trigger AFTER DELETE ON public.form_tab FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER form_tab_insert_trigger AFTER INSERT ON public.form_tab FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER form_tab_update_trigger AFTER UPDATE ON public.form_tab FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "freight_code": {
+    "columns": {
+      "class": "text",
+      "code": "text",
+      "description": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER freight_code_delete_trigger AFTER DELETE ON public.freight_code FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER freight_code_insert_trigger AFTER INSERT ON public.freight_code FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER freight_code_update_trigger AFTER UPDATE ON public.freight_code FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "help_link": {
+    "columns": {
+      "display_value": "text",
+      "icon": "text",
+      "label": "text",
+      "module": "text",
+      "notes": "text",
+      "resource": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER help_link_delete_trigger AFTER DELETE ON public.help_link FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER help_link_insert_trigger AFTER INSERT ON public.help_link FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER help_link_update_trigger AFTER UPDATE ON public.help_link FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "honorific": {
+    "columns": {
+      "title": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER honorific_delete_trigger AFTER DELETE ON public.honorific FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER honorific_insert_trigger AFTER INSERT ON public.honorific FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER honorific_update_trigger AFTER UPDATE ON public.honorific FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inco_terms": {
+    "columns": {
+      "code": "text",
+      "description": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inco_terms_delete_trigger AFTER DELETE ON public.inco_terms FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inco_terms_insert_trigger AFTER INSERT ON public.inco_terms FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inco_terms_update_trigger AFTER UPDATE ON public.inco_terms FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory": {
+    "columns": {
+      "_item_site_item_site_pk": "bigint",
+      "at_inspection": "numeric(18,8)",
+      "available": "numeric(18,8)",
+      "blocked": "numeric(18,8)",
+      "demand": "numeric(18,8)",
+      "is_active_count": "boolean",
+      "labor_value": "mono",
+      "last_count": "date",
+      "material_value": "mono",
+      "on_order": "numeric(18,8)",
+      "overhead_value": "mono",
+      "projected": "numeric(18,8)",
+      "reorder": "boolean",
+      "service_value": "mono",
+      "shortage": "boolean",
+      "total_value": "mono"
+    },
+    "inherits": [
+      "supply"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_delete_trigger AFTER DELETE ON public.inventory FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_insert_trigger AFTER INSERT ON public.inventory FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_update_trigger AFTER UPDATE ON public.inventory FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_adjustment": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "comments": "text",
+      "is_posted": "boolean",
+      "number": "text",
+      "posted_date": "date",
+      "quantity": "numeric(18,8)",
+      "type": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_adjustment_delete_trigger AFTER DELETE ON public.inventory_adjustment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_adjustment_insert_trigger AFTER INSERT ON public.inventory_adjustment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_adjustment_update_trigger AFTER UPDATE ON public.inventory_adjustment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_adjustment_detail": {
+    "columns": {
+      "_inventory_adjustment_inventory_adjustment_pk": "bigint"
+    },
+    "inherits": [
+      "receipt_detail"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_adjustment_detail_delete_trigger AFTER DELETE ON public.inventory_adjustment_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_adjustment_detail_insert_trigger AFTER INSERT ON public.inventory_adjustment_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_adjustment_detail_update_trigger AFTER UPDATE ON public.inventory_adjustment_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_location": {
+    "columns": {
+      "_inventory_inventory_pk": "bigint",
+      "_location_location_pk": "bigint",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_location_delete_trigger AFTER DELETE ON public.inventory_location FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_location_insert_trigger AFTER INSERT ON public.inventory_location FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_location_update_trigger AFTER UPDATE ON public.inventory_location FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_trace": {
+    "columns": {
+      "_inventory_inventory_pk": "bigint",
+      "_location_location_pk": "bigint",
+      "_trace_trace_pk": "bigint",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_trace_delete_trigger AFTER DELETE ON public.inventory_trace FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_trace_insert_trigger AFTER INSERT ON public.inventory_trace FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_trace_update_trigger AFTER UPDATE ON public.inventory_trace FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_transaction": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_location_location_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_trace_trace_pk": "bigint",
+      "comments": "text",
+      "date": "date",
+      "document": "text",
+      "labor_cost": "mono",
+      "material_cost": "mono",
+      "number": "text",
+      "overhead_cost": "mono",
+      "quantity": "numeric(18,8)",
+      "quantity_after": "numeric(18,8)",
+      "quantity_before": "numeric(18,8)",
+      "reference": "text",
+      "service_cost": "mono",
+      "total_cost": "mono",
+      "type": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_transaction_delete_trigger AFTER DELETE ON public.inventory_transaction FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_transaction_insert_trigger AFTER INSERT ON public.inventory_transaction FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_transaction_update_trigger AFTER UPDATE ON public.inventory_transaction FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "invoice": {
+    "columns": {
+      "_bill_to_address_pk": "bigint",
+      "_contact_contact_pk": "bigint",
+      "_currency_currency_pk": "bigint",
+      "_customer_customer_pk": "bigint",
+      "_inco_terms_inco_terms_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "_sales_rep_employee_pk": "bigint",
+      "_ship_method_ship_method_pk": "bigint",
+      "_ship_to_address_pk": "bigint",
+      "_terms_terms_pk": "bigint",
+      "balance": "mono",
+      "freight": "mono",
+      "invoice_date": "date",
+      "notes": "text",
+      "number": "text",
+      "paid": "mono",
+      "print_time": "timestamp with time zone",
+      "printed": "boolean",
+      "printed_by": "text",
+      "purchase_order": "text",
+      "ship_date": "date",
+      "status": "text",
+      "subtotal": "mono",
+      "tax": "mono",
+      "taxable": "boolean",
+      "total": "mono"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER invoice_delete_trigger AFTER DELETE ON public.invoice FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER invoice_insert_trigger AFTER INSERT ON public.invoice FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER invoice_update_trigger AFTER UPDATE ON public.invoice FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "invoice_line": {
+    "columns": {
+      "_invoice_invoice_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "_sales_order_line_sales_order_line_pk": "bigint",
+      "_shipment_line_shipment_line_pk": "bigint",
+      "amount": "mono",
+      "back_ordered": "numeric(18,8)",
+      "billed": "numeric(18,8)",
+      "discount": "numeric(5,2)",
+      "discount_price": "mono",
+      "line": "integer",
+      "notes": "text",
+      "ordered": "numeric(18,8)",
+      "price": "mono",
+      "shipped": "numeric(18,8)",
+      "taxable": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER invoice_line_delete_trigger AFTER DELETE ON public.invoice_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER invoice_line_insert_trigger AFTER INSERT ON public.invoice_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER invoice_line_update_trigger AFTER UPDATE ON public.invoice_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "invoice_payment": {
+    "columns": {
+      "_invoice_invoice_pk": "bigint",
+      "amount": "mono",
+      "reference": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER invoice_payment_delete_trigger AFTER DELETE ON public.invoice_payment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER invoice_payment_insert_trigger AFTER INSERT ON public.invoice_payment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER invoice_payment_update_trigger AFTER UPDATE ON public.invoice_payment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "invoice_tax": {
+    "columns": {
+      "_invoice_invoice_pk": "bigint",
+      "_tax_type_tax_type_pk": "bigint",
+      "amount": "mono",
+      "percent": "numeric(18,8)",
+      "shipping_taxable": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER invoice_tax_delete_trigger AFTER DELETE ON public.invoice_tax FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER invoice_tax_insert_trigger AFTER INSERT ON public.invoice_tax FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER invoice_tax_update_trigger AFTER UPDATE ON public.invoice_tax FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item": {
+    "columns": {
+      "_category_item_category_pk": "bigint",
+      "_drawing_link_resource_link_pk": "bigint",
+      "_freight_code_freight_code_pk": "bigint",
+      "_group_item_group_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "comments": "text",
+      "cost": "mono",
+      "country_of_origin": "text",
+      "customs_description": "text",
+      "customs_value": "mono",
+      "description": "text",
+      "eoq": "numeric(18,8)",
+      "harmonized_tariff_code": "text",
+      "is_fractional": "boolean",
+      "is_sold": "boolean",
+      "labor_cost": "mono",
+      "long_description": "text",
+      "material_cost": "mono",
+      "number": "text",
+      "overhead_cost": "mono",
+      "price": "mono",
+      "service_cost": "mono",
+      "source": "text",
+      "status": "text",
+      "taxable": "boolean",
+      "trace": "text",
+      "type": "text",
+      "weight": "numeric(18,8)"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_delete_trigger AFTER DELETE ON public.item FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_insert_trigger AFTER INSERT ON public.item FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_update_trigger AFTER UPDATE ON public.item FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_category": {
+    "columns": {},
+    "inherits": [
+      "category"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_category_delete_trigger AFTER DELETE ON public.item_category FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_category_insert_trigger AFTER INSERT ON public.item_category FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_category_update_trigger AFTER UPDATE ON public.item_category FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_conversion": {
+    "columns": {
+      "_from_unit_item_unit_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "_to_unit_item_unit_pk": "bigint",
+      "ratio": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_conversion_delete_trigger AFTER DELETE ON public.item_conversion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_conversion_insert_trigger AFTER INSERT ON public.item_conversion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_conversion_update_trigger AFTER UPDATE ON public.item_conversion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_document": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_link_resource_link_pk": "bigint",
+      "notes": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_document_delete_trigger AFTER DELETE ON public.item_document FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_document_insert_trigger AFTER INSERT ON public.item_document FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_document_update_trigger AFTER UPDATE ON public.item_document FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_group": {
+    "columns": {
+      "code": "text",
+      "description": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_group_delete_trigger AFTER DELETE ON public.item_group FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_group_insert_trigger AFTER INSERT ON public.item_group FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_group_update_trigger AFTER UPDATE ON public.item_group FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_site": {
+    "columns": {
+      "_default_location_location_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_wip_location_location_pk": "bigint",
+      "abc_class": "text",
+      "is_primary": "boolean",
+      "issue_method": "text",
+      "lead_time": "integer",
+      "maximum_order_quantity": "numeric(18,8)",
+      "minimum_order_quantity": "numeric(18,8)",
+      "order_increment": "numeric(18,8)",
+      "planning_policy": "text",
+      "reorder_point": "numeric(18,8)",
+      "safety_stock": "numeric(18,8)",
+      "use_hard_allocations": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_site_delete_trigger AFTER DELETE ON public.item_site FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_site_insert_trigger AFTER INSERT ON public.item_site FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_site_update_trigger AFTER UPDATE ON public.item_site FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_supplier": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_supplier_supplier_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "is_primary": "boolean",
+      "manufacturer": "text",
+      "manufacturer_item": "text",
+      "supplier_description": "text",
+      "supplier_item": "text",
+      "url": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_supplier_delete_trigger AFTER DELETE ON public.item_supplier FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_supplier_insert_trigger AFTER INSERT ON public.item_supplier FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_supplier_update_trigger AFTER UPDATE ON public.item_supplier FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_supplier_price": {
+    "columns": {
+      "_item_supplier_item_supplier_pk": "bigint",
+      "price": "mono",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_supplier_price_delete_trigger AFTER DELETE ON public.item_supplier_price FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_supplier_price_insert_trigger AFTER INSERT ON public.item_supplier_price FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_supplier_price_update_trigger AFTER UPDATE ON public.item_supplier_price FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_unit": {
+    "columns": {
+      "is_default": "boolean"
+    },
+    "inherits": [
+      "unit"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_unit_delete_trigger AFTER DELETE ON public.item_unit FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_unit_insert_trigger AFTER INSERT ON public.item_unit FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_unit_update_trigger AFTER UPDATE ON public.item_unit FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "item_unit_conversion": {
+    "columns": {
+      "_from_unit_item_unit_pk": "bigint",
+      "_to_unit_item_unit_pk": "bigint",
+      "ratio": "numeric(18,8)"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER item_unit_conversion_delete_trigger AFTER DELETE ON public.item_unit_conversion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER item_unit_conversion_insert_trigger AFTER INSERT ON public.item_unit_conversion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER item_unit_conversion_update_trigger AFTER UPDATE ON public.item_unit_conversion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "kind": {
+    "columns": {
+      "code": "text",
+      "description": "text",
+      "note": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER kind_delete_trigger AFTER DELETE ON public.kind FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER kind_insert_trigger AFTER INSERT ON public.kind FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER kind_update_trigger AFTER UPDATE ON public.kind FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "labor_resource": {
+    "columns": {
+      "labor_cost": "mono"
+    },
+    "inherits": [
+      "resource_group"
+    ],
+    "triggers": [
+      "CREATE TRIGGER labor_resource_delete_trigger AFTER DELETE ON public.labor_resource FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER labor_resource_insert_trigger AFTER INSERT ON public.labor_resource FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER labor_resource_update_trigger AFTER UPDATE ON public.labor_resource FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "layout": {
+    "columns": {
+      "description": "text",
+      "feather": "text",
+      "is_active": "boolean",
+      "module": "text",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER layout_delete_trigger AFTER DELETE ON public.layout FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER layout_insert_trigger AFTER INSERT ON public.layout FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER layout_update_trigger AFTER UPDATE ON public.layout FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "location": {
+    "columns": {
+      "description": "text",
+      "name": "text",
+      "type": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER location_delete_trigger AFTER DELETE ON public.location FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER location_insert_trigger AFTER INSERT ON public.location FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER location_update_trigger AFTER UPDATE ON public.location FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "log": {
+    "columns": {
+      "action": "text",
+      "change": "json",
+      "object_id": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER log_delete_trigger AFTER DELETE ON public.log FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER log_insert_trigger AFTER INSERT ON public.log FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER log_update_trigger AFTER UPDATE ON public.log FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "machine_resource": {
+    "columns": {
+      "overhead_cost": "mono"
+    },
+    "inherits": [
+      "resource_group"
+    ],
+    "triggers": [
+      "CREATE TRIGGER machine_resource_delete_trigger AFTER DELETE ON public.machine_resource FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER machine_resource_insert_trigger AFTER INSERT ON public.machine_resource FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER machine_resource_update_trigger AFTER UPDATE ON public.machine_resource FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "module": {
+    "columns": {
+      "version": "text"
+    },
+    "inherits": [
+      "script"
+    ],
+    "triggers": [
+      "CREATE TRIGGER module_delete_trigger AFTER DELETE ON public.module FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER module_insert_trigger AFTER INSERT ON public.module FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER module_update_trigger AFTER UPDATE ON public.module FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "module_dependency": {
+    "columns": {
+      "_module_script_pk": "bigint",
+      "_parent_module_pk": "bigint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER module_dependency_delete_trigger AFTER DELETE ON public.module_dependency FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER module_dependency_insert_trigger AFTER INSERT ON public.module_dependency FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER module_dependency_update_trigger AFTER UPDATE ON public.module_dependency FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "module_npm": {
+    "columns": {
+      "_module_module_pk": "bigint",
+      "export": "text",
+      "package": "text",
+      "property": "text",
+      "version": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER module_npm_delete_trigger AFTER DELETE ON public.module_npm FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER module_npm_insert_trigger AFTER INSERT ON public.module_npm FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER module_npm_update_trigger AFTER UPDATE ON public.module_npm FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "move_inventory": {
+    "columns": {
+      "_from_location_location_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_to_location_location_pk": "bigint",
+      "_trace_trace_pk": "bigint",
+      "date": "date",
+      "number": "text",
+      "quantity": "numeric(18,8)",
+      "status": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER move_inventory_delete_trigger AFTER DELETE ON public.move_inventory FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER move_inventory_insert_trigger AFTER INSERT ON public.move_inventory FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER move_inventory_update_trigger AFTER UPDATE ON public.move_inventory FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "notice": {
+    "columns": {
+      "error": "text",
+      "is_processed": "boolean",
+      "payload": "json"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER notice_delete_trigger AFTER DELETE ON public.notice FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER notice_insert_trigger AFTER INSERT ON public.notice FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER notice_update_trigger AFTER UPDATE ON public.notice FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "object": {
+    "columns": {
+      "_pk": "bigint not null default nextval('object__pk_seq'::regclass)",
+      "created": "timestamp with time zone",
+      "created_by": "text",
+      "id": "text",
+      "is_deleted": "boolean",
+      "lock": "lock",
+      "updated": "timestamp with time zone",
+      "updated_by": "text"
+    },
+    "inherits": [],
+    "triggers": []
+  },
+  "operation": {
+    "columns": {
+      "_labor_resource_labor_resource_pk": "bigint",
+      "_machine_resource_machine_resource_pk": "bigint",
+      "batch_size": "numeric(18,8)",
+      "capacity_time": "numeric(18,8)",
+      "completed": "numeric(18,8)",
+      "description": "text",
+      "estimated_labor_cost": "mono",
+      "estimated_labor_hours": "numeric(18,8)",
+      "estimated_machine_hours": "numeric(18,8)",
+      "estimated_overhead_cost": "mono",
+      "estimated_service_cost": "mono",
+      "instructions": "text",
+      "labor_capacity": "numeric(18,2)",
+      "labor_cost": "mono",
+      "lead_time": "numeric(18,8)",
+      "machine_capacity": "numeric(18,2)",
+      "move_time": "numeric(18,8)",
+      "number": "text",
+      "overhead_cost": "mono",
+      "planned": "numeric(18,8)",
+      "planned_end_time": "timestamp with time zone",
+      "planned_start_time": "timestamp with time zone",
+      "queue_time": "numeric(18,8)",
+      "rejected": "numeric(18,8)",
+      "remaining": "numeric(18,8)",
+      "run_rate": "numeric(18,8)",
+      "run_time": "numeric(18,8)",
+      "run_unit": "text",
+      "sequence": "integer",
+      "service_cost": "mono",
+      "setup_time": "numeric(18,8)",
+      "status": "text",
+      "transfer_batch_policy": "text",
+      "transfer_batch_value": "numeric(18,2)",
+      "wait_time": "numeric(18,8)",
+      "yield": "numeric(18,2)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER operation_delete_trigger AFTER DELETE ON public.operation FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER operation_insert_trigger AFTER INSERT ON public.operation FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER operation_update_trigger AFTER UPDATE ON public.operation FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "operation_completion": {
+    "columns": {
+      "_employee_employee_pk": "bigint",
+      "_operation_work_order_operation_pk": "bigint",
+      "close_operation": "boolean",
+      "error": "text",
+      "is_posted": "boolean",
+      "number": "text",
+      "post_date": "date",
+      "quantity": "numeric(18,8)",
+      "start_operation": "boolean"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER operation_completion_delete_trigger AFTER DELETE ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER operation_completion_insert_trigger AFTER INSERT ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER operation_completion_update_trigger AFTER UPDATE ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "outside_process": {
+    "columns": {
+      "_sales_demand_sales_order_line_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "_work_order_operation_work_order_operation_pk": "bigint",
+      "_work_order_work_order_pk": "bigint",
+      "received": "numeric(18,8)",
+      "required": "numeric(18,8)",
+      "shipped": "numeric(18,8)"
+    },
+    "inherits": [
+      "demand"
+    ],
+    "triggers": [
+      "CREATE TRIGGER outside_process_delete_trigger AFTER DELETE ON public.outside_process FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER outside_process_insert_trigger AFTER INSERT ON public.outside_process FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER outside_process_update_trigger AFTER UPDATE ON public.outside_process FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "outside_process_shipment": {
+    "columns": {
+      "_purchase_order_purchase_order_pk": "bigint",
+      "reference": "text"
+    },
+    "inherits": [
+      "shipment"
+    ],
+    "triggers": [
+      "CREATE TRIGGER outside_process_shipment_delete_trigger AFTER DELETE ON public.outside_process_shipment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER outside_process_shipment_insert_trigger AFTER INSERT ON public.outside_process_shipment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER outside_process_shipment_update_trigger AFTER UPDATE ON public.outside_process_shipment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "outside_process_shipment_line": {
+    "columns": {
+      "_outside_process_shipment_outside_process_shipment_pk": "bigint",
+      "_purchase_order_line_purchase_order_line_pk": "bigint"
+    },
+    "inherits": [
+      "shipment_line"
+    ],
+    "triggers": [
+      "CREATE TRIGGER outside_process_shipment_line_delete_trigger AFTER DELETE ON public.outside_process_shipment_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER outside_process_shipment_line_insert_trigger AFTER INSERT ON public.outside_process_shipment_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER outside_process_shipment_line_update_trigger AFTER UPDATE ON public.outside_process_shipment_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "package_type": {
+    "columns": {
+      "description": "text",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER package_type_delete_trigger AFTER DELETE ON public.package_type FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER package_type_insert_trigger AFTER INSERT ON public.package_type FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER package_type_update_trigger AFTER UPDATE ON public.package_type FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "physical_count": {
+    "columns": {
+      "_site_site_pk": "bigint",
+      "closed_time": "timestamp with time zone",
+      "description": "text",
+      "is_active": "boolean",
+      "number": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER physical_count_delete_trigger AFTER DELETE ON public.physical_count FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER physical_count_insert_trigger AFTER INSERT ON public.physical_count FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER physical_count_update_trigger AFTER UPDATE ON public.physical_count FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "physical_count_tag": {
+    "columns": {
+      "_inventory_inventory_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "_location_location_pk": "bigint",
+      "_physical_count_physical_count_pk": "bigint",
+      "_trace_number_trace_pk": "bigint",
+      "count": "numeric(18,8)",
+      "is_complete": "boolean",
+      "is_recount": "boolean",
+      "new_quantity": "numeric(18,8)",
+      "new_value": "mono",
+      "number": "integer",
+      "old_quantity": "numeric(18,8)",
+      "old_value": "mono",
+      "quantity_change": "numeric(18,8)",
+      "recount": "numeric(18,8)",
+      "value_change": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER physical_count_tag_delete_trigger AFTER DELETE ON public.physical_count_tag FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER physical_count_tag_insert_trigger AFTER INSERT ON public.physical_count_tag FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER physical_count_tag_update_trigger AFTER UPDATE ON public.physical_count_tag FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "planned_operation": {
+    "columns": {
+      "_planned_work_order_planned_work_order_pk": "bigint"
+    },
+    "inherits": [
+      "operation"
+    ],
+    "triggers": [
+      "CREATE TRIGGER planned_operation_delete_trigger AFTER DELETE ON public.planned_operation FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER planned_operation_insert_trigger AFTER INSERT ON public.planned_operation FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER planned_operation_update_trigger AFTER UPDATE ON public.planned_operation FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "planned_order": {
+    "columns": {
+      "_demand_demand_pk": "bigint",
+      "_sales_demand_sales_order_line_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "is_firm": "boolean",
+      "sequence": "integer"
+    },
+    "inherits": [
+      "supply"
+    ],
+    "triggers": [
+      "CREATE TRIGGER planned_order_delete_trigger AFTER DELETE ON public.planned_order FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER planned_order_insert_trigger AFTER INSERT ON public.planned_order FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER planned_order_update_trigger AFTER UPDATE ON public.planned_order FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "planned_purchase": {
+    "columns": {
+      "_supplier_supplier_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "amount": "mono",
+      "description": "text",
+      "manufacturer": "text",
+      "manufacturer_item": "text",
+      "order_quantity": "numeric(18,8)",
+      "price": "mono",
+      "ratio": "numeric(18,8)",
+      "requested_by": "text",
+      "supplier_item": "text"
+    },
+    "inherits": [
+      "planned_order"
+    ],
+    "triggers": [
+      "CREATE TRIGGER planned_purchase_delete_trigger AFTER DELETE ON public.planned_purchase FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER planned_purchase_insert_trigger AFTER INSERT ON public.planned_purchase FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER planned_purchase_update_trigger AFTER UPDATE ON public.planned_purchase FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "planned_work_order": {
+    "columns": {},
+    "inherits": [
+      "planned_order"
+    ],
+    "triggers": [
+      "CREATE TRIGGER planned_work_order_delete_trigger AFTER DELETE ON public.planned_work_order FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER planned_work_order_insert_trigger AFTER INSERT ON public.planned_work_order FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER planned_work_order_update_trigger AFTER UPDATE ON public.planned_work_order FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "prepaid_invoice": {
+    "columns": {
+      "unapplied": "mono"
+    },
+    "inherits": [
+      "invoice"
+    ],
+    "triggers": [
+      "CREATE TRIGGER prepaid_invoice_delete_trigger AFTER DELETE ON public.prepaid_invoice FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER prepaid_invoice_insert_trigger AFTER INSERT ON public.prepaid_invoice FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER prepaid_invoice_update_trigger AFTER UPDATE ON public.prepaid_invoice FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "prepaid_invoice_application": {
+    "columns": {
+      "_invoice_invoice_pk": "bigint",
+      "_prepaid_invoice_prepaid_invoice_pk": "bigint",
+      "amount": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER prepaid_invoice_application_delete_trigger AFTER DELETE ON public.prepaid_invoice_application FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER prepaid_invoice_application_insert_trigger AFTER INSERT ON public.prepaid_invoice_application FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER prepaid_invoice_application_update_trigger AFTER UPDATE ON public.prepaid_invoice_application FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "print_form": {
+    "columns": {},
+    "inherits": [
+      "form"
+    ],
+    "triggers": [
+      "CREATE TRIGGER print_form_delete_trigger AFTER DELETE ON public.print_form FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER print_form_insert_trigger AFTER INSERT ON public.print_form FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER print_form_update_trigger AFTER UPDATE ON public.print_form FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "product": {
+    "columns": {
+      "height": "numeric(18,8)",
+      "is_container": "boolean",
+      "length": "numeric(18,8)",
+      "revision": "text",
+      "width": "numeric(18,8)"
+    },
+    "inherits": [
+      "item"
+    ],
+    "triggers": [
+      "CREATE TRIGGER product_delete_trigger AFTER DELETE ON public.product FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER product_insert_trigger AFTER INSERT ON public.product FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER product_update_trigger AFTER UPDATE ON public.product FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "product_bill_of_material_item": {
+    "columns": {
+      "_product_product_pk": "bigint"
+    },
+    "inherits": [
+      "bill_of_material_item"
+    ],
+    "triggers": [
+      "CREATE TRIGGER product_bill_of_material_item_delete_trigger AFTER DELETE ON public.product_bill_of_material_item FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER product_bill_of_material_item_insert_trigger AFTER INSERT ON public.product_bill_of_material_item FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER product_bill_of_material_item_update_trigger AFTER UPDATE ON public.product_bill_of_material_item FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "product_operation": {
+    "columns": {
+      "_labor_resource_labor_resource_pk": "bigint",
+      "_machine_resource_machine_resource_pk": "bigint",
+      "_product_product_pk": "bigint",
+      "_service_service_pk": "bigint",
+      "batch_size": "numeric(18,8)",
+      "description": "text",
+      "instructions": "text",
+      "is_subcontract": "boolean",
+      "labor_capacity": "numeric(18,2)",
+      "machine_capacity": "numeric(18,2)",
+      "move_time": "numeric(18,8)",
+      "queue_time": "numeric(18,8)",
+      "run_rate": "numeric(18,8)",
+      "run_unit": "text",
+      "sequence": "integer",
+      "setup_time": "numeric(18,8)",
+      "transfer_batch_policy": "text",
+      "transfer_batch_value": "numeric(18,2)",
+      "wait_time": "numeric(18,8)",
+      "yield": "numeric(18,2)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER product_operation_delete_trigger AFTER DELETE ON public.product_operation FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER product_operation_insert_trigger AFTER INSERT ON public.product_operation FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER product_operation_update_trigger AFTER UPDATE ON public.product_operation FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "project": {
+    "columns": {
+      "gantt": "json",
+      "percent_complete": "integer",
+      "planned_start_date": "date"
+    },
+    "inherits": [
+      "task"
+    ],
+    "triggers": [
+      "CREATE TRIGGER project_delete_trigger AFTER DELETE ON public.project FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER project_insert_trigger AFTER INSERT ON public.project FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER project_update_trigger AFTER UPDATE ON public.project FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "project_task": {
+    "columns": {
+      "_project_project_pk": "bigint",
+      "link_id": "text",
+      "parent": "text",
+      "percent_complete": "integer",
+      "planned_start_date": "date",
+      "type": "text",
+      "wbs": "text"
+    },
+    "inherits": [
+      "task"
+    ],
+    "triggers": [
+      "CREATE TRIGGER project_task_delete_trigger AFTER DELETE ON public.project_task FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER project_task_insert_trigger AFTER INSERT ON public.project_task FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER project_task_update_trigger AFTER UPDATE ON public.project_task FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "project_task_link": {
+    "columns": {
+      "_project_task_project_task_pk": "bigint",
+      "task": "text",
+      "type": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER project_task_link_delete_trigger AFTER DELETE ON public.project_task_link FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER project_task_link_insert_trigger AFTER INSERT ON public.project_task_link FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER project_task_link_update_trigger AFTER UPDATE ON public.project_task_link FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "project_team": {
+    "columns": {
+      "_member_contact_pk": "bigint",
+      "_project_project_pk": "bigint",
+      "is_lead": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER project_team_delete_trigger AFTER DELETE ON public.project_team FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER project_team_insert_trigger AFTER INSERT ON public.project_team FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER project_team_update_trigger AFTER UPDATE ON public.project_team FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "proposed_cost": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "labor_cost": "mono",
+      "material_cost": "mono",
+      "overhead_cost": "mono",
+      "service_cost": "mono",
+      "status": "text",
+      "total_cost": "mono"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER proposed_cost_delete_trigger AFTER DELETE ON public.proposed_cost FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER proposed_cost_insert_trigger AFTER INSERT ON public.proposed_cost FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER proposed_cost_update_trigger AFTER UPDATE ON public.proposed_cost FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order": {
+    "columns": {
+      "_bill_to_address_pk": "bigint",
+      "_buyer_employee_pk": "bigint",
+      "_contact_contact_pk": "bigint",
+      "_currency_currency_pk": "bigint",
+      "_inco_terms_inco_terms_pk": "bigint",
+      "_ship_method_ship_method_pk": "bigint",
+      "_ship_to_address_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_supplier_supplier_pk": "bigint",
+      "_terms_terms_pk": "bigint",
+      "changed_delivery": "date",
+      "comments": "text",
+      "confirmed_delivery": "date",
+      "freight": "mono",
+      "has_outside_process": "boolean",
+      "is_printed": "boolean",
+      "msds_required": "boolean",
+      "number": "text",
+      "order_date": "date",
+      "planned_delivery": "date",
+      "print_time": "timestamp with time zone",
+      "printed_by": "text",
+      "reference": "text",
+      "ship_instructions": "text",
+      "status": "text",
+      "subtotal": "mono",
+      "tax": "mono",
+      "tax_exempt": "boolean",
+      "total": "mono"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_delete_trigger AFTER DELETE ON public.purchase_order FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_insert_trigger AFTER INSERT ON public.purchase_order FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_update_trigger AFTER UPDATE ON public.purchase_order FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order_document": {
+    "columns": {
+      "_link_resource_link_pk": "bigint",
+      "_purchaseorder_purchase_order_pk": "bigint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_document_delete_trigger AFTER DELETE ON public.purchase_order_document FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_document_insert_trigger AFTER INSERT ON public.purchase_order_document FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_document_update_trigger AFTER UPDATE ON public.purchase_order_document FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order_line": {
+    "columns": {
+      "_purchase_order_purchase_order_pk": "bigint",
+      "_sales_demand_sales_order_line_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "amount": "mono",
+      "back_ordered": "numeric(18,8)",
+      "changed_delivery": "date",
+      "confirmed_delivery": "date",
+      "description": "text",
+      "line": "integer",
+      "manufacturer": "text",
+      "manufacturer_item": "text",
+      "ordered": "numeric(18,8)",
+      "planned_delivery": "date",
+      "price": "mono",
+      "ratio": "numeric(18,8)",
+      "received": "numeric(18,8)",
+      "requested_by": "text",
+      "ship_instructions": "text",
+      "shipped": "numeric(18,8)",
+      "supplier_item": "text"
+    },
+    "inherits": [
+      "supply"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_line_delete_trigger AFTER DELETE ON public.purchase_order_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_line_insert_trigger AFTER INSERT ON public.purchase_order_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_line_update_trigger AFTER UPDATE ON public.purchase_order_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order_line_component": {
+    "columns": {
+      "_purchase_order_line_purchase_order_line_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "back_ordered": "numeric(18,8)",
+      "fixed_quantity": "numeric(18,8)",
+      "ordered": "numeric(18,8)",
+      "quantity_per": "numeric(18,8)",
+      "ratio": "numeric(18,8)",
+      "received": "numeric(18,8)"
+    },
+    "inherits": [
+      "supply"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_line_component_delete_trigger AFTER DELETE ON public.purchase_order_line_component FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_line_component_insert_trigger AFTER INSERT ON public.purchase_order_line_component FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_line_component_update_trigger AFTER UPDATE ON public.purchase_order_line_component FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order_receipt": {
+    "columns": {
+      "_purchase_order_purchase_order_pk": "bigint",
+      "is_paid": "boolean"
+    },
+    "inherits": [
+      "receipt"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_receipt_delete_trigger AFTER DELETE ON public.purchase_order_receipt FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_receipt_insert_trigger AFTER INSERT ON public.purchase_order_receipt FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_receipt_update_trigger AFTER UPDATE ON public.purchase_order_receipt FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order_receipt_detail": {
+    "columns": {
+      "_purchase_order_receipt_line_purchase_order_receipt_line_pk": "bigint"
+    },
+    "inherits": [
+      "receipt_detail"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_receipt_detail_delete_trigger AFTER DELETE ON public.purchase_order_receipt_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_receipt_detail_insert_trigger AFTER INSERT ON public.purchase_order_receipt_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_receipt_detail_update_trigger AFTER UPDATE ON public.purchase_order_receipt_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "purchase_order_receipt_line": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_purchase_order_line_purchase_order_line_pk": "bigint",
+      "_purchase_order_receipt_purchase_order_receipt_pk": "bigint"
+    },
+    "inherits": [
+      "receipt_line"
+    ],
+    "triggers": [
+      "CREATE TRIGGER purchase_order_receipt_line_delete_trigger AFTER DELETE ON public.purchase_order_receipt_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER purchase_order_receipt_line_insert_trigger AFTER INSERT ON public.purchase_order_receipt_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER purchase_order_receipt_line_update_trigger AFTER UPDATE ON public.purchase_order_receipt_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "receipt": {
+    "columns": {
+      "_site_site_pk": "bigint",
+      "error": "text",
+      "number": "text",
+      "receipt_date": "date",
+      "status": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER receipt_delete_trigger AFTER DELETE ON public.receipt FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER receipt_insert_trigger AFTER INSERT ON public.receipt FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER receipt_update_trigger AFTER UPDATE ON public.receipt FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "receipt_detail": {
+    "columns": {
+      "_location_location_pk": "bigint",
+      "quantity": "numeric(18,8)",
+      "trace": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER receipt_detail_delete_trigger AFTER DELETE ON public.receipt_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER receipt_detail_insert_trigger AFTER INSERT ON public.receipt_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER receipt_detail_update_trigger AFTER UPDATE ON public.receipt_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "receipt_line": {
+    "columns": {
+      "line": "integer",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER receipt_line_delete_trigger AFTER DELETE ON public.receipt_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER receipt_line_insert_trigger AFTER INSERT ON public.receipt_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER receipt_line_update_trigger AFTER UPDATE ON public.receipt_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "relation_search_column": {
+    "columns": {
+      "_parent_relation_widget_pk": "bigint",
+      "attr": "text",
+      "label": "text",
+      "width": "integer"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER relation_search_column_delete_trigger AFTER DELETE ON public.relation_search_column FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER relation_search_column_insert_trigger AFTER INSERT ON public.relation_search_column FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER relation_search_column_update_trigger AFTER UPDATE ON public.relation_search_column FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "relation_widget": {
+    "columns": {
+      "_form_form_pk": "bigint",
+      "label_property": "text",
+      "value_property": "text"
+    },
+    "inherits": [
+      "layout"
+    ],
+    "triggers": [
+      "CREATE TRIGGER relation_widget_delete_trigger AFTER DELETE ON public.relation_widget FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER relation_widget_insert_trigger AFTER INSERT ON public.relation_widget FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER relation_widget_update_trigger AFTER UPDATE ON public.relation_widget FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "resource_group": {
+    "columns": {
+      "code": "text",
+      "description": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER resource_group_delete_trigger AFTER DELETE ON public.resource_group FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER resource_group_insert_trigger AFTER INSERT ON public.resource_group FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER resource_group_update_trigger AFTER UPDATE ON public.resource_group FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "resource_link": {
+    "columns": {
+      "display_value": "text",
+      "icon": "text",
+      "label": "text",
+      "notes": "text",
+      "resource": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER resource_link_delete_trigger AFTER DELETE ON public.resource_link FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER resource_link_insert_trigger AFTER INSERT ON public.resource_link FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER resource_link_update_trigger AFTER UPDATE ON public.resource_link FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "role": {
+    "columns": {
+      "is_login": "boolean",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER role_delete_trigger AFTER DELETE ON public.role FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER role_insert_trigger AFTER INSERT ON public.role FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER role_update_trigger AFTER UPDATE ON public.role FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "role_membership": {
+    "columns": {
+      "_parent_role_pk": "bigint",
+      "role": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER role_membership_delete_trigger AFTER DELETE ON public.role_membership FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER role_membership_insert_trigger AFTER INSERT ON public.role_membership FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER role_membership_update_trigger AFTER UPDATE ON public.role_membership FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "route": {
+    "columns": {
+      "function": "text",
+      "module": "text",
+      "path": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER route_delete_trigger AFTER DELETE ON public.route FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER route_insert_trigger AFTER INSERT ON public.route FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER route_update_trigger AFTER UPDATE ON public.route FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_history": {
+    "columns": {
+      "_invoice_invoice_pk": "bigint",
+      "_item_item_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "_shipment_shipment_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_tax_type_tax_type_pk": "bigint",
+      "_unit_unit_pk": "bigint",
+      "amount": "mono",
+      "description": "text",
+      "discount": "numeric(18,8)",
+      "is_shipping": "boolean",
+      "is_tax": "boolean",
+      "quantity": "numeric(18,8)",
+      "reference_id": "text",
+      "sales_order_line": "integer",
+      "shipment_line": "integer",
+      "unit_price": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_history_delete_trigger AFTER DELETE ON public.sales_history FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_history_insert_trigger AFTER INSERT ON public.sales_history FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_history_update_trigger AFTER UPDATE ON public.sales_history FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order": {
+    "columns": {
+      "_bill_to_address_pk": "bigint",
+      "_contact_contact_pk": "bigint",
+      "_currency_currency_pk": "bigint",
+      "_customer_customer_pk": "bigint",
+      "_inco_terms_inco_terms_pk": "bigint",
+      "_sales_rep_employee_pk": "bigint",
+      "_ship_method_ship_method_pk": "bigint",
+      "_ship_to_address_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "_terms_terms_pk": "bigint",
+      "billing_notes": "text",
+      "confirmation_print_time": "timestamp with time zone",
+      "confirmation_printed": "boolean",
+      "confirmation_printed_by": "text",
+      "freight": "mono",
+      "number": "text",
+      "on_hold": "boolean",
+      "order_date": "date",
+      "picklist_print_time": "timestamp with time zone",
+      "picklist_printed": "boolean",
+      "picklist_printed_by": "text",
+      "plan_status": "text",
+      "promise_date": "date",
+      "purchase_order": "text",
+      "requested_date": "date",
+      "ship_instructions": "text",
+      "source": "text",
+      "status": "text",
+      "subtotal": "mono",
+      "tax": "mono",
+      "taxable": "boolean",
+      "total": "mono"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_delete_trigger AFTER DELETE ON public.sales_order FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_insert_trigger AFTER INSERT ON public.sales_order FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_update_trigger AFTER UPDATE ON public.sales_order FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order_comment": {
+    "columns": {
+      "_sales_order_sales_order_pk": "bigint",
+      "is_system": "boolean"
+    },
+    "inherits": [
+      "comment"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_comment_delete_trigger AFTER DELETE ON public.sales_order_comment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_comment_insert_trigger AFTER INSERT ON public.sales_order_comment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_comment_update_trigger AFTER UPDATE ON public.sales_order_comment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order_line": {
+    "columns": {
+      "_sales_order_sales_order_pk": "bigint",
+      "actual_labor_cost": "mono",
+      "actual_material_cost": "mono",
+      "actual_overhead_cost": "mono",
+      "actual_service_cost": "mono",
+      "actual_total_cost": "mono",
+      "amount": "mono",
+      "back_ordered": "numeric(18,8)",
+      "discount": "numeric(5,2)",
+      "discount_price": "mono",
+      "in_shipping": "numeric(18,8)",
+      "line": "integer",
+      "notes": "text",
+      "order_date": "date",
+      "ordered": "numeric(18,8)",
+      "original_promise_date": "date",
+      "price": "mono",
+      "promise_date": "date",
+      "requested_date": "date",
+      "ship_instructions": "text",
+      "shipped": "numeric(18,8)",
+      "taxable": "boolean"
+    },
+    "inherits": [
+      "demand"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_line_delete_trigger AFTER DELETE ON public.sales_order_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_line_insert_trigger AFTER INSERT ON public.sales_order_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_line_update_trigger AFTER UPDATE ON public.sales_order_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order_requirement": {
+    "columns": {
+      "_sales_order_line_sales_order_line_pk": "bigint",
+      "_unit_item_unit_pk": "bigint",
+      "actual_cost": "mono",
+      "estimated_cost": "mono",
+      "fixed_quantity": "numeric(18,8)",
+      "issued": "numeric(18,8)",
+      "quantity_per": "numeric(18,8)",
+      "ratio": "numeric(18,8)",
+      "required": "numeric(18,8)",
+      "returned": "numeric(18,8)",
+      "sequence": "integer"
+    },
+    "inherits": [
+      "demand"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_requirement_delete_trigger AFTER DELETE ON public.sales_order_requirement FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_requirement_insert_trigger AFTER INSERT ON public.sales_order_requirement FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_requirement_update_trigger AFTER UPDATE ON public.sales_order_requirement FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order_shipment": {
+    "columns": {
+      "_sales_order_sales_order_pk": "bigint",
+      "is_invoiced": "boolean",
+      "purchase_order": "text"
+    },
+    "inherits": [
+      "shipment"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_shipment_delete_trigger AFTER DELETE ON public.sales_order_shipment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_shipment_insert_trigger AFTER INSERT ON public.sales_order_shipment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_shipment_update_trigger AFTER UPDATE ON public.sales_order_shipment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order_shipment_line": {
+    "columns": {
+      "_sales_order_line_sales_order_line_pk": "bigint",
+      "_sales_order_shipment_sales_order_shipment_pk": "bigint"
+    },
+    "inherits": [
+      "shipment_line"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_shipment_line_delete_trigger AFTER DELETE ON public.sales_order_shipment_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_shipment_line_insert_trigger AFTER INSERT ON public.sales_order_shipment_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_shipment_line_update_trigger AFTER UPDATE ON public.sales_order_shipment_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_order_tax": {
+    "columns": {
+      "_sales_order_sales_order_pk": "bigint",
+      "_tax_type_tax_type_pk": "bigint",
+      "amount": "mono",
+      "percent": "numeric(18,8)",
+      "shipping_taxable": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_order_tax_delete_trigger AFTER DELETE ON public.sales_order_tax FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_order_tax_insert_trigger AFTER INSERT ON public.sales_order_tax FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_order_tax_update_trigger AFTER UPDATE ON public.sales_order_tax FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "script": {
+    "columns": {
+      "name": "text",
+      "script": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER script_delete_trigger AFTER DELETE ON public.script FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER script_insert_trigger AFTER INSERT ON public.script FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER script_update_trigger AFTER UPDATE ON public.script FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "send_mail": {
+    "columns": {
+      "from": "text",
+      "pdf": "json",
+      "return_to": "text",
+      "subject": "text",
+      "text": "text",
+      "to": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER send_mail_delete_trigger AFTER DELETE ON public.send_mail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER send_mail_insert_trigger AFTER INSERT ON public.send_mail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER send_mail_update_trigger AFTER UPDATE ON public.send_mail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "server_process": {
+    "columns": {
+      "can_stop": "boolean",
+      "completed": "timestamp with time zone",
+      "error_message": "text",
+      "name": "text",
+      "percent_complete": "integer",
+      "process_id": "integer",
+      "status": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER server_process_delete_trigger AFTER DELETE ON public.server_process FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER server_process_insert_trigger AFTER INSERT ON public.server_process FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER server_process_update_trigger AFTER UPDATE ON public.server_process FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "service": {
+    "columns": {},
+    "inherits": [
+      "item"
+    ],
+    "triggers": [
+      "CREATE TRIGGER service_delete_trigger AFTER DELETE ON public.service FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER service_insert_trigger AFTER INSERT ON public.service FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER service_update_trigger AFTER UPDATE ON public.service FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "ship_engine_carrier": {
+    "columns": {
+      "carrier_code": "text"
+    },
+    "inherits": [
+      "carrier"
+    ],
+    "triggers": [
+      "CREATE TRIGGER ship_engine_carrier_delete_trigger AFTER DELETE ON public.ship_engine_carrier FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER ship_engine_carrier_insert_trigger AFTER INSERT ON public.ship_engine_carrier FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER ship_engine_carrier_update_trigger AFTER UPDATE ON public.ship_engine_carrier FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "ship_engine_package": {
+    "columns": {
+      "_ship_engine_carrier_ship_engine_carrier_pk": "bigint",
+      "package_code": "text"
+    },
+    "inherits": [
+      "package_type"
+    ],
+    "triggers": [
+      "CREATE TRIGGER ship_engine_package_delete_trigger AFTER DELETE ON public.ship_engine_package FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER ship_engine_package_insert_trigger AFTER INSERT ON public.ship_engine_package FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER ship_engine_package_update_trigger AFTER UPDATE ON public.ship_engine_package FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "ship_engine_service": {
+    "columns": {
+      "_ship_engine_carrier_ship_engine_carrier_pk": "bigint",
+      "domestic": "boolean",
+      "is_multi_package_supported": "boolean",
+      "service_code": "text"
+    },
+    "inherits": [
+      "ship_method"
+    ],
+    "triggers": [
+      "CREATE TRIGGER ship_engine_service_delete_trigger AFTER DELETE ON public.ship_engine_service FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER ship_engine_service_insert_trigger AFTER INSERT ON public.ship_engine_service FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER ship_engine_service_update_trigger AFTER UPDATE ON public.ship_engine_service FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "ship_method": {
+    "columns": {
+      "_package_type_package_type_pk": "bigint",
+      "code": "text",
+      "description": "text",
+      "international": "boolean"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER ship_method_delete_trigger AFTER DELETE ON public.ship_method FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER ship_method_insert_trigger AFTER INSERT ON public.ship_method FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER ship_method_update_trigger AFTER UPDATE ON public.ship_method FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment": {
+    "columns": {
+      "_contact_contact_pk": "bigint",
+      "_inco_terms_inco_terms_pk": "bigint",
+      "_package_type_package_type_pk": "bigint",
+      "_ship_method_ship_method_pk": "bigint",
+      "_ship_to_address_pk": "bigint",
+      "_shipped_by_employee_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "comments": "text",
+      "container_count": "integer",
+      "contents": "text",
+      "freight_charges": "mono",
+      "is_printed": "boolean",
+      "label_id": "text",
+      "label_url": "text",
+      "label_void": "boolean",
+      "non_delivery": "text",
+      "notes": "text",
+      "number": "text",
+      "pack_status": "text",
+      "print_time": "timestamp with time zone",
+      "printed_by": "text",
+      "ship_date": "date",
+      "ship_to_name": "text",
+      "ship_weight": "numeric(18,8)",
+      "status": "text",
+      "tracking_number": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_delete_trigger AFTER DELETE ON public.shipment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_insert_trigger AFTER INSERT ON public.shipment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_update_trigger AFTER UPDATE ON public.shipment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_container": {
+    "columns": {
+      "_shipment_shipment_pk": "bigint"
+    },
+    "inherits": [
+      "container"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_container_delete_trigger AFTER DELETE ON public.shipment_container FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_container_insert_trigger AFTER INSERT ON public.shipment_container FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_container_update_trigger AFTER UPDATE ON public.shipment_container FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_customs_item": {
+    "columns": {
+      "_shipment_shipment_pk": "bigint",
+      "country_of_origin": "text",
+      "customs_item_id": "text",
+      "description": "text",
+      "harmonized_tariff_code": "text",
+      "quantity": "numeric(18,8)",
+      "shipment_line_id": "text",
+      "sku": "text",
+      "sku_description": "text",
+      "value": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_customs_item_delete_trigger AFTER DELETE ON public.shipment_customs_item FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_customs_item_insert_trigger AFTER INSERT ON public.shipment_customs_item FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_customs_item_update_trigger AFTER UPDATE ON public.shipment_customs_item FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_detail": {
+    "columns": {
+      "_location_location_pk": "bigint",
+      "_shipment_line_shipment_line_pk": "bigint",
+      "_trace_trace_pk": "bigint",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_detail_delete_trigger AFTER DELETE ON public.shipment_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_detail_insert_trigger AFTER INSERT ON public.shipment_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_detail_update_trigger AFTER UPDATE ON public.shipment_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_invoice": {
+    "columns": {
+      "_shipment_sales_order_shipment_pk": "bigint",
+      "prepaid": "mono"
+    },
+    "inherits": [
+      "invoice"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_invoice_delete_trigger AFTER DELETE ON public.shipment_invoice FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_invoice_insert_trigger AFTER INSERT ON public.shipment_invoice FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_invoice_update_trigger AFTER UPDATE ON public.shipment_invoice FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_invoice_prepayment": {
+    "columns": {
+      "_prepaid_invoice_prepaid_invoice_pk": "bigint",
+      "_shipment_invoice_shipment_invoice_pk": "bigint",
+      "amount": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_invoice_prepayment_delete_trigger AFTER DELETE ON public.shipment_invoice_prepayment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_invoice_prepayment_insert_trigger AFTER INSERT ON public.shipment_invoice_prepayment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_invoice_prepayment_update_trigger AFTER UPDATE ON public.shipment_invoice_prepayment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_line": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "line": "integer",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_line_delete_trigger AFTER DELETE ON public.shipment_line FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_line_insert_trigger AFTER INSERT ON public.shipment_line FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_line_update_trigger AFTER UPDATE ON public.shipment_line FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "shipment_tracking_url": {
+    "columns": {
+      "_shipment_shipment_pk": "bigint",
+      "url": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER shipment_tracking_url_delete_trigger AFTER DELETE ON public.shipment_tracking_url FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER shipment_tracking_url_insert_trigger AFTER INSERT ON public.shipment_tracking_url FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER shipment_tracking_url_update_trigger AFTER UPDATE ON public.shipment_tracking_url FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "site": {
+    "columns": {
+      "_address_address_pk": "bigint",
+      "_bill_to_address_pk": "bigint",
+      "_default_location_location_pk": "bigint",
+      "_default_receive_location_location_pk": "bigint",
+      "_default_ship_location_location_pk": "bigint",
+      "_default_wip_location_location_pk": "bigint",
+      "code": "text",
+      "description": "text",
+      "location_controlled": "boolean"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER site_delete_trigger AFTER DELETE ON public.site FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER site_insert_trigger AFTER INSERT ON public.site FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER site_update_trigger AFTER UPDATE ON public.site FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "social_network": {
+    "columns": {
+      "description": "text",
+      "name": "text",
+      "url": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER social_network_delete_trigger AFTER DELETE ON public.social_network FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER social_network_insert_trigger AFTER INSERT ON public.social_network FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER social_network_update_trigger AFTER UPDATE ON public.social_network FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "state": {
+    "columns": {
+      "code": "text",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER state_delete_trigger AFTER DELETE ON public.state FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER state_insert_trigger AFTER INSERT ON public.state FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER state_update_trigger AFTER UPDATE ON public.state FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "style": {
+    "columns": {
+      "background_color": "text",
+      "color": "text",
+      "description": "text",
+      "font_weight": "text",
+      "has_background_color": "boolean",
+      "has_color": "boolean",
+      "module": "text",
+      "name": "text",
+      "underline": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER style_delete_trigger AFTER DELETE ON public.style FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER style_insert_trigger AFTER INSERT ON public.style FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER style_update_trigger AFTER UPDATE ON public.style FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "supplier": {
+    "columns": {
+      "_address_address_pk": "bigint",
+      "_contact_contact_pk": "bigint",
+      "_currency_currency_pk": "bigint",
+      "_inco_terms_inco_terms_pk": "bigint",
+      "_ship_method_ship_method_pk": "bigint",
+      "_terms_terms_pk": "bigint",
+      "account_number": "text",
+      "is_active": "boolean",
+      "name": "text",
+      "number": "text",
+      "score": "integer",
+      "tax_exempt": "boolean"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER supplier_delete_trigger AFTER DELETE ON public.supplier FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER supplier_insert_trigger AFTER INSERT ON public.supplier FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER supplier_update_trigger AFTER UPDATE ON public.supplier FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "supplier_contact": {
+    "columns": {
+      "_contact_contact_pk": "bigint",
+      "_supplier_supplier_pk": "bigint",
+      "is_primary": "boolean",
+      "send_purchase_order": "boolean"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER supplier_contact_delete_trigger AFTER DELETE ON public.supplier_contact FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER supplier_contact_insert_trigger AFTER INSERT ON public.supplier_contact FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER supplier_contact_update_trigger AFTER UPDATE ON public.supplier_contact FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "supply": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "_site_site_pk": "bigint",
+      "allocated": "numeric(18,8)",
+      "due_date": "date",
+      "notes": "text",
+      "number": "text",
+      "priority": "text",
+      "quantity": "numeric(18,8)",
+      "start_date": "date",
+      "status": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER supply_delete_trigger AFTER DELETE ON public.supply FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER supply_insert_trigger AFTER INSERT ON public.supply FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER supply_update_trigger AFTER UPDATE ON public.supply FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "system_print_form": {
+    "columns": {},
+    "inherits": [
+      "print_form"
+    ],
+    "triggers": [
+      "CREATE TRIGGER system_print_form_delete_trigger AFTER DELETE ON public.system_print_form FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER system_print_form_insert_trigger AFTER INSERT ON public.system_print_form FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER system_print_form_update_trigger AFTER UPDATE ON public.system_print_form FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "task": {
+    "columns": {
+      "assigned_to": "text",
+      "comments": "text",
+      "description": "text",
+      "is_closed": "boolean",
+      "number": "text",
+      "planned_end_date": "date",
+      "priority": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER task_delete_trigger AFTER DELETE ON public.task FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER task_insert_trigger AFTER INSERT ON public.task FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER task_update_trigger AFTER UPDATE ON public.task FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "task_history": {
+    "columns": {
+      "_task_task_pk": "bigint"
+    },
+    "inherits": [
+      "comment"
+    ],
+    "triggers": [
+      "CREATE TRIGGER task_history_delete_trigger AFTER DELETE ON public.task_history FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER task_history_insert_trigger AFTER INSERT ON public.task_history FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER task_history_update_trigger AFTER UPDATE ON public.task_history FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "tax_rate": {
+    "columns": {
+      "city": "text",
+      "county": "text",
+      "post_office": "text",
+      "primary_record": "boolean",
+      "rate_city": "numeric(18,8)",
+      "rate_county": "numeric(18,8)",
+      "rate_special_district": "numeric(18,8)",
+      "rate_state": "numeric(18,8)",
+      "reporting_code_city": "text",
+      "reporting_code_county": "text",
+      "reporting_code_special_district": "text",
+      "reporting_code_state": "text",
+      "sales_tax_rate": "numeric(18,8)",
+      "shipping_taxable": "boolean",
+      "state": "text",
+      "z2t_id": "text",
+      "zip_code": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER tax_rate_delete_trigger AFTER DELETE ON public.tax_rate FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER tax_rate_insert_trigger AFTER INSERT ON public.tax_rate FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER tax_rate_update_trigger AFTER UPDATE ON public.tax_rate FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "tax_type": {
+    "columns": {
+      "code": "text",
+      "description": "text",
+      "reporting_code": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER tax_type_delete_trigger AFTER DELETE ON public.tax_type FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER tax_type_insert_trigger AFTER INSERT ON public.tax_type FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER tax_type_update_trigger AFTER UPDATE ON public.tax_type FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "tenant": {
+    "columns": {
+      "_contact_contact_pk": "bigint",
+      "_edition_edition_pk": "bigint",
+      "_pg_service_tenant_service_pk": "bigint",
+      "expiration": "timestamp with time zone",
+      "is_active": "boolean",
+      "is_demo": "boolean",
+      "modules": "json",
+      "name": "text",
+      "pg_database": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER tenant_delete_trigger AFTER DELETE ON public.tenant FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER tenant_insert_trigger AFTER INSERT ON public.tenant FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER tenant_update_trigger AFTER UPDATE ON public.tenant FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "tenant_service": {
+    "columns": {
+      "name": "text",
+      "pg_host": "text",
+      "pg_password": "text",
+      "pg_port": "text",
+      "pg_user": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER tenant_service_delete_trigger AFTER DELETE ON public.tenant_service FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER tenant_service_insert_trigger AFTER INSERT ON public.tenant_service FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER tenant_service_update_trigger AFTER UPDATE ON public.tenant_service FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "terms": {
+    "columns": {
+      "code": "text",
+      "day": "integer",
+      "deposit_amount": "mono",
+      "deposit_percent": "numeric(18,2)",
+      "deposit_required": "boolean",
+      "discount": "numeric(18,2)",
+      "discount_days": "integer",
+      "net": "integer",
+      "policy": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER terms_delete_trigger AFTER DELETE ON public.terms FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER terms_insert_trigger AFTER INSERT ON public.terms FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER terms_update_trigger AFTER UPDATE ON public.terms FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "trace": {
+    "columns": {
+      "_item_item_pk": "bigint",
+      "date": "date",
+      "is_on_hand": "boolean",
+      "number": "text",
+      "reference": "text",
+      "type": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER trace_delete_trigger AFTER DELETE ON public.trace FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER trace_insert_trigger AFTER INSERT ON public.trace FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER trace_update_trigger AFTER UPDATE ON public.trace FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "unit": {
+    "columns": {
+      "code": "text",
+      "description": "text",
+      "dimension": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER unit_delete_trigger AFTER DELETE ON public.unit FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER unit_insert_trigger AFTER INSERT ON public.unit FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER unit_update_trigger AFTER UPDATE ON public.unit FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "user_account": {
+    "columns": {
+      "_contact_contact_pk": "bigint",
+      "change_password": "boolean",
+      "is_active": "boolean",
+      "is_locked": "boolean",
+      "is_super": "boolean",
+      "last_password_change": "timestamp with time zone",
+      "last_sign_in": "timestamp with time zone",
+      "password": "text",
+      "sign_in_attempts": "integer"
+    },
+    "inherits": [
+      "role"
+    ],
+    "triggers": [
+      "CREATE TRIGGER user_account_delete_trigger AFTER DELETE ON public.user_account FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER user_account_insert_trigger AFTER INSERT ON public.user_account FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER user_account_update_trigger AFTER UPDATE ON public.user_account FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order": {
+    "columns": {
+      "_drawing_link_resource_link_pk": "bigint",
+      "_sales_demand_sales_order_line_pk": "bigint",
+      "_sales_order_sales_order_pk": "bigint",
+      "actual_labor_cost": "mono",
+      "actual_material_cost": "mono",
+      "actual_overhead_cost": "mono",
+      "actual_service_cost": "mono",
+      "actual_total_cost": "mono",
+      "close_date": "date",
+      "error": "text",
+      "estimated_labor_cost": "mono",
+      "estimated_material_cost": "mono",
+      "estimated_overhead_cost": "mono",
+      "estimated_service_cost": "mono",
+      "estimated_total_cost": "mono",
+      "instructions": "text",
+      "is_printed": "boolean",
+      "on_hold": "boolean",
+      "operation_end_date": "date",
+      "ordered": "numeric(18,8)",
+      "plan_status": "text",
+      "print_time": "timestamp with time zone",
+      "printed_by": "text",
+      "received": "numeric(18,8)",
+      "schedule_method": "text"
+    },
+    "inherits": [
+      "supply"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_delete_trigger AFTER DELETE ON public.work_order FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_insert_trigger AFTER INSERT ON public.work_order FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_update_trigger AFTER UPDATE ON public.work_order FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_comment": {
+    "columns": {
+      "_work_order_work_order_pk": "bigint",
+      "is_system": "boolean"
+    },
+    "inherits": [
+      "comment"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_comment_delete_trigger AFTER DELETE ON public.work_order_comment FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_comment_insert_trigger AFTER INSERT ON public.work_order_comment FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_comment_update_trigger AFTER UPDATE ON public.work_order_comment FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_document": {
+    "columns": {
+      "_link_resource_link_pk": "bigint",
+      "_workorder_work_order_pk": "bigint",
+      "notes": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_document_delete_trigger AFTER DELETE ON public.work_order_document FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_document_insert_trigger AFTER INSERT ON public.work_order_document FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_document_update_trigger AFTER UPDATE ON public.work_order_document FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_issue": {
+    "columns": {
+      "_operation_work_order_operation_pk": "bigint",
+      "_work_order_work_order_pk": "bigint",
+      "date": "date",
+      "error": "text",
+      "notes": "text",
+      "number": "text",
+      "status": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_issue_delete_trigger AFTER DELETE ON public.work_order_issue FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_issue_insert_trigger AFTER INSERT ON public.work_order_issue FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_issue_update_trigger AFTER UPDATE ON public.work_order_issue FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_issue_detail": {
+    "columns": {
+      "_location_location_pk": "bigint",
+      "_trace_trace_pk": "bigint",
+      "_work_order_issue_material_work_order_issue_material_pk": "bigint",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_issue_detail_delete_trigger AFTER DELETE ON public.work_order_issue_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_issue_detail_insert_trigger AFTER INSERT ON public.work_order_issue_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_issue_detail_update_trigger AFTER UPDATE ON public.work_order_issue_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_issue_material": {
+    "columns": {
+      "_material_requirement_work_order_requirement_pk": "bigint",
+      "_work_order_issue_work_order_issue_pk": "bigint",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_issue_material_delete_trigger AFTER DELETE ON public.work_order_issue_material FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_issue_material_insert_trigger AFTER INSERT ON public.work_order_issue_material FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_issue_material_update_trigger AFTER UPDATE ON public.work_order_issue_material FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_operation": {
+    "columns": {
+      "_service_service_pk": "bigint",
+      "_work_order_work_order_pk": "bigint",
+      "actual_labor_cost": "mono",
+      "actual_overhead_cost": "mono",
+      "actual_service_cost": "mono",
+      "available": "numeric(18,8)",
+      "is_last": "boolean",
+      "is_manual_add": "boolean",
+      "on_hold": "boolean",
+      "outside_process_id": "text",
+      "service_lead_time": "numeric(18,8)",
+      "setup_complete": "boolean",
+      "started": "numeric(18,8)",
+      "to_complete": "numeric(18,8)"
+    },
+    "inherits": [
+      "operation"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_operation_delete_trigger AFTER DELETE ON public.work_order_operation FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_operation_insert_trigger AFTER INSERT ON public.work_order_operation FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_operation_update_trigger AFTER UPDATE ON public.work_order_operation FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_receipt": {
+    "columns": {
+      "_work_order_work_order_pk": "bigint",
+      "quantity": "numeric(18,8)"
+    },
+    "inherits": [
+      "receipt"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_receipt_delete_trigger AFTER DELETE ON public.work_order_receipt FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_receipt_insert_trigger AFTER INSERT ON public.work_order_receipt FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_receipt_update_trigger AFTER UPDATE ON public.work_order_receipt FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_receipt_detail": {
+    "columns": {
+      "_work_order_receipt_work_order_receipt_pk": "bigint"
+    },
+    "inherits": [
+      "receipt_detail"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_receipt_detail_delete_trigger AFTER DELETE ON public.work_order_receipt_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_receipt_detail_insert_trigger AFTER INSERT ON public.work_order_receipt_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_receipt_detail_update_trigger AFTER UPDATE ON public.work_order_receipt_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "work_order_requirement": {
+    "columns": {
+      "_unit_item_unit_pk": "bigint",
+      "_work_order_work_order_pk": "bigint",
+      "actual_cost": "mono",
+      "estimated_cost": "mono",
+      "fixed_quantity": "numeric(18,8)",
+      "is_manual_add": "boolean",
+      "issued": "numeric(18,8)",
+      "operation": "integer",
+      "quantity_per": "numeric(18,8)",
+      "ratio": "numeric(18,8)",
+      "reference": "text",
+      "required": "numeric(18,8)",
+      "returned": "numeric(18,8)",
+      "sequence": "integer",
+      "substitutions": "json"
+    },
+    "inherits": [
+      "demand"
+    ],
+    "triggers": [
+      "CREATE TRIGGER work_order_requirement_delete_trigger AFTER DELETE ON public.work_order_requirement FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER work_order_requirement_insert_trigger AFTER INSERT ON public.work_order_requirement FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER work_order_requirement_update_trigger AFTER UPDATE ON public.work_order_requirement FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  }
+}

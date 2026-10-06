@@ -25,6 +25,33 @@ const Gantt = window.Gantt;
 const gantt = {};
 
 /**
+    Read a --fb-* design token's current resolved value (light or dark,
+    whichever the OS preference has the page in right now) so the chart's
+    colors -- baked into SVG attributes at render time, not live CSS --
+    still come from the same tokens as everything else instead of a
+    second, hand-maintained color list.
+
+    @method ganttStyleOptions
+    @return {Object} Style options for Gantt.SVGGantt
+*/
+function ganttStyleOptions() {
+    let css = window.getComputedStyle(document.documentElement);
+    let read = function (name) {
+        return css.getPropertyValue(name).trim();
+    };
+
+    return {
+        bgColor: read("--fb-surface"),
+        lineColor: read("--fb-border-subtle"),
+        textColor: read("--fb-text"),
+        lightTextColor: read("--fb-text-muted"),
+        redLineColor: read("--fb-danger"),
+        warning: read("--fb-warning"),
+        danger: read("--fb-danger")
+    };
+}
+
+/**
     Generate view model for checkbox.
 
     @class Gantt
@@ -60,7 +87,7 @@ gantt.viewModel = function (options) {
         icon: "sync",
         title: "Refresh",
         class: "fb-icon-button",
-        style: {backgroundColor: "white"}
+        style: {backgroundColor: "var(--fb-surface)"}
     }));
 
     return vm;
@@ -104,12 +131,13 @@ gantt.component = {
         }
 
         if (data.length) {
-            chart = new Gantt.CanvasGantt(
+            chart = new Gantt.SVGGantt(
                 e,
                 data,
                 {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
+                    styleOptions: ganttStyleOptions(),
                     onClick: function (item) {
                         if (item.route) {
                             m.route.set(item.route);
@@ -154,12 +182,13 @@ gantt.component = {
             })
             chart.render();
         } else if (data.length && !chart) {
-            chart = new Gantt.CanvasGantt(
+            chart = new Gantt.SVGGantt(
                 e,
                 data,
                 {
                     viewMode: vm.viewMode(),
                     showLinks: vm.showLinks(),
+                    styleOptions: ganttStyleOptions(),
                     onClick: function (item) {
                         if (item.route) {
                             m.route.set(item.route);
@@ -255,9 +284,10 @@ gantt.component = {
                     value: vm.showLinks()
                 })
             ]),
-            m("canvas", {
+            m("div", {
                 id: "gantt" + id,
                 key: "gantt" + id,
+                class: "fb-gantt",
                 style: {
                     paddingBottom: "30px"
                 }

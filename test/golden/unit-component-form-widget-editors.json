@@ -1,0 +1,393 @@
+[
+  {
+    "inputs": [
+      "text#name"
+    ],
+    "label": "Name:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "#Aamount"
+    ],
+    "label": "Amount:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label",
+      "option",
+      "select"
+    ]
+  },
+  {
+    "inputs": [
+      "url#site"
+    ],
+    "label": "Site:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "button",
+      "div",
+      "i",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "#dlgChildOf"
+    ],
+    "label": "Type:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "br",
+      "button",
+      "dialog",
+      "div",
+      "h3",
+      "i",
+      "input",
+      "label",
+      "option",
+      "select",
+      "span",
+      "table",
+      "tbody",
+      "th",
+      "thead",
+      "tr"
+    ]
+  },
+  {
+    "inputs": [],
+    "label": "Type:",
+    "tags": [
+      "#",
+      "div",
+      "label",
+      "option",
+      "select"
+    ]
+  },
+  {
+    "inputs": [],
+    "label": "Feather:",
+    "tags": [
+      "#",
+      "div",
+      "label",
+      "option",
+      "select"
+    ]
+  },
+  {
+    "inputs": [
+      "#dlgChildOf"
+    ],
+    "label": "Child Of:",
+    "tags": [
+      "#",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [],
+    "label": "Properties:",
+    "tags": [
+      "#",
+      "[",
+      "button",
+      "div",
+      "i",
+      "label",
+      "table",
+      "tbody",
+      "th",
+      "thead",
+      "tr"
+    ]
+  },
+  {
+    "inputs": [
+      "#options"
+    ],
+    "label": "Options:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "br",
+      "button",
+      "dialog",
+      "div",
+      "h3",
+      "i",
+      "input",
+      "label",
+      "li",
+      "span",
+      "table",
+      "tbody",
+      "th",
+      "thead",
+      "tr",
+      "ul"
+    ]
+  },
+  {
+    "inputs": [],
+    "label": "Address:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "br",
+      "button",
+      "dialog",
+      "div",
+      "h3",
+      "i",
+      "label",
+      "span",
+      "textarea"
+    ]
+  },
+  {
+    "inputs": [
+      "#contact"
+    ],
+    "label": "Contact:",
+    "tags": [
+      "#",
+      "a",
+      "datalist",
+      "div",
+      "input",
+      "label",
+      "ul"
+    ]
+  },
+  {
+    "inputs": [
+      "#link"
+    ],
+    "label": "Link:",
+    "tags": [
+      "#",
+      "a",
+      "datalist",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "#help"
+    ],
+    "label": "Help:",
+    "tags": [
+      "#",
+      "a",
+      "datalist",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "checkbox#gantt-detail-cbplan",
+      "checkbox#gantt-links-cbplan"
+    ],
+    "label": "Plan:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "button",
+      "div",
+      "i",
+      "input",
+      "label",
+      "option",
+      "select"
+    ]
+  },
+  {
+    "inputs": [
+      "date#when"
+    ],
+    "label": "When:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "datetime-local#at"
+    ],
+    "label": "At:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "color#color"
+    ],
+    "label": "Color:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [],
+    "label": "Notes:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "label",
+      "textarea"
+    ]
+  },
+  {
+    "inputs": [
+      "tel#phone"
+    ],
+    "label": "Phone:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "text#email"
+    ],
+    "label": "Email:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "password#secret"
+    ],
+    "label": "Secret:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [],
+    "label": "Status:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "label",
+      "option",
+      "select"
+    ]
+  },
+  {
+    "inputs": [
+      "text#icon"
+    ],
+    "label": "Icon:",
+    "tags": [
+      "#",
+      "a",
+      "datalist",
+      "div",
+      "input",
+      "label",
+      "option"
+    ]
+  },
+  {
+    "inputs": [
+      "checkbox#flag"
+    ],
+    "label": "Flag:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "number#count"
+    ],
+    "label": "Count:",
+    "tags": [
+      "#",
+      "a",
+      "div",
+      "input",
+      "label"
+    ]
+  },
+  {
+    "inputs": [
+      "#autonum"
+    ],
+    "label": "Autonum:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "br",
+      "button",
+      "dialog",
+      "div",
+      "h3",
+      "i",
+      "input",
+      "label",
+      "span"
+    ]
+  }
+]

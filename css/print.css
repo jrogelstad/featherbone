@@ -33,9 +33,13 @@
   overflow: visible;
 }
 
-.fb-table-body {
+.fb-table-scroll {
   overflow: visible;
-  height: 100% !important;
+  height: auto !important;
+}
+
+.fb-sheet-bar {
+  display: none;
 }
 
 .fb-icon-button {
