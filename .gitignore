@@ -58,3 +58,4 @@ server/out
 
 # Regression test run output
 test/.artifacts
+claude-branches/
