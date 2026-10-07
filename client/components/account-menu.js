@@ -42,12 +42,6 @@ accountMenu.viewModel = function () {
     let infoView;
     let pathname = "/" + location.pathname.replaceAll("/", "");
 
-    /**
-        @method showMenuAccount
-        @param {Boolean} flag
-        @return {Boolean}
-    */
-    vm.showMenuAccount = f.prop(false);
      /**
         @method changePasswordDialog
         @param {ViewModels.Dialog} dialog
@@ -316,12 +310,59 @@ accountMenu.viewModel = function () {
     email.state().resolve("/Changing").exit(validateInfo);
     phone.state().resolve("/Changing").exit(validateInfo);
 
+    /**
+        This viewmodel's actions as plain button descriptors, for the
+        ribbon's Accounts group on the Home tab (see main.js and
+        ribbon.js) -- individual buttons rather than the dropdown this
+        used to be (John, Oct 2026). The dialogs themselves still need
+        somewhere to mount; accountMenu.component does that and nothing
+        else now.
+        @method actionButtons
+        @return {Array}
+    */
+    vm.actionButtons = function () {
+        return [{
+            label: "Info",
+            icon: "edit",
+            title: "Edit my contact information",
+            onclick: function () {
+                let cdlg = vm.changeUserInfoDialog();
+
+                vm.createUserInfoContent();
+                cdlg.okDisabled(true);
+                cdlg.show();
+            }
+        }, {
+            label: "Password",
+            icon: "key",
+            title: "Change password",
+            onclick: function () {
+                let cdlg = vm.changePasswordDialog();
+
+                vm.createPasswordContent();
+                cdlg.okDisabled(true);
+                cdlg.show();
+            }
+        }, {
+            label: "Sign Out",
+            icon: "logout",
+            title: "Sign out of application",
+            onclick: () => f.state().send("signOut")
+        }];
+    };
+
     return vm;
 };
 
 f.catalog().register("viewModels", "accountMenu", accountMenu.viewModel);
 
 /**
+    Mounts the account viewmodel's three dialogs (contact info,
+    password, error) -- nothing visible of its own. The triggers that
+    used to be this component's own dropdown are now plain buttons in
+    the ribbon's Accounts group on the Home tab (see vm.actionButtons,
+    main.js and ribbon.js); this just needs to go on rendering the
+    dialogs those buttons open (John, Oct 2026).
     @class AccountMenu
     @static
     @namespace Components
@@ -329,9 +370,14 @@ f.catalog().register("viewModels", "accountMenu", accountMenu.viewModel);
 accountMenu.component = {
     /**
         @method oninit
+        @param {Object} [vnode] Virtual node
+        @param {Object} [vnode.attrs] Options
+        @param {ViewModels.AccountMenu} [vnode.attrs.viewModel]
     */
-    oninit: function () {
-        this.viewModel = accountMenu.viewModel();
+    oninit: function (vnode) {
+        let attrs = vnode.attrs || {};
+
+        this.viewModel = attrs.viewModel || accountMenu.viewModel();
     },
 
     /**
@@ -341,40 +387,9 @@ accountMenu.component = {
     view: function () {
         const vm = this.viewModel;
         const dlg = f.getComponent("Dialog");
-        const dlgState = vm.changePasswordDialog().state().current()[0];
-        let menuButtonClass = (
-            "pure-button " +
-            "material-icons-outlined " +
-            "fb-menu-button"
-        );
 
         return m("div", {
-            id: "nav-account-div",
-            class: (
-                "pure-menu " +
-                "custom-restricted-width " +
-                "fb-menu fb-menu-setup"
-            ),
-            onclick: function (e) {
-                if (
-                    dlgState === "/Display/Closed" &&
-                    e.srcElement.nodeName !== "BUTTON" &&
-                    e.target.parentElement.nodeName !== "BUTTON"
-                ) {
-                    vm.showMenuAccount(true);
-                }
-            },
-            onmouseout: function (ev) {
-                if (
-                    !ev || !ev.relatedTarget ||
-                    !ev.relatedTarget.id ||
-                    ev.relatedTarget.id.indexOf(
-                        "nav-account"
-                    ) === -1
-                ) {
-                    vm.showMenuAccount(false);
-                }
-            }
+            id: "nav-account-dialogs"
         }, [
             m(dlg, {
                 viewModel: vm.changePasswordDialog()
@@ -384,78 +399,7 @@ accountMenu.component = {
             }),
             m(dlg, {
                 viewModel: vm.errorDialog()
-            }),
-            m("span", {
-                id: "nav-account-button",
-                title: "Signed in as: " + (
-                    f.currentUser()
-                    ? f.currentUser().name
-                    : ""
-                ),
-                class: menuButtonClass
-            }, "perm_identityarrow_drop_down"),
-            m("ul", {
-                id: "nav-account-list",
-                class: (
-                    "pure-menu-list fb-menu-list " +
-                    "fb-menu-list-setup" + (
-                        vm.showMenuAccount()
-                        ? " fb-menu-list-show"
-                        : ""
-                    )
-                )
-            }, [
-                m("li", {
-                    id: "nav-account-myinfo",
-                    class: "pure-menu-link",
-                    title: "Edit my contact information",
-                    onclick: function () {
-                        let cdlg = vm.changeUserInfoDialog();
-
-                        vm.createUserInfoContent();
-                        cdlg.okDisabled(true);
-                        cdlg.show();
-                    }
-                }, [m("i", {
-                    id: "nav-account-myinfo-icon",
-                    class: (
-                        "material-icons-outlined " +
-                        "fb-menu-list-icon"
-                    )
-                }, "edit")], "Info"),
-                m("li", {
-                    id: "nav-account-password",
-                    class: (
-                        "pure-menu-link "
-                    ),
-                    title: "Change password",
-                    onclick: function () {
-                        let cdlg = vm.changePasswordDialog();
-
-                        vm.createPasswordContent();
-                        cdlg.okDisabled(true);
-                        cdlg.show();
-                    }
-                }, [m("i", {
-                    id: "nav-account-password-icon",
-                    class: "material-icons fb-menu-list-icon"
-                }, "key")], "Password"),
-                m("li", {
-                    id: "nav-account-signout",
-                    class: (
-                        "pure-menu-link " +
-                        "fb-menu-list-separator"
-                    ),
-                    title: "Sign out of application",
-                    onclick: () => f.state().send("signOut")
-                }, [m("i", {
-                    id: "nav-account-signout-icon",
-                    class: (
-                        "material-icons " +
-                        "fb-menu-list-icon"
-                    )
-                }, "logout")], "Sign out")
-            ])
+            })
         ]);
     }
 };

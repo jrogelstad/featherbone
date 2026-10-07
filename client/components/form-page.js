@@ -934,23 +934,6 @@ formPage.viewModel = function (options) {
         return [vm.formWidget().model()];
     };
     /**
-        @method buttonEdit
-        @param {ViewModels.Dialog} dialog
-        @return {ViewModels.Dialog}
-    */
-    vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "error",
-        title: "Connection Error",
-        message: (
-            "You have lost connection to the server." +
-            "Click \"Ok\" to attempt to reconnect."
-        ),
-        onOk: function () {
-            document.location.reload();
-        }
-    }));
-    vm.sseErrorDialog().buttonCancel().hide();
-    /**
         @method title
         @return {String}
     */
@@ -1155,10 +1138,6 @@ formPage.viewModel = function (options) {
     vm.buttonCopy().isDisabled = () => !vm.model().canCopy();
     vm.buttonPdf().isDisabled = vm.model().canSave;
 
-    sseState.resolve("Error").enter(function () {
-        vm.sseErrorDialog().show();
-    });
-
     return vm;
 };
 
@@ -1227,6 +1206,7 @@ formPage.component = {
         let dlg = f.getComponent("Dialog");
         let fw = f.getComponent("FormWidget");
         let banner = f.getComponent("EnvBanner");
+        let connBanner = f.getComponent("ConnectionBanner");
         let toolbar = f.getComponent("Toolbar");
         let toolbarClass = "fb-toolbar";
         let eClass = "lds-small-dual-ring";
@@ -1308,6 +1288,7 @@ formPage.component = {
         // Build view
         return [
             m(banner),
+            m(connBanner),
             m("div", [
                 m(toolbar, {
                     id: "toolbar",
@@ -1328,9 +1309,6 @@ formPage.component = {
                 f.snackbar(),
                 m(dlg, {
                     viewModel: vm.confirmDialog()
-                }),
-                m(dlg, {
-                    viewModel: vm.sseErrorDialog()
                 }),
                 editAuthDialogView,
                 m(dlg, {

@@ -1802,20 +1802,26 @@ tableWidget.viewModel = function (options) {
     //
 
     /**
-        @method actions
+        Plain-data form of the worksheet's actions: the sheet's own
+        configured actions (sheet.actions, set via the Configure Worksheet
+        dialog), then the three always-present list actions. One method
+        builds this data; `actions()` below turns it into the dropdown's
+        `<li>` vnodes (still used by the grid's right-click context menu),
+        and `actionItems()` hands the same data to the ribbon's Actions
+        group (workbook-page.js) to render as individual buttons instead.
+        @method actionData
+        @private
         @return {Array}
     */
-    vm.actions = function () {
-        let menu;
+    function actionData() {
         let actions = options.actions || [];
         let selections = vm.selections();
-        let o;
+        let data;
 
-        menu = actions.map(function (action) {
-            let opts;
-            let actionIcon;
+        data = actions.map(function (action) {
             let method = modelConstructor.static()[action.method];
             let validator = modelConstructor.static()[action.validator];
+            let enabled;
 
             if (!method) {
                 method = function (viewModel) {
@@ -1833,79 +1839,109 @@ tableWidget.viewModel = function (options) {
             }
 
             action.id = action.id || f.createId();
+            enabled = !validator || validator(selections);
 
-            opts = {
-                id: "nav-actions-" + action.id,
-                class: "pure-menu-link fb-menu-list-item",
-                title: action.title
+            return {
+                id: action.id,
+                icon: action.icon,
+                outlined: false,
+                name: action.name,
+                title: action.title,
+                enabled,
+                hasSeparator: Boolean(action.hasSeparator),
+                onclick: (
+                    enabled
+                    ? method.bind(null, vm)
+                    : undefined
+                )
             };
-
-            if (validator && !validator(selections)) {
-                opts.class = (
-                    "pure-menu-link pure-menu-disabled " +
-                    "fb-menu-list-item"
-                );
-            } else {
-                opts.onclick = method.bind(null, vm);
-            }
-
-            if (action.hasSeparator) {
-                opts.class += " fb-menu-list-separator";
-            }
-
-            if (action.icon) {
-                actionIcon = [m("i", {
-                    id: "nav-actions-" + action.id + "-icon",
-                    class: "material-icons fb-menu-list-icon"
-                }, action.icon)];
-            }
-
-            return m("li", opts, actionIcon, action.name);
         });
 
-        o = {
-            id: "nav-actions-print-list",
-            class: "pure-menu-link",
+        data.push({
+            id: "print-list",
+            icon: "print",
+            outlined: true,
+            name: "Print List",
             title: "Print entire list",
+            enabled: true,
+            hasSeparator: Boolean(data.length),
             onclick: doPrintList
-        };
+        });
 
-        if (menu.length) {
-            o.class += " fb-menu-list-separator";
-        }
+        data.push({
+            id: "export",
+            icon: "file_download",
+            outlined: true,
+            name: "Export",
+            title: "Export data",
+            enabled: true,
+            onclick: doExport
+        });
 
-        menu.push(
-            m("li", o, [m("i", {
-                id: "nav-actions-print-list-icon",
-                class: "material-icons-outlined fb-menu-list-icon"
-            }, "print")], "Print List")
-        );
+        data.push({
+            id: "import",
+            icon: "file_upload",
+            outlined: true,
+            name: "Import",
+            title: "Import data",
+            enabled: true,
+            onclick: doImport
+        });
 
-        menu.push(
-            m("li", {
-                id: "nav-actions-export",
-                class: "pure-menu-link",
-                title: "Export data",
-                onclick: doExport
-            }, [m("i", {
-                id: "nav-actions-export-icon",
-                class: "material-icons-outlined fb-menu-list-icon"
-            }, "file_download")], "Export")
-        );
+        return data;
+    }
 
-        menu.push(
-            m("li", {
-                id: "nav-actions-import",
-                class: "pure-menu-link",
-                title: "Import data",
-                onclick: doImport
-            }, [m("i", {
-                id: "nav-actions-import-icon",
-                class: "material-icons-outlined fb-menu-list-icon"
-            }, "file_upload")], "Import")
-        );
+    /**
+        Worksheet actions as `<li>` vnodes for a dropdown menu. Used by the
+        grid's right-click context menu (below); the ribbon's Actions
+        group uses `actionItems()` instead.
+        @method actions
+        @return {Array}
+    */
+    vm.actions = function () {
+        return actionData().map(function (item) {
+            let opts = {
+                id: "nav-actions-" + item.id,
+                class: "pure-menu-link fb-menu-list-item" + (
+                    item.enabled
+                    ? ""
+                    : " pure-menu-disabled"
+                ) + (
+                    item.hasSeparator
+                    ? " fb-menu-list-separator"
+                    : ""
+                ),
+                title: item.title,
+                onclick: item.onclick
+            };
+            let icon = (
+                item.icon
+                ? [m("i", {
+                    id: "nav-actions-" + item.id + "-icon",
+                    class: (
+                        (
+                            item.outlined
+                            ? "material-icons-outlined "
+                            : "material-icons "
+                        ) + "fb-menu-list-icon"
+                    )
+                }, item.icon)]
+                : undefined
+            );
 
-        return menu;
+            return m("li", opts, icon, item.name);
+        });
+    };
+
+    /**
+        Worksheet actions as plain data -- same list and order as
+        `actions()`, for the ribbon's Actions group to render as
+        individual buttons instead of a dropdown.
+        @method actionItems
+        @return {Array}
+    */
+    vm.actionItems = function () {
+        return actionData();
     };
     /**
         @method aggregates
