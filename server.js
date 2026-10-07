@@ -2344,6 +2344,14 @@
 
         passport.deserializeUser(deserializeUser);
 
+        // Liveness probe for connection-monitor.js's reconnect polling.
+        // Deliberately ahead of the session/passport middleware below:
+        // no auth, no tenant (":db") routing, just "is this process up"
+        // (John, Oct 2026).
+        app.get("/api/ping", function (ignore, res) {
+            res.json({ok: true});
+        });
+
         // Initialize passport
         app.use(express.static("public"));
         app.use(session({

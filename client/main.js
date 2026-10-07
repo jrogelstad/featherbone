@@ -25,6 +25,7 @@ const State = f.State;
 const catalog = f.catalog();
 const components = catalog.store().components();
 const viewModels = catalog.store().viewModels();
+const connectionMonitor = catalog.store().global().connectionMonitor;
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
@@ -42,13 +43,12 @@ let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
 let addWbFromTemplateDlg;
 let deleteWbTemplateDlg;
-let sseErrorDialogViewModel;
+let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
 let isAdmin = false;
 
 // For workbook management
-const showMenuWorkbook = f.prop(false);
 const template = f.prop("");
 const newname = f.prop("");
 function templates() {
@@ -63,6 +63,217 @@ function templates() {
 
 const preFetch = [];
 const fetchRequests = [];
+
+/**
+    Open the global settings form. Was the "Global settings" button at
+    the top right of the old home toolbar; now one of the Workbooks
+    group's buttons on the ribbon's Home tab (see home.view) (John,
+    Oct 2026).
+    @method goGlobalSettings
+*/
+function goGlobalSettings() {
+    if (!isAdmin) {
+        return;
+    }
+    m.route.set("/settings/:settings", {
+        settings: "globalSettings"
+    }, {
+        state: {
+            form: {
+                "name": "globalSettings",
+                "description": (
+                    "Global settings"
+                ),
+                "tabs": [{
+                    name: "Address"
+                }, {
+                    name: "SMTP Credentials"
+                }],
+                "attrs": [
+                    {
+                        "attr": "logo",
+                        "grid": 0
+                    },
+                    {
+                        "attr": "name",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "street",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "unit",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "city",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "state",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "postalCode",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "country",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "phone",
+                        "grid": 1
+                    },
+                    {
+                        "attr": "smtpType",
+                        "grid": 2,
+                        "label": "Type"
+                    },
+                    {
+                        "attr": "smtpHost",
+                        "grid": 2,
+                        "label": "Host"
+                    },
+                    {
+                        "attr": "smtpUser",
+                        "grid": 2,
+                        "label": "Email"
+                    },
+                    {
+                        "attr": "smtpPassword",
+                        "grid": 2,
+                        "label": "Password"
+                    },
+                    {
+                        "attr": "smtpSecure",
+                        "grid": 2,
+                        "label": "Secure"
+                    },
+                    {
+                        "attr": "smtpPort",
+                        "grid": 2,
+                        "label": "Port"
+                    }
+                ]
+            }
+        }
+    });
+}
+
+/**
+    The ribbon's Home-tab groups (Accounts, Workbooks) -- hard-coded,
+    not reflective of the database, unlike the workbook-category tabs
+    (see ribbon.js's HOME_TAB). A function, not a plain array, and
+    registered globally below (same as sseState/connectionMonitor)
+    rather than kept main.js-private: clicking the Home tab doesn't
+    navigate away from an open workbook (ribbon.js's tabs only change
+    which buttons show), so workbook-page.js needs to build this same
+    Home-tab body too, and this codebase doesn't import between
+    component files (John, Oct 2026).
+    @method homeRibbonGroups
+    @return {Array}
+*/
+function homeRibbonGroups() {
+    return [{
+        label: "Accounts",
+        buttons: acctMenu.actionButtons()
+    }, {
+        label: "Workbooks",
+        buttons: [{
+            label: "Add Workbook",
+            icon: "add",
+            title: "Add a new workbook",
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? function () {
+                    addWorkbookViewModel.show();
+                }
+                : undefined
+            )
+        }, {
+            label: "Copy Template",
+            icon: "copy",
+            title: "Add workbook from template",
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? function () {
+                    template("");
+                    newname("");
+                    addWbFromTemplateDlg.show();
+                }
+                : undefined
+            )
+        }, {
+            label: "Delete Template",
+            icon: "playlist_remove",
+            title: "Delete workbook template",
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? function () {
+                    template("");
+                    deleteWbTemplateDlg.show();
+                }
+                : undefined
+            )
+        }]
+    }, {
+        label: "Global",
+        buttons: [{
+            label: "Settings",
+            icon: "public",
+            title: "Global settings",
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? goGlobalSettings
+                : undefined
+            )
+        }]
+    }];
+}
+
+/**
+    Mounts the Home tab's own dialogs -- the account dialogs (Info /
+    Password / error, from account-menu.js) and the three workbook
+    admin dialogs (Add Workbook, From Template, Delete Template) --
+    nothing visible of its own. Needed from any page that can show the
+    ribbon's Home-tab groups, not just this module's own home page, for
+    the same reason homeRibbonGroups is a shared function rather than
+    inline here: workbook-page.js shows these same buttons when its
+    ribbon's Home tab is picked, and they need somewhere to open their
+    dialogs too (John, Oct 2026).
+    @class HomeDialogs
+    @static
+    @namespace Components
+*/
+const homeDialogs = {
+    view: function () {
+        let g = catalog.store().global();
+
+        return [
+            m(components.accountMenu, {
+                viewModel: g.acctMenu
+            }),
+            m(components.dialog, {
+                viewModel: g.addWorkbookViewModel
+            }),
+            m(components.dialog, {
+                viewModel: g.addWbFromTemplateDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.deleteWbTemplateDlg
+            })
+        ];
+    }
+};
+catalog.register("components", "homeDialogs", homeDialogs);
+catalog.register("global", "homeRibbonGroups", homeRibbonGroups);
+
 const home = {
     oninit: function (vnode) {
         Object.keys(workbooks).forEach(function (key) {
@@ -91,48 +302,23 @@ const home = {
     },
     view: function () {
         let toolbarClass = "fb-toolbar";
-        let menuButtonClass = (
-            "pure-button " +
-            "material-icons-outlined " +
-            "fb-menu-button"
-        );
-        let dlgsClosed = (
-            addWorkbookViewModel.state().current()[0] ===
-            "/Display/Closed" &&
-            addWbFromTemplateDlg.state().current()[0] ===
-            "/Display/Closed" &&
-            deleteWbTemplateDlg.state().current()[0] ===
-            "/Display/Closed"
-        );
-        let menuAuthLinkClass = (
-            "pure-menu-link " + (
-                isAdmin
-                ? ""
-                : " pure-menu-disabled"
-            )
-        );
+        let homeGroups = homeRibbonGroups();
 
         return [
             m(components.envBanner),
             m("div", {
-                class: "fb-navigator-menu-container"
+                class: "fb-ribbon-layout"
             }, [
-                m(components.navigatorMenu, {
-                    viewModel: menu
+                m(components.ribbon, {
+                    viewModel: menu,
+                    homeGroups
                 }), [
-                    m(components.dialog, {
-                        viewModel: sseErrorDialogViewModel
-                    }),
-                    m(components.dialog, {
-                        viewModel: addWorkbookViewModel
-                    }),
-                    m(components.dialog, {
-                        viewModel: addWbFromTemplateDlg
-                    }),
-                    m(components.dialog, {
-                        viewModel: deleteWbTemplateDlg
-                    }),
-                    m("div", {style: {width: "100%"}}, [
+                    m(components.connectionBanner),
+                    m(components.homeDialogs),
+                    m("div", {
+                        class: "fb-ribbon-page",
+                        style: {width: "100%"}
+                    }, [
                         m("div", {
                             class: toolbarClass + " fb-toolbar-home"
                         }, [
@@ -141,210 +327,7 @@ const home = {
                             }, f.currentUser().splashTitle),
                             m("div", {
                                 class: "fb-toolbar-fill"
-                            }),
-                            m(components.accountMenu),
-                            m("div", {
-                                id: "wb-manage-div",
-                                class: (
-                                    "pure-menu " +
-                                    "custom-restricted-width " +
-                                    "fb-menu fb-menu-setup"
-                                ),
-                                onclick: function (e) {
-                                    if (
-                                        dlgsClosed &&
-                                        e.srcElement.nodeName !== "BUTTON" &&
-                                        e.target.parentElement.nodeName !==
-                                        "BUTTON"
-                                    ) {
-                                        showMenuWorkbook(true);
-                                    }
-                                },
-                                onmouseout: function (ev) {
-                                    if (
-                                        !ev || !ev.relatedTarget ||
-                                        !ev.relatedTarget.id ||
-                                        ev.relatedTarget.id.indexOf(
-                                            "wb-manage"
-                                        ) === -1
-                                    ) {
-                                        showMenuWorkbook(false);
-                                    }
-                                }
-                            }, [
-                                m("span", {
-                                    id: "wb-manage-button",
-                                    title: "Manage Workbooks",
-                                    class: menuButtonClass
-                                }, "edit_notearrow_drop_down"),
-                                m("ul", {
-                                    id: "wb-manage-list",
-                                    class: (
-                                        "pure-menu-list fb-menu-list " +
-                                        "fb-menu-list-setup" + (
-                                            showMenuWorkbook()
-                                            ? " fb-menu-list-show"
-                                            : ""
-                                        )
-                                    )
-                                }, [
-                                    m("li", {
-                                        id: "wb-manage-add",
-                                        class: menuAuthLinkClass,
-                                        title: "Add a new workbook",
-                                        onclick: function () {
-                                            if (isAdmin) {
-                                                addWorkbookViewModel.show();
-                                            }
-                                        }
-                                    }, [m("i", {
-                                        id: "wb-manage-add-icon",
-                                        class: (
-                                            "material-icons " +
-                                            "fb-menu-list-icon"
-                                        )
-                                    }, "add")], "Add Workbook"),
-                                    m("li", {
-                                        id: "wb-manage-from-template",
-                                        class: menuAuthLinkClass,
-                                        title: "Add workbook from template",
-                                        onclick: function () {
-                                            if (isAdmin) {
-                                                template("");
-                                                newname("");
-                                                addWbFromTemplateDlg.show();
-                                            }
-                                        }
-                                    }, [m("i", {
-                                        id: "wb-manage-from-template-icon",
-                                        class: (
-                                            "material-icons-outlined " +
-                                            "fb-menu-list-icon"
-                                        )
-                                    }, "copy")], "Copy From Template"),
-                                    m("li", {
-                                        id: "wb-manage-delete-template",
-                                        class: menuAuthLinkClass,
-                                        title: "Delete template",
-                                        onclick: function () {
-                                            if (isAdmin) {
-                                                template("");
-                                                deleteWbTemplateDlg.show();
-                                            }
-                                        }
-                                    }, [m("i", {
-                                        id: "wb-manage-delete-template-icon",
-                                        class: (
-                                            "material-icons-outlined " +
-                                            "fb-menu-list-icon"
-                                        )
-                                    }, "playlist_remove")], "Delete Template")
-                                ])
-                            ]),
-                            m("button", {
-                                id: "global-settings",
-                                class: (
-                                    "pure-button fb-icon-only " + (
-                                        isAdmin
-                                        ? ""
-                                        : "pure-button-disabled"
-                                    )
-                                ),
-                                title: "Global settings",
-                                onclick: function () {
-                                    if (!isAdmin) {
-                                        return;
-                                    }
-                                    m.route.set("/settings/:settings", {
-                                        settings: "globalSettings"
-                                    }, {
-                                        state: {
-                                            form: {
-                                                "name": "globalSettings",
-                                                "description": (
-                                                    "Global settings"
-                                                ),
-                                                "tabs": [{
-                                                    name: "Address"
-                                                }, {
-                                                    name: "SMTP Credentials"
-                                                }],
-                                                "attrs": [
-                                                    {
-                                                        "attr": "logo",
-                                                        "grid": 0
-                                                    },
-                                                    {
-                                                        "attr": "name",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "street",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "unit",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "city",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "state",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "postalCode",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "country",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "phone",
-                                                        "grid": 1
-                                                    },
-                                                    {
-                                                        "attr": "smtpType",
-                                                        "grid": 2,
-                                                        "label": "Type"
-                                                    },
-                                                    {
-                                                        "attr": "smtpHost",
-                                                        "grid": 2,
-                                                        "label": "Host"
-                                                    },
-                                                    {
-                                                        "attr": "smtpUser",
-                                                        "grid": 2,
-                                                        "label": "Email"
-                                                    },
-                                                    {
-                                                        "attr": "smtpPassword",
-                                                        "grid": 2,
-                                                        "label": "Password"
-                                                    },
-                                                    {
-                                                        "attr": "smtpSecure",
-                                                        "grid": 2,
-                                                        "label": "Secure"
-                                                    },
-                                                    {
-                                                        "attr": "smtpPort",
-                                                        "grid": 2,
-                                                        "label": "Port"
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    });
-                                }
-                            }, [m("i", {
-                                id: "logo-edit-icon",
-                                class: "material-icons fb-button-icon"
-                            }, "public")])
+                            })
                         ]),
                         m("iframe", {
                             style: {
@@ -937,8 +920,17 @@ function initApp() {
             f.currentUser().isSuper
         );
 
-        // Menu
-        menu = viewModels.navigatorMenu();
+        // Menu. The ribbon (ribbon.js) replaces the sidebar navigator
+        // in the horizontal-menu rework; navigator-menu.js is left in the
+        // tree unused, so swapping these two lines back restores it.
+        menu = viewModels.ribbon();
+
+        // Account actions (Info / Password / Sign Out), now buttons in
+        // the ribbon's Home tab Accounts group rather than a dropdown
+        // (John, Oct 2026). Created once here, same as the dialogs
+        // below, rather than per-render, so its dialogs keep their
+        // state across redraws.
+        acctMenu = viewModels.accountMenu();
 
         // View model for adding workbooks.
         addWorkbookViewModel = viewModels.formDialog({
@@ -1069,20 +1061,25 @@ function initApp() {
         deleteWbTemplateDlg.buttonOk().style().background = "red";
         deleteWbTemplateDlg.buttonOk().class("fb-button-delete");
 
-        // View model for sse error trapping
-        sseErrorDialogViewModel = viewModels.dialog({
-            icon: "error",
-            title: "Connection Error",
-            message: (
-                "You have lost connection to the server." +
-                "Click \"Ok\" to attempt to reconnect."
-            ),
-            onOk: function () {
-                document.location.reload();
-            }
-        });
-        sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
-        sseErrorDialogViewModel.buttonCancel().hide();
+        // Registered globally, not just held in this module's own
+        // variables, so homeDialogs and homeRibbonGroups above can
+        // reach them from workbook-page.js too (John, Oct 2026).
+        catalog.register("global", "acctMenu", acctMenu);
+        catalog.register(
+            "global",
+            "addWorkbookViewModel",
+            addWorkbookViewModel
+        );
+        catalog.register(
+            "global",
+            "addWbFromTemplateDlg",
+            addWbFromTemplateDlg
+        );
+        catalog.register(
+            "global",
+            "deleteWbTemplateDlg",
+            deleteWbTemplateDlg
+        );
 
         m.route(document.body, "/home", routes);
     });
@@ -1132,6 +1129,9 @@ if (window.location.pathname.slice(
 } else {
     connect().then(async function (resp) {
         let edata;
+        let socket; // current WebSocket -- lets listen() be re-called to
+        // reconnect, from connectionMonitor's reconnect handler, without
+        // opening a duplicate (John, Oct 2026)
         let wp = (
             window.location.protocol.indexOf("s") === -1
             ? "ws://"
@@ -1139,16 +1139,27 @@ if (window.location.pathname.slice(
         );
 
         function listen() {
-            const wsurl = (
+            let intentionalClose = false;
+            let wsurl;
+            let evsubscr;
+
+            if (socket && socket.readyState <= 1) {
+                // CONNECTING (0) or OPEN (1) already -- nothing to do.
+                return;
+            }
+
+            wsurl = (
                 wp + window.location.hostname +
                 ":" + window.location.port +
                 window.location.pathname
             );
-            const evsubscr = new WebSocket(wsurl);
+            evsubscr = new WebSocket(wsurl);
+            socket = evsubscr;
 
             // Connection opened
             evsubscr.onopen = function () {
                 evsubscr.send(edata.eventKey);
+                connectionMonitor.setSocketUp(true);
             };
 
             // Listen for messages
@@ -1163,18 +1174,31 @@ if (window.location.pathname.slice(
             // Stop listening when we sign out. We'll realign on
             // Session with a new listener when we sign back in
             f.state().resolve("/SignedOut").enter(function () {
+                intentionalClose = true;
                 evsubscr.close();
 
                 // Remove this function
                 f.state().resolve("/SignedOut").enters.pop();
             });
 
-            // Houston, we've got a problem.
-            // Report it to state handler.
+            // Houston, we've got a problem (unless we just closed this
+            // ourselves to sign out). Report it to the state handler and
+            // to the connection monitor, which puts up the reconnecting
+            // banner (see connection-monitor.js) and, once its own
+            // /api/ping probe shows the server is back, calls listen()
+            // again through the reconnect handler registered below.
             evsubscr.onclose = function (e) {
+                if (socket === evsubscr) {
+                    socket = undefined;
+                }
+                if (!intentionalClose) {
+                    connectionMonitor.setSocketUp(false);
+                }
                 sseState.send("error", e);
             };
         }
+
+        connectionMonitor.setReconnectHandler(listen);
 
         if (resp.data) {
             edata = resp.data;

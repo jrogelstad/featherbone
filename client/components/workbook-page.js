@@ -208,7 +208,6 @@ workbookPage.viewModel = function (options) {
     let searchState;
     let currentSheet;
     let theFeather;
-    let sseState = f.catalog().store().global().sseState;
     let workbook = f.catalog().store().workbooks()[
         options.workbook.toCamelCase()
     ];
@@ -545,11 +544,14 @@ workbookPage.viewModel = function (options) {
         }
     };
     /**
+        The ribbon's own view model -- NavigatorMenu's before the
+        horizontal-menu rework. Still called `menu` so the selection hooks
+        in oninit/onupdate below read unchanged.
         @method menu
-        @param {ViewModels.NavigatorMenu} navigator
-        @return {ViewModels.NavigatorMenu}
+        @param {ViewModels.Ribbon} ribbon
+        @return {ViewModels.Ribbon}
     */
-    vm.menu = f.prop(f.createViewModel("NavigatorMenu"));
+    vm.menu = f.prop(f.createViewModel("Ribbon"));
     /**
         Add a new sheet to the workbook.
         @method newSheet
@@ -652,46 +654,6 @@ workbookPage.viewModel = function (options) {
         case "ArrowDown":
             vm.tableWidget().goNextRow();
             break;
-        }
-    };
-    /**
-        Handle on click of actions menu.
-        @method onclickactions
-    */
-    vm.onclickactions = function () {
-        vm.showActions(true);
-    };
-    /**
-        Hide actions menu if mouse out.
-        @method onmouseoutactions
-        @param {Event} event
-    */
-    vm.onmouseoutactions = function (ev) {
-        if (
-            !ev || !ev.relatedTarget || !ev.relatedTarget.id ||
-            ev.relatedTarget.id.indexOf("nav-actions") === -1
-        ) {
-            vm.showActions(false);
-        }
-    };
-    /**
-        Handle on click of workbook menu.
-        @method onclickmenu
-    */
-    vm.onclickmenu = function () {
-        vm.showMenu(!vm.showMenu());
-    };
-    /**
-        Hide workbook menu if mouse out.
-        @method onmouseoutactions
-        @param {Event} event
-    */
-    vm.onmouseoutmenu = function (ev) {
-        if (
-            !ev || !ev.relatedTarget || !ev.relatedTarget.id ||
-            ev.relatedTarget.id.indexOf("nav-menu") === -1
-        ) {
-            vm.showMenu(false);
         }
     };
     /**
@@ -978,18 +940,6 @@ workbookPage.viewModel = function (options) {
         }
     };
     /**
-        @method showActions
-        @param {Boolean} flag
-        @return {Boolean}
-    */
-    vm.showActions = f.prop(false);
-    /**
-        @method showMenu
-        @param {Boolean} flag
-        @return {Boolean}
-    */
-    vm.showMenu = f.prop(false);
-    /**
         @method showSortDialog
     */
     vm.showSortDialog = function () {
@@ -1003,24 +953,6 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.SortDialog}
     */
     vm.sortDialog = f.prop();
-    /**
-        Dialog for handling server side events.
-        @method sseDialog
-        @param {ViewModels.Dialog} dialog
-        @return {ViewModels.Dialog}
-    */
-    vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "error",
-        title: "Connection Error",
-        message: (
-            "You have lost connection to the server. " +
-            "Click \"Ok\" to attempt to reconnect."
-        ),
-        onOk: function () {
-            document.location.reload();
-        }
-    }));
-    vm.sseErrorDialog().buttonCancel().hide();
     /**
         Navigate to sheet.
         @method tabClicked
@@ -1093,18 +1025,28 @@ workbookPage.viewModel = function (options) {
         loadAllProperties: hasDrawer(),
         printTitle: vm.sheet().name.toName()
     }));
-    vm.actions = function () {
-        let acts = vm.tableWidget().actions();
-        acts.forEach(function (act) {
-            let oc = act.attrs.onclick;
-            act.attrs.onclick = function (ev) {
-                oc(ev);
-                vm.showActions(false);
-                ev.preventDefault();
-                ev.stopPropagation();
+    /**
+        Worksheet actions as individual-button descriptors for the
+        ribbon's Actions group (see ribbon.js) -- the sheet's own
+        configured actions plus the three list-wide ones (Print List /
+        Export / Import), same list table-widget.js's actions() turns
+        into a dropdown for the grid's right-click context menu.
+        @method actionButtons
+        @return {Array}
+    */
+    vm.actionButtons = function () {
+        return vm.tableWidget().actionItems().map(function (item) {
+            return {
+                label: item.name,
+                icon: item.icon,
+                title: item.title,
+                opts: {
+                    id: "rb-action-" + item.id,
+                    disabled: !item.enabled,
+                    onclick: item.onclick
+                }
             };
         });
-        return acts;
     };
 
     function getDrawerForm() {
@@ -1285,11 +1227,13 @@ workbookPage.viewModel = function (options) {
         class: toolbarButtonClass
     }));
 
+    // Red, like ddom's own Delete button (see form-page.js's
+    // `button.fb-danger`) -- John, Oct 2026.
     vm.buttonDelete(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         label: "&Delete",
         icon: "delete",
-        class: toolbarButtonClass
+        class: toolbarButtonClass + " fb-danger"
     }));
     vm.buttonDelete().disable();
 
@@ -1418,10 +1362,6 @@ workbookPage.viewModel = function (options) {
         vm.buttonUndo().show();
     });
 
-    sseState.resolve("Error").enter(function () {
-        vm.sseErrorDialog().show();
-    });
-
     f.catalog().isAuthorized({
         feather: theFeather.name,
         action: "canCreate"
@@ -1440,6 +1380,44 @@ workbookPage.viewModel = function (options) {
 
     return vm;
 };
+
+/**
+    Keep the toolbar's search box + list buttons (Refresh/Sort/Filter/
+    Aggregate) as close to the toolbar's horizontal center as possible
+    without ever overlapping the record buttons (New/Edit/Save/Delete/
+    Undo) to their left. A plain `left: 50%` would slide under the
+    record buttons on a narrow window, since it has no idea how wide
+    they are; measuring both groups and clamping here keeps the
+    group centered when there's room and flush against the record
+    buttons' right edge when there isn't (John, Oct 2026). Safe to
+    call on every redraw and every resize -- it only ever reads layout
+    and writes one inline style, no state, no `m.redraw()`.
+
+    @method positionToolbarCenter
+    @private
+*/
+function positionToolbarCenter() {
+    let toolbar = document.getElementById("toolbar");
+    let left = document.getElementById("toolbar-record-group");
+    let center = document.getElementById("toolbar-center-group");
+    let toolbarRect;
+    let leftRect;
+    let centerRect;
+    let trueCenter;
+    let minLeft;
+    let gap = 6;
+
+    if (!toolbar || !left || !center) {
+        return;
+    }
+
+    toolbarRect = toolbar.getBoundingClientRect();
+    leftRect = left.getBoundingClientRect();
+    centerRect = center.getBoundingClientRect();
+    trueCenter = (toolbarRect.width - centerRect.width) / 2;
+    minLeft = leftRect.right - toolbarRect.left + gap;
+    center.style.left = Math.max(trueCenter, minLeft) + "px";
+}
 
 /**
     Define workbook component.
@@ -1535,13 +1513,20 @@ workbookPage.component = {
         }
 
         let filterMenuClass;
-        let tabs;
+        let sheetItems;
+        let sheetGroupLabel;
+        let recordButtons;
+        let listButtons;
+        let refreshButton;
+        let workbookManage;
+        let workbookSettings;
+        let workbookName;
+        let ribbonTopRight;
         let vm = this.viewModel;
-        let createTabClass = "pure-button fb-workbook-tab-edit";
-        let deleteTabClass = "pure-button fb-workbook-tab-edit";
         let activeSheet = vm.sheet();
         let config = vm.config();
         let idx = 0;
+        let canUpdate = vm.workbook().canUpdate();
         let btn = f.getComponent("Button");
         let srtdlg = f.getComponent("SortDialog");
         let fltdlg = f.getComponent("FilterDialog");
@@ -1550,18 +1535,11 @@ workbookPage.component = {
         let srch = f.getComponent("SearchInput");
         let tw = f.getComponent("TableWidget");
         let dlg = f.getComponent("Dialog");
-        let nav = f.getComponent("NavigatorMenu");
+        let rbn = f.getComponent("Ribbon");
         let banner = f.getComponent("EnvBanner");
-        let menu = f.getComponent("AccountMenu");
+        let connBanner = f.getComponent("ConnectionBanner");
+        let homeDialogs = f.getComponent("HomeDialogs");
         let toolbarClass = "fb-toolbar";
-        let menuButtonClass = "fb-menu-button";
-        let menuAuthLinkClass = (
-            "pure-menu-link " + (
-                vm.workbook().canUpdate()
-                ? ""
-                : " pure-menu-disabled"
-            )
-        );
         let fw = f.getComponent("FormWidget");
         let formWidget = vm.formWidget();
         let drawerForm;
@@ -1593,77 +1571,200 @@ workbookPage.component = {
             vm.buttonDelete().disable();
         }
 
-        // Build tabs
-        tabs = vm.sheets().map(function (sheet) {
-            let tab;
-            let tabOpts;
+        // Worksheets. These used to be a tab strip under the grid; they
+        // are now buttons in the ribbon's contextual group (John, Oct
+        // 2026). The drag handlers are the strip's own, so dragging to
+        // reorder and dragging onto the bin to delete still work.
+        sheetItems = vm.sheets().map(function (sheet) {
+            let opts;
             let csheet = vm.config().find((sh) => sh.name === sheet);
             let isActive = activeSheet.name.toName() === sheet.toName();
 
-            // Build tab
-            tabOpts = {
-                class: (
-                    "fb-workbook-tab pure-button" + (
-                        isActive
-                        ? " fb-workbook-tab-active"
-                        : ""
-                    )
-                ),
+            opts = {
                 onclick: vm.tabClicked.bind(this, sheet)
             };
 
             if (vm.config().length > 1 && !isActive) {
-                tabOpts.ondragover = vm.ondragover;
-                tabOpts.draggable = true;
-                tabOpts.ondragstart = vm.ondragstart.bind(this, idx);
-                tabOpts.ondrop = vm.ondrop.bind(this, idx, config);
-                tabOpts.ondragend = vm.ondragend;
-                tabOpts.class += " fb-workbook-tab-draggable";
+                opts.ondragover = vm.ondragover;
+                opts.draggable = true;
+                opts.ondragstart = vm.ondragstart.bind(this, idx);
+                opts.ondrop = vm.ondrop.bind(this, idx, config);
+                opts.ondragend = vm.ondragend;
+                opts.class = "fb-rb-draggable";
             }
 
             if (csheet && f.hiddenFeathers().indexOf(csheet.feather) !== -1) {
                 if (f.currentUser().isSuper) {
-                    tabOpts.style = {color: "var(--fb-danger)"};
-                    tabOpts.title = (
+                    opts.style = {color: "var(--fb-danger)"};
+                    opts.title = (
                         "Feather hidden: " +
-                        "this tab is only visible to super users"
+                        "this sheet is only visible to super users"
                     );
                 } else {
-                    tabOpts.style = {display: "none"};
+                    opts.style = {display: "none"};
                 }
             }
 
-            tab = m("button[type=button]", tabOpts, sheet.toName());
             idx += 1;
 
-            return tab;
+            return {
+                label: sheet.toName(),
+                icon: "table_chart",
+                active: isActive,
+                opts
+            };
         });
 
-        // Create/delete tab buttons
-        if (vm.isDraggingTab()) {
-            createTabClass += " fb-workbook-tab-edit-hide";
-            deleteTabClass += " fb-workbook-tab-edit-show";
-        } else {
-            createTabClass += " fb-workbook-tab-edit-show";
-            deleteTabClass += " fb-workbook-tab-edit-hide";
-        }
+        // Literal label -- John asked to keep calling this group
+        // "Worksheets" rather than name it after the open workbook.
+        sheetGroupLabel = "Worksheets";
 
-        tabs.push(m("button[type=button]", {
-            class: createTabClass,
-            title: "Add sheet",
-            onclick: vm.newSheet
-        }, [m("i", {
-            class: "material-icons-outlined"
-        }, "add")]));
+        // --- toolbar contents --------------------------------------------
+        // Record (New/Edit/Save/Delete/Undo) and List (Refresh/Sort/
+        // Filter/Aggregate) moved OUT to the ribbon's right end in the
+        // first round of this rework, then back here, in the toolbar
+        // above the grid, per John's own second thoughts (Oct 2026):
+        // he wants the worksheet title to read clearly, with the
+        // record buttons a safe, CONSTANT distance away regardless of
+        // a given sheet's name length -- see .fb-toolbar-title's
+        // min-width, below, which is what holds that distance constant
+        // rather than the buttons drifting left for a short name like
+        // "Buy" and right for a long one like "Ship Engine". The
+        // search box and list buttons are a separate group, kept as
+        // close to page-center as it can be without overlapping the
+        // title/record buttons to its left -- see
+        // .fb-toolbar-record-group/.fb-toolbar-center-group below and
+        // positionToolbarCenter(), which measures both groups and
+        // clamps the center group's left edge so it can slide in from
+        // true center but never past the record buttons (John, Oct
+        // 2026: "center the list controls. Leave new and delete
+        // buttons where they are" -- then "I would expect those
+        // controls to just stop moving left if they hit other
+        // controls" -- then "that moved significantly to the right...
+        // get the starting point about where you had it, close to
+        // center").
+        // Edit (the view/edit "mode" button) comes before New -- John
+        // wants the mode toggle to read left-to-right before the
+        // action it enables (Oct 2026, "put the mode button to the
+        // left of the new button").
+        recordButtons = [
+            m(btn, {
+                viewModel: vm.buttonEdit()
+            }),
+            m(btn, {
+                viewModel: vm.buttonNew()
+            }),
+            m(btn, {
+                viewModel: vm.buttonSave()
+            }),
+            m(btn, {
+                viewModel: vm.buttonDelete()
+            }),
+            m(btn, {
+                viewModel: vm.buttonUndo()
+            })
+        ];
 
-        // Delete target
-        tabs.push(m("div", {
-            class: deleteTabClass,
-            ondragover: vm.ondragover,
-            ondrop: vm.deleteSheet
-        }, [m("i", {
-            class: "material-icons-outlined"
-        }, "delete")]));
+        // Refresh sits to the left of the search box -- John, Oct
+        // 2026 ("move the refresh button to the left of the search
+        // box") -- with Sort/Filter/Aggregate still after it.
+        refreshButton = m(spbtn, {
+            viewModel: vm
+        });
+
+        listButtons = [
+            m(btn, {
+                viewModel: vm.buttonSort()
+            }),
+            m(btn, {
+                viewModel: vm.buttonFilter()
+            }),
+            m(btn, {
+                viewModel: vm.buttonAggregate()
+            })
+        ];
+
+        // The workbook-settings dropdown sits in the ribbon's TAB ROW
+        // rather than in a ribbon group: the ribbon body scrolls
+        // horizontally, which would clip an open menu. The account menu
+        // that used to sit beside it moved to the ribbon's Home tab
+        // Accounts group and no longer appears on workbook pages (John,
+        // Oct 2026) -- go Home to edit account info, change password,
+        // or sign out.
+        // Configure sheet / configure workbook / share / revert -- the
+        // ribbon's contextual "Manage" group (see ribbon.js), replacing
+        // the old "Manage workbook" gear dropdown that used to sit in
+        // the tab row (John, Oct 2026). Small buttons, same descriptor
+        // shape as vm.actionButtons() below (an `opts` object smallButton
+        // merges onto the <button>), not the flat disabled/onclick shape
+        // bigButton takes.
+        workbookManage = [{
+            label: "Sheet",
+            icon: "table_chart",
+            title: "Configure current worksheet",
+            opts: {
+                disabled: !canUpdate,
+                onclick: (
+                    canUpdate
+                    ? vm.configureSheet
+                    : undefined
+                )
+            }
+        }, {
+            label: "Workbook",
+            icon: "edit_note",
+            title: "Configure current workbook",
+            opts: {
+                disabled: !canUpdate,
+                onclick: (
+                    canUpdate
+                    ? vm.editWorkbookDialog().show
+                    : undefined
+                )
+            }
+        }, {
+            label: "Share",
+            icon: "share",
+            title: "Share workbook configuration",
+            opts: {
+                disabled: !canUpdate,
+                onclick: (
+                    canUpdate
+                    ? vm.share
+                    : undefined
+                )
+            }
+        }, {
+            label: "Revert",
+            icon: "undo",
+            title: "Revert workbook configuration to default state",
+            opts: {
+                onclick: vm.revert
+            }
+        }];
+
+        // Change module settings -- the dropdown's "Settings" item, the
+        // ribbon's own contextual group named after the open workbook
+        // (see ribbon.js's attrs.workbookName) rather than the literal
+        // word "Workbook".
+        workbookSettings = {
+            label: "Settings",
+            icon: "settings",
+            title: "Change module settings",
+            disabled: !vm.hasSettings(),
+            onclick: (
+                vm.hasSettings()
+                ? vm.goSettings
+                : undefined
+            )
+        };
+        workbookName = vm.workbook().data.label() || vm.workbook().data.name();
+
+        ribbonTopRight = [
+            m(btn, {
+                viewModel: vm.buttonHelp()
+            })
+        ];
 
         // Finally assemble the whole view
         filterMenuClass = "pure-menu-link";
@@ -1680,6 +1781,7 @@ workbookPage.component = {
             }
         }, [
             m(banner),
+            m(connBanner),
             m(srtdlg, {
                 viewModel: vm.sortDialog()
             }),
@@ -1698,198 +1800,79 @@ workbookPage.component = {
             m(dlg, {
                 viewModel: vm.confirmDialog()
             }),
-            m(dlg, {
-                viewModel: vm.sseErrorDialog()
-            }),
+            m(homeDialogs),
             m("div", {
-                class: "fb-navigator-menu-container"
+                class: "fb-ribbon-layout"
             }, [
                 f.snackbar(),
-                m(nav, {
-                    viewModel: vm.menu()
+                m(rbn, {
+                    viewModel: vm.menu(),
+                    homeGroups: f.catalog().store().global().homeRibbonGroups(),
+                    sheets: {
+                        label: sheetGroupLabel,
+                        items: sheetItems,
+                        add: vm.newSheet,
+                        remove: vm.deleteSheet,
+                        dragover: vm.ondragover,
+                        isDragging: vm.isDraggingTab()
+                    },
+                    worksheetActions: vm.actionButtons(),
+                    workbookActions: workbookManage,
+                    workbookSettings,
+                    workbookName,
+                    topRight: ribbonTopRight
                 }),
-                m("div", [
+                m("div", {
+                    class: "fb-ribbon-page"
+                }, [
                     m("div", {
                         id: "toolbar",
                         class: toolbarClass,
-                        onkeydown: vm.onkeydown
+                        onkeydown: vm.onkeydown,
+                        oncreate: function (vnode) {
+                            let observer = new window.ResizeObserver(
+                                function () {
+                                    positionToolbarCenter();
+                                }
+                            );
+
+                            observer.observe(vnode.dom);
+                            vnode.dom.fbResizeObserver = observer;
+                            positionToolbarCenter();
+                        },
+                        onupdate: function () {
+                            positionToolbarCenter();
+                        },
+                        onremove: function (vnode) {
+                            if (vnode.dom.fbResizeObserver) {
+                                vnode.dom.fbResizeObserver.disconnect();
+                            }
+                        }
                     }, [
-                        m(btn, {
-                            viewModel: vm.buttonEdit()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonSave()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonNew()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonDelete()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonUndo()
-                        }),
+                        m("h2", {
+                            class: "fb-toolbar-title"
+                        }, vm.sheet().name.toName()),
                         m("div", {
-                            id: "nav-actions-div",
-                            class: (
-                                "pure-menu " +
-                                "custom-restricted-width " +
-                                "fb-menu"
-                            ),
-                            onclick: vm.onclickactions,
-                            onmouseout: vm.onmouseoutactions
+                            id: "toolbar-record-group",
+                            class: "fb-toolbar-record-group"
+                        }, recordButtons),
+                        m("div", {
+                            id: "toolbar-center-group",
+                            class: "fb-toolbar-center-group"
                         }, [
-                            m("span", {
-                                id: "nav-actions-button",
-                                class: (
-                                    "pure-button " +
-                                    "material-icons-outlined " +
-                                    menuButtonClass
-                                )
-                            }, "menuarrow_drop_down"),
-                            m("ul", {
-                                id: "nav-actions-list",
-                                class: (
-                                    "pure-menu-list fb-menu-list " + (
-                                        vm.showActions()
-                                        ? " fb-menu-list-show"
-                                        : ""
-                                    )
-                                )
-                            }, vm.actions())
-                        ]),
-                        m("div", {
-                            class: "fb-toolbar-spacer"
-                        }),
-                        m("div", {
-                            class: "fb-search-group"
-                        }, [
-                            m(srch, {
-                                viewModel: vm.searchInput()
-                            }),
-                            m(btn, {
-                                viewModel: vm.buttonClear()
-                            })
-                        ]),
-                        m(spbtn, {
-                            viewModel: vm
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonSort()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonFilter()
-                        }),
-                        m(btn, {
-                            viewModel: vm.buttonAggregate()
-                        }),
-                        m("div", {
-                            class: "fb-toolbar-fill"
-                        }),
-                        m(menu),
-                        m("div", {
-                            id: "nav-menu-div",
-                            class: (
-                                "pure-menu " +
-                                "custom-restricted-width " +
-                                "fb-menu fb-menu-setup "
-                            ),
-                            onclick: vm.onclickmenu,
-                            onmouseout: vm.onmouseoutmenu
-                        }, [
-                            m("span", {
-                                id: "nav-menu-button",
-                                title: "Manage workbook",
-                                class: (
-                                    "pure-button " +
-                                    "material-icons-outlined " +
-                                    menuButtonClass
-                                )
-                            }, "settingsarrow_drop_down"),
-                            m("ul", {
-                                id: "nav-menu-list",
-                                class: (
-                                    "pure-menu-list fb-menu-list " +
-                                    "fb-menu-list-setup" + (
-                                        vm.showMenu()
-                                        ? " fb-menu-list-show"
-                                        : ""
-                                    )
-                                )
+                            refreshButton,
+                            m("div", {
+                                class: "fb-search-group"
                             }, [
-                                m("li", {
-                                    id: "nav-menu-configure-worksheet",
-                                    class: menuAuthLinkClass,
-                                    title: "Configure current worksheet",
-                                    onclick: vm.configureSheet
-                                }, [m("i", {
-                                    id: "nav-menu-configure-worksheet-icon",
-                                    class: (
-                                        "material-icons-outlined " +
-                                        "fb-menu-list-icon"
-                                    )
-                                }, "table_chart")], "Sheet"),
-                                m("li", {
-                                    id: "nav-menu-configure-workbook",
-                                    class: menuAuthLinkClass,
-                                    title: "Configure current workbook",
-                                    onclick: (
-                                        vm.workbook().canUpdate()
-                                        ? vm.editWorkbookDialog().show
-                                        : undefined
-                                    )
-                                }, [m("i", {
-                                    id: "nav-menu-configure-workbook-icon",
-                                    class: (
-                                        "material-icons-outlined " +
-                                        "fb-menu-list-icon"
-                                    )
-                                }, "edit_note")], "Workbook"),
-                                m("li", {
-                                    id: "nav-menu-share",
-                                    class: menuAuthLinkClass,
-                                    title: "Share workbook configuration",
-                                    onclick: vm.share
-                                }, [m("i", {
-                                    id: "nav-menu-share-icon",
-                                    class: (
-                                        "material-icons " +
-                                        "fb-menu-list-icon"
-                                    )
-                                }, "share")], "Share"),
-                                m("li", {
-                                    id: "nav-menu-revert",
-                                    class: "pure-menu-link",
-                                    title: (
-                                        "Revert workbook configuration " +
-                                        "to default state"
-                                    ),
-                                    onclick: vm.revert
-                                }, [m("i", {
-                                    id: "nav-menu-revert-icon",
-                                    class: "material-icons fb-menu-list-icon"
-                                }, "undo")], "Revert"),
-                                m("li", {
-                                    id: "nav-menu-settings",
-                                    class: (
-                                        "pure-menu-link " +
-                                        "fb-menu-list-separator" + (
-                                            vm.hasSettings()
-                                            ? ""
-                                            : " pure-menu-disabled"
-                                        )
-                                    ),
-                                    title: "Change module settings",
-                                    onclick: vm.goSettings
-                                }, [m("i", {
-                                    id: "nav-menu-settings-icon",
-                                    class: "material-icons fb-menu-list-icon"
-                                }, "build")], "Settings")
-                            ])
-                        ]),
-                        m(btn, {
-                            viewModel: vm.buttonHelp()
-                        })
+                                m(srch, {
+                                    viewModel: vm.searchInput()
+                                }),
+                                m(btn, {
+                                    viewModel: vm.buttonClear()
+                                })
+                            ]),
+                            listButtons
+                        ])
                     ]),
                     m(tw, {
                         viewModel: vm.tableWidget()
@@ -1903,8 +1886,8 @@ workbookPage.component = {
                             class: "fb-sheet-bar"
                         }, [
                             m("div", {
-                                class: "fb-sheet-tabs"
-                            }, tabs),
+                                class: "fb-toolbar-fill"
+                            }),
                             m("i", {
                                 class: "material-icons-outlined fb-zoom-icon"
                             }, "zoom_out"),
