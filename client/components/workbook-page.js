@@ -533,8 +533,31 @@ workbookPage.viewModel = function (options) {
             return sheet.form === frm.name;
         }) || {};
         let type = vm.tableWidget().model().data.objectType();
+        let openForms;
+        let formOrigins;
 
         if (selection && !selection.data.isDeleted()) {
+            // Remember that this workbook/sheet has a form open on
+            // this record, and which workbook/sheet the record came
+            // from, so ribbon.js/navigator-menu.js's `goto` can route
+            // straight back into the form -- not the list -- next
+            // time this sheet is visited, and form-page.js's own
+            // `doBack` can clear this again once the form is actually
+            // closed (John, Oct 2026 -- drill into a record, wander
+            // off to another workbook via the still-visible ribbon,
+            // come back to this sheet and find the same record open
+            // where it was left, not the list).
+            openForms = f.catalog().register("workbookOpenForm");
+            formOrigins = f.catalog().register("formOrigin");
+            openForms[options.workbook + "/" + options.page] = {
+                feather: type,
+                key: selection.id()
+            };
+            formOrigins[selection.id()] = {
+                workbook: options.workbook,
+                sheet: options.page
+            };
+
             m.route.set("/edit/:feather/:key", {
                 feather: type,
                 key: selection.id()
@@ -1471,9 +1494,11 @@ workbookPage.component = {
         let workbook = vnode.attrs.workbook;
         let sheet = vnode.attrs.page;
         let viewModels = f.catalog().register("workbookViewModels");
+        let lastSheets = f.catalog().register("workbookLastSheet");
 
         if (viewModels[workbook] && viewModels[workbook][sheet]) {
             this.viewModel = viewModels[workbook][sheet];
+            lastSheets[workbook] = sheet;
             m.redraw();
             return;
         }
@@ -1492,6 +1517,14 @@ workbookPage.component = {
         }
 
         viewModels[workbook][sheet] = this.viewModel;
+
+        // Remembered by ribbon.js/navigator-menu.js's own `goto` so
+        // switching to this workbook from elsewhere returns to
+        // whichever worksheet was last open on it, rather than
+        // always its first (John, Oct 2026 -- switching to "Sell"
+        // and back to "Ship" should still show "Pending Shipments",
+        // not reset to Ship's first worksheet).
+        lastSheets[workbook] = sheet;
     },
 
     /**
@@ -1499,6 +1532,9 @@ workbookPage.component = {
         @param {Object} vnode Virtual node
     */
     onupdate: function (vnode) {
+        let lastSheets = f.catalog().register("workbookLastSheet");
+
+        lastSheets[vnode.attrs.workbook] = vnode.attrs.page;
         this.viewModel.menu().selected(vnode.attrs.workbook);
     },
 
