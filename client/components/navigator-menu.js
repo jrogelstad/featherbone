@@ -110,13 +110,39 @@ navigator.viewModel = function () {
         m.route.set("/home");
     };
     /**
-        Go to selected workbook.
+        Go to selected workbook -- whichever worksheet was last open
+        on it, or its first worksheet if we've never been there this
+        session (same fallback/remembering logic as ribbon.js's own
+        `goto`, kept separate since the two files don't share code).
         @method goto
     */
     vm.goto = function () {
         let config = this.getConfig();
         let wb = this.data.name().toSpinalCase();
-        let pg = config[0].name.toSpinalCase();
+        let lastSheets = f.catalog().register("workbookLastSheet");
+        let pg = lastSheets[wb];
+        let known = config.some(
+            (item) => item.name.toSpinalCase() === pg
+        );
+        let openForms;
+        let openForm;
+
+        if (!pg || !known) {
+            pg = config[0].name.toSpinalCase();
+        }
+
+        // This sheet has a form open on a record (see workbook-page.js's
+        // `modelOpen`) -- go straight back into it rather than the
+        // list behind it (John, Oct 2026).
+        openForms = f.catalog().register("workbookOpenForm");
+        openForm = openForms[wb + "/" + pg];
+        if (openForm) {
+            m.route.set("/edit/:feather/:key", {
+                feather: openForm.feather,
+                key: openForm.key
+            });
+            return;
+        }
 
         m.route.set("/workbook/:workbook/:page", {
             workbook: wb,
