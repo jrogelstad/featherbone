@@ -48,7 +48,10 @@ function runNodeTest(files, extraEnv) {
     }
     let args = [
         "--test",
-        "--test-reporter=" + (process.env.FB_TEST_REPORTER || "spec")
+        "--test-reporter=" + (
+            process.env.FB_TEST_REPORTER ||
+            path.join(__dirname, "harness", "reporter.js")
+        )
     ];
     let result = spawnSync(process.execPath, args.concat(files), {
         cwd: settings.root,
