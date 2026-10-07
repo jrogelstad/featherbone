@@ -2370,6 +2370,49 @@ a.pure-button-selected {
     line-height: 24px;
 }
 
+/* The one workbook ("Alerts") that gets its own permanent icon
+   button at the ribbon's right end instead of being filed under a
+   category tab (John, Oct 2026 -- "Alerts aren't an admin thing, but
+   rather universal. That button should be omni-present on the right
+   side."). Same shape as .fb-ribbon-collapse right next to it, since
+   both are ribbon-level controls rather than tab/workbook buttons. */
+.fb-ribbon-alerts {
+    align-self: center;
+    margin-bottom: 4px;
+    margin-right: 4px;
+    padding: 2px;
+    color: var(--fb-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fb-ribbon-alerts:hover {
+    color: var(--fb-text);
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-ribbon-alerts .material-icons-outlined {
+    display: block;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+}
+
+/* Tinted with the CURRENT tab's own hue while the Alerts workbook
+   itself is open, the same way a selected tab or active ribbon
+   button picks up --rb-hue, so this doesn't lock in one fixed color
+   that could clash against every tab's palette. */
+.fb-ribbon-alerts-current {
+    color: var(--rb-hue, var(--fb-accent));
+}
+
+.fb-ribbon-alerts-current:hover {
+    color: var(--rb-hue, var(--fb-accent));
+}
+
 /* The ribbon proper. The label band along the bottom is painted by the body
    itself, so it runs the full width even past the last group.
    100 = 1 border + 74 buttons + 24 label band + 1 border. */
@@ -2591,6 +2634,7 @@ a.pure-button-selected {
 
 .fb-ribbon-tab:focus-visible,
 .fb-ribbon-collapse:focus-visible,
+.fb-ribbon-alerts:focus-visible,
 .fb-rb-btn:focus-visible,
 .fb-rb-btn-sm:focus-visible {
     outline: 2px solid var(--rb-hue, var(--fb-accent));

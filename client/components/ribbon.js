@@ -99,15 +99,25 @@ const WORKBOOK_CATEGORIES = [{
     key: "delivery",
     label: "Delivery",
     icon: "local_shipping",
-    workbooks: ["Sell", "Ship", "Bill"]
+    workbooks: ["Sell", "Ship", "Bill", "Contacts"]
 }, {
     key: "admin",
     label: "Admin",
     icon: "manage_accounts",
     workbooks: [
-        "Settings", "Contacts", "Alerts", "Report", "Ship Engine", "Develop"
+        "Settings", "Ship Engine", "Develop"
     ]
 }];
+
+/**
+    Name of the one workbook that gets its own permanent icon button
+    at the ribbon's right end instead of being filed under a category
+    tab -- "Alerts" isn't an admin thing, it's universal, so it needs
+    to be reachable regardless of which tab is showing (John, Oct
+    2026). A name, not a workbook object, since the actual Workbook
+    model only exists per tenant -- see vm.alertsWorkbook() below.
+*/
+const OMNIPRESENT_WORKBOOK = "Alerts";
 
 const OTHER_CATEGORY = {
     key: "other",
@@ -269,6 +279,22 @@ ribbon.viewModel = function () {
                 : OTHER_CATEGORY.key
             )
         );
+    };
+
+    /**
+        The OMNIPRESENT_WORKBOOK model ("Alerts"), for the permanent
+        icon button at the ribbon's right end -- undefined if this
+        tenant has no workbook by that name, in which case the button
+        just doesn't render.
+        @method alertsWorkbook
+        @return {Models.Workbook}
+    */
+    vm.alertsWorkbook = function () {
+        let workbooks = vm.workbooks();
+
+        return Object.keys(workbooks).map(
+            (key) => workbooks[key]
+        ).find((wb) => wb.data.name() === OMNIPRESENT_WORKBOOK);
     };
 
     /**
@@ -573,6 +599,8 @@ ribbon.component = {
         let route = m.route.get() || "";
         let isHome = route.indexOf("/home") === 0;
         let selectedKey = vm.selected();
+        let alertsWb = vm.alertsWorkbook();
+        let alertsButton;
         let routeTab = (
             isHome
             ? HOME_TAB.key
@@ -741,6 +769,31 @@ ribbon.component = {
             }
         }
 
+        // The one workbook that isn't filed under a category tab --
+        // see OMNIPRESENT_WORKBOOK above. Same icon-button shape as
+        // the collapse chevron beside it, since both are permanent
+        // ribbon-level controls rather than tab/workbook buttons.
+        if (alertsWb) {
+            let alertsSlug = alertsWb.data.name().toSpinalCase();
+            let isCurrent = !isHome && selectedKey === alertsSlug;
+
+            alertsButton = m("button[type=button]", {
+                class: "fb-ribbon-alerts" + (
+                    isCurrent
+                    ? " fb-ribbon-alerts-current"
+                    : ""
+                ),
+                title: (
+                    alertsWb.data.description() ||
+                    alertsWb.data.label() ||
+                    alertsWb.data.name()
+                ),
+                onclick: vm.goto.bind(alertsWb)
+            }, m("i", {
+                class: "material-icons-outlined"
+            }, alertsWb.data.icon() || "notifications"));
+        }
+
         let showBody = !collapsed || vm.isPopupOpen();
 
         return m("div", {
@@ -813,6 +866,7 @@ ribbon.component = {
                     class: "fb-ribbon-spacer"
                 }),
                 attrs.topRight || [],
+                alertsButton,
                 m("button[type=button]", {
                     class: "fb-ribbon-collapse",
                     title: (
