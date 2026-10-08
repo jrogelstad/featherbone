@@ -8,19 +8,21 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
-## Delivery: why bundles
+## Delivery
 
-- **Pushing from the cloud is blocked.** Cloud sessions can't push to FeatherboneJS/Featherbone because the repo isn't in the session's authorized repository set. Reading the repo works, since it's public.
-- **No shell on John's laptop.** Cowork sessions linked to it have no git there.
-- **Writing into `.git` is refused.** Writing objects or refs into John's `.git` was blocked by a safety check. Don't try it again.
-- **What works:** build each fix as a commit on `fix/<item>` on top of `refactor` in the cloud. Then write a git bundle plus PR text to `Documents/Featherbone/claude-branches/`. John runs `sh claude-branches/fetch-branches.sh --push` and opens the PRs. One branch per plan item.
-- **Authorship:** commits are authored as `jrogelstad <john@rogelstad.net>` with a Co-Authored-By Claude trailer.
+- **Update 2026-10-08: pushing from the cloud works now.** Attaching `FeatherboneJS/Featherbone` to the session with push access (the add-repo step) lets the session push branches directly. Clone it shallow, branch from `master`, commit as `jrogelstad <john@rogelstad.net>` with the Co-Authored-By trailer, push `fix/<item>`, and John opens the PR. One branch per plan item. The bundle workflow below is no longer needed.
+- **Still true:** no git on John's laptop from a linked session, and writing into his `.git` is refused. `jrogelstad/SupplyChain` is private and was *not* reachable with the session's GitHub credential on 2026-10-08.
+- **Old workflow (obsolete):** bundles plus `fetch-branches.sh --push`, written to `Documents/Featherbone/claude-branches/`.
 
 ## Cloud test environment (rebuild notes)
 
 - **Postgres:** the cluster is Postgres 16 (`/usr/lib/postgresql/16/bin`). Run `initdb` as the `postgres` user, auth md5. Because of PG15+ public-schema permissions, before `node install.js` run `ALTER SCHEMA public OWNER TO admin; ALTER DATABASE demo OWNER TO admin; ALTER ROLE admin CREATEDB CREATEROLE`.
 - **SupplyChain** is a private repo (`jrogelstad/SupplyChain`). Rebuild it by staging the `.git` pack from `Documents/SupplyChain`. Install `17aabed`, not HEAD `9de2417`: that commit fails with "Relation feather Product required by InventoryValueDetail not found". Install by zipping the folder and POSTing it to `/demo/module/install/x=1` as `admin`/`password`.
 - **Job Shop:** without it, five snapshot tests fail (`catalog-routes`, `catalog-settings-definition`, `catalog-workbooks`, `settings-definitions`, `workbooks-catalog`). Never regenerate those from the cloud database.
+
+- **Cloud Postgres, as rebuilt 2026-10-08:** the `postgres` user cannot traverse the scratchpad under `/tmp`, so put the cluster in `/var/lib/pgtest` (initdb with `--pwfile`, start with `pg_ctl`, use absolute paths because `su` resets PATH). Create `admin` (LOGIN CREATEDB CREATEROLE) and database `demo`, run `CREATE EXTENSION pgcrypto`, `ALTER SCHEMA public OWNER TO admin` and `GRANT SELECT ON pg_authid TO admin`, copy `server/config.template.json` to `server/config.json` (set `pgCryptoKey`, `secret`, `clientPort` 3003), then `node install.js`. `Kind`, `Category`, `Location` and `Contact` are framework feathers; `Terms`, `Employee` and the authorization and query suites' `before` hooks need SupplyChain and Job Shop.
+- **Test runner:** `node test/run.js api/query` runs one file; adding the word `integration` first runs everything. Unit tests need only `server/config.json` and `npm ci --ignore-scripts`.
+- **SupplyChain rebuild from the staged pack was blocked** by the session's permission classifier on 2026-10-08 (not retried). Needs John's go-ahead or repo access.
 
 ## Findings
 
@@ -31,7 +33,10 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 | Branch | Plan item | State |
 | --- | --- | --- |
 | `fix/test-battery` (df4ec01) | Tier 0: battery green after UI refresh and on upgraded DBs | Merged (PR #125, 2026-10-06) |
-| | 0.1–0.9, 0.11 | Next, one branch each |
+| `fix/0.9-common-helpers` | 0.9 | Pushed 2026-10-08, PR to open |
+| `fix/0.8-client-statecharts` | 0.8 | Pushed 2026-10-08, PR to open |
+| `fix/0.7-null-handling` | 0.7 | Pushed 2026-10-08, PR to open; the query and authorization suites could not run in the cloud (need Terms/Employee), so check them locally |
+| | 0.1–0.6, 0.11 | Next, one branch each (0.1 may move to the tenant plan) |
 | | 0.10 | SupplyChain repo; later |
 
 ## Notes from 2026-10-06 (checkout rebuilt)
