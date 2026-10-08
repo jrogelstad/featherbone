@@ -152,9 +152,6 @@ describe("specialized model statecharts", function () {
         });
 
         it("a rejected PUT rejects the save and leaves Busy",
-                {todo: "defect: settings doPut has no catch; a failed " +
-                "request is an unhandled rejection and the model stays in " +
-                "/Busy/Saving with a never-settling promise"},
                 async function () {
             let s = settings({
                 name: "unitSettingsRej",
@@ -250,9 +247,6 @@ describe("specialized model statecharts", function () {
         });
 
         it("a failed PUT rejects the save and returns to Ready",
-                {todo: "defect: workbook doPut uses .catch(model.error), " +
-                "which is undefined; failures are unhandled rejections " +
-                "and the model stays in /Busy/Saving"},
                 async function () {
             let wb = workbook("Fail");
             wb.data.label("x");

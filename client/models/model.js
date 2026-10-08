@@ -1586,7 +1586,9 @@ function createModel(data, feather) {
 
         function error(err) {
             doError(err);
-            state.send("clean");
+            state.send("clean", {
+                context: err
+            });
         }
 
         lock = {
@@ -1675,6 +1677,9 @@ function createModel(data, feather) {
             ).catch(
                 doError.bind(context)
             );
+        } else {
+            // isValid() already raised the error state; settle the promise
+            context.reject(new Error(model.lastError().message));
         }
     };
 
@@ -1720,6 +1725,9 @@ function createModel(data, feather) {
             ).catch(
                 doError.bind(context)
             );
+        } else {
+            // isValid() already raised the error state; settle the promise
+            context.reject(new Error(model.lastError().message));
         }
     };
 
@@ -2073,6 +2081,13 @@ function createModel(data, feather) {
                 });
 
                 this.state("Clean", function () {
+                    this.event("save", function (pContext) {
+                        // Nothing to save: settle the request
+                        if (pContext && pContext.resolve) {
+                            pContext.resolve(d);
+                        }
+                        return true;
+                    });
                     this.event("changed", function () {
                         this.goto("../Locking");
                     });
@@ -2118,6 +2133,17 @@ function createModel(data, feather) {
                     });
                     this.event("save", function (context) {
                         saveContext = context;
+                    });
+                    this.event("clean", function (pContext) {
+                        // Lock was refused: discard the edit that
+                        // triggered it and settle any queued save
+                        let queued = saveContext;
+                        saveContext = undefined;
+                        doRevert();
+                        this.goto("../Clean");
+                        if (queued && queued.reject) {
+                            queued.reject(pContext && pContext.context);
+                        }
                     });
                     this.canCopy = () => false;
                     this.canDelete = () => false;
@@ -2207,6 +2233,10 @@ function createModel(data, feather) {
                 this.canUndo = () => false;
             });
             this.event("error", function () {
+                // A failed delete leaves the model frozen; make it editable
+                if (isFrozen) {
+                    doThaw();
+                }
                 this.goto("/Ready", {
                     context: {
                         clear: false
