@@ -470,11 +470,8 @@ describe("catalog endpoints", function () {
     describe("currency", function () {
         let base;
 
-        it("GET /currency/base works on the first call after start", {
-            todo: "defect: first call after server start fails with 500 " +
-                    "'\"undefined\" is not valid JSON' (currency.js init); " +
-                    "passes if an earlier request warmed the cache"
-        }, async function () {
+        it("GET /currency/base works on the first call after start",
+                async function () {
             let resp = await admin.raw("GET", "/currency/base");
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
         });
@@ -482,9 +479,6 @@ describe("catalog endpoints", function () {
         it("GET /currency/base returns the base Currency record",
                 async function () {
             let resp = await admin.raw("GET", "/currency/base");
-            if (resp.status !== 200) { // see todo above
-                resp = await admin.raw("GET", "/currency/base");
-            }
             assert.equal(resp.status, 200);
             base = resp.body;
             assert.equal(base.objectType, "Currency");
@@ -516,10 +510,7 @@ describe("catalog endpoints", function () {
             assert.equal(Number(resp.body.amount), 10);
         });
 
-        it("returns the converted amount as a number", {
-            todo: "defect: same-currency conversion echoes the query " +
-                    "string, amount \"10\" (currency.js convertCurrency)"
-        }, async function () {
+        it("returns the converted amount as a number", async function () {
             let resp = await admin.get(
                 "/currency/convert?fromCurrency=" + base.code + "&amount=10"
             );
@@ -593,11 +584,7 @@ describe("catalog endpoints", function () {
                 assert.deepEqual(resp, {currency: base.code, amount: 2.5});
             });
 
-            it("divides by a base->foreign ratio", {
-                todo: "defect: SELECT * returns from_currency as record " +
-                        "text, so conv.fromCurrency.code is undefined " +
-                        "(currency.js:331) and it multiplies: 10 -> 40"
-            }, async function () {
+            it("divides by a base->foreign ratio", async function () {
                 let resp = await admin.get(
                     "/currency/convert?fromCurrency=" + reverse.code +
                     "&amount=10"
