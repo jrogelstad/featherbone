@@ -15,7 +15,8 @@ Start here. This doc is the entry point for any conversation picking up the Feat
 | This handover (status, access, Phase 1 findings) | `docs/featherbone-review-handover.md` |
 | Phase 2 findings: apps, local copy, `demo` database, evidence and priorities | `docs/featherbone-review-phase2.md` |
 | Improvement plan: the work-through checklist, Tiers 0–6, ~50 items with file:line and done-when | Living doc, editable and tickable: https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb. Markdown export as of 2026-09-27 (rev 12): `docs/featherbone-improvement-plan.md`. The living doc is the source of truth; refresh the export if it drifts. |
-| **Architecture decision: identity, tenancy, control plane, multi-node** | `docs/adr-001-identity-and-tenancy.md`. Proposed 2026-10-06; **gates Tier 1**. Reframes item 1.1 and absorbs 1.6, 1.8 (role half) and 0.1. |
+| **Architecture decision: identity, tenancy, tenant management database, multi-node** | `docs/adr-001-identity-and-tenancy.md` (rev 2, 2026-10-07). Reframes item 1.1. Settles the two administration tiers, organization-scoped identity, and the tenant management database as part of the framework. |
+| **Rework plan for the above** | `docs/tenant-management-plan.md`. Tiers A–F. **Gates improvement-plan Tier 1**; Tiers 2 and 3 of that plan do not wait. |
 | UI refresh thread (separate work: ddom styling, dark mode) | `docs/featherbone-ui-refresh-status.md` |
 | Fix branches: delivery method and status | `docs/featherbone-fix-branches.md` |
 | Regression test suite, 699 tests | `test/` in this repo; `test/README.md` and the Tests section of the repo `README.md` explain it. Merged to master (PR #125 and earlier). |
@@ -36,6 +37,7 @@ Evaluate code quality and performance of the Featherbone framework. Then check h
 - **Phase 2: done on 2026-09-27.** It covered SupplyChain, Job Shop, Admin Console, CronJob, the local copy, and the live `demo` database. The findings are in **`docs/featherbone-review-phase2.md`**, which also has the revised combined priority list.
 - **Phase 3, regression test suite: done on 2026-09-27.** 699 tests under `test/` (unit, framework API, SupplyChain flows), 608 pass, 89 todo (known defects asserting the correct behavior), 2 skipped, 0 fail, about five minutes for a full run with `npm test`. `test/README.md` explains the runner and layout. The **Featherbone Improvement Plan** living doc (`https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb`) is the work-through checklist; its Tier 0 lists the suite and the extra defects it found.
 - **Still open:** timings with production-scale data, the Admin Console and CronJob flows (no tests yet), and the two-tenant role test on a real second tenant (the suite covers the role-clobbering half in `api/users.test.js`).
+- **Current direction (2026-10-07):** item 1.1 became an architecture question. The design is `docs/adr-001-identity-and-tenancy.md` and the sequenced work is `docs/tenant-management-plan.md`. Improvement-plan Tiers 2 and 3 proceed in parallel.
 - **Not yet done by anyone:** running the full `npm test` (integration) on John's own machine against his real `demo` and confirming it is green; starting on Tier 1 of the plan.
 
 ### Interaction with the UI refresh thread

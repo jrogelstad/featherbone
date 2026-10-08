@@ -26,6 +26,28 @@ const formPage = {};
 const instances = f.catalog().register("instances");
 const formInstances = f.catalog().register("formInstances");
 
+/*
+    The ribbon shown on this page -- a single, module-level instance,
+    like main.js's own `menu` for the home page, rather than one
+    memoized per record the way formPage's own viewModel is. It only
+    ever drives navigation (tabs, "go to workbook"), so there's no
+    reason for every open form to carry its own copy. Lazily created
+    (not a plain top-level const like the two above) so a Ribbon
+    viewModel is never built before f.catalog() has it registered,
+    whatever order the app's scripts happen to load in (John, Oct
+    2026 -- keep the ribbon visible while looking at a record, so
+    there's no need to close it first just to get to another
+    workbook).
+*/
+let ribbonMenu;
+
+function formRibbonMenu() {
+    if (!ribbonMenu) {
+        ribbonMenu = f.createViewModel("Ribbon");
+    }
+    return ribbonMenu;
+}
+
 const authFeather = {
     name: "ObjectAuthorization",
     plural: "ObjectAuthorizations",
@@ -774,6 +796,11 @@ formPage.viewModel = function (options) {
     vm.doBack = function (force) {
         let instance = vm.model();
         let current = instance.state().current()[0];
+        let id = instance.id();
+        let formOrigins;
+        let origin;
+        let openForms;
+        let comboKey;
 
         if (
             (
@@ -787,8 +814,25 @@ formPage.viewModel = function (options) {
         }
 
         // Once we consciously leave, purge memoize
-        delete instances[vm.model().id()];
-        delete formInstances[vm.model().id()];
+        delete instances[id];
+        delete formInstances[id];
+
+        // Also forget that this was the form open on whichever
+        // workbook/sheet it was drilled into from (see
+        // workbook-page.js's `modelOpen`) -- we're actually closing
+        // it now, so ribbon.js/navigator-menu.js's `goto` should go
+        // back to that sheet's list, not try to reopen a form we just
+        // left (John, Oct 2026).
+        formOrigins = f.catalog().register("formOrigin");
+        origin = formOrigins[id];
+        if (origin) {
+            openForms = f.catalog().register("workbookOpenForm");
+            comboKey = origin.workbook + "/" + origin.sheet;
+            if (openForms[comboKey] && openForms[comboKey].key === id) {
+                delete openForms[comboKey];
+            }
+            delete formOrigins[id];
+        }
 
         if (options.isNewWindow) {
             sseState.send("close");
@@ -933,23 +977,6 @@ formPage.viewModel = function (options) {
     vm.selections = function () {
         return [vm.formWidget().model()];
     };
-    /**
-        @method buttonEdit
-        @param {ViewModels.Dialog} dialog
-        @return {ViewModels.Dialog}
-    */
-    vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "error",
-        title: "Connection Error",
-        message: (
-            "You have lost connection to the server." +
-            "Click \"Ok\" to attempt to reconnect."
-        ),
-        onOk: function () {
-            document.location.reload();
-        }
-    }));
-    vm.sseErrorDialog().buttonCancel().hide();
     /**
         @method title
         @return {String}
@@ -1155,10 +1182,6 @@ formPage.viewModel = function (options) {
     vm.buttonCopy().isDisabled = () => !vm.model().canCopy();
     vm.buttonPdf().isDisabled = vm.model().canSave;
 
-    sseState.resolve("Error").enter(function () {
-        vm.sseErrorDialog().show();
-    });
-
     return vm;
 };
 
@@ -1227,12 +1250,27 @@ formPage.component = {
         let dlg = f.getComponent("Dialog");
         let fw = f.getComponent("FormWidget");
         let banner = f.getComponent("EnvBanner");
+        let connBanner = f.getComponent("ConnectionBanner");
         let toolbar = f.getComponent("Toolbar");
+        let rbn = f.getComponent("Ribbon");
+        let homeDialogs = f.getComponent("HomeDialogs");
+        let menu = formRibbonMenu();
+        let formOrigins = f.catalog().register("formOrigin");
+        let origin = formOrigins[fmodel.id()];
         let toolbarClass = "fb-toolbar";
         let eClass = "lds-small-dual-ring";
         let editAuthDialogView;
         let overflowButtons;
         let primaryButtons;
+
+        // Highlight whichever workbook this record was drilled into
+        // from, same as workbook-page.js does for its own ribbon --
+        // if we don't know (e.g. a record opened via a bookmarked
+        // /edit/... link with no workbook context), leave the ribbon
+        // showing whatever it last showed rather than resetting it.
+        if (origin) {
+            menu.selected(origin.workbook);
+        }
 
         vm.toggleNew();
         if (vm.rowAuthEnabled()) {
@@ -1305,40 +1343,62 @@ formPage.component = {
             vm.buttonSaveAndNew()
         ];
 
-        // Build view
+        // Build view. Wrapped in the same .fb-ribbon-layout/
+        // .fb-ribbon-page frame workbook-page.js uses, with the
+        // ribbon mounted here too -- not to navigate FROM this page
+        // (Back/Apply/Save stay in the toolbar below, unchanged), but
+        // so the user can jump straight to another workbook without
+        // closing the form first (John, Oct 2026).
         return [
             m(banner),
-            m("div", [
-                m(toolbar, {
-                    id: "toolbar",
-                    class: toolbarClass,
-                    primaryButtons,
-                    overflowButtons
+            m(connBanner),
+            m(homeDialogs),
+            m("div", {
+                class: "fb-ribbon-layout"
+            }, [
+                f.snackbar(),
+                m(rbn, {
+                    viewModel: menu,
+                    homeGroups: (
+                        f.catalog().store().global().homeRibbonGroups()
+                    )
                 }),
                 m("div", {
-                    class: "fb-title",
-                    id: "title"
+                    class: "fb-ribbon-page"
                 }, [
+                    m(toolbar, {
+                        id: "toolbar",
+                        class: toolbarClass,
+                        primaryButtons,
+                        overflowButtons
+                    }),
                     m("div", {
-                        class: eClass,
-                        title: theTitle
-                    }, icon),
-                    m("label", vm.title())
-                ]),
-                f.snackbar(),
-                m(dlg, {
-                    viewModel: vm.confirmDialog()
-                }),
-                m(dlg, {
-                    viewModel: vm.sseErrorDialog()
-                }),
-                editAuthDialogView,
-                m(dlg, {
-                    viewModel: vm.waitDialog()
-                }),
-                m(fw, {
-                    viewModel: vm.formWidget()
-                })
+                        class: "fb-title",
+                        id: "title"
+                    }, [
+                        (
+                            icon
+                            ? f.icon(icon, "fb-title-icon", {
+                                title: theTitle
+                            })
+                            : m("div", {
+                                class: eClass,
+                                title: theTitle
+                            })
+                        ),
+                        m("label", vm.title())
+                    ]),
+                    m(dlg, {
+                        viewModel: vm.confirmDialog()
+                    }),
+                    editAuthDialogView,
+                    m(dlg, {
+                        viewModel: vm.waitDialog()
+                    }),
+                    m(fw, {
+                        viewModel: vm.formWidget()
+                    })
+                ])
             ])
         ];
     },

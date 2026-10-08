@@ -3,7 +3,7 @@
         "name": "Development",
         "module": "Core",
         "description": "Integrated development environment",
-        "icon": "architecture",
+        "icon": "triangle-ruler",
                 "isTemplate": true,
                 "label": "Develop",
         "authorizations": [],
@@ -20,14 +20,14 @@
                 }, {
                     "name": "Package",
                     "title": "Package and download module",
-                    "icon": "archive",
+                    "icon": "file-zip",
                     "method": "package",
                     "authorization": "PackageModules",
                     "validator": "packageCheck"
                 }, {
                     "name": "Upgrade",
                     "title": "Upgrade core software",
-                    "icon": "upgrade",
+                    "icon": "up-one",
                     "method": "upgrade",
                     "authorization": "InstallModules",
                     "hasSeparator": true
@@ -249,7 +249,7 @@
         "name": "User Administration",
         "module": "Core",
         "description": "User account and role administration",
-        "icon": "manage_accounts",
+        "icon": "config",
                 "isTemplate": true,
                 "label": "Admin",
         "authorizations": [],
@@ -297,7 +297,7 @@
         "name": "Currency Maintenance",
         "module": "Core",
         "description": "Currency and exchange rate maintenance",
-        "icon": "payments",
+        "icon": "bank-card",
                 "isTemplate": true,
                 "label": "Currency",
         "defaultConfig": [{

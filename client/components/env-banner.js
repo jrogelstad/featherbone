@@ -76,10 +76,9 @@ envBanner.component = {
         return m("div", {
             class: "fb-env-banner fb-env-banner-" + mode
         }, [
-            m("i", {
-                class: "material-icons-outlined fb-env-banner-icon",
+            f.icon("warning", "fb-env-banner-icon", {
                 "aria-hidden": "true"
-            }, "warning"),
+            }),
             m("span", label)
         ]);
     }
