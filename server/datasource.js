@@ -1936,6 +1936,24 @@
                         id: obj.id,
                         client: theClient
                     }, true);
+
+                    // Nothing to change or delete: answer clearly instead of
+                    // failing later in the triggers on an undefined record
+                    if (!obj.oldRec) {
+                        // Soft deleted records are reported by crud; only
+                        // answer here when the id does not exist at all
+                        let found = await theClient.query(
+                            "SELECT 1 FROM object WHERE id = $1;",
+                            [obj.id]
+                        );
+                        if (!found.rows.length) {
+                            let err = new Error(
+                                "Record " + obj.id + " not found."
+                            );
+                            await rollback(err);
+                            throw err;
+                        }
+                    }
                     Object.freeze(obj.oldRec);
 
                     if (!isExternalClient) {
