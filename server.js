@@ -1242,6 +1242,9 @@
         case ".png":
             mimetype = {"Content-Type": "image/png"};
             break;
+        case ".svg":
+            mimetype = {"Content-Type": "image/svg+xml"};
+            break;
         case ".ttf":
             mimetype = {"Content-Type": "application/x-font-ttf"};
             break;
@@ -2065,7 +2068,8 @@
         "/node_modules/tinymce/skins/content/writer",
         "/node_modules/tinymce/themes/silver",
         "/node_modules/tinymce/themes/mobile",
-        "/media"
+        "/media",
+        "/media/icons/iconpark"
     ];
 
     const files = [

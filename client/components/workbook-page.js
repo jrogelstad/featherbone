@@ -1461,7 +1461,7 @@ function positionToolbarCenter() {
 function spinButtonView() {
     let vm = this.viewModel.buttonRefresh();
     let tw = this.viewModel.tableWidget();
-    let iclass = "material-icons-outlined fb-button-icon ";
+    let iclass = "fb-button-icon ";
 
     if (tw.models().state().current()[0].slice(0, 5) === "/Busy") {
         iclass += "fb-spin";
@@ -1482,9 +1482,7 @@ function spinButtonView() {
         },
         title: vm.title()
     }, [
-        m("i", {
-            class: iclass
-        }, vm.icon())
+        f.icon(vm.icon(), iclass)
     ]);
 }
 
@@ -1933,9 +1931,7 @@ workbookPage.component = {
                             m("div", {
                                 class: "fb-toolbar-fill"
                             }),
-                            m("i", {
-                                class: "material-icons-outlined fb-zoom-icon"
-                            }, "zoom_out"),
+                            f.icon("zoom_out", "fb-zoom-icon"),
                             m("input", {
                                 class: "fb-zoom-control",
                                 title: "Zoom " + vm.zoom() + "%",
@@ -1946,9 +1942,7 @@ workbookPage.component = {
                                 value: vm.zoom(),
                                 oninput: (e) => vm.zoom(e.target.value)
                             }),
-                            m("i", {
-                                class: "material-icons-outlined fb-zoom-icon"
-                            }, "zoom_in")
+                            f.icon("zoom_in", "fb-zoom-icon")
                         ])
                     ])
                 ])

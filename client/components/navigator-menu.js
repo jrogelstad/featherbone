@@ -35,7 +35,6 @@ const state = f.State.define(function () {
         };
         this.classHeader = "fb-navigator-menu-header";
         this.classHeaderIcon = (
-            "material-icons-outlined " +
             "fb-navigator-header-icon " +
             "fb-navigator-header-icon-expanded"
         );
@@ -58,7 +57,6 @@ const state = f.State.define(function () {
             "fb-navigator-menu-header fb-navigator-menu-header-collapsed"
         );
         this.classHeaderIcon = (
-            "material-icons-outlined " +
             "fb-navigator-header-icon"
         );
         this.icon = "expand_more";
@@ -292,12 +290,7 @@ navigator.component = {
                 onmouseout: vm.mouseout,
                 title: vm.itemTitle(desc)
             }, [
-                m("i", {
-                    class: (
-                        "material-icons-outlined " +
-                        "fb-navigator-item-icon"
-                    )
-                }, workbooks[key].data.icon())
+                f.icon(workbooks[key].data.icon(), "fb-navigator-item-icon")
             ], vm.itemContent(label));
         }
 
@@ -323,9 +316,7 @@ navigator.component = {
                 onmouseout: vm.mouseout,
                 title: vm.itemTitle("Home")
             }, [
-                m("i", {
-                    class: "material-icons-outlined fb-navigator-item-icon"
-                }, "home")
+                f.icon("home", "fb-navigator-item-icon")
             ], vm.itemContent("Home"))
         );
 
@@ -335,10 +326,9 @@ navigator.component = {
             m("div", {
                 class: vm.classHeader()
             }, "Featherbone", [
-                m("i", {
-                    class: vm.classHeaderIcon(),
+                f.icon(vm.headerIcon(), vm.classHeaderIcon(), {
                     onclick: vm.toggle
-                }, vm.headerIcon())
+                })
             ]),
             m("ul", {
                 class: "pure-menu-list"

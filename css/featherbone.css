@@ -489,6 +489,37 @@ a.pure-button-selected {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* IconPark icons (f.icon() in client/core.js): <img> SVGs that keep their
+   own colours, so none of the colour rules written for the Material glyphs
+   reach them. They are sized by font-size like the glyphs they replaced, so
+   every rule that sets a font-size on an icon class still sizes them; a rule
+   that sets an explicit width/height (e.g. .fb-rb-icon-lg) wins because it
+   comes later and is the same specificity. */
+.fb-ipicon {
+    width: 1em;
+    height: 1em;
+    flex: none;
+    object-fit: contain;
+    vertical-align: middle;
+    user-select: none;
+}
+
+/* A disabled control used to grey its glyph with `color`. */
+button:disabled .fb-ipicon,
+.pure-button-disabled .fb-ipicon,
+.pure-menu-disabled .fb-ipicon {
+    opacity: 0.4;
+    filter: grayscale(1);
+}
+
+/* Preview beside an icon field (formats.icon.editor) */
+.fb-icon-preview {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    font-size: 20px;
+}
+
 .tox-promotion {
    display: none;
 }

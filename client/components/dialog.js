@@ -310,7 +310,7 @@ dialog.component = {
         let ids = vm.ids();
         let header;
         let icon = vm.icon();
-        let iconClass = "material-icons-outlined fb-dialog-icon";
+        let iconClass = "fb-dialog-icon";
 
         // Kick redraw when browser navigation via history loses track of dialog
         if (
@@ -350,9 +350,7 @@ dialog.component = {
             header = m("h3", {
                 id: ids.header,
                 class: "fb-header"
-            }, [m("i", {
-                class: iconClass
-            }, icon)], vm.title().toName());
+            }, [f.icon(icon, iconClass)], vm.title().toName());
         }
 
         return m("dialog", {

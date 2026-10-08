@@ -1376,10 +1376,16 @@ formPage.component = {
                         class: "fb-title",
                         id: "title"
                     }, [
-                        m("div", {
-                            class: eClass,
-                            title: theTitle
-                        }, icon),
+                        (
+                            icon
+                            ? f.icon(icon, "fb-title-icon", {
+                                title: theTitle
+                            })
+                            : m("div", {
+                                class: eClass,
+                                title: theTitle
+                            })
+                        ),
                         m("label", vm.title())
                     ]),
                     m(dlg, {
