@@ -2122,6 +2122,8 @@
           {{/crossLink}}
           * {{#crossLink "Services.Installer/deleteModule:method"}}
           {{/crossLink}}
+          * {{#crossLink "Services.Profile/deleteProfile:method"}}
+          {{/crossLink}}
           * {{#crossLink "Services.Workbooks/deleteWorkbook:method"}}
           {{/crossLink}}
 
@@ -2663,6 +2665,7 @@
     );
     that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
     that.registerFunction("DELETE", "deleteModule", installer.deleteModule);
+    that.registerFunction("DELETE", "deleteProfile", profile.deleteProfile);
     that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);
 
 }(exports));

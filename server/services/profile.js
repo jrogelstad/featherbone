@@ -181,6 +181,29 @@
             });
         };
 
+        /**
+            Delete the current user's profile, resetting all of their
+            local workbook preferences (column widths, filters, sorts,
+            zoom, etc.) to the defaults. Deleting a profile that does
+            not exist is not an error.
+
+            @method deleteProfile
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @return {Promise} Resolves to `true`
+        */
+        that.deleteProfile = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let sql = "DELETE FROM \"$profiles\" WHERE role = $1;";
+                let role = obj.client.currentUser();
+
+                obj.client.query(
+                    sql,
+                    [role]
+                ).then(resolve.bind(null, true)).catch(reject);
+            });
+        };
+
         return that;
     };
 

@@ -1582,6 +1582,20 @@
         );
     }
 
+    function doDeleteProfile(req, res) {
+        let payload = {
+            method: "DELETE",
+            name: "deleteProfile",
+            user: req.user.name,
+            tenant: req.tenant
+        };
+
+        logger.verbose(payload);
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
     function doIsAuthorized(req, res) {
         let payload = {
             method: "GET",
@@ -2587,6 +2601,7 @@
         dbRouter.get("/:db/profile", doGetProfile);
         dbRouter.put("/:db/profile", doPutProfile);
         dbRouter.patch("/:db/profile", doPatchProfile);
+        dbRouter.delete("/:db/profile", doDeleteProfile);
         dbRouter.get("/:db/settings/:name", doGetSettingsRow);
         dbRouter.put("/:db/settings/:name", doSaveSettings);
         dbRouter.get("/:db/settings-definition", doGetSettingsDefinition);

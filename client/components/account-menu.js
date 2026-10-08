@@ -60,6 +60,13 @@ accountMenu.viewModel = function () {
         @return {ViewModels.Dialog}
     */
     vm.errorDialog = f.prop();
+     /**
+        Confirmation dialog for resetting the user's profile.
+        @method resetProfileDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.resetProfileDialog = f.prop();
     /**
         Create content for change password dialog.
         @method createPasswordContent
@@ -257,6 +264,29 @@ accountMenu.viewModel = function () {
         icon: "error"
     }));
 
+    vm.resetProfileDialog(f.createViewModel("Dialog", {
+        title: "Reset Profile",
+        icon: "help_outline",
+        message: (
+            "All of your local workbook preferences (column widths, " +
+            "filters, sorts, zoom and so on) will be reset to the " +
+            "default settings, and the page will reload. Continue?"
+        ),
+        onOk: function () {
+            // Delete the profile on the server, then force a refresh so
+            // every workbook is reloaded with its default configuration
+            f.datasource().request({
+                method: "DELETE",
+                path: "/profile"
+            }).then(function () {
+                document.location.reload();
+            }).catch(function (err) {
+                vm.errorDialog().message(err.message);
+                vm.errorDialog().show();
+            });
+        }
+    }));
+
     function validatePassword() {
         let dlg = vm.changePasswordDialog();
         let msg;
@@ -344,6 +374,11 @@ accountMenu.viewModel = function () {
                 cdlg.show();
             }
         }, {
+            label: "Reset Profile",
+            icon: "undo",
+            title: "Reset all local workbook preferences to default settings",
+            onclick: () => vm.resetProfileDialog().show()
+        }, {
             label: "Sign Out",
             icon: "logout",
             title: "Sign out of application",
@@ -396,6 +431,9 @@ accountMenu.component = {
             }),
             m(dlg, {
                 viewModel: vm.changeUserInfoDialog()
+            }),
+            m(dlg, {
+                viewModel: vm.resetProfileDialog()
             }),
             m(dlg, {
                 viewModel: vm.errorDialog()
