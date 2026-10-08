@@ -135,8 +135,9 @@
                             );
                         }
                     }
-                // Base currency records only ever get added
-                } else {
+                // Base currency records only ever get added. Ignore anything
+                // else, which has no `currency` to read the code from.
+                } else if (data.objectType === "BaseCurrency") {
                     baseCurrs.push(data);
                 }
             }
@@ -328,7 +329,9 @@
                     }
 
                     conv = tools.sanitize(resp.rows[0]);
-                    if (conv.fromCurrency.code === baseCurr.code) {
+                    // A rate stored base->foreign is divided; foreign->base
+                    // is multiplied
+                    if (conv.fromCode === baseCurr.code) {
                         amt = new Big(
                             fromAmount
                         ).div(
@@ -364,14 +367,17 @@
                     if (fromCurr === baseCurr.code) {
                         resolve({
                             currency: fromCurr,
-                            amount: fromAmount,
+                            amount: Number(fromAmount),
                             effective: undefined,
                             baseAmount: undefined
                         });
                         return;
                     }
 
-                    sql = "SELECT * FROM _currency_conversion ";
+                    // Select the from code explicitly: SELECT * returns the
+                    // composite from_currency as text, so its code is lost
+                    sql = "SELECT *, (from_currency).code AS from_code ";
+                    sql += "FROM _currency_conversion ";
                     sql += "WHERE (from_currency).code IN ($1, $2) ";
                     sql += "AND (to_currency).code IN ($1,$2) ";
                     sql += "AND effective < $3 ";
