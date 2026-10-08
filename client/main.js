@@ -38,11 +38,14 @@ let moduleData;
 let moduleSid = f.createId();
 let workbookData;
 let loadWorkbooks;
+let loadNavigationCategories;
 let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
 let addWbFromTemplateDlg;
 let deleteWbTemplateDlg;
+let navCategoryDlg;
+let navCategoryErrDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
@@ -58,6 +61,198 @@ function templates() {
         return m("option", {
             value: workbooks[t].id()
         }, workbooks[t].data.name());
+    });
+}
+
+/*
+    For navigation category management -- the ribbon's category tabs,
+    which are rows in "$navigation_category" rather than the table
+    that used to be hard-coded in ribbon.js (John, Oct 2026).
+
+    The dialog edits a working COPY of the list, so Cancel genuinely
+    discards and Ok sends the whole thing in one request, which the
+    server applies as one transaction (see
+    services/navigation-categories.js). A category a workbook is
+    filed under can be renamed -- workbooks point at ids, not names --
+    but not removed; its row shows the count instead of a Remove
+    button, and the server refuses it regardless.
+*/
+const navCategories = f.prop([]);
+const lastCategoryError = f.prop("");
+
+/*
+    The list arrives from the server already in presentation order
+    (it sorts by sequence, then name), and the dialog treats that
+    order as the thing being edited: rows move up and down, and the
+    save renumbers `sequence` from their final positions. So the
+    stored sequence is an implementation detail the user never types
+    (John, Oct 2026).
+*/
+function editCategories(categories) {
+    navCategories(categories.map(function (cat) {
+        return {
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon || "",
+            workbookCount: cat.workbookCount
+        };
+    }));
+    lastCategoryError("");
+}
+
+function setCategory(idx, attr, value) {
+    let rows = navCategories().slice();
+
+    rows[idx][attr] = value;
+    navCategories(rows);
+}
+
+function addCategory() {
+    let rows = navCategories().slice();
+
+    rows.push({
+        name: "",
+        icon: "",
+        workbookCount: 0
+    });
+    navCategories(rows);
+}
+
+/**
+    Swap a category with its neighbour, which is how tab order is
+    changed -- the save turns the list's final order into `sequence`
+    values.
+    @method moveCategory
+    @param {Integer} idx Row to move
+    @param {Integer} delta -1 to move up, 1 to move down
+*/
+function moveCategory(idx, delta) {
+    let rows = navCategories().slice();
+    let target = idx + delta;
+    let moved;
+
+    if (target < 0 || target >= rows.length) {
+        return;
+    }
+
+    moved = rows[idx];
+    rows[idx] = rows[target];
+    rows[target] = moved;
+    navCategories(rows);
+}
+
+function removeCategory(idx) {
+    let rows = navCategories().slice();
+
+    rows.splice(idx, 1);
+    navCategories(rows);
+}
+
+function isCategoryListValid() {
+    let rows = navCategories();
+    let names;
+
+    if (rows.some((cat) => !cat.name.trim())) {
+        lastCategoryError("Every category needs a name");
+        return false;
+    }
+
+    names = rows.map((cat) => cat.name.trim().toLowerCase());
+
+    if (names.some((name, idx) => names.indexOf(name) !== idx)) {
+        lastCategoryError("Category names must be unique");
+        return false;
+    }
+
+    lastCategoryError("");
+    return true;
+}
+
+/**
+    One row per category: name, icon, presentation order, and either a
+    Remove button or -- when workbooks are filed under it -- how many,
+    which is why it can't be removed.
+    @method categoryRows
+    @return {Object} vnode(s)
+*/
+function categoryRows() {
+    let rows = navCategories();
+
+    if (!rows.length) {
+        return m("div", {
+            class: "fb-category-empty"
+        }, (
+            "No categories yet. Every workbook shows under \"Other\" " +
+            "until there are some to file them under."
+        ));
+    }
+
+    return rows.map(function (cat, idx) {
+        let count = cat.workbookCount || 0;
+
+        return m("div", {
+            class: "fb-category-row"
+        }, [
+            m("input", {
+                value: cat.name,
+                autocomplete: "off",
+                oninput: (e) => setCategory(idx, "name", e.target.value)
+            }),
+            m("div", {
+                class: "fb-category-icon-cell"
+            }, [
+                m("i", {
+                    class: "material-icons-outlined fb-category-icon",
+                    title: "Preview"
+                }, cat.icon || "folder"),
+                m("input", {
+                    value: cat.icon,
+                    autocomplete: "off",
+                    placeholder: "folder",
+                    oninput: (e) => setCategory(idx, "icon", e.target.value)
+                })
+            ]),
+            m("div", {
+                class: "fb-category-move"
+            }, [
+                m("button[type=button]", {
+                    class: "pure-button fb-icon-only",
+                    title: "Move up",
+                    disabled: idx === 0,
+                    onclick: () => moveCategory(idx, -1)
+                }, m("i", {
+                    class: "material-icons-outlined fb-button-icon"
+                }, "arrow_upward")),
+                m("button[type=button]", {
+                    class: "pure-button fb-icon-only",
+                    title: "Move down",
+                    disabled: idx === rows.length - 1,
+                    onclick: () => moveCategory(idx, 1)
+                }, m("i", {
+                    class: "material-icons-outlined fb-button-icon"
+                }, "arrow_downward"))
+            ]),
+            (
+                count
+                ? m("span", {
+                    class: "fb-category-usage",
+                    title: (
+                        "In use by " + count + " workbook" + (
+                            count === 1
+                            ? ""
+                            : "s"
+                        ) + ". Change their category first to remove this."
+                    )
+                }, count + " in use")
+                : m("button[type=button]", {
+                    class: "pure-button fb-icon-only",
+                    title: "Remove this category",
+                    onclick: () => removeCategory(idx)
+                }, m("i", {
+                    class: "material-icons-outlined fb-button-icon"
+                }, "delete"))
+            )
+        ]);
     });
 }
 
@@ -220,6 +415,21 @@ function homeRibbonGroups() {
                 }
                 : undefined
             )
+        }, {
+            label: "Categories",
+            icon: "dashboard_customize",
+            title: "Maintain navigation categories",
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? function () {
+                    editCategories(
+                        catalog.store().data().navigationCategories()
+                    );
+                    navCategoryDlg.show();
+                }
+                : undefined
+            )
         }]
     }, {
         label: "Global",
@@ -267,6 +477,12 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.deleteWbTemplateDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.navCategoryDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.navCategoryErrDlg
             })
         ];
     }
@@ -785,6 +1001,40 @@ function initPromises() {
             resolve();
         });
     });
+
+    // Load navigation categories -- the ribbon's category tabs, which
+    // are rows the user maintains rather than a hard-coded table
+    // (John, Oct 2026). See ribbon.js's vm.categories().
+    loadNavigationCategories = new Promise(function (resolve) {
+        datasource.request({
+            method: "GET",
+            path: "/navigation-categories/"
+        }).then(function (data) {
+            catalog.register(
+                "data",
+                "navigationCategories",
+                f.prop(data)
+            );
+            resolve();
+        });
+    });
+}
+
+/**
+    Re-read the navigation categories and redraw, so the ribbon picks
+    up tabs added, renamed or removed in the maintenance dialog
+    without a browser refresh.
+    @method refreshNavigationCategories
+    @return {Promise}
+*/
+function refreshNavigationCategories() {
+    return datasource.request({
+        method: "GET",
+        path: "/navigation-categories/"
+    }).then(function (data) {
+        catalog.store().data().navigationCategories(data);
+        m.redraw();
+    });
 }
 
 function initApp() {
@@ -1061,6 +1311,89 @@ function initApp() {
         deleteWbTemplateDlg.buttonOk().style().background = "red";
         deleteWbTemplateDlg.buttonOk().class("fb-button-delete");
 
+        // View model for maintaining navigation categories -- the
+        // ribbon's tabs. Slides down from the top of the viewport
+        // rather than sitting centered, since it's about the menu bar
+        // directly above it (John, Oct 2026).
+        navCategoryErrDlg = viewModels.dialog({
+            icon: "error",
+            title: "Error"
+        });
+        navCategoryDlg = viewModels.dialog({
+            icon: "dashboard_customize",
+            title: "Navigation categories",
+            class: "fb-dialog-slide-top"
+        });
+        navCategoryDlg.style().width = "640px";
+        navCategoryDlg.content = function () {
+            return m("div", {
+                class: "pure-form"
+            }, [
+                m("div", {
+                    class: "fb-category-row fb-category-head"
+                }, [
+                    m("div", "Name"),
+                    m("div", "Icon"),
+                    m("div", "Order"),
+                    m("div", "")
+                ]),
+                m("div", {
+                    class: "fb-category-list"
+                }, categoryRows()),
+                m("div", {
+                    class: "fb-category-actions"
+                }, [
+                    m("button[type=button]", {
+                        class: "pure-button",
+                        title: "Add a category",
+                        onclick: addCategory
+                    }, [
+                        m("i", {
+                            class: "material-icons-outlined fb-button-icon"
+                        }, "add"),
+                        m("span", {
+                            class: "fb-button-label"
+                        }, "Add Category")
+                    ]),
+                    m("span", {
+                        class: "fb-category-hint"
+                    }, (
+                        "Workbooks with no category show under \"Other\". " +
+                        "Set a workbook's category from its own " +
+                        "Edit workbook dialog."
+                    ))
+                ])
+            ]);
+        };
+        navCategoryDlg.onOk(function () {
+            // Row position IS the tab order -- see moveCategory.
+            let specs = navCategories().map(function (cat, idx) {
+                return {
+                    id: cat.id,
+                    name: cat.name.trim(),
+                    icon: cat.icon.trim(),
+                    sequence: idx
+                };
+            });
+
+            datasource.request({
+                method: "PUT",
+                path: "/navigation-categories/",
+                body: specs
+            }).then(
+                refreshNavigationCategories
+            ).catch(function (err) {
+                navCategoryErrDlg.message(err.message);
+                navCategoryErrDlg.show();
+            });
+        });
+        navCategoryDlg.buttonOk().isDisabled = () => !isCategoryListValid();
+        navCategoryDlg.buttonOk().title = function () {
+            if (!isCategoryListValid()) {
+                return lastCategoryError();
+            }
+        };
+
         // Registered globally, not just held in this module's own
         // variables, so homeDialogs and homeRibbonGroups above can
         // reach them from workbook-page.js too (John, Oct 2026).
@@ -1080,6 +1413,16 @@ function initApp() {
             "deleteWbTemplateDlg",
             deleteWbTemplateDlg
         );
+        catalog.register(
+            "global",
+            "navCategoryDlg",
+            navCategoryDlg
+        );
+        catalog.register(
+            "global",
+            "navCategoryErrDlg",
+            navCategoryErrDlg
+        );
 
         m.route(document.body, "/home", routes);
     });
@@ -1097,7 +1440,8 @@ async function start() {
         loadModules,
         loadForms,
         loadProfile,
-        loadWorkbooks
+        loadWorkbooks,
+        loadNavigationCategories
     ]);
     initApp();
 }

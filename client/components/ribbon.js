@@ -68,13 +68,16 @@
 
 const ribbon = {};
 
-/**
-    Which category tab each workbook appears under, keyed by workbook NAME
-    (not label). Presentation only: a workbook's own sequence still orders
-    it inside its group, and anything not listed here falls into the
-    trailing "Other" tab rather than disappearing -- so a newly added
-    workbook is always reachable. Edit this table to re-group the tabs.
-*/
+/*
+    Superseded by the "$navigation_category" table (John, Oct 2026):
+    categories are rows the user maintains from Home > Workbooks >
+    Categories, each workbook points at one by id, and vm.categories()
+    below builds the tabs from those instead of from here. Kept, for
+    now, as the record of the menu structure this app shipped with --
+    the one to rebuild by hand before exporting packages, since
+    nothing migrates these assignments automatically. Delete once
+    those packages exist.
+
 const WORKBOOK_CATEGORIES = [{
     key: "engineering",
     label: "Engineering",
@@ -108,6 +111,7 @@ const WORKBOOK_CATEGORIES = [{
         "Settings", "Ship Engine", "Develop"
     ]
 }];
+*/
 
 /**
     Name of the one workbook that gets its own permanent icon button
@@ -140,6 +144,10 @@ const HOME_TAB = {
 };
 
 const COLLAPSED_KEY = "fb-ribbon-collapsed";
+
+// How many hues featherbone.css cycles through for categories whose
+// name has no hue of its own -- see hueIndex() in view(), below.
+const HUE_COUNT = 8;
 
 // ..........................................................
 // Module-level state
@@ -194,16 +202,45 @@ ribbon.viewModel = function () {
     };
 
     /**
-        Categories with their workbooks resolved and ordered, skipping any
-        category that has none. Unlisted workbooks land in "Other".
+        The navigation categories as the database has them, in
+        presentation order (the server already sorts them by sequence
+        then name). Read defensively: a page rendered before the
+        startup fetch has finished -- or the sign-in page, which never
+        fetches them -- just gets none, and every workbook falls into
+        "Other".
+        @method navigationCategories
+        @return {Array}
+    */
+    vm.navigationCategories = function () {
+        let cats = f.catalog().store().data().navigationCategories;
+
+        return (
+            cats
+            ? cats()
+            : []
+        );
+    };
+
+    /**
+        Categories with their workbooks resolved and ordered. Every
+        defined category gets a tab, empty or not -- they're rows the
+        user maintains, so one just created shouldn't vanish until
+        something is filed under it. "Other" is the exception: it
+        only appears when there are workbooks with no category.
         @method categories
         @return {Array}
     */
     vm.categories = function () {
         let workbooks = vm.workbooks();
-        let keys = Object.keys(workbooks);
         let claimed = [];
         let ret = [];
+        // OMNIPRESENT_WORKBOOK has its own permanent button at the
+        // ribbon's right end, so it is deliberately left out of the
+        // tabs entirely -- otherwise, having no category, it would
+        // also turn up under "Other" (John, Oct 2026).
+        let keys = Object.keys(workbooks).filter(
+            (key) => workbooks[key].data.name() !== OMNIPRESENT_WORKBOOK
+        );
 
         function bySequence(a, b) {
             let aVal = workbooks[a].data.sequence() || 0;
@@ -220,23 +257,19 @@ ribbon.viewModel = function () {
             return aVal - bVal;
         }
 
-        WORKBOOK_CATEGORIES.forEach(function (cat) {
+        vm.navigationCategories().forEach(function (cat) {
             let mine = keys.filter(
-                (key) => cat.workbooks.indexOf(
-                    workbooks[key].data.name()
-                ) !== -1
+                (key) => workbooks[key].data.category() === cat.id
             ).sort(bySequence);
 
             mine.forEach((key) => claimed.push(key));
 
-            if (mine.length) {
-                ret.push({
-                    key: cat.key,
-                    label: cat.label,
-                    icon: cat.icon,
-                    keys: mine
-                });
-            }
+            ret.push({
+                key: cat.name.toSpinalCase(),
+                label: cat.name,
+                icon: cat.icon || "folder",
+                keys: mine
+            });
         });
 
         let rest = keys.filter(
@@ -613,6 +646,20 @@ ribbon.component = {
         let groups = [];
         let tabKeys = tabs.map((cat) => cat.key);
 
+        /*
+            Categories are user-maintained rows now, so most won't
+            have a hue of their own in the stylesheet the way the old
+            hard-coded keys did. Each tab therefore carries a numbered
+            fallback class as well -- featherbone.css cycles a palette
+            across those, and lets any name-specific hue win over it,
+            so "Engineering" keeps the blue it always had while a brand
+            new category still gets a color instead of rendering
+            untinted (John, Oct 2026).
+        */
+        function hueIndex(key) {
+            return tabKeys.indexOf(key) % HUE_COUNT;
+        }
+
         // Any navigation snaps the ribbon to the tab owning the new screen;
         // merely clicking a tab (no route change) doesn't.
         if (route !== lastRoute) {
@@ -797,8 +844,10 @@ ribbon.component = {
         let showBody = !collapsed || vm.isPopupOpen();
 
         return m("div", {
-            // fb-rb-t-<tab> picks the hue for the tab being shown.
-            class: "fb-ribbon fb-rb-t-" + vm.selectedTab() + (
+            // fb-rb-t-<tab> picks the hue for the tab being shown,
+            // fb-rb-h-<n> the fallback for one with no named hue.
+            class: "fb-ribbon fb-rb-h-" + hueIndex(vm.selectedTab()) +
+            " fb-rb-t-" + vm.selectedTab() + (
                 collapsed
                 ? " fb-ribbon-collapsed"
                 : ""
@@ -845,7 +894,9 @@ ribbon.component = {
                         ),
                         // Dot on the tab owning the open screen while
                         // another tab's buttons are showing.
-                        class: "fb-ribbon-tab fb-ribbon-tab-" + cat.key + (
+                        class: "fb-ribbon-tab fb-ribbon-tab-h-" +
+                        hueIndex(cat.key) +
+                        " fb-ribbon-tab-" + cat.key + (
                             (cat.key === routeTab && !isSelected)
                             ? " fb-ribbon-tab-current"
                             : ""

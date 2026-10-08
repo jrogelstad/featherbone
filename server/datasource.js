@@ -33,6 +33,9 @@
     const {Feathers} = require("./services/feathers");
     const {Importer, Exporter} = require("./services/io");
     const {Installer} = require("./services/installer");
+    const {
+        NavigationCategories
+    } = require("./services/navigation-categories");
     const {Profile} = require("./services/profile");
     const {Packager} = require("./services/packager");
     const {Routes} = require("./services/routes");
@@ -57,6 +60,7 @@
     const feathers = new Feathers();
     const importer = new Importer();
     const installer = new Installer();
+    const navigationCategories = new NavigationCategories();
     const packager = new Packager();
     const profile = new Profile();
     const routes = new Routes();
@@ -2603,6 +2607,11 @@
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction(
         "GET",
+        "getNavigationCategories",
+        navigationCategories.getNavigationCategories
+    );
+    that.registerFunction(
+        "GET",
         "workbookIsAuthorized",
         workbooks.workbookIsAuthorized
     );
@@ -2647,6 +2656,11 @@
     that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
     that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
+    that.registerFunction(
+        "PUT",
+        "saveNavigationCategories",
+        navigationCategories.saveNavigationCategories
+    );
     that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
     that.registerFunction("DELETE", "deleteModule", installer.deleteModule);
     that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);

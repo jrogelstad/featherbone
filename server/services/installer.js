@@ -498,6 +498,100 @@
                     }, true).then(callback).catch(rollback);
                 }
 
+                /*
+                    Navigation categories arrive from a package by
+                    NAME (see services/packager.js), never by id, so
+                    that a package can't be broken by ids differing
+                    between databases. Create whichever ones this
+                    database doesn't have yet; the workbooks installed
+                    after this file then bind to them by name, which
+                    services/workbooks.js resolves to ids.
+
+                    An existing category keeps its id -- so workbooks
+                    already filed under it stay put -- and only takes
+                    the package's icon and ordering where the package
+                    actually supplies them (John, Oct 2026).
+                */
+                function saveNavigationCategories(categories) {
+                    let len = categories.length;
+                    let n = 0;
+                    let nextCategory;
+
+                    nextCategory = function () {
+                        let cat;
+                        let findSql = (
+                            "SELECT id FROM \"$navigation_category\" " +
+                            "WHERE name = $1;"
+                        );
+
+                        if (n >= len) {
+                            processFile();
+                            return;
+                        }
+
+                        cat = categories[n];
+                        n += 1;
+
+                        pClient.query(findSql, [cat.name], function (err, res) {
+                            let sql;
+                            let params;
+
+                            if (err) {
+                                rollback(err);
+                                return;
+                            }
+
+                            if (res.rows.length) {
+                                sql = (
+                                    "UPDATE \"$navigation_category\" SET " +
+                                    "icon=COALESCE($2, icon), " +
+                                    "sequence=COALESCE($3, sequence), " +
+                                    "updated=now(), updated_by=$4 " +
+                                    "WHERE name=$1;"
+                                );
+                                params = [
+                                    cat.name,
+                                    cat.icon || null,
+                                    (
+                                        cat.sequence === undefined
+                                        ? null
+                                        : cat.sequence
+                                    ),
+                                    pUser
+                                ];
+                            } else {
+                                sql = (
+                                    "INSERT INTO \"$navigation_category\" " +
+                                    "(_pk, id, name, icon, sequence, " +
+                                    "created, created_by, updated, " +
+                                    "updated_by, is_deleted) " +
+                                    "VALUES (nextval('object__pk_seq'), " +
+                                    "$1, $2, $3, $4, now(), $5, now(), " +
+                                    "$5, false);"
+                                );
+                                params = [
+                                    f.createId(),
+                                    cat.name,
+                                    cat.icon || "",
+                                    cat.sequence || 0,
+                                    pUser
+                                ];
+                            }
+
+                            pClient.query(sql, params, function (e) {
+                                if (e) {
+                                    rollback(e);
+                                    return;
+                                }
+
+                                nextCategory();
+                            });
+                        });
+                    };
+
+                    nextCategory();
+                }
+
                 function saveWorkbooks(workbooks) {
                     let payload = {
                         method: "PUT",
@@ -769,6 +863,9 @@
                                 break;
                             case "batch":
                                 runBatch(JSON.parse(content));
+                                break;
+                            case "navigationCategory":
+                                saveNavigationCategories(JSON.parse(content));
                                 break;
                             case "workbook":
                                 saveWorkbooks(JSON.parse(content));

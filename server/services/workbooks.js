@@ -147,6 +147,13 @@
                         "default_config AS \"defaultConfig\", " +
                         "local_config AS \"localConfig\", " +
                         "is_template AS \"isTemplate\", " +
+                        // The navigation category's ID, not its name:
+                        // the client matches it against the category
+                        // list it loads separately, so renaming a
+                        // category doesn't strand its workbooks (see
+                        // scripts/tables.js). Packages are the one
+                        // place names are used -- see packager.js.
+                        "category, " +
                         "to_json(ARRAY( SELECT ROW(role, can_read, " +
                         "can_update) " +
                         "  FROM \"$auth\" as auth " +
@@ -316,6 +323,9 @@
                 let n = 0;
                 let oldAuth;
                 let theClient = obj.client;
+                let categoryIds = [];
+                let categoryNames = {};
+                let resolveCategory;
 
                 findSql = (
                     "SELECT * FROM \"$workbook\" AS workbook, " +
@@ -325,6 +335,48 @@
                     "  ORDER BY auth.pk)) AS authorizations " +
                     "WHERE name = $1;"
                 );
+
+                /*
+                    Work out what to store in "$workbook".category.
+
+                    The client sends a navigation category's ID, but
+                    package imports (see services/installer.js) and
+                    the seed workbook json send its NAME, so that a
+                    package can't be broken by ids differing between
+                    databases. Accept either.
+
+                    An ABSENT category leaves whatever is already on
+                    the record alone -- that's a package or a caller
+                    that predates categories, and it shouldn't wipe a
+                    menu the user arranged by hand. An explicitly
+                    empty one is the user clearing the picker, and
+                    drops the workbook into the ribbon's "Other" tab.
+                    A name we don't recognize also falls back to
+                    unassigned rather than throwing, so one stray
+                    category reference can't fail a whole install
+                    (John, Oct 2026).
+                */
+                resolveCategory = function (theWb, theRow) {
+                    let value = theWb.category;
+
+                    if (value === undefined) {
+                        return (
+                            theRow
+                            ? theRow.category
+                            : null
+                        );
+                    }
+
+                    if (!value) {
+                        return null;
+                    }
+
+                    if (categoryIds.indexOf(value) !== -1) {
+                        return value;
+                    }
+
+                    return categoryNames[value] || null;
+                };
 
                 function execute() {
                     theClient.query(sql, params, function (err) {
@@ -440,7 +492,8 @@
                                         "default_config=$5," +
                                         "local_config=$6, module=$7, " +
                                         "icon=$8, sequence=$9, actions=$10, " +
-                                        "label=$11, is_template=$12 " +
+                                        "label=$11, is_template=$12, " +
+                                        "category=$13 " +
                                         "WHERE name=$1;"
                                     );
                                     theId = row.id;
@@ -468,7 +521,8 @@
                                         wb.sequence || row.sequence || 0,
                                         {}, // TODO
                                         wb.label || row.label,
-                                        wb.isTemplate || row.isTemplate
+                                        wb.isTemplate || row.isTemplate,
+                                        resolveCategory(wb, row)
                                     ];
                                     execute();
                                 } else {
@@ -497,12 +551,12 @@
                                             "created_by, updated_by, " +
                                             "sequence, actions, label, " +
                                             "created, updated, is_deleted, " +
-                                            "is_template) " +
+                                            "is_template, category) " +
                                             "VALUES (" +
                                             "nextval('object__pk_seq')," +
                                             "$1, $2, $3, $4, $5, $6, $7, $8," +
                                             "$9, $9, $10, $11, $12, " +
-                                            "now(), now(), false, $13) " +
+                                            "now(), now(), false, $13, $14) " +
                                             "RETURNING _pk;"
                                         );
                                         theId = f.createId();
@@ -523,7 +577,8 @@
                                             wb.sequence || 0,
                                             {}, // TODO
                                             wb.label,
-                                            wb.isTemplate
+                                            wb.isTemplate,
+                                            resolveCategory(wb)
                                         ];
 
                                         execute();
@@ -537,7 +592,26 @@
                     resolve(true);
                 };
 
-                nextWorkbook();
+                // Cache the navigation categories once up front so
+                // resolveCategory above can match either an id or a
+                // name without a query per workbook.
+                theClient.query(
+                    "SELECT id, name FROM \"$navigation_category\" " +
+                    "WHERE NOT is_deleted;",
+                    function (err, resp) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+
+                        resp.rows.forEach(function (cat) {
+                            categoryIds.push(cat.id);
+                            categoryNames[cat.name] = cat.id;
+                        });
+
+                        nextWorkbook();
+                    }
+                );
             });
         };
 

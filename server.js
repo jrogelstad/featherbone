@@ -79,6 +79,7 @@
         "feather",
         "module",
         "modules",
+        "navigation-categories",
         "profile",
         "settings",
         "settings-definition",
@@ -627,6 +628,33 @@
 
     function doGetWorkbooks(req, res) {
         doGetMethod("getWorkbooks", req, res);
+    }
+
+    function doGetNavigationCategories(req, res) {
+        doGetMethod("getNavigationCategories", req, res);
+    }
+
+    /*
+        The whole category list arrives in one request, so a round of
+        edits in the maintenance dialog -- adds, renames, removals --
+        applies together or not at all. See
+        services/navigation-categories.js.
+    */
+    function doSaveNavigationCategories(req, res) {
+        let payload = {
+            method: "PUT",
+            name: "saveNavigationCategories",
+            user: req.user.name,
+            data: {
+                specs: req.body
+            },
+            tenant: req.tenant
+        };
+
+        logger.verbose(payload);
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
     }
 
     function registerDataRoute(key) {
@@ -2559,6 +2587,14 @@
         dbRouter.put("/:db/settings/:name", doSaveSettings);
         dbRouter.get("/:db/settings-definition", doGetSettingsDefinition);
         dbRouter.get("/:db/workbooks", doGetWorkbooks);
+        dbRouter.get(
+            "/:db/navigation-categories",
+            doGetNavigationCategories
+        );
+        dbRouter.put(
+            "/:db/navigation-categories",
+            doSaveNavigationCategories
+        );
         dbRouter.get(
             "/:db/workbook/is-authorized/:name",
             doWorkbookIsAuthorized
