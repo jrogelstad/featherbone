@@ -448,8 +448,16 @@ function workbookModel(data) {
             context.promise.resolve(model.data);
         }
 
+        function error(err) {
+            state.send("error");
+            context.promise.reject(err);
+        }
+
         if (model.isValid()) {
-            f.datasource().request(payload).then(callback).catch(model.error);
+            f.datasource().request(payload).then(callback).catch(error);
+        } else {
+            // isValid() has already raised the error state
+            context.promise.reject(new Error(model.lastError().message));
         }
     };
 

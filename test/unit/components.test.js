@@ -170,16 +170,13 @@ describe("client components", function () {
 
     describe("button.js isPrimary", function () {
         it("isPrimary(true) reports true",
-                {todo: "defect: button isPrimary compares " +
-                "state.current()[1] to 'Primary/On' but paths start with " +
-                "'/', so it always returns false"}, function () {
+                function () {
             let vm = vms.button({label: "x"});
             assert.equal(vm.isPrimary(true), true);
         });
 
         it("isPrimary() without an argument does not change the state",
-                {todo: "defect: button isPrimary() with no argument sends " +
-                "primaryOff, so reading the flag clears it"}, function () {
+                function () {
             let vm = vms.button({label: "x"});
             vm.isPrimary(true);
             vm.isPrimary();
