@@ -95,10 +95,7 @@ describe("common/string.js", function () {
     });
 
     it("keeps the first letter when the string starts with a separator",
-            {todo: "defect: '_foo'.toCamelCase() drops 'f' and yields '_oo'"},
             function () {
-        // common/string.js: first char is taken from the original string,
-        // rest from the replaced one, so a leading separator eats a letter
         assert.equal("_foo".toCamelCase(), "foo");
     });
 

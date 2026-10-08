@@ -499,9 +499,9 @@ formats.money = {
         if (curr.data.hasDisplayUnit() && theCurrency !== curr.data.code()) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    theAmount = theAmount.div(
-                        conv.data.ratio.toJSON().round(curr.data.minorUnit.toJSON())
-                    );
+                    // Do not round the ratio: it may be smaller than the
+                    // minor unit (e.g. 0.001), which would round to zero
+                    theAmount = theAmount.div(conv.data.ratio.toJSON());
                     return true;
                 }
             });

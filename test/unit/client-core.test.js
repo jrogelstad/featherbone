@@ -187,11 +187,7 @@ describe("client/core.js helpers", function () {
             });
         });
 
-        it("toType handles a fractional display unit ratio",
-                {todo: "defect: money toType rounds the conversion ratio " +
-                "to the currency minor unit (ratio 0.001 -> 0) and throws " +
-                "Division by zero; fromType rounds the amount instead"},
-                function () {
+        it("toType handles a fractional display unit ratio", function () {
             assert.equal(f.formats().money.toType({
                 amount: 1.5,
                 currency: "KTS",
