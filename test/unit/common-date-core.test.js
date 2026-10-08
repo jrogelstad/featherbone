@@ -162,9 +162,7 @@ describe("common/core.js", function () {
         );
     });
 
-    it("netWorkDays leaves Date arguments unchanged",
-            {todo: "defect: netWorkDays calls setHours on its Date arguments"},
-            function () {
+    it("netWorkDays leaves Date arguments unchanged", function () {
         let start = new Date(2026, 8, 28, 10, 30);
         let end = new Date(2026, 9, 2, 10, 30);
         f.netWorkDays(start, end);

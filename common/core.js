@@ -223,6 +223,10 @@
                 : that.parseDate(endDate)
             );
 
+            // Work on copies so the caller's dates are not mutated
+            startDate = new Date(startDate.getTime());
+            endDate = new Date(endDate.getTime());
+
             if (endDate > startDate) {
                 let days = Math.ceil(
                     (
