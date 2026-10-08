@@ -175,13 +175,17 @@ button.viewModel = function (options) {
         @return {Boolean}
     */
     vm.isPrimary = function (flag) {
-        if (Boolean(flag)) {
-            state.send("primaryOn");
-        } else {
-            state.send("primaryOff");
+        // Only change the state when a flag is passed; reading must not
+        // clear it
+        if (flag !== undefined) {
+            if (Boolean(flag)) {
+                state.send("primaryOn");
+            } else {
+                state.send("primaryOff");
+            }
         }
 
-        return state.current()[1] === "Primary/On";
+        return state.current().indexOf("/Primary/On") !== -1;
     };
     /**
         @method label

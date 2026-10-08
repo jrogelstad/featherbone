@@ -159,9 +159,6 @@ describe("client list statechart (models/list.js)", function () {
     });
 
     it("subscribe(false) clears the subscribed flag",
-            {todo: "defect: list.subscribe(false) returns the unsubscribe " +
-            "request before resetting isSubscribed, so subscribe() still " +
-            "returns the id and later fetches re-subscribe"},
             async function () {
         let ary = f.createList("TestItem", {fetch: false, subscribe: true});
         await ary.subscribe(false);
@@ -401,9 +398,7 @@ describe("client list statechart (models/list.js)", function () {
         });
 
         it("text search on property arrays matches substrings",
-                {todo: "defect: list.inFilter returns val.search(rg), " +
-                "so a match at position 0 is falsy and no match (-1) " +
-                "is truthy"}, function () {
+                function () {
             assert.equal(test([{property: ["name"], value: "wid"}]), true);
             assert.equal(test([{property: ["name"], value: "zzz"}]), false);
         });

@@ -208,7 +208,7 @@ describe("client model statechart (models/model.js)", function () {
             let model = f.createModel("TestItem");
             let errors = [];
             model.onError((e) => errors.push(e));
-            model.save();
+            model.save().catch(() => undefined);
             await env.flush();
             assert.equal(current(model), "/Ready/New");
             assert.deepEqual(requests(), []);
@@ -217,8 +217,6 @@ describe("client model statechart (models/model.js)", function () {
         });
 
         it("an invalid save rejects its promise",
-                {todo: "defect: model.save() on an invalid model never " +
-                "settles (doPost/doPatch skip without rejecting)"},
                 async function () {
             let model = f.createModel("TestItem");
             let outcome = await settle(model.save());
@@ -248,10 +246,7 @@ describe("client model statechart (models/model.js)", function () {
         });
 
         it("clear works on a new record with child arrays",
-                {todo: "defect: clear() in /Ready/New (forced re-entry) " +
-                "overflows the stack when the feather has a to-many " +
-                "property: the lines 'changed' event re-runs the still " +
-                "queued forced transition"}, function () {
+                function () {
             let model = f.createModel("TestItem");
             let oldId = model.id();
             model.data.name("x");
@@ -505,9 +500,7 @@ describe("client model statechart (models/model.js)", function () {
         });
 
         it("a failed lock returns the model to Clean",
-                {todo: "defect: doLock error sends 'clean', which " +
-                "Ready/Fetched/Locking does not handle; model stays in " +
-                "Locking and can never be saved"}, async function () {
+                async function () {
             let model = await fetched("e8");
             server.failNext("POST", "/do/lock",
                     new Error("Record is locked by bob"));
@@ -525,8 +518,6 @@ describe("client model statechart (models/model.js)", function () {
         });
 
         it("save in Clean settles its promise",
-                {todo: "defect: model.save() in a state without a save " +
-                "handler returns a promise that never settles"},
                 async function () {
             let model = await fetched("e10");
             let outcome = await settle(model.save());
@@ -620,8 +611,6 @@ describe("client model statechart (models/model.js)", function () {
         });
 
         it("a failed delete leaves the model editable",
-                {todo: "defect: after a failed delete the model is back in " +
-                "Clean but still frozen (Delete's doFreeze never thawed)"},
                 async function () {
             let model = await fetched("d5");
             await model.delete();
@@ -809,7 +798,7 @@ describe("client model statechart (models/model.js)", function () {
             model.data.lines().add({qty: 1});
             assert.equal(model.isValid(), false);
             assert.equal(model.lastError(), "\"Product\" is required");
-            model.save();
+            model.save().catch(() => undefined);
             await env.flush();
             assert.deepEqual(requests(), []);
         });
