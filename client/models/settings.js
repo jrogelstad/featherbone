@@ -106,8 +106,17 @@ function settings(definition) {
             context.resolve(that.data);
         }
 
+        function error(err) {
+            // Settle the save and leave Busy (same as a false response)
+            that.state().send("error");
+            context.reject(err);
+        }
+
         if (that.isValid()) {
-            ds.request(payload).then(callback);
+            ds.request(payload).then(callback).catch(error);
+        } else {
+            // isValid() has already raised the error state
+            context.reject(new Error(that.lastError().message));
         }
     };
 
