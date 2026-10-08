@@ -201,15 +201,23 @@ function categoryRows() {
             m("div", {
                 class: "fb-category-icon-cell"
             }, [
-                m("i", {
-                    class: "material-icons-outlined fb-category-icon",
+                f.icon(cat.icon || "folder-close", "fb-category-icon", {
                     title: "Preview"
-                }, cat.icon || "folder"),
+                }),
                 m("input", {
-                    value: cat.icon,
+                    value: (
+                        cat.icon
+                        ? f.iconLabel(cat.icon)
+                        : ""
+                    ),
+                    list: "fb-category-icon-list",
                     autocomplete: "off",
-                    placeholder: "folder",
-                    oninput: (e) => setCategory(idx, "icon", e.target.value)
+                    placeholder: "Folder Close",
+                    onchange: (e) => setCategory(
+                        idx,
+                        "icon",
+                        f.iconValue(e.target.value)
+                    )
                 })
             ]),
             m("div", {
@@ -220,17 +228,13 @@ function categoryRows() {
                     title: "Move up",
                     disabled: idx === 0,
                     onclick: () => moveCategory(idx, -1)
-                }, m("i", {
-                    class: "material-icons-outlined fb-button-icon"
-                }, "arrow_upward")),
+                }, f.icon("arrow_upward", "fb-button-icon")),
                 m("button[type=button]", {
                     class: "pure-button fb-icon-only",
                     title: "Move down",
                     disabled: idx === rows.length - 1,
                     onclick: () => moveCategory(idx, 1)
-                }, m("i", {
-                    class: "material-icons-outlined fb-button-icon"
-                }, "arrow_downward"))
+                }, f.icon("arrow_downward", "fb-button-icon"))
             ]),
             (
                 count
@@ -248,9 +252,7 @@ function categoryRows() {
                     class: "pure-button fb-icon-only",
                     title: "Remove this category",
                     onclick: () => removeCategory(idx)
-                }, m("i", {
-                    class: "material-icons-outlined fb-button-icon"
-                }, "delete"))
+                }, f.icon("delete", "fb-button-icon"))
             )
         ]);
     });
@@ -1340,6 +1342,12 @@ function initApp() {
                 m("div", {
                     class: "fb-category-list"
                 }, categoryRows()),
+                // Same pick-list the workbook dialog's Icon field
+                // offers: every icon name the app knows, by display
+                // name (John, Oct 2026)
+                m("datalist", {
+                    id: "fb-category-icon-list"
+                }, f.icons().map((icon) => m("option", f.iconLabel(icon)))),
                 m("div", {
                     class: "fb-category-actions"
                 }, [
@@ -1348,9 +1356,7 @@ function initApp() {
                         title: "Add a category",
                         onclick: addCategory
                     }, [
-                        m("i", {
-                            class: "material-icons-outlined fb-button-icon"
-                        }, "add"),
+                        f.icon("add", "fb-button-icon"),
                         m("span", {
                             class: "fb-button-label"
                         }, "Add Category")

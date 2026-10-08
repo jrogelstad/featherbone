@@ -461,10 +461,20 @@ f.catalog().register("viewModels", "ribbon", ribbon.viewModel);
 
 /** An icon glyph at the ribbon's own sizes. */
 function icon(name, size) {
-    return m("i", {
-        class: "material-icons-outlined fb-rb-icon fb-rb-icon-" + size,
+    return f.icon(name, "fb-rb-icon fb-rb-icon-" + size, {
         "aria-hidden": "true"
-    }, name);
+    });
+}
+
+/** The collapse chevron: points down when the ribbon is collapsed. */
+function collapseIcon(isCollapsed) {
+    let name = (
+        isCollapsed
+        ? "keyboard_arrow_down"
+        : "keyboard_arrow_up"
+    );
+
+    return f.icon(name);
 }
 
 /** Large icon-over-label button. */
@@ -836,9 +846,7 @@ ribbon.component = {
                     alertsWb.data.name()
                 ),
                 onclick: vm.goto.bind(alertsWb)
-            }, m("i", {
-                class: "material-icons-outlined"
-            }, alertsWb.data.icon() || "notifications"));
+            }, f.icon(alertsWb.data.icon() || "notifications"));
         }
 
         let showBody = !collapsed || vm.isPopupOpen();
@@ -936,13 +944,7 @@ ribbon.component = {
                         : "false"
                     ),
                     onclick: vm.toggleCollapsed
-                }, m("i", {
-                    class: "material-icons-outlined"
-                }, (
-                    collapsed
-                    ? "keyboard_arrow_down"
-                    : "keyboard_arrow_up"
-                )))
+                }, collapseIcon(collapsed))
             ]),
             (
                 showBody

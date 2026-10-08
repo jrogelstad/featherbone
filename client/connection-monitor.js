@@ -242,10 +242,9 @@ const connectionBanner = {
             class: "fb-conn-banner",
             role: "alert"
         }, [
-            m("i", {
-                class: "material-icons-outlined fb-conn-banner-icon",
+            f.icon("cloud_off", "fb-conn-banner-icon", {
                 "aria-hidden": "true"
-            }, "cloud_off"),
+            }),
             m("span", {
                 class: "fb-conn-banner-text"
             }, [

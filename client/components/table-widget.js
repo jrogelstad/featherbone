@@ -381,12 +381,7 @@ function createTableDataView(options, col) {
                                 });
                             }
                         }, [
-                            m("i", {
-                                class: (
-                                    "material-icons-outlined " +
-                                    "fb-relation-open-icon"
-                                )
-                            }, "open_in_new")
+                            f.icon("open_in_new", "fb-relation-open-icon")
                         ])
                     ];
                 }
@@ -422,6 +417,7 @@ function createTableDataView(options, col) {
         };
         if (!options.model.isTreeParent()) {
             iconStyle.color = "white";
+            iconStyle.visibility = "hidden";
         }
         icon = (
             options.model.collapsed()
@@ -430,12 +426,11 @@ function createTableDataView(options, col) {
         );
         cell = [
             m("td", tdOpts, [
-                m("i", {
-                    class: "material-icons",
+                f.icon(icon, "", {
                     key: id + "-indent",
                     onclick: options.model.toggleCollapse,
                     style: iconStyle
-                }, icon),
+                }),
                 m("span", {
                     key: id + "-content"
                 }, content)
@@ -547,12 +542,11 @@ function createTableHeader(options, col) {
             name = "keyboard_arrow_down";
         }
 
-        icon.push(m("i", {
-            class: "material-icons-outlined fb-column-sort-icon",
+        icon.push(f.icon(name, "fb-column-sort-icon", {
             style: {
                 fontSize: zoom
             }
-        }, name));
+        }));
 
         if (sort.length > 1) {
             icon.push(m("span", {
@@ -571,15 +565,14 @@ function createTableHeader(options, col) {
         if (typeof fval === "object") {
             fval = fval.naturalKey;
         }
-        icon.push(m("i", {
-            class: "material-icons-outlined fb-column-filter-icon",
+        icon.push(f.icon("filter_list", "fb-column-filter-icon", {
             title: operators[
                 (filter.criteria[fidx].operator || "=")
             ] + " \"" + fval + "\"",
             style: {
                 fontSize: vm.zoom() * 0.80 + "%"
             }
-        }, "filter_list"));
+        }));
     }
 
     hview = [
@@ -759,11 +752,10 @@ function createTableRow(options, pModel) {
             "\nProcess: " + lock.process
         );
         if (lock.process === "Editing") {
-            thContent = m("i", {
+            thContent = f.icon("lock_clock", "fb-table-icon", {
                 onclick: onClick,
-                title: thTitle,
-                class: "material-icons-outlined fb-table-icon"
-            }, "lock_clock");
+                title: thTitle
+            });
         } else {
             thContent = m("div", {
                 onclick: onClick,
@@ -773,43 +765,37 @@ function createTableRow(options, pModel) {
         }
     } else if (data.isDeleted()) {
         iconStyle.color = "red";
-        thContent = m("i", {
+        thContent = f.icon("block", "fb-table-icon", {
             onclick: onClick,
             title: "Deleted",
-            style: iconStyle,
-            class: "material-icons-outlined fb-table-icon"
-        }, "block");
+            style: iconStyle
+        });
     } else if (!pModel.isValid()) {
-        thContent = m("i", {
+        thContent = f.icon("report_problem", "fb-table-icon fb-warning", {
             onclick: onClick,
             title: pModel.lastError(),
-            class: "material-icons-outlined fb-table-icon fb-warning",
             style: iconStyle
-        }, "report_problem");
+        });
     } else if (currentMode !== "/Mode/Edit" && isSelected) {
-        thContent = m("i", {
+        thContent = f.icon("file_open", "fb-table-icon", {
             onclick: theVm.ondblclick.bind(null, pModel),
-            class: "material-icons-outlined fb-table-icon",
             style: iconStyle
-        }, "file_open");
+        });
     } else if (currentState === "/Delete") {
-        thContent = m("i", {
+        thContent = f.icon("delete", "fb-table-icon fb-error", {
             onclick: onClick,
-            class: "material-icons-outlined fb-table-icon fb-error",
             style: iconStyle
-        }, "delete");
+        });
     } else if (currentState === "/Ready/New") {
-        thContent = m("i", {
+        thContent = f.icon("add", "fb-table-icon", {
             onclick: onClick,
-            class: "material-icons fb-table-icon",
             style: iconStyle
-        }, "add");
+        });
     } else if (pModel.canUndo()) {
-        thContent = m("i", {
+        thContent = f.icon("edit", "fb-table-icon", {
             onclick: onClick,
-            class: "material-icons-outlined fb-table-icon",
             style: iconStyle
-        }, "edit");
+        });
     } else {
         cellOpts = {
             onclick: onClick,
@@ -1916,16 +1902,9 @@ tableWidget.viewModel = function (options) {
             };
             let icon = (
                 item.icon
-                ? [m("i", {
-                    id: "nav-actions-" + item.id + "-icon",
-                    class: (
-                        (
-                            item.outlined
-                            ? "material-icons-outlined "
-                            : "material-icons "
-                        ) + "fb-menu-list-icon"
-                    )
-                }, item.icon)]
+                ? [f.icon(item.icon, "fb-menu-list-icon", {
+                    id: "nav-actions-" + item.id + "-icon"
+                })]
                 : undefined
             );
 

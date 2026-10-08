@@ -254,7 +254,7 @@ accountMenu.viewModel = function () {
 
     vm.errorDialog(f.createViewModel("Dialog", {
         title: "Error",
-        icon: "times"
+        icon: "error"
     }));
 
     function validatePassword() {
