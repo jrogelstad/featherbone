@@ -7,6 +7,16 @@
 
 # Featherbone Improvement Plan
 
+> **2026-10-07 — Tier 1 is gated.** Item 1.1 turned out to be an architecture
+> problem, not a bug: see `adr-001-identity-and-tenancy.md`. The rework has its
+> own plan, `tenant-management-plan.md`, and absorbs or deletes 1.1, 1.4, 1.6,
+> 1.8 (role half), 0.1, 5.1–5.6, 6.1 and 6.2. Items below are annotated
+> **[→ tenant-management-plan]** where they moved.
+>
+> **Tier 2 and Tier 3 do not wait for that work.** They touch neither identity
+> nor the control plane, and they are live money and scaling defects. Start
+> there, alongside items 1.2, 1.3, 1.5 and 1.7, which also stand on their own.
+
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
 
 ## Tier 0: Regression suite (done)
@@ -24,7 +34,7 @@ A todo test asserts the correct behavior for a known defect and is tagged with i
 
 Defects the suite found that are not in the tiers below (each has a todo test; file:line in the test's todo text):
 
-- [ ] **0.1 `POST /data/user-account` always fails** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
+- [ ] **0.1 `POST /data/user-account` always fails** **[→ tenant-management-plan B.5]** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
 - [ ] **0.2 Server crash on a bad relation id:** a PATCH pointing a relation at a nonexistent id kills the server (`crud.js:2323`, unhandled promise). Skipped in the suite because it takes the shared server down; belongs with 6.1.
 - [ ] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
 - [ ] **0.4 Authorization gaps:** any signed-in user can list all user accounts, read `smtpPassword` and `TenantService.pgPassword` decrypted, create or overwrite settings, and a read-only user can overwrite a workbook and its permissions (`workbooks.js:430`). Update and delete denials return 500 while create denials return 401.
@@ -55,7 +65,7 @@ Scope: framework at `867c146` (your `refactor` branch), SupplyChain `9de2417` (2
 
 The top item is tenant role isolation: one tenant's admin can reset another tenant's user password today. The rest are credential exposure and destructive failure paths.
 
-- [ ] **1.1 Isolate tenant users from each other.** Users are cluster-wide Postgres roles, and creating a `UserAccount` whose role already exists runs `ALTER ROLE … PASSWORD` on it.
+- [ ] **1.1 Isolate tenant users from each other.** **[superseded → tenant-management-plan; partial fix at A.5]** Users are cluster-wide Postgres roles, and creating a `UserAccount` whose role already exists runs `ALTER ROLE … PASSWORD` on it.
     - Where: `scripts/services.js` `createRole`; `server/services/role.js` ~212–232; authorization via `pg_has_role()` in `tools.js`, `feathers.js`, `workbooks.js`.
     - Quick fix: refuse to create a user whose role exists but has no `user_account` row in this database.
     - Real fix: per-tenant role prefix, or app-level authentication and authorization, or one cluster per tenant. Decide before the refactor goes further; it shapes the auth model.
@@ -66,19 +76,19 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
 - [ ] **1.3 Stop logging request bodies on module routes.** `postify` logs the full payload, so `/admin-console/create-template-database` writes the Postgres superuser password to the log.
     - Where: `server.js` `postify` (~375–392).
     - Fix: log route name and user only, or redact known secret fields as `doPostUserAccount` already does. Rotate the superuser password if this was ever used.
-- [ ] **1.4 Remove drop-on-failure from `createDatabase`.** If `CREATE DATABASE` fails because the name exists, the catch fires an un-awaited `DROP DATABASE IF EXISTS`.
+- [ ] **1.4 Remove drop-on-failure from `createDatabase`.** **[→ tenant-management-plan D.2]** If `CREATE DATABASE` fails because the name exists, the catch fires an un-awaited `DROP DATABASE IF EXISTS`.
     - Where: `server/datasource.js` ~332–400; duplicate check in Admin Console `triggers-tenant.js` runs before name normalization.
     - Fix: only drop a database this call created; check `pg_database` after normalizing the name; guard `conn2` in `finally`.
 - [ ] **1.5 Close the Zip2Tax path traversal.** The file path comes from the client's `filename`, is read, then deleted.
     - Where: SupplyChain `sell/do-zip2tax-import.js:22,116`.
     - Fix: accept only an upload id or `path.basename`, resolve inside the upload folder, and verify it stays there.
-- [ ] **1.6 Fix the login connection leak.** Each failed sign-in strands a pooled connection and creates two new pools.
+- [ ] **1.6 Fix the login connection leak.** **[deleted by tenant-management-plan B.2 — no connection is opened as the user]** Each failed sign-in strands a pooled connection and creates two new pools.
     - Where: `server/database.js` `authenticate()` ~140–215.
     - Fix: `try/finally` release and end; reuse the service pool for the bookkeeping queries; use the tenant host, not `conf.pgHost`.
 - [ ] **1.7 Remove default secrets from the repo config.** `server/config.json` ships a `secret` and `pgCryptoKey`.
     - Fix: ship empty values and refuse to start until they are set. Document that `pgCryptoKey` cannot be changed on an existing database without re-encrypting (you just hit this).
     - Note (2026-10-06): `server/config.json` is now git-ignored and the repo ships `config.template.json`; the template still carries placeholder values and the server does not yet refuse to start with them.
-- [ ] **1.8 Take secrets out of SQL text.** The crypto key and role passwords are concatenated into statements, so they can show up in `pg_stat_activity` and server logs.
+- [ ] **1.8 Take secrets out of SQL text.** **[role-password half deleted by tenant-management-plan B.4; the `pgp_sym_decrypt` half stays here]** The crypto key and role passwords are concatenated into statements, so they can show up in `pg_stat_activity` and server logs.
     - Where: `crud.js` `doSelect` (~1810, `pgp_sym_decrypt(col, '<key>')`); `role.js` `ALTER ROLE … PASSWORD %L` and `CREATE ROLE … PASSWORD %L`.
     - Fix: pass the key as a parameter as `settings.js` does; for role passwords, send a pre-hashed SCRAM secret or set `log_statement = none` for that session.
 
@@ -162,7 +172,7 @@ At `demo` scale, planning is the dominant cost: 75–150 ms to plan a view query
     - Fix: a list view that expands only natural key and label fields; keep full expansion for single-record form loads; consider `LEFT JOIN LATERAL` over scalar subselects.
 - [ ] **4.3 Cache form and catalog metadata in Node.** `form_attr_column` was scanned 3,044 times in a few minutes of use.
     - Fix: load forms once per tenant and invalidate on the existing change subscription.
-- [ ] **4.4 Cut per-request overhead** (Phase 1).
+- [ ] **4.4 Cut per-request overhead** (Phase 1). **[session half overlaps tenant-management-plan E.3]**
     - Session store: `resave: false`, and write only when the session changes.
     - Cache the deserialized user briefly instead of querying on every request.
     - Save the raw body only on the webhook route; remove the duplicate `urlencoded`; add `compression`.
@@ -177,35 +187,35 @@ At `demo` scale, planning is the dominant cost: 75–150 ms to plan a view query
 
 At default settings, about 8 tenants on one Node server can exhaust Postgres's 100 connections, and failed provisioning leaves databases nobody can reprocess.
 
-- [ ] **5.1 Size and close tenant pools.** Each tenant gets a 10-connection pool (the `pgMaxConnections` setting is ignored), one held permanently for LISTEN; each sign-in opens 2 more pools; each SupplyChain `f.datasource.lock` takes 2 extra connections.
+- [ ] **5.1 Size and close tenant pools.** **[→ tenant-management-plan E.4]** Each tenant gets a 10-connection pool (the `pgMaxConnections` setting is ignored), one held permanently for LISTEN; each sign-in opens 2 more pools; each SupplyChain `f.datasource.lock` takes 2 extra connections.
     - Fix: honor `pgMaxConnections`, lower the per-tenant max, set `idleTimeoutMillis`, end pools for idle tenants, and run PgBouncer in front. Fix the SSL config the code comment flags.
-- [ ] **5.2 Fix the tenant registry leaks.**
+- [ ] **5.2 Fix the tenant registry leaks.** **[→ tenant-management-plan D.3]**
     - `deleteDatabase` calls `tenants.splice(idx, 0)`, which removes nothing (`server/datasource.js:438`).
     - `loadTenants()` only ever adds; deleted tenants keep their pool, listener and `pools[db]` entry.
     - `cleanupProcesses()` uses `tenants[0]` in its loop, so only the first tenant is cleaned after a restart (`datasource.js:524`).
     - Route re-registration appends duplicate Express handlers on every Route change.
-- [ ] **5.3 Make provisioning atomic and resumable.** `CREATE DATABASE`, writes to the new databases, and emails all run inside the admin transaction; a late failure leaves orphan databases and a notice that can't be reprocessed.
+- [ ] **5.3 Make provisioning atomic and resumable.** **[→ tenant-management-plan D.1]** `CREATE DATABASE`, writes to the new databases, and emails all run inside the admin transaction; a late failure leaves orphan databases and a notice that can't be reprocessed.
     - Fix: a provisioning state table (requested, db created, configured, emailed) with idempotent steps; create and drop databases in `onCommit`, not in AFTER triggers.
-- [ ] **5.4 Make template creation safe** (`createTemplateDatabase`).
+- [ ] **5.4 Make template creation safe** **[→ tenant-management-plan D.2]** (`createTemplateDatabase`).
     - Create the new template under a temporary name, then swap, instead of dropping first.
     - Use `ALTER DATABASE … IS_TEMPLATE` rather than updating `pg_database`.
     - Don't end the source tenant's pool mid-session; fix `port: conf.pgPort || 80`; guard unknown source databases.
-- [ ] **5.5 Fix WooCommerce processing** (`AdminConsole/do-process-woo-commerce.js`).
+- [ ] **5.5 Fix WooCommerce processing** **[→ tenant-management-plan D.4]** (`AdminConsole/do-process-woo-commerce.js`).
     - `if (!items.length > 1)` never fires, so multi-edition orders aren't rejected.
     - The upgrade/downgrade `PATCH Tenant` has no `id`.
     - Check the `<db>_demo` name for collisions.
     - Don't authorize edition changes on email plus name alone.
     - `triggers-tenant.js` compares the `modules` arrays with `!==`, so every tenant edit re-runs `doConfigureJobShop`.
-- [ ] **5.6 Decide whether edition limits must be enforced.** Job Shop editions only swap forms and workbook access; every feather and route is installed in every edition, so a Standard tenant can call Pro routes directly. Enforce server-side if editions are a paid boundary.
+- [ ] **5.6 Decide whether edition limits must be enforced.** **[→ tenant-management-plan D.5]** Job Shop editions only swap forms and workbook access; every feather and route is installed in every edition, so a Standard tenant can call Pro routes directly. Enforce server-side if editions are a paid boundary.
 
 ## Tier 6: Resilience and code health
 
 One stray rejected promise can take down every tenant on the server, so 6.1 is worth doing early despite its tier. The rest makes the refactor safer.
 
-- [ ] **6.1 Stop unhandled rejections from crashing the server.** There's no `unhandledRejection` handler, and on Node 15+ one floating rejection kills the process.
+- [ ] **6.1 Stop unhandled rejections from crashing the server.** **[→ tenant-management-plan E.5]** There's no `unhandledRejection` handler, and on Node 15+ one floating rejection kills the process.
     - Add a process-level handler that logs and alerts.
     - Fix the sources: `plan/do-transact-allocated.js:54` and `sell/do-sales-order-hold.js:66` (reject without `return`); un-awaited Alert requests in `ship-engine/do-import-ship-engine-carriers.js`; un-awaited `client.query` in `make/triggers-work-order.js:864`; the `onCommit` Alert without `catch` in `do-transact-allocated.js` ~166–182.
-- [ ] **6.2 Remove multi-tenant shortcuts in app code.**
+- [ ] **6.2 Remove multi-tenant shortcuts in app code.** **[→ tenant-management-plan E.5]**
     - `new f.PgClient({database: config.pgDatabase})` fallbacks query the system database, not the tenant's, and have no `finally` (`design/do-indented-bill-of-material.js`, `do-indented-where-used.js`).
     - `common/money-formats.js` sets global `f.formats` from the default tenant.
     - Per-process `pending` guards in ship and issue code: replace with database locks; the `splice(-1, 1)` path removes another request's id.
@@ -219,7 +229,7 @@ One stray rejected promise can take down every tenant on the server, so 6.1 is w
 
 Three findings were traced in code but not yet proven by running them; confirm them on a writable scratch copy of `demo`, not `demo` itself.
 
-- [ ] **Two-tenant role test** for 1.1: create a user in tenant B with a tenant A username, then try to sign in to A.
+- [ ] **Two-organization isolation test** for 1.1 **[→ tenant-management-plan F.1]**: create a user in organization B with an organization A username, then try to set A's password and sign in to A.
 - [ ] **Concurrent posting test** for 2.3: post the same PO receipt from two sessions at once and check inventory.
 - [ ] **Production-scale timings** for Tiers 3 and 4: `demo` is 26 MB with at most 400 rows per table, so index gains won't show until you load realistic volumes.
 - [ ] **Unreviewed code and data:** client-side Mithril code (`module.js`, `forms.json`) was only sampled, and the other local databases (`ddom`, `demo_dci`, `featherbone_llc`, `scheduling`) weren't reviewed.

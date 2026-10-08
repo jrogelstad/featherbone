@@ -71,6 +71,18 @@ dialog.viewModel = function (options) {
         vm.buttonCancel
     ]);
     /**
+        Extra class name(s) applied to the dialog element alongside
+        `fb-dialog`, for a variant a caller needs to style -- the
+        navigation categories dialog uses it to slide down from the
+        top of the viewport instead of sitting centered (John, Oct
+        2026). Inline `style()` can't do that on its own, since the
+        animation needs a keyframe rule.
+        @method class
+        @param {String} [name]
+        @return {String}
+    */
+    vm.class = f.prop(options.class || "");
+    /**
         @method icon
         @param {String} [icon]
         @return {String}
@@ -298,7 +310,7 @@ dialog.component = {
         let ids = vm.ids();
         let header;
         let icon = vm.icon();
-        let iconClass = "material-icons-outlined fb-dialog-icon";
+        let iconClass = "fb-dialog-icon";
 
         // Kick redraw when browser navigation via history loses track of dialog
         if (
@@ -338,14 +350,16 @@ dialog.component = {
             header = m("h3", {
                 id: ids.header,
                 class: "fb-header"
-            }, [m("i", {
-                class: iconClass
-            }, icon)], vm.title().toName());
+            }, [f.icon(icon, iconClass)], vm.title().toName());
         }
 
         return m("dialog", {
             id: ids.dialog,
-            class: "fb-dialog",
+            class: (
+                vm.class()
+                ? "fb-dialog " + vm.class()
+                : "fb-dialog"
+            ),
             style: f.copy(vm.style()),
             onupdate: function (vnode) {
                 let dlg = document.getElementById(vnode.dom.id);

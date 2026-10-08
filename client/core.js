@@ -26,6 +26,7 @@ import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
 import State from "./state.js";
 import icons from "./icons.js";
+import legacyIcons from "./icon-map.js";
 import webauthn from "./components/webauthn.js";
 
 const m = window.m;
@@ -689,12 +690,110 @@ let gantt = {
 
 formats.gantt = gantt;
 
+const iconSet = new Set(icons);
+const ICON_PATH = "/media/icons/iconpark/";
+
+/**
+    The IconPark icon to draw for `name`, or undefined if there isn't
+    one. `name` is an IconPark name ("truck") or a Material icon name
+    stored before the switch to IconPark ("local_shipping"); the latter
+    are translated through client/icon-map.js so existing workbooks,
+    forms and packages keep their icons. The map is consulted first
+    because a few Material names ("block", "share") are also the name of
+    a different IconPark icon -- those IconPark icons are left out of
+    the pick-list (client/icons.js) so a stored one is always Material.
+    @method iconParkName
+    @param {String} name
+    @return {String}
+*/
+function iconParkName(name) {
+    if (!name) {
+        return undefined;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(legacyIcons, name)) {
+        return legacyIcons[name];
+    }
+
+    return (
+        iconSet.has(name)
+        ? name
+        : undefined
+    );
+}
+
+/**
+    Icon vnode. An `<img>` of the IconPark SVG when there is one, else
+    the old Material font glyph (an unmapped legacy name, say), so an
+    icon name nobody has translated yet still shows something.
+    @method icon
+    @param {String} name Icon name
+    @param {String} [cls] Extra class name(s)
+    @param {Object} [attrs] Extra vnode attributes (title, style, ...)
+    @return {Object} vnode
+*/
+f.icon = function (name, cls, attrs) {
+    let ipName = iconParkName(name);
+    let opts = Object.assign({}, attrs);
+    let classes = "material-icons-outlined " + (cls || "");
+
+    if (ipName) {
+        opts.class = classes + " fb-ipicon";
+        opts.src = ICON_PATH + ipName + ".svg";
+        opts.alt = "";
+        opts.draggable = false;
+        return m("img", opts);
+    }
+
+    opts.class = classes;
+    return m("i", opts, name);
+};
+
+/**
+    Readable label for an icon name: "shopping-cart-one" or
+    "shopping_cart" -> "Shopping Cart One".
+    @method iconLabel
+    @param {String} name
+    @return {String}
+*/
+f.iconLabel = function (name) {
+    return String(name || "").replace(/[\-_]+/g, " ").replace(
+        (/\b[a-z]/g),
+        (c) => c.toUpperCase()
+    );
+};
+
+/**
+    Icon name for what was typed or picked in an icon field -- the
+    inverse of `f.iconLabel`. An old Material name that has no IconPark
+    spelling is kept as typed (underscored) rather than guessed at.
+    @method iconValue
+    @param {String} text
+    @return {String}
+*/
+f.iconValue = function (text) {
+    let spinal = String(text || "").trim().toLowerCase().replace(
+        (/[\s_]+/g),
+        "-"
+    );
+    let snake = spinal.replaceAll("-", "_");
+
+    if (iconSet.has(spinal)) {
+        return spinal;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(legacyIcons, snake)) {
+        return snake;
+    }
+
+    return spinal;
+};
+
 function iconNames() {
-    let result = f.copy(icons);
-    result = result.map(function (icon) {
+    let result = icons.map(function (icon) {
         return {
             value: icon,
-            label: icon.toName()
+            label: f.iconLabel(icon)
         };
     });
     result.unshift({
@@ -739,20 +838,19 @@ formats.icon.editor = function (options) {
         key: options.key,
         style: {display: "inline-block"}
     }, [
+        f.icon(prop(), "fb-icon-preview"),
         m("input", {
             class: "fb-input " + options.class || "",
             style: options.style,
             type: "text",
             list: options.id + "-list",
             id: options.id,
-            onchange: (e) => prop(
-                e.target.value.replaceAll(" ", "").toSnakeCase()
-            ),
+            onchange: (e) => prop(f.iconValue(e.target.value)),
             onfocus: options.onFocus,
             onblur: options.onBlur,
             value: (
                 prop() !== undefined
-                ? prop().toName()
+                ? f.iconLabel(prop())
                 : ""
             ),
             oncreate: options.onCreate,
@@ -773,10 +871,9 @@ formats.icon.tableData = function (obj) {
         : obj.prop()
     );
     if (val) {
-        return m("i", {
-            class: "material-icons fb-table-icon",
+        return f.icon(val, "fb-table-icon", {
             title: obj.title
-        }, val);
+        });
     }
 };
 
@@ -1485,7 +1582,7 @@ f.types.resourceLink.tableData = function (obj, decorator) {
 
     let icon = (
         ico
-        ? m("span", {class: "material-icons fb-table-icon"}, ico)
+        ? f.icon(ico, "fb-table-icon")
         : ""
     );
     if (decorator) {
@@ -1578,15 +1675,13 @@ f.types.boolean.editor = function (options) {
 };
 f.types.boolean.tableData = function (obj) {
     if (obj.value) {
-        return m("i", {
+        return f.icon("done", "", {
             style: {
                 fontSize: "16px",
-                verticalAlign: "text-bottom",
-                fontWeight: "bold"
+                verticalAlign: "text-bottom"
             },
-            onclick: obj.onclick,
-            class: "material-icons"
-        }, "done");
+            onclick: obj.onclick
+        });
     }
 };
 
@@ -1960,7 +2055,7 @@ function mapSnackbar(note) {
     let ret;
     let status;
     let icls = "close";
-    let iclass = "material-icons-outlined fb-dialog-icon";
+    let iclass = "fb-dialog-icon";
     let ititle = "Close notification";
     let close = function () {
         notes.splice(notes.indexOf(note), 1);
@@ -2003,27 +2098,24 @@ function mapSnackbar(note) {
                     value: note.percentComplete
                 }, note.percentComplete + "%")
             ]),
-            m("i", {
-                class: iclass,
+            f.icon(icls, iclass, {
                 title: ititle,
                 onclick: close
-            }, icls)
+            })
         ]);
         return ret;
     }
 
     return m("div", {class: "fb-snackbar-item"}, [
         m("div", {class: "fb-snackbar-message"}, [
-            m("i", {
-                style: {color: note.iconColor},
-                class: "material-icons-outlined fb-dialog-icon"
-            }, note.icon)
+            f.icon(note.icon, "fb-dialog-icon", {
+                style: {color: note.iconColor}
+            })
         ], note.message),
-        m("i", {
-            class: "material-icons-outlined fb-dialog-icon",
+        f.icon(icls, "fb-dialog-icon", {
             onclick: close,
             title: ititle
-        }, icls)
+        })
     ]);
 }
 

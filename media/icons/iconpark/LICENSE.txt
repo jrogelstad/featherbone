@@ -1,0 +1,6 @@
+IconPark icons -- Copyright (c) ByteDance Inc.
+Licensed under the Apache License 2.0: https://github.com/bytedance/IconPark/blob/master/LICENSE
+Generated from the @icon-park/svg package (https://www.npmjs.com/package/@icon-park/svg) in its
+"multi-color" theme (outline #333, fill #2F88FF, inner #FFF, accent #43CCF8). Each file adds a
+prefers-color-scheme: dark rule that lightens the outline. Used by client/core.js (f.icon).
+Files are named <icon>.svg (48x48 viewBox, scaled by CSS).
