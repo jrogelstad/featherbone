@@ -202,10 +202,7 @@ describe("data API record lifecycle", function () {
             );
         });
 
-        it("rejects a required natural key sent as null", {
-            todo: "defect: null natural key crashes the uniqueness check " +
-                    "(crud.js:48 transformObj reads null.id -> TypeError 500)"
-        }, async function () {
+        it("rejects a required natural key sent as null", async function () {
             expectError(
                 await admin.raw("POST", "/data/kind", {code: null}),
                 500,
@@ -213,10 +210,7 @@ describe("data API record lifecycle", function () {
             );
         });
 
-        it("rejects a required property that is omitted", {
-            todo: "defect: omitted required string is saved as \"\" " +
-                    "(crud.js doInsert only checks isRequired for null)"
-        }, async function () {
+        it("rejects a required property that is omitted", async function () {
             let resp = await admin.raw("POST", "/data/kind", {
                 description: "No code"
             });
@@ -390,11 +384,8 @@ describe("data API record lifecycle", function () {
             );
         });
 
-        it("answers a clear not-found error for an unknown id", {
-            todo: "defect: PATCH of a missing id fails in f.copy(undefined) " +
-                    "(datasource.js:1501) -> 500 '\"undefined\" is not " +
-                    "valid JSON'"
-        }, async function () {
+        it("answers a clear not-found error for an unknown id",
+                async function () {
             let resp = await admin.raw("PATCH", "/data/kind/nosuchid", [
                 {op: "replace", path: "/description", value: "x"}
             ]);
