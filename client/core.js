@@ -1582,7 +1582,11 @@ f.types.resourceLink.tableData = function (obj, decorator) {
 
     let icon = (
         ico
-        ? f.icon(ico, "fb-table-icon")
+        ? f.icon(ico, (
+            label
+            ? "fb-table-icon fb-link-icon"
+            : "fb-table-icon"
+        ))
         : ""
     );
     if (decorator) {

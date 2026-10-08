@@ -148,7 +148,7 @@ const legacyIcons = {
     "next_plan": "next",
     "note_add": "file-addition",
     "notifications": "remind",
-    "open_in_new": "jump",
+    "open_in_new": "efferent-four",
     "pause": "pause",
     "pause_circle": "pause-one",
     "payments": "bank-card",

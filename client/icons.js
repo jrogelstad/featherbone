@@ -175,6 +175,7 @@ const icons = [
     "edit",
     "edit-name",
     "edit-two",
+    "efferent-four",
     "electric-drill",
     "end-time-sort",
     "engineering-brand",
