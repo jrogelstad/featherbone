@@ -273,8 +273,14 @@ settings.saveSettings = async function (obj) {
             }
 
             if (
-                dbsettings[db].data[name] &&
-                dbsettings[db].data[name].etag !== row.etag
+                (
+                    dbsettings[db].data[name] &&
+                    dbsettings[db].data[name].etag !== row.etag
+                ) || (
+                    // The caller saved from a version that is out of date
+                    obj.data.etag !== undefined &&
+                    obj.data.etag !== row.etag
+                )
             ) {
                 msg = "Settings for \"" + name;
                 msg += "\" changed by another user. Save failed.";

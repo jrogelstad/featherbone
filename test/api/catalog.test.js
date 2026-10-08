@@ -419,11 +419,8 @@ describe("catalog endpoints", function () {
             );
         });
 
-        it("PUT with the current etag replaces the profile", {
-            todo: "defect: saveProfile compares obj.etag (profile.js:111) " +
-                    "but server.js doPutProfile only passes the body as " +
-                    "data, so any existing profile always 409s"
-        }, async function () {
+        it("PUT with the current etag replaces the profile",
+                async function () {
             let current = await user.get("/profile");
             let resp = await user.raw("PUT", "/profile", {
                 etag: current.etag,
@@ -444,7 +441,7 @@ describe("catalog endpoints", function () {
             assert.notEqual(resp.body, current.etag);
             assert.deepEqual(await user.get("/profile"), {
                 etag: resp.body,
-                data: {workbooks: {Buy: {sheet: 1}, Sell: {x: 2}}}
+                data: {workbooks: {Sell: {x: 2}}}
             });
         });
 
