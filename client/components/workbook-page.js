@@ -48,6 +48,15 @@ const editWorkbookConfig = {
         dataList: "modules",
         grid: 1
     }, {
+        // Which ribbon tab this workbook appears under. Blank leaves
+        // it in the ribbon's "Other" tab (John, Oct 2026) -- the
+        // categories themselves are maintained from Home > Workbooks
+        // > Categories.
+        attr: "category",
+        label: "Category",
+        dataList: "navigationCategories",
+        grid: 1
+    }, {
         attr: "authorizations",
         showLabel: false,
         height: "183px",

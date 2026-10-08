@@ -710,6 +710,131 @@ a.pure-button-selected {
   background: rgba(0, 0, 0, 0.35);
 }
 
+/* A dialog that drops down from the top edge of the viewport rather
+   than sitting centered -- the navigation categories maintenance
+   dialog (John, Oct 2026), which is about the menu bar right above
+   it, so it reads as pulling down out of it. A <dialog> centers
+   itself via `margin: auto` on both axes, so the top margin has to
+   be zeroed explicitly; `inset-block-start` alone wouldn't move it.
+   The rounded corners go flat at the top for the same reason. */
+.fb-dialog-slide-top {
+  top: 0;
+  margin-top: 0;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  animation: fb-slide-down 180ms ease-out;
+}
+
+/* Honors a reduced-motion preference by skipping the slide; the
+   dialog simply appears where it belongs. */
+@media (prefers-reduced-motion: reduce) {
+  .fb-dialog-slide-top {
+    animation: none;
+  }
+}
+
+@keyframes fb-slide-down {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* The navigation categories maintenance list inside that dialog (see
+   main.js). A grid rather than a table so every row's columns line up
+   without a fixed table layout, and so the Remove button stays put
+   whatever gets typed beside it. */
+.fb-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.fb-category-row {
+  display: grid;
+  /* Name, icon, the up/down pair, then Remove (or the in-use count
+     that stands in for it). */
+  grid-template-columns: 1fr 150px 72px auto;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Tab order is the list's own order, changed with these rather than
+   by typing a number (John, Oct 2026). */
+.fb-category-move {
+  display: flex;
+  gap: 2px;
+}
+
+.fb-category-move .pure-button {
+  padding: 0 4px;
+  min-width: 32px;
+}
+
+/* Column headings: same grid, so they sit over the right fields. */
+.fb-category-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fb-category-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.fb-category-empty {
+  padding: 12px 2px;
+  color: var(--fb-text-muted);
+  font-style: italic;
+}
+
+/* Explains why a Remove button is disabled without needing a hover:
+   the count of workbooks still filed under that category. */
+.fb-category-usage {
+  font-size: 11px;
+  color: var(--fb-text-muted);
+  white-space: nowrap;
+}
+
+/* The icon field shows the glyph it names right beside it, so a
+   mistyped icon name is obvious before saving. */
+.fb-category-icon-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fb-category-icon {
+  font-size: 20px;
+  width: 20px;
+  color: var(--fb-text-muted);
+  flex: none;
+}
+
+.fb-category-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fb-category-hint {
+  font-size: 12px;
+  color: var(--fb-text-muted);
+}
+
 .fb-dialog-button {
   margin-right: 8px;
 }
@@ -2072,6 +2197,25 @@ a.pure-button-selected {
     --fb-hue-admin-text: #44474b;
     --fb-hue-other: #5f6368;
     --fb-hue-other-text: #44474b;
+    /* Cycled across navigation category tabs whose name has no hue of
+       its own above -- categories are rows the user maintains now, so
+       most won't (John, Oct 2026). See .fb-rb-h-<n> further down. */
+    --fb-hue-c0: #1a73e8;
+    --fb-hue-c0-text: #1558b0;
+    --fb-hue-c1: #0e8a80;
+    --fb-hue-c1-text: #0a6660;
+    --fb-hue-c2: #b06a00;
+    --fb-hue-c2-text: #8a5400;
+    --fb-hue-c3: #6552d6;
+    --fb-hue-c3-text: #4a3cb5;
+    --fb-hue-c4: #c2185b;
+    --fb-hue-c4-text: #9c1052;
+    --fb-hue-c5: #1e8e3e;
+    --fb-hue-c5-text: #146c2e;
+    --fb-hue-c6: #0b7285;
+    --fb-hue-c6-text: #08596a;
+    --fb-hue-c7: #a33a00;
+    --fb-hue-c7-text: #7d2c00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -2095,6 +2239,22 @@ a.pure-button-selected {
         --fb-hue-admin-text: #b5bac0;
         --fb-hue-other: #9aa0a6;
         --fb-hue-other-text: #b5bac0;
+        --fb-hue-c0: #6ba8f5;
+        --fb-hue-c0-text: #8ab4f8;
+        --fb-hue-c1: #3fbfb3;
+        --fb-hue-c1-text: #5fd3c8;
+        --fb-hue-c2: #e0a04a;
+        --fb-hue-c2-text: #f0b969;
+        --fb-hue-c3: #9d8cf5;
+        --fb-hue-c3-text: #b4a7fa;
+        --fb-hue-c4: #f06292;
+        --fb-hue-c4-text: #f48fb1;
+        --fb-hue-c5: #5bc47d;
+        --fb-hue-c5-text: #7bd99a;
+        --fb-hue-c6: #4db6c9;
+        --fb-hue-c6-text: #76cddc;
+        --fb-hue-c7: #e38055;
+        --fb-hue-c7-text: #f0a183;
     }
 }
 
@@ -2155,8 +2315,84 @@ a.pure-button-selected {
     cursor: grab;
 }
 
-/* Per-tab hue. ribbon.js puts .fb-rb-t-<tab> on the ribbon for the tab being
-   shown and .fb-ribbon-tab-<tab> on each tab button. */
+/* Per-tab hue, in three cascade layers -- every selector here is a
+   single class, so the LAST matching rule wins and the order below is
+   load bearing:
+
+     1. this default, so a tab always has a hue and the tints derived
+        from it resolve, whatever it's called;
+     2. .fb-rb-h-<n>/.fb-ribbon-tab-h-<n>, a palette ribbon.js cycles
+        across tabs by position -- navigation categories are rows the
+        user maintains now, so most have no hue of their own;
+     3. the name-specific hues, which override the numbered fallback,
+        so a category named "Engineering" keeps the blue this app
+        shipped with (John, Oct 2026).
+
+   ribbon.js puts .fb-rb-t-<tab>/.fb-rb-h-<n> on the ribbon for the tab
+   being shown and .fb-ribbon-tab-<tab>/.fb-ribbon-tab-h-<n> on each tab
+   button. The derived tints are declared here too, on the same
+   elements, so each resolves against whichever --rb-hue won. */
+.fb-ribbon,
+.fb-ribbon-tab {
+    --rb-hue: var(--fb-hue-other);
+    --rb-hue-text: var(--fb-hue-other-text);
+    --rb-bg: color-mix(in srgb, var(--rb-hue) 2.5%, var(--fb-ribbon-bg));
+    --rb-band: color-mix(in srgb, var(--rb-hue) 4%, var(--fb-ribbon-label-bg));
+    --rb-line: color-mix(in srgb, var(--rb-hue) 26%, var(--fb-border));
+    --rb-divider: color-mix(in srgb, var(--rb-hue) 12%, var(--fb-border));
+    --rb-tint: color-mix(in srgb, var(--rb-hue) 11%, var(--fb-surface));
+    --rb-ctx-bg: color-mix(in srgb, var(--rb-hue) 6%, var(--fb-surface));
+    --rb-ctx-band: color-mix(in srgb, var(--rb-hue) 16%, var(--fb-surface));
+}
+
+.fb-rb-h-0,
+.fb-ribbon-tab-h-0 {
+    --rb-hue: var(--fb-hue-c0);
+    --rb-hue-text: var(--fb-hue-c0-text);
+}
+
+.fb-rb-h-1,
+.fb-ribbon-tab-h-1 {
+    --rb-hue: var(--fb-hue-c1);
+    --rb-hue-text: var(--fb-hue-c1-text);
+}
+
+.fb-rb-h-2,
+.fb-ribbon-tab-h-2 {
+    --rb-hue: var(--fb-hue-c2);
+    --rb-hue-text: var(--fb-hue-c2-text);
+}
+
+.fb-rb-h-3,
+.fb-ribbon-tab-h-3 {
+    --rb-hue: var(--fb-hue-c3);
+    --rb-hue-text: var(--fb-hue-c3-text);
+}
+
+.fb-rb-h-4,
+.fb-ribbon-tab-h-4 {
+    --rb-hue: var(--fb-hue-c4);
+    --rb-hue-text: var(--fb-hue-c4-text);
+}
+
+.fb-rb-h-5,
+.fb-ribbon-tab-h-5 {
+    --rb-hue: var(--fb-hue-c5);
+    --rb-hue-text: var(--fb-hue-c5-text);
+}
+
+.fb-rb-h-6,
+.fb-ribbon-tab-h-6 {
+    --rb-hue: var(--fb-hue-c6);
+    --rb-hue-text: var(--fb-hue-c6-text);
+}
+
+.fb-rb-h-7,
+.fb-ribbon-tab-h-7 {
+    --rb-hue: var(--fb-hue-c7);
+    --rb-hue-text: var(--fb-hue-c7-text);
+}
+
 .fb-rb-t-home,
 .fb-ribbon-tab-home {
     --rb-hue: var(--fb-hue-home);
@@ -2203,22 +2439,6 @@ a.pure-button-selected {
 .fb-ribbon-tab-other {
     --rb-hue: var(--fb-hue-other);
     --rb-hue-text: var(--fb-hue-other-text);
-}
-
-/* Tints derived from the hue above, declared on the same elements so each
-   resolves against its own --rb-hue. */
-.fb-rb-t-home, .fb-rb-t-engineering, .fb-rb-t-inventory, .fb-rb-t-planning,
-.fb-rb-t-production, .fb-rb-t-delivery, .fb-rb-t-admin, .fb-rb-t-other,
-.fb-ribbon-tab-home, .fb-ribbon-tab-engineering, .fb-ribbon-tab-inventory,
-.fb-ribbon-tab-planning, .fb-ribbon-tab-production, .fb-ribbon-tab-delivery,
-.fb-ribbon-tab-admin, .fb-ribbon-tab-other {
-    --rb-bg: color-mix(in srgb, var(--rb-hue) 2.5%, var(--fb-ribbon-bg));
-    --rb-band: color-mix(in srgb, var(--rb-hue) 4%, var(--fb-ribbon-label-bg));
-    --rb-line: color-mix(in srgb, var(--rb-hue) 26%, var(--fb-border));
-    --rb-divider: color-mix(in srgb, var(--rb-hue) 12%, var(--fb-border));
-    --rb-tint: color-mix(in srgb, var(--rb-hue) 11%, var(--fb-surface));
-    --rb-ctx-bg: color-mix(in srgb, var(--rb-hue) 6%, var(--fb-surface));
-    --rb-ctx-band: color-mix(in srgb, var(--rb-hue) 16%, var(--fb-surface));
 }
 
 .fb-ribbon {
