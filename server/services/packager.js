@@ -489,6 +489,36 @@
         }
     }
 
+    /*
+        The navigation categories this module's workbooks are filed
+        under, carried by NAME with their icon and presentation order
+        -- never by id, so importing into another database can't be
+        broken by ids differing there. The installer creates whichever
+        of these don't exist yet and then binds the workbooks that
+        follow to them by name, which is why this has to land in the
+        manifest BEFORE workbooks.json: the order of manifest.files is
+        the installer's only sequencing mechanism (John, Oct 2026).
+    */
+    function addNavigationCategories(manifest, zip, resp, folder) {
+        let content = tools.sanitize(resp.rows);
+        let name = "navigation-categories.json";
+        let filename = folder + name;
+
+        if (content.length) {
+            content = JSON.stringify(content, null, 4);
+
+            manifest.files.push({
+                type: "navigationCategory",
+                path: name
+            });
+
+            zip.addFile(
+                filename,
+                Buffer.alloc(content.length, content)
+            );
+        }
+    }
+
     function addWorkbooks(manifest, zip, resp, folder) {
         let content = tools.sanitize(resp.rows);
         let name = "workbooks.json";
@@ -710,14 +740,25 @@
                 );
                 requests.push(client.query(sql, params));
 
-                // Workbooks
+                // Workbooks. The navigation category comes out as its
+                // NAME rather than the id "$workbook".category
+                // actually stores, so a package carries no ids and
+                // can't be broken by ids differing between databases
+                // (John, Oct 2026).
                 sql = (
-                    "SELECT name, description, icon, launch_config, " +
-                    "default_config, local_config, module, sequence, " +
-                    "actions, label, is_template " +
-                    "FROM \"$workbook\" WHERE module = $1 " +
-                    "AND NOT is_deleted " +
-                    "ORDER BY name;"
+                    "SELECT workbook.name, workbook.description, " +
+                    "workbook.icon, workbook.launch_config, " +
+                    "workbook.default_config, workbook.local_config, " +
+                    "workbook.module, workbook.sequence, " +
+                    "workbook.actions, workbook.label, " +
+                    "workbook.is_template, " +
+                    "(SELECT category.name " +
+                    "  FROM \"$navigation_category\" AS category " +
+                    "  WHERE category.id = workbook.category) AS category " +
+                    "FROM \"$workbook\" AS workbook " +
+                    "WHERE workbook.module = $1 " +
+                    "AND NOT workbook.is_deleted " +
+                    "ORDER BY workbook.name;"
                 );
                 requests.push(client.query(sql, params));
 
@@ -738,6 +779,20 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Navigation categories this module's workbooks use
+                sql = (
+                    "SELECT DISTINCT category.name, category.icon, " +
+                    "category.sequence " +
+                    "FROM \"$navigation_category\" AS category, " +
+                    "  \"$workbook\" AS workbook " +
+                    "WHERE workbook.category = category.id " +
+                    "AND workbook.module = $1 " +
+                    "AND NOT workbook.is_deleted " +
+                    "AND NOT category.is_deleted " +
+                    "ORDER BY category.sequence, category.name;"
+                );
+                requests.push(client.query(sql, params));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = name;
                     let pathname = path.format({
@@ -754,6 +809,14 @@
                         addBatch("Route", manifest, zip, resp[4], folder);
                         addBatch("Style", manifest, zip, resp[5], folder);
                         addSettings(manifest, zip, resp[6], folder);
+                        // Before the workbooks, which reference these
+                        // by name -- see addNavigationCategories.
+                        addNavigationCategories(
+                            manifest,
+                            zip,
+                            resp[10],
+                            folder
+                        );
                         addWorkbooks(manifest, zip, resp[7], folder);
 
                         if (sub.module) {

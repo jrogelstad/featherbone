@@ -240,6 +240,18 @@ textarea {
     border-color: var(--fb-border);
 }
 
+/* Delete, styled like ddom's own Delete button (see that app's
+   app.css `button.fb-danger` / form-page.js) -- red text and border,
+   same neutral surface and hover tint as every other button (John,
+   Oct 2026). Placed before the disabled rule below so a disabled
+   Delete button still fades to the same muted gray as any other
+   disabled button, rather than staying red -- both selectors have
+   equal specificity, so source order is what makes disabled win. */
+.pure-button.fb-danger {
+    color: var(--fb-danger);
+    border-color: var(--fb-danger);
+}
+
 /* Pure's own `display: none` for a hidden button has the same
    specificity as .pure-button above and loses to it (this file loads
    after Pure), so it has to be restated. */
@@ -249,12 +261,19 @@ textarea {
 
 /* Pure's own disabled rule also drops the border (border: none) with a
    more specific selector, which made disabled buttons look like bare
-   text next to enabled ones; ddom keeps the border and just fades. */
+   text next to enabled ones; ddom keeps the border and just fades.
+   `color` has to be reset here too, not just background/border: a
+   disabled .pure-button-primary (the dialog Ok button, most often)
+   otherwise keeps that class's white text over this rule's light
+   background, leaving it unreadable except on :hover, where the
+   neutral hover tint happens to be just dark enough to show through
+   (John, Oct 2026). */
 .pure-button[disabled],
 .pure-button-disabled,
 .pure-button.fb-button-disabled {
     opacity: 0.5;
     cursor: default;
+    color: var(--fb-text);
     background-color: var(--fb-surface);
     background-image: none;
     border: 1px solid var(--fb-border);
@@ -468,6 +487,37 @@ a.pure-button-selected {
 
   /* Support for Firefox. */
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* IconPark icons (f.icon() in client/core.js): <img> SVGs that keep their
+   own colours, so none of the colour rules written for the Material glyphs
+   reach them. They are sized by font-size like the glyphs they replaced, so
+   every rule that sets a font-size on an icon class still sizes them; a rule
+   that sets an explicit width/height (e.g. .fb-rb-icon-lg) wins because it
+   comes later and is the same specificity. */
+.fb-ipicon {
+    width: 1em;
+    height: 1em;
+    flex: none;
+    object-fit: contain;
+    vertical-align: middle;
+    user-select: none;
+}
+
+/* A disabled control used to grey its glyph with `color`. */
+button:disabled .fb-ipicon,
+.pure-button-disabled .fb-ipicon,
+.pure-menu-disabled .fb-ipicon {
+    opacity: 0.4;
+    filter: grayscale(1);
+}
+
+/* Preview beside an icon field (formats.icon.editor) */
+.fb-icon-preview {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    font-size: 20px;
 }
 
 .tox-promotion {
@@ -689,6 +739,131 @@ a.pure-button-selected {
 
 .fb-dialog::backdrop {
   background: rgba(0, 0, 0, 0.35);
+}
+
+/* A dialog that drops down from the top edge of the viewport rather
+   than sitting centered -- the navigation categories maintenance
+   dialog (John, Oct 2026), which is about the menu bar right above
+   it, so it reads as pulling down out of it. A <dialog> centers
+   itself via `margin: auto` on both axes, so the top margin has to
+   be zeroed explicitly; `inset-block-start` alone wouldn't move it.
+   The rounded corners go flat at the top for the same reason. */
+.fb-dialog-slide-top {
+  top: 0;
+  margin-top: 0;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  animation: fb-slide-down 180ms ease-out;
+}
+
+/* Honors a reduced-motion preference by skipping the slide; the
+   dialog simply appears where it belongs. */
+@media (prefers-reduced-motion: reduce) {
+  .fb-dialog-slide-top {
+    animation: none;
+  }
+}
+
+@keyframes fb-slide-down {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* The navigation categories maintenance list inside that dialog (see
+   main.js). A grid rather than a table so every row's columns line up
+   without a fixed table layout, and so the Remove button stays put
+   whatever gets typed beside it. */
+.fb-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.fb-category-row {
+  display: grid;
+  /* Name, icon, the up/down pair, then Remove (or the in-use count
+     that stands in for it). */
+  grid-template-columns: 1fr 150px 72px auto;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Tab order is the list's own order, changed with these rather than
+   by typing a number (John, Oct 2026). */
+.fb-category-move {
+  display: flex;
+  gap: 2px;
+}
+
+.fb-category-move .pure-button {
+  padding: 0 4px;
+  min-width: 32px;
+}
+
+/* Column headings: same grid, so they sit over the right fields. */
+.fb-category-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fb-category-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.fb-category-empty {
+  padding: 12px 2px;
+  color: var(--fb-text-muted);
+  font-style: italic;
+}
+
+/* Explains why a Remove button is disabled without needing a hover:
+   the count of workbooks still filed under that category. */
+.fb-category-usage {
+  font-size: 11px;
+  color: var(--fb-text-muted);
+  white-space: nowrap;
+}
+
+/* The icon field shows the glyph it names right beside it, so a
+   mistyped icon name is obvious before saving. */
+.fb-category-icon-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fb-category-icon {
+  font-size: 20px;
+  width: 20px;
+  color: var(--fb-text-muted);
+  flex: none;
+}
+
+.fb-category-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fb-category-hint {
+  font-size: 12px;
+  color: var(--fb-text-muted);
 }
 
 .fb-dialog-button {
@@ -1069,14 +1244,6 @@ a.pure-button-selected {
   display: inline-block;
   position: relative;
   vertical-align: middle;
-}
-
-.fb-menu-setup {
-  float: none;
-}
-
-.fb-menu-list-setup {
-  right: 0;
 }
 
 .fb-context-menu {
@@ -1528,6 +1695,43 @@ a.pure-button-selected {
   font-size: 16px;
 }
 
+/* Connection banner (client/connection-monitor.js) -- same in-flow
+   placement as .fb-env-banner above, while the server is unreachable;
+   see that component's own comment for why in-flow rather than
+   overlapping. Ported from Documents/ddom's connection-monitor banner
+   (John, Oct 2026). */
+.fb-conn-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #ffffff;
+  background-color: var(--fb-danger);
+}
+
+.fb-conn-banner-icon {
+  font-size: 16px;
+}
+
+.fb-conn-banner-text {
+  flex: 1 1 auto;
+}
+
+.fb-conn-banner-retry {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fb-conn-banner-retry:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 /* Home page header bar -- the same toolbar, with the page title in it
    the way ddom puts its page heading in its toolbar. */
 .fb-toolbar-home {
@@ -1617,9 +1821,26 @@ a.pure-button-selected {
   min-width: var(--fb-control-height);
 }
 
-/* Toolbar layout -- ddom's: one flex row, even spacing, controls
-   centered. .fb-toolbar-fill pushes whatever follows it to the right
-   edge; .fb-toolbar-spacer adds a little extra space between groups. */
+/* Toolbar layout -- ddom's: one flex row, even spacing. The title and
+   record buttons (New/Edit/Save/Delete/Undo, wrapped in
+   .fb-toolbar-record-group) sit in normal flow on the left -- John
+   wants those left exactly where they are. The search box + list
+   buttons (Refresh/Sort/Filter/Aggregate), wrapped in
+   .fb-toolbar-center-group, are pulled out of flow and positioned by
+   positionToolbarCenter() in workbook-page.js instead of by CSS alone:
+   a plain `left: 50%` centers against the toolbar's full width with
+   no idea how wide the record buttons are, so on a narrow window it
+   slides left into them, while a flex/auto-margin center only knows
+   about the room left over to their right, which pushes it well past
+   true center on a wide window. Measuring both groups in JS and
+   clamping gets both right: centered when there's room, held at the
+   record buttons' right edge when there isn't (John, Oct 2026 --
+   first "I would expect those controls to just stop moving left if
+   they hit other controls", then "that moved significantly to the
+   right... get the starting point... close to center"). position:
+   relative here makes this toolbar the center group's positioning
+   context. .fb-toolbar-fill (used elsewhere, e.g. the footer zoom
+   bar) pushes whatever follows it to the far edge. */
 .fb-toolbar {
   box-sizing: border-box;
   display: flex;
@@ -1629,15 +1850,36 @@ a.pure-button-selected {
   padding: 8px 12px;
   background-color: var(--fb-surface);
   border-bottom: 1px solid var(--fb-border);
+  position: relative;
 }
 
 .fb-toolbar-fill {
   flex: 1 1 auto;
 }
 
-.fb-toolbar-spacer {
-  flex: none;
-  width: 8px;
+/* Wraps the record buttons only so positionToolbarCenter() has a
+   single element whose right edge marks the end of the toolbar's
+   left-side content (title + these buttons), without having to know
+   how many buttons there are. Same 6px spacing they had as direct
+   flex children of .fb-toolbar before being wrapped. */
+.fb-toolbar-record-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Search box + list buttons -- see the long comment on .fb-toolbar
+   above. Taken out of normal flow so its `left` can be computed in
+   JS; `top`/`transform` here only handle vertical centering, which
+   .fb-toolbar's `align-items: center` can no longer do for an
+   absolutely-positioned child. */
+.fb-toolbar-center-group {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Search box with its clear (x) button inside the right edge. */
@@ -1937,4 +2179,715 @@ a.pure-button-selected {
 @keyframes fadein {
   from {bottom: 0; opacity: 0;}
   to {bottom: 30px; opacity: 1;}
+}
+
+/* =========================================================================
+   Ribbon (horizontal menu; replaces the navigator sidebar)
+   -------------------------------------------------------------------------
+   Ported from Documents/ddom's app.css "Ribbon" section, which this app's
+   palette already follows, with three changes for Featherbone (Oct 2026):
+
+     - five category hues instead of ddom's three, because the tabs here are
+       categories of WORKBOOKS (see ribbon.js WORKBOOK_CATEGORIES) rather
+       than ddom's three fixed screens;
+     - an .fb-rb-fill spacer plus .fb-rb-group-actions, so the worksheet's
+       own New / Edit / Save / Delete / Undo and Sort / Filter / Aggregate
+       buttons sit in groups at the RIGHT END of the ribbon instead of in
+       the toolbar above the grid;
+     - the buttons are <button> elements, not ddom's <a href>, since
+       Featherbone navigates through m.route.set rather than hash links --
+       so each one resets the native button background and font.
+
+   The tokens below are declared in their own :root block appended here
+   rather than merged into the one at the top of this file, so the whole
+   ribbon (markup, behaviour, colour) stays reviewable as one unit while
+   it's experimental.
+   ========================================================================= */
+
+:root {
+    /* Ribbon body, and the band the group labels sit in. */
+    --fb-ribbon-bg: #fbfcfd;
+    --fb-ribbon-label-bg: #edf0f3;
+
+    /* One hue per category tab, plus the hard-coded Home tab. The -text
+       variant is the same colour where it paints text or an icon on a
+       neutral surface. */
+    --fb-hue-home: #1e8e3e;
+    --fb-hue-home-text: #146c2e;
+    --fb-hue-engineering: #1a73e8;
+    --fb-hue-engineering-text: #1558b0;
+    --fb-hue-inventory: #c2185b;
+    --fb-hue-inventory-text: #9c1052;
+    --fb-hue-planning: #6552d6;
+    --fb-hue-planning-text: #4a3cb5;
+    --fb-hue-production: #0e8a80;
+    --fb-hue-production-text: #0a6660;
+    --fb-hue-delivery: #b06a00;
+    --fb-hue-delivery-text: #8a5400;
+    --fb-hue-admin: #5f6368;
+    --fb-hue-admin-text: #44474b;
+    --fb-hue-other: #5f6368;
+    --fb-hue-other-text: #44474b;
+    /* Cycled across navigation category tabs whose name has no hue of
+       its own above -- categories are rows the user maintains now, so
+       most won't (John, Oct 2026). See .fb-rb-h-<n> further down. */
+    --fb-hue-c0: #1a73e8;
+    --fb-hue-c0-text: #1558b0;
+    --fb-hue-c1: #0e8a80;
+    --fb-hue-c1-text: #0a6660;
+    --fb-hue-c2: #b06a00;
+    --fb-hue-c2-text: #8a5400;
+    --fb-hue-c3: #6552d6;
+    --fb-hue-c3-text: #4a3cb5;
+    --fb-hue-c4: #c2185b;
+    --fb-hue-c4-text: #9c1052;
+    --fb-hue-c5: #1e8e3e;
+    --fb-hue-c5-text: #146c2e;
+    --fb-hue-c6: #0b7285;
+    --fb-hue-c6-text: #08596a;
+    --fb-hue-c7: #a33a00;
+    --fb-hue-c7-text: #7d2c00;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fb-ribbon-bg: #212429;
+        --fb-ribbon-label-bg: #292d33;
+
+        --fb-hue-home: #5bc47d;
+        --fb-hue-home-text: #7bd99a;
+        --fb-hue-engineering: #6ba8f5;
+        --fb-hue-engineering-text: #8ab4f8;
+        --fb-hue-inventory: #f06292;
+        --fb-hue-inventory-text: #f48fb1;
+        --fb-hue-planning: #9d8cf5;
+        --fb-hue-planning-text: #b4a7fa;
+        --fb-hue-production: #3fbfb3;
+        --fb-hue-production-text: #5fd3c8;
+        --fb-hue-delivery: #e0a04a;
+        --fb-hue-delivery-text: #f0b969;
+        --fb-hue-admin: #9aa0a6;
+        --fb-hue-admin-text: #b5bac0;
+        --fb-hue-other: #9aa0a6;
+        --fb-hue-other-text: #b5bac0;
+        --fb-hue-c0: #6ba8f5;
+        --fb-hue-c0-text: #8ab4f8;
+        --fb-hue-c1: #3fbfb3;
+        --fb-hue-c1-text: #5fd3c8;
+        --fb-hue-c2: #e0a04a;
+        --fb-hue-c2-text: #f0b969;
+        --fb-hue-c3: #9d8cf5;
+        --fb-hue-c3-text: #b4a7fa;
+        --fb-hue-c4: #f06292;
+        --fb-hue-c4-text: #f48fb1;
+        --fb-hue-c5: #5bc47d;
+        --fb-hue-c5-text: #7bd99a;
+        --fb-hue-c6: #4db6c9;
+        --fb-hue-c6-text: #76cddc;
+        --fb-hue-c7: #e38055;
+        --fb-hue-c7-text: #f0a183;
+    }
+}
+
+/* Column layout: the ribbon sits ABOVE the page instead of the sidebar
+   sitting beside it. Replaces .fb-navigator-menu-container's flex row on
+   pages that use the ribbon. */
+.fb-ribbon-layout {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* The page below the ribbon. Deliberately NOT a flex column: the grid
+   sizes itself in JS exactly as it did when this div was the sidebar's
+   flex-row sibling, so only the axis it fills changes. The class is
+   explicit rather than a `.fb-ribbon ~ div` sibling selector, which would
+   also catch the dialog divs the home page renders in here. */
+.fb-ribbon-layout > .fb-ribbon-page {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* The toolbar above the grid: worksheet title, Record/List buttons,
+   search box. min-width reserves a constant block for the title so the
+   buttons after it land at the same spot for every worksheet -- a
+   short name like "Buy" doesn't crowd them in, and the usual range of
+   names (right up to something like "Ship Engine") doesn't push them
+   around from one worksheet to the next; only a name longer than that
+   would still grow the gap (John, Oct 2026 -- "substantial fixed
+   space... the controls aren't moving around with each page"). */
+.fb-toolbar-title {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 4px;
+    min-width: 200px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fb-text);
+    white-space: nowrap;
+}
+
+/* The account menu, the two dropdown menus and the Help button, moved
+   into the ribbon's tab row. */
+.fb-ribbon-top > .fb-menu,
+.fb-ribbon-top > .pure-button,
+.fb-ribbon-top .fb-account-menu {
+    align-self: center;
+    margin-bottom: 4px;
+}
+
+/* A sheet button being dragged to reorder. */
+.fb-rb-draggable {
+    cursor: grab;
+}
+
+/* Per-tab hue, in three cascade layers -- every selector here is a
+   single class, so the LAST matching rule wins and the order below is
+   load bearing:
+
+     1. this default, so a tab always has a hue and the tints derived
+        from it resolve, whatever it's called;
+     2. .fb-rb-h-<n>/.fb-ribbon-tab-h-<n>, a palette ribbon.js cycles
+        across tabs by position -- navigation categories are rows the
+        user maintains now, so most have no hue of their own;
+     3. the name-specific hues, which override the numbered fallback,
+        so a category named "Engineering" keeps the blue this app
+        shipped with (John, Oct 2026).
+
+   ribbon.js puts .fb-rb-t-<tab>/.fb-rb-h-<n> on the ribbon for the tab
+   being shown and .fb-ribbon-tab-<tab>/.fb-ribbon-tab-h-<n> on each tab
+   button. The derived tints are declared here too, on the same
+   elements, so each resolves against whichever --rb-hue won. */
+.fb-ribbon,
+.fb-ribbon-tab {
+    --rb-hue: var(--fb-hue-other);
+    --rb-hue-text: var(--fb-hue-other-text);
+    --rb-bg: color-mix(in srgb, var(--rb-hue) 2.5%, var(--fb-ribbon-bg));
+    --rb-band: color-mix(in srgb, var(--rb-hue) 4%, var(--fb-ribbon-label-bg));
+    --rb-line: color-mix(in srgb, var(--rb-hue) 26%, var(--fb-border));
+    --rb-divider: color-mix(in srgb, var(--rb-hue) 12%, var(--fb-border));
+    --rb-tint: color-mix(in srgb, var(--rb-hue) 11%, var(--fb-surface));
+    --rb-ctx-bg: color-mix(in srgb, var(--rb-hue) 6%, var(--fb-surface));
+    --rb-ctx-band: color-mix(in srgb, var(--rb-hue) 16%, var(--fb-surface));
+}
+
+.fb-rb-h-0,
+.fb-ribbon-tab-h-0 {
+    --rb-hue: var(--fb-hue-c0);
+    --rb-hue-text: var(--fb-hue-c0-text);
+}
+
+.fb-rb-h-1,
+.fb-ribbon-tab-h-1 {
+    --rb-hue: var(--fb-hue-c1);
+    --rb-hue-text: var(--fb-hue-c1-text);
+}
+
+.fb-rb-h-2,
+.fb-ribbon-tab-h-2 {
+    --rb-hue: var(--fb-hue-c2);
+    --rb-hue-text: var(--fb-hue-c2-text);
+}
+
+.fb-rb-h-3,
+.fb-ribbon-tab-h-3 {
+    --rb-hue: var(--fb-hue-c3);
+    --rb-hue-text: var(--fb-hue-c3-text);
+}
+
+.fb-rb-h-4,
+.fb-ribbon-tab-h-4 {
+    --rb-hue: var(--fb-hue-c4);
+    --rb-hue-text: var(--fb-hue-c4-text);
+}
+
+.fb-rb-h-5,
+.fb-ribbon-tab-h-5 {
+    --rb-hue: var(--fb-hue-c5);
+    --rb-hue-text: var(--fb-hue-c5-text);
+}
+
+.fb-rb-h-6,
+.fb-ribbon-tab-h-6 {
+    --rb-hue: var(--fb-hue-c6);
+    --rb-hue-text: var(--fb-hue-c6-text);
+}
+
+.fb-rb-h-7,
+.fb-ribbon-tab-h-7 {
+    --rb-hue: var(--fb-hue-c7);
+    --rb-hue-text: var(--fb-hue-c7-text);
+}
+
+.fb-rb-t-home,
+.fb-ribbon-tab-home {
+    --rb-hue: var(--fb-hue-home);
+    --rb-hue-text: var(--fb-hue-home-text);
+}
+
+.fb-rb-t-engineering,
+.fb-ribbon-tab-engineering {
+    --rb-hue: var(--fb-hue-engineering);
+    --rb-hue-text: var(--fb-hue-engineering-text);
+}
+
+.fb-rb-t-inventory,
+.fb-ribbon-tab-inventory {
+    --rb-hue: var(--fb-hue-inventory);
+    --rb-hue-text: var(--fb-hue-inventory-text);
+}
+
+.fb-rb-t-planning,
+.fb-ribbon-tab-planning {
+    --rb-hue: var(--fb-hue-planning);
+    --rb-hue-text: var(--fb-hue-planning-text);
+}
+
+.fb-rb-t-production,
+.fb-ribbon-tab-production {
+    --rb-hue: var(--fb-hue-production);
+    --rb-hue-text: var(--fb-hue-production-text);
+}
+
+.fb-rb-t-delivery,
+.fb-ribbon-tab-delivery {
+    --rb-hue: var(--fb-hue-delivery);
+    --rb-hue-text: var(--fb-hue-delivery-text);
+}
+
+.fb-rb-t-admin,
+.fb-ribbon-tab-admin {
+    --rb-hue: var(--fb-hue-admin);
+    --rb-hue-text: var(--fb-hue-admin-text);
+}
+
+.fb-rb-t-other,
+.fb-ribbon-tab-other {
+    --rb-hue: var(--fb-hue-other);
+    --rb-hue-text: var(--fb-hue-other-text);
+}
+
+.fb-ribbon {
+    flex: none;
+    position: relative;
+    /* Above page content, below dialogs, so a collapsed ribbon's
+       dropped-down buttons overlay the grid. */
+    z-index: 20;
+    background: var(--fb-surface);
+}
+
+.fb-ribbon-top {
+    /* Above .fb-ribbon-body so the selected tab can overlap its top
+       border. */
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 8px 12px 0;
+    background: var(--fb-surface);
+}
+
+.fb-ribbon-title {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 20px 6px 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fb-text);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* The standard Featherbone quill mark (media/featherbone.png, the same
+   icon the browser tab favicon uses), swapped in for the old three-bar
+   histogram mark (John, Oct 2026). A mask, not an <img src>, so the
+   icon is painted in --fb-text and follows the same light/dark flip as
+   the "Featherbone" wordmark next to it, rather than staying the
+   source PNG's flat black (invisible against a dark ribbon). */
+.fb-ribbon-logo {
+    display: block;
+    width: 18px;
+    height: 18px;
+    background-color: var(--fb-text);
+    -webkit-mask-image: url("/media/featherbone.png");
+    mask-image: url("/media/featherbone.png");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.fb-ribbon-tabs {
+    display: flex;
+    gap: 2px;
+}
+
+.fb-ribbon-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 116px;
+    padding: 7px 18px 8px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--fb-text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+}
+
+.fb-ribbon-tab:hover {
+    color: var(--fb-text);
+    background: color-mix(in srgb, var(--rb-hue) 8%, var(--fb-surface));
+}
+
+.fb-ribbon-tab[aria-selected="true"] {
+    /* Overlap the body's 1px top border so tab and ribbon join. */
+    margin-bottom: -1px;
+    padding-bottom: 9px;
+    color: var(--rb-hue-text);
+    font-weight: 600;
+    background: var(--rb-bg);
+    border-color: var(--rb-line);
+    box-shadow: inset 0 3px 0 var(--rb-hue);
+}
+
+/* Collapsed and not dropped down: nothing for the tab to join, so it's just
+   coloured text. */
+.fb-ribbon-collapsed:not(.fb-ribbon-open) .fb-ribbon-tab[aria-selected="true"] {
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.fb-ribbon-collapsed:not(.fb-ribbon-open) .fb-ribbon-top {
+    border-bottom: 1px solid var(--fb-border);
+}
+
+/* Marks the tab owning the open screen while another tab is showing. */
+.fb-ribbon-tab-current::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    width: 5px;
+    height: 5px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--rb-hue);
+}
+
+.fb-ribbon-spacer {
+    flex: 1;
+}
+
+.fb-ribbon-collapse {
+    align-self: center;
+    margin-bottom: 4px;
+    padding: 2px;
+    color: var(--fb-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fb-ribbon-collapse:hover {
+    color: var(--fb-text);
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-ribbon-collapse .material-icons-outlined {
+    display: block;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+}
+
+/* The one workbook ("Alerts") that gets its own permanent icon
+   button at the ribbon's right end instead of being filed under a
+   category tab (John, Oct 2026 -- "Alerts aren't an admin thing, but
+   rather universal. That button should be omni-present on the right
+   side."). Same shape as .fb-ribbon-collapse right next to it, since
+   both are ribbon-level controls rather than tab/workbook buttons. */
+.fb-ribbon-alerts {
+    align-self: center;
+    margin-bottom: 4px;
+    margin-right: 4px;
+    padding: 2px;
+    color: var(--fb-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fb-ribbon-alerts:hover {
+    color: var(--fb-text);
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-ribbon-alerts .material-icons-outlined {
+    display: block;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+}
+
+/* Tinted with the CURRENT tab's own hue while the Alerts workbook
+   itself is open, the same way a selected tab or active ribbon
+   button picks up --rb-hue, so this doesn't lock in one fixed color
+   that could clash against every tab's palette. */
+.fb-ribbon-alerts-current {
+    color: var(--rb-hue, var(--fb-accent));
+}
+
+.fb-ribbon-alerts-current:hover {
+    color: var(--rb-hue, var(--fb-accent));
+}
+
+/* The ribbon proper. The label band along the bottom is painted by the body
+   itself, so it runs the full width even past the last group.
+   100 = 1 border + 74 buttons + 24 label band + 1 border. */
+.fb-ribbon-body {
+    display: flex;
+    align-items: stretch;
+    height: 100px;
+    background: linear-gradient(
+        to top,
+        var(--rb-band) 25px,
+        var(--rb-bg) 25px
+    );
+    border-top: 1px solid var(--rb-line);
+    border-bottom: 1px solid var(--fb-border);
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Collapsed mode: the body drops down over the page instead of pushing it. */
+.fb-ribbon-body-popup {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    box-shadow: var(--fb-shadow-md);
+}
+
+.fb-rb-group {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--rb-divider);
+}
+
+/* Pushes the action groups to the right end of the ribbon. */
+.fb-rb-fill {
+    flex: 1 1 auto;
+    min-width: 12px;
+}
+
+.fb-rb-buttons {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    align-items: flex-start;
+    padding: 4px 6px 0;
+}
+
+/* Compact buttons: three rows, filling column by column. */
+.fb-rb-buttons-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(3, 22px);
+    gap: 1px 4px;
+    align-content: start;
+}
+
+.fb-rb-group-label {
+    flex: none;
+    height: 24px;
+    padding: 0 12px;
+    font-size: 12px;
+    line-height: 24px;
+    text-align: center;
+    color: color-mix(
+        in srgb,
+        var(--rb-hue-text) 40%,
+        var(--fb-text-secondary)
+    );
+    white-space: nowrap;
+}
+
+/* Contextual group: only present while its screen is open. A stronger wash
+   of the hue, with a matching label band, so it reads as belonging to the
+   open worksheet. */
+.fb-rb-context {
+    background: var(--rb-ctx-bg);
+}
+
+.fb-rb-context .fb-rb-group-label {
+    font-weight: 600;
+    color: var(--rb-hue-text);
+    background: var(--rb-ctx-band);
+}
+
+/* Action groups hold Featherbone's ordinary 30px toolbar buttons rather
+   than ribbon buttons, so they wrap into two rows inside the ribbon's
+   button area instead of sitting on one long line. */
+.fb-rb-group-actions .fb-rb-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: center;
+    gap: 4px;
+    max-height: 70px;
+    padding: 5px 8px 0;
+}
+
+/* Inside the ribbon these are already spaced by `gap`. */
+.fb-rb-group-actions .pure-button + .pure-button {
+    margin-left: 0;
+}
+
+.fb-rb-btn,
+.fb-rb-btn-sm {
+    font: inherit;
+    color: var(--fb-text);
+    text-align: center;
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fb-rb-btn:hover,
+.fb-rb-btn-sm:hover {
+    background: var(--fb-surface);
+    border-color: var(--rb-line);
+}
+
+.fb-rb-btn.fb-rb-active,
+.fb-rb-btn-sm.fb-rb-active {
+    background: var(--rb-tint);
+    border-color: var(--rb-hue);
+    color: var(--rb-hue-text);
+}
+
+/* A worksheet action whose validator disabled it (Actions group, ribbon.js
+   via workbook-page.js's actionButtons()) -- same idea as a disabled
+   .pure-button elsewhere, just themed to sit on the ribbon. */
+.fb-rb-btn:disabled,
+.fb-rb-btn-sm:disabled {
+    color: var(--fb-text-muted);
+    cursor: default;
+}
+
+.fb-rb-btn:disabled:hover,
+.fb-rb-btn-sm:disabled:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+.fb-rb-btn:disabled .fb-rb-icon,
+.fb-rb-btn-sm:disabled .fb-rb-icon {
+    color: var(--fb-muted-icon);
+}
+
+/* Large button: icon over label. A FIXED width, because a content-sized
+   button centres its icon on a half pixel and reads as soft. */
+.fb-rb-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 80px;
+    height: 68px;
+    padding: 6px 4px 0;
+    font-size: 12px;
+    line-height: 15px;
+}
+
+/* Compact button: icon beside label. */
+.fb-rb-btn-sm {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 10px 0 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: left;
+}
+
+/* Add-sheet and delete-target: glyph only, no label to pad for. */
+.fb-rb-btn-sm-icon {
+    justify-content: center;
+    padding: 0 4px;
+}
+
+/* The drag-a-sheet-here-to-delete target, revealed only while a sheet is
+   being dragged (the sheet buttons keep the old tab strip's drag to
+   reorder and drag-off to delete). */
+.fb-rb-drop {
+    display: none;
+    color: var(--fb-danger);
+}
+
+.fb-rb-drop-show {
+    display: flex;
+}
+
+.fb-rb-icon {
+    flex: none;
+    display: block;
+}
+
+.fb-rb-icon-lg {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    line-height: 24px;
+    color: var(--rb-hue);
+}
+
+.fb-rb-icon-sm,
+.fb-rb-icon-tab {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 18px;
+    color: var(--rb-hue);
+}
+
+.fb-ribbon .material-icons-outlined {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+.fb-ribbon-tab:focus-visible,
+.fb-ribbon-collapse:focus-visible,
+.fb-ribbon-alerts:focus-visible,
+.fb-rb-btn:focus-visible,
+.fb-rb-btn-sm:focus-visible {
+    outline: 2px solid var(--rb-hue, var(--fb-accent));
+    outline-offset: -2px;
 }

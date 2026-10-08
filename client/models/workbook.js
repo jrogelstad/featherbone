@@ -128,6 +128,10 @@ const workbook = {
             description: "Template for creating new workbooks",
             type: "boolean",
             default: false
+        },
+        category: {
+            description: "Navigation category",
+            type: "string"
         }
     }
 };
@@ -387,6 +391,41 @@ function workbookModel(data) {
         name: "modules",
         type: "array",
         function: modules
+    });
+
+    /**
+        Datalist array of available navigation categories -- the
+        ribbon's category tabs, which the user maintains (see the
+        dialog in main.js). Values are category IDS, not names, so
+        renaming a category keeps the workbooks filed under it; the
+        blank entry is how a workbook is dropped back into the
+        ribbon's "Other" tab (John, Oct 2026).
+
+        __Type:__ `Array`
+
+        @property data.navigationCategories
+        @type {Property}
+    */
+    model.addCalculated({
+        name: "navigationCategories",
+        type: "array",
+        function: function () {
+            let cats = f.catalog().store().data().navigationCategories;
+
+            if (!cats) {
+                return [];
+            }
+
+            return [{
+                value: "",
+                label: ""
+            }].concat(cats().map(function (cat) {
+                return {
+                    value: cat.id,
+                    label: cat.name
+                };
+            }));
+        }
     });
 
     model.canUpdate = () => canUpdate;

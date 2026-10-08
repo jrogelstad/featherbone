@@ -79,6 +79,7 @@
         "feather",
         "module",
         "modules",
+        "navigation-categories",
         "profile",
         "settings",
         "settings-definition",
@@ -627,6 +628,33 @@
 
     function doGetWorkbooks(req, res) {
         doGetMethod("getWorkbooks", req, res);
+    }
+
+    function doGetNavigationCategories(req, res) {
+        doGetMethod("getNavigationCategories", req, res);
+    }
+
+    /*
+        The whole category list arrives in one request, so a round of
+        edits in the maintenance dialog -- adds, renames, removals --
+        applies together or not at all. See
+        services/navigation-categories.js.
+    */
+    function doSaveNavigationCategories(req, res) {
+        let payload = {
+            method: "PUT",
+            name: "saveNavigationCategories",
+            user: req.user.name,
+            data: {
+                specs: req.body
+            },
+            tenant: req.tenant
+        };
+
+        logger.verbose(payload);
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
     }
 
     function registerDataRoute(key) {
@@ -1213,6 +1241,9 @@
             break;
         case ".png":
             mimetype = {"Content-Type": "image/png"};
+            break;
+        case ".svg":
+            mimetype = {"Content-Type": "image/svg+xml"};
             break;
         case ".ttf":
             mimetype = {"Content-Type": "application/x-font-ttf"};
@@ -2037,7 +2068,8 @@
         "/node_modules/tinymce/skins/content/writer",
         "/node_modules/tinymce/themes/silver",
         "/node_modules/tinymce/themes/mobile",
-        "/media"
+        "/media",
+        "/media/icons/iconpark"
     ];
 
     const files = [
@@ -2344,6 +2376,14 @@
 
         passport.deserializeUser(deserializeUser);
 
+        // Liveness probe for connection-monitor.js's reconnect polling.
+        // Deliberately ahead of the session/passport middleware below:
+        // no auth, no tenant (":db") routing, just "is this process up"
+        // (John, Oct 2026).
+        app.get("/api/ping", function (ignore, res) {
+            res.json({ok: true});
+        });
+
         // Initialize passport
         app.use(express.static("public"));
         app.use(session({
@@ -2551,6 +2591,14 @@
         dbRouter.put("/:db/settings/:name", doSaveSettings);
         dbRouter.get("/:db/settings-definition", doGetSettingsDefinition);
         dbRouter.get("/:db/workbooks", doGetWorkbooks);
+        dbRouter.get(
+            "/:db/navigation-categories",
+            doGetNavigationCategories
+        );
+        dbRouter.put(
+            "/:db/navigation-categories",
+            doSaveNavigationCategories
+        );
         dbRouter.get(
             "/:db/workbook/is-authorized/:name",
             doWorkbookIsAuthorized
