@@ -1075,7 +1075,12 @@
                                         resolve(result);
                                     }
                                 );
+                                return;
                             }
+
+                            /* Unknown id: nobody is authorized. Answer
+                               instead of leaving the request open */
+                            resolve(false);
                         });
                     }
                 }
