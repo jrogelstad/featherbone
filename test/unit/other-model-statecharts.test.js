@@ -122,14 +122,20 @@ describe("specialized model statecharts", function () {
             assert.equal(current(s), "/Ready/Fetched/Dirty");
             assert.equal(s.canSave(), true);
             answers["PUT /settings/unitSettings"] = true;
+            // The server issues a new etag on every save
+            answers["GET /settings/unitSettings"] = {
+                etag: "et2",
+                data: {host: "mail", port: 26}
+            };
             let promise = s.save();
             assert.equal(current(s), "/Busy/Saving");
             assert.equal(await promise, s.data);
             assert.equal(current(s), "/Ready/Fetched/Clean");
+            assert.equal(s.etag(), "et2", "next save uses the new etag");
             assert.deepEqual(requests(), [["PUT", "/settings/unitSettings", {
                 etag: "et1",
                 data: {host: "mail", port: 26, objectType: ""}
-            }]]);
+            }], ["GET", "/settings/unitSettings", undefined]]);
         });
 
         it("a false PUT response rejects and parks the model in /Error",
