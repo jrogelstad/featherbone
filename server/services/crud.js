@@ -47,6 +47,7 @@
     }
     function transformObj(where) {
         if (
+            where.value !== null &&
             typeof where.value === "object" &&
             !Array.isArray(where.value)
         ) {
@@ -275,10 +276,14 @@
 
         // Regular comparison ("name"="Andy")
         } else if (
-            typeof where.value === "object" &&
-            !where.value.id
+            where.value === null ||
+            (typeof where.value === "object" && !where.value.id)
         ) {
-            part = preparePart() + " IS NULL";
+            part = preparePart() + (
+                op === "!="
+                ? " IS NOT NULL"
+                : " IS NULL"
+            );
         } else {
             part = preparePart() + op + "$" + p;
             params.push(where.value);
@@ -495,7 +500,10 @@
                                 p += 1;
                             }
                         } else {
-                            if (typeof where.value === "object") {
+                            if (
+                                where.value !== null &&
+                                typeof where.value === "object"
+                            ) {
                                 where.property = where.property + ".id";
                                 where.value = where.value.id;
                             }
@@ -1139,6 +1147,7 @@
                 let col;
                 let key;
                 let child;
+                let omitted;
                 let pkey;
                 let n;
                 let dkeys;
@@ -1356,6 +1365,7 @@
                     if (n < len) {
                         key = fkeys[n];
                         child = false;
+                        omitted = false;
                         prop = props[key];
                         n += 1;
                         value = undefined;
@@ -1479,6 +1489,18 @@
 
                             // Handle other types of defaults
                             if (value === undefined) {
+                                // A required string with no default of its
+                                // own must be supplied, not filled with ""
+                                omitted = (
+                                    prop.type === "string" &&
+                                    prop.default === undefined &&
+                                    !(
+                                        prop.format &&
+                                        formats[prop.format] &&
+                                        formats[prop.format].default !==
+                                                undefined
+                                    )
+                                );
                                 if (
                                     prop.default !== undefined
                                 ) {
@@ -1553,7 +1575,10 @@
 
                 afterHandleRelations = function () {
                     if (!child) {
-                        if (prop.isRequired && value === null) {
+                        if (
+                            prop.isRequired &&
+                            (value === null || omitted)
+                        ) {
                             msg = "\"" + key + "\" is required on ";
                             msg += feather.name + ".";
                             reject(new Error(msg));
