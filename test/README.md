@@ -35,7 +35,7 @@ Settings, all optional:
 | `FB_TEST_PGHOST`, `FB_TEST_PGPORT`, `FB_TEST_PGUSER`, `FB_TEST_PGPASSWORD` | from `server/config.json` | Postgres connection |
 | `FB_TEST_KEEP_DB=1` | | Keep the copy after the run for inspection |
 | `FB_UPDATE_GOLDEN=1` | | Rewrite golden files instead of comparing |
-| `FB_TEST_REPORTER` | `spec` | Any `node --test` reporter, e.g. `tap` |
+| `FB_TEST_REPORTER` | `test/harness/reporter.js` | Any `node --test` reporter, e.g. `spec` (stock output, lists every todo's stack trace at the end) or `tap` |
 
 Server output goes to `test/.artifacts/server-<db>.log`.
 
@@ -73,8 +73,10 @@ Three outcomes matter:
 - **pass**: current behavior, pinned.
 - **todo**: a known defect. The test asserts the *correct* behavior and is
   marked `{todo: "plan 2.3: ..."}` (an item in the improvement plan) or
-  `{todo: "defect: ..."}` (found while writing the tests). It shows as a
-  failing todo, which does not fail the run. When the defect is fixed the
+  `{todo: "defect: ..."}` (found while writing the tests). It is listed
+  with its `# defect:` note and counted in the `todo` total, but does not fail
+  the run or appear in a trailing failures block (the default reporter hides
+  those; real failures still print). When the defect is fixed the
   test starts passing; remove the `todo` option then.
 - **skip**: a test that cannot run safely in the shared server, with the
   reason in the option (for example one PATCH that crashes the server).

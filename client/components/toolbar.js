@@ -143,9 +143,7 @@ function measureNode(btn) {
     }, [
         (
             icon
-            ? m("i", {
-                class: "material-icons-outlined fb-button-icon"
-            }, icon)
+            ? f.icon(icon, "fb-button-icon")
             : undefined
         ),
         (
@@ -350,9 +348,7 @@ toolbar.component = {
                 m("button", {
                     type: "button",
                     class: "pure-button fb-icon-only"
-                }, [m("i", {
-                    class: "material-icons-outlined fb-button-icon"
-                }, "more_horiz")])
+                }, [f.icon("more_horiz", "fb-button-icon")])
             ])),
             m("div", {
                 class: "fb-toolbar-visible"
@@ -387,9 +383,7 @@ toolbar.component = {
                         onclick: function () {
                             vm.showMenu(!vm.showMenu());
                         }
-                    }, [m("i", {
-                        class: "material-icons-outlined fb-button-icon"
-                    }, "more_horiz")]),
+                    }, [f.icon("more_horiz", "fb-button-icon")]),
                     m("ul", {
                         class: (
                             "pure-menu-list fb-menu-list " +

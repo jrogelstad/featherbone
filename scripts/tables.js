@@ -209,6 +209,7 @@
         "sequence smallint," +
         "actions json," +
         "is_template boolean default false, " +
+        "category text, " +
         "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$workbook\" IS " +
@@ -228,7 +229,44 @@
         "COMMENT ON COLUMN \"$workbook\".actions IS " +
         "'Menu action definition';" +
         "COMMENT ON COLUMN \"$workbook\".is_template IS " +
-        "'Flag workbook as template only';"
+        "'Flag workbook as template only';" +
+        "COMMENT ON COLUMN \"$workbook\".category IS " +
+        "'Navigation category id';"
+    );
+
+    /*
+        Navigation categories -- the ribbon's category tabs (see
+        client/components/ribbon.js), moved out of that file's old
+        hard-coded WORKBOOK_CATEGORIES table and into the database so
+        they can be maintained by the user (John, Oct 2026).
+
+        `name` is the natural key: it is what package exports and
+        imports reference, so a package never carries a category id
+        and so can't be broken by ids differing between databases
+        (see services/packager.js and services/installer.js).
+        `$workbook.category` holds this record's ID, though, not its
+        name -- so renaming a category keeps every workbook pointed
+        at it.
+
+        Deliberately has no `module` column: categories belong to
+        whoever maintains the menu, not to the module that happened
+        to introduce one, so uninstalling a module leaves them be.
+    */
+    const createNavigationCategorySql = (
+        "CREATE TABLE \"$navigation_category\" (" +
+        "name text UNIQUE," +
+        "icon text," +
+        "sequence smallint," +
+        "CONSTRAINT navigation_category_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT navigation_category_id_key UNIQUE (id)) " +
+        "INHERITS (object);" +
+        "COMMENT ON TABLE \"$navigation_category\" IS " +
+        "'Internal table for storing navigation menu categories';" +
+        "COMMENT ON COLUMN \"$navigation_category\".name IS " +
+        "'Natural key, and the label shown on the menu tab';" +
+        "COMMENT ON COLUMN \"$navigation_category\".icon IS 'Menu icon';" +
+        "COMMENT ON COLUMN \"$navigation_category\".sequence IS " +
+        "'Presentation order';"
     );
 
     const createSessionSql = (
@@ -352,6 +390,7 @@
             let createFeather;
             let createAuth;
             let createWorkbook;
+            let createNavigationCategory;
             let createSession;
             let createSubscription;
             let createSettings;
@@ -537,7 +576,11 @@
                         "ADD COLUMN IF NOT EXISTS is_template " +
                         "boolean default false; " +
                         "COMMENT ON COLUMN \"$workbook\".is_template IS " +
-                        "'Flag workbook as template only';"
+                        "'Flag workbook as template only';" +
+                        "ALTER TABLE \"$workbook\" " +
+                        "ADD COLUMN IF NOT EXISTS category text; " +
+                        "COMMENT ON COLUMN \"$workbook\".category IS " +
+                        "'Navigation category id';"
                     );
                     if (err) {
                         reject(err);
@@ -545,10 +588,32 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createWorkbookSql, createProfiles);
+                        obj.client.query(
+                            createWorkbookSql,
+                            createNavigationCategory
+                        );
                     } else {
-                        obj.client.query(altSql, createProfiles);
+                        obj.client.query(altSql, createNavigationCategory);
                     }
+                });
+            };
+
+            // Create the navigation category table
+            createNavigationCategory = function () {
+                sqlCheck("$navigation_category", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!exists) {
+                        obj.client.query(
+                            createNavigationCategorySql,
+                            createProfiles
+                        );
+                        return;
+                    }
+                    createProfiles();
                 });
             };
 
