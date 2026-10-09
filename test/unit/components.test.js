@@ -180,6 +180,41 @@ describe("client components", function () {
             first.forEach((v, i) => assert.notStrictEqual(v, second[i]));
         });
 
+        it("never puts the same vnode in a toolbar twice", function () {
+            // Regression: the toolbar's hidden measuring row and the real
+            // button both drew the button's label, and when they shared
+            // vnodes Mithril threw "removeChild ... not a child of this
+            // node" on redraw (the form's Add and New buttons went dead).
+            let vm = vms.button({label: "Save and &New", icon: "add"});
+            let out = R.render(comps.toolbar, {
+                id: "tb-unique",
+                primaryButtons: [vm],
+                overflowButtons: [vms.button({label: "&Other"})]
+            });
+            let seen = new Set();
+            let dupes = [];
+
+            (function walk(node) {
+                if (Array.isArray(node)) {
+                    node.forEach(walk);
+                    return;
+                }
+                if (!node || typeof node !== "object") {
+                    return;
+                }
+                if (node.tag !== undefined) {
+                    if (seen.has(node)) {
+                        dupes.push(node.tag);
+                    }
+                    seen.add(node);
+                }
+                walk(node.children);
+            }(out.tree));
+
+            assert.ok(seen.size > 5, "toolbar rendered");
+            assert.deepEqual(dupes, [], "vnodes used more than once");
+        });
+
         it("follows a label change between hotkey positions", function () {
             let vm = vms.button({label: "Save and &New"});
             assert.deepEqual(vm.label().map((v) => R.text(v)),
