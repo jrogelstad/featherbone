@@ -55,7 +55,7 @@ function noteEncrypted(db, name, definition) {
 }
 
 /*
-    Blank encrypted properties unless the caller is a super user. The
+    Blank encrypted properties unless the caller may change this row. The
     values are decrypted on the way out of the database and the result is
     cached for every user of this database, so the copy is made here
     rather than in the cache.
@@ -69,9 +69,12 @@ async function withoutSecrets(obj, name, data) {
         return data;
     }
 
-    if (await tools.isSuperUser({
+    if (await settings.settingIsAuthorized({
         client: obj.client,
-        user: obj.user
+        data: {
+            name: name,
+            user: obj.user
+        }
     })) {
         return data;
     }
@@ -279,6 +282,55 @@ settings.getSettingsRow = function (obj) {
 };
 
 /**
+    Whether a user may change a settings row.
+
+    A tenant super user always may. Otherwise the row itself has to grant
+    `canUpdate` to one of the user's roles: settings rows inherit
+    `object`, so the grant is an ordinary "$auth" row, the same kind a
+    workbook carries. A row nobody has been granted is therefore super
+    users only, which is what every settings row starts as.
+
+    @method settingIsAuthorized
+    @for Services.Settings
+    @param {Object} payload
+    @param {Object} payload.data Payload data
+    @param {String} payload.data.name Settings name
+    @param {String} [payload.data.user] User. Defaults to current user
+    @param {Object} payload.client Database client
+    @return {Promise} Resolves to Boolean
+*/
+settings.settingIsAuthorized = async function (obj) {
+    let resp;
+    let client = obj.client;
+    let name = obj.data.name;
+    let user = obj.data.user || client.currentUser();
+    let sql = (
+        "SELECT auth.can_update " +
+        "FROM \"$settings\" AS settings, \"$auth\" AS auth, pg_authid " +
+        "WHERE settings.name = $1 " +
+        "  AND settings._pk = auth.object_pk " +
+        "  AND auth.role = pg_authid.rolname " +
+        "  AND pg_has_role($2, pg_authid.oid, 'member') " +
+        "  AND auth.can_update " +
+        "LIMIT 1;"
+    );
+
+    if (!name) {
+        throw new Error("Authorization check requires name");
+    }
+
+    if (await tools.isSuperUser({
+        client: client,
+        user: user
+    })) {
+        return true;
+    }
+
+    resp = await client.query(sql, [name, user]);
+    return resp.rows.length > 0;
+};
+
+/**
     Create or upate settings.
     @method saveSettings
     @for Services.Settings
@@ -330,19 +382,18 @@ settings.saveSettings = async function (obj) {
     }
 
     try {
-        if (!obj.isInternal) {
-            let isSuper = await tools.isSuperUser({
-                client: client,
+        if (!obj.isInternal && !await settings.settingIsAuthorized({
+            client: client,
+            data: {
+                name: name,
                 user: obj.user
-            });
-
-            if (!isSuper) {
-                msg = "Only super users may change settings.";
-                return Promise.reject({
-                    statusCode: 401,
-                    message: msg
-                });
             }
+        })) {
+            msg = "Not authorized to change settings \"" + name + "\"";
+            return Promise.reject({
+                statusCode: 401,
+                message: msg
+            });
         }
 
         resp = await client.query(sql, [name]);

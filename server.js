@@ -1797,6 +1797,26 @@
         );
     }
 
+    function doSettingIsAuthorized(req, res) {
+        let payload = {
+            method: "GET",
+            name: "settingIsAuthorized",
+            user: req.user.name,
+            data: {
+                name: req.params.name,
+                user: req.user.name
+            },
+            tenant: req.tenant
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     async function doChangeRolePassword(req, res) {
         let payload = {
             method: "POST",
@@ -2702,6 +2722,10 @@
         dbRouter.get("/:db/settings/:name", doGetSettingsRow);
         dbRouter.put("/:db/settings/:name", doSaveSettings);
         dbRouter.get("/:db/settings-definition", doGetSettingsDefinition);
+        dbRouter.get(
+            "/:db/settings/is-authorized/:name",
+            doSettingIsAuthorized
+        );
         dbRouter.get("/:db/workbooks", doGetWorkbooks);
         dbRouter.get(
             "/:db/navigation-categories",

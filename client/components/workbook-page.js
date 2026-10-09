@@ -71,6 +71,12 @@ const editWorkbookConfig = {
             label: "Update",
             attr: "canUpdate",
             width: 70
+        }, {
+            // Only means anything when the workbook opens settings from
+            // its ribbon (`launchConfig.settings`); ignored otherwise
+            label: "Settings",
+            attr: "canUpdateSettings",
+            width: 70
         }]
     }]
 };
