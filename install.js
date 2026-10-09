@@ -105,6 +105,15 @@
             );
         }
 
+        let placeholders = config.placeholderSecrets(conf);
+        if (placeholders.length) {
+            console.warn(
+                "WARNING: " + placeholders.join(", ") + " still hold the " +
+                "template placeholder text. Use real values for any new " +
+                "installation."
+            );
+        }
+
         let conn = (
             "postgres://" +
             (superuser || conf.pgUser) + ":" +
