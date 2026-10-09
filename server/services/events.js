@@ -25,6 +25,8 @@
     const {Tools} = require("./tools");
     const tools = new Tools();
     const f = require("../../common/core");
+    // First key of the advisory lock a live node holds on its listener
+    const NODE_LOCK_CLASS = 7001;
 
     /**
         Event management services.
@@ -66,8 +68,71 @@
                     callback(msg, tenant);
                 });
 
-                client.query("LISTEN " + channel).then(resolve).catch(reject);
+                // Hold a session-level advisory lock for as long as this
+                // connection lives. Other nodes use it to tell a live node
+                // from one that died without cleaning up.
+                client.query(
+                    "SELECT pg_advisory_lock($1, hashtext($2));",
+                    [NODE_LOCK_CLASS, channel]
+                ).then(function () {
+                    return client.query("LISTEN " + channel);
+                }).then(resolve).catch(reject);
             });
+        };
+
+        /**
+            Remove locks and subscriptions left behind by nodes that are no
+            longer running. A node is live if its listener connection still
+            holds the advisory lock taken in `listen`, so nothing belonging to
+            another running node is touched.
+
+            @method cleanupNodes
+            @param {Object} client Database client connection
+            @return {Promise} Resolves to array of node ids cleaned up.
+        */
+        events.cleanupNodes = async function (client) {
+            let found = await client.query(
+                "SELECT DISTINCT n FROM (" +
+                "  SELECT nodeid AS n FROM \"$subscription\"" +
+                "  UNION ALL" +
+                "  SELECT _nodeid(lock) FROM object WHERE lock IS NOT NULL" +
+                ") x WHERE n IS NOT NULL;"
+            );
+            let cleaned = [];
+            let n = 0;
+            let id;
+            let got;
+
+            while (n < found.rows.length) {
+                id = found.rows[n].n;
+                n += 1;
+                got = await client.query(
+                    "SELECT pg_try_advisory_lock($1, hashtext($2)) AS ok;",
+                    [NODE_LOCK_CLASS, id]
+                );
+
+                if (got.rows[0].ok) {
+                    try {
+                        await client.query(
+                            "UPDATE object SET lock = NULL " +
+                            "WHERE _nodeid(lock) = $1;",
+                            [id]
+                        );
+                        await client.query(
+                            "DELETE FROM \"$subscription\" WHERE nodeid = $1;",
+                            [id]
+                        );
+                        cleaned.push(id);
+                    } finally {
+                        await client.query(
+                            "SELECT pg_advisory_unlock($1, hashtext($2));",
+                            [NODE_LOCK_CLASS, id]
+                        );
+                    }
+                }
+            }
+
+            return cleaned;
         };
 
         /**
