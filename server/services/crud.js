@@ -2055,7 +2055,10 @@
                     msg = "Relation not found in \"";
                     msg += relation + "\" for \"" + key;
                     msg += "\" with id \"" + updRec[key].id + "\"";
-                    return Promise.reject(new Error(msg));
+                    // Throw, don't return a rejected promise: callers don't
+                    // use the return value, so it was left unhandled and
+                    // took the whole server down.
+                    throw new Error(msg);
                 }
 
                 tokens.push(tools.relationColumn(key, relation));
