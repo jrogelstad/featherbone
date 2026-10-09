@@ -258,6 +258,16 @@
                 );
                 process.exit(1);
             }
+            let placeholders = config.placeholderSecrets(resp);
+            if (placeholders.length) {
+                console.warn(
+                    "WARNING: " + placeholders.join(", ") + " in " +
+                    "server/config.json still hold the template " +
+                    "placeholder text. Anyone can forge sessions or decrypt " +
+                    "data. Change them (an existing database's pgCryptoKey " +
+                    "must be re-encrypted, not just edited)."
+                );
+            }
             let log = {
                 level: resp.logLevel,
                 zippedArchive: resp.logZippedArchive,

@@ -30,13 +30,20 @@ describe("config secrets", function () {
         );
     });
 
-    it("flags the old template placeholders", function () {
+    it("reports, but does not refuse, the old template placeholders",
+            function () {
+        let data = {
+            pgCryptoKey: "Your db encryption key here",
+            secret: "Your own session key here"
+        };
+        assert.deepEqual(config.missingSecrets(data), []);
         assert.deepEqual(
-            config.missingSecrets({
-                pgCryptoKey: "Your db encryption key here",
-                secret: "Your own session key here"
-            }).sort(),
+            config.placeholderSecrets(data).sort(),
             ["pgCryptoKey", "secret"]
+        );
+        assert.deepEqual(
+            config.placeholderSecrets({pgCryptoKey: "k1", secret: "s1"}),
+            []
         );
     });
 });

@@ -24,16 +24,17 @@
     exports.Config = function () {
         let config = {};
 
-        // Settings that must be set by the deployer. Empty values and the
-        // placeholder text once shipped in the template are refused.
+        // Settings that must be set by the deployer. Empty values are
+        // refused. The placeholder text once shipped in the template is only
+        // reported: databases already encrypted with it can't change the key
+        // without re-encrypting their data, so refusing would lock them out.
         const REQUIRED_SECRETS = {
             pgCryptoKey: ["Your db encryption key here"],
             secret: ["Your own session key here"]
         };
 
         /**
-            Names of required secret settings that are missing or still hold
-            a placeholder.
+            Names of required secret settings that are missing or blank.
 
             @method missingSecrets
             @param {Object} data Configuration as returned by `read`
@@ -41,12 +42,21 @@
         */
         config.missingSecrets = function (data) {
             return Object.keys(REQUIRED_SECRETS).filter(function (key) {
-                let value = data[key];
-                return (
-                    typeof value !== "string" ||
-                    !value.trim() ||
-                    REQUIRED_SECRETS[key].includes(value)
-                );
+                return typeof data[key] !== "string" || !data[key].trim();
+            });
+        };
+
+        /**
+            Names of required secret settings still holding the placeholder
+            text from the old template.
+
+            @method placeholderSecrets
+            @param {Object} data Configuration as returned by `read`
+            @return {Array}
+        */
+        config.placeholderSecrets = function (data) {
+            return Object.keys(REQUIRED_SECRETS).filter(function (key) {
+                return REQUIRED_SECRETS[key].includes(data[key]);
             });
         };
 
