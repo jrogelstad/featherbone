@@ -310,9 +310,8 @@
             await datasource.loadNpmModules();
             await datasource.loadServices();
             tenants = await datasource.loadTenants();
-            await datasource.unlock();
+            await datasource.cleanupNodes();
             await datasource.cleanupProcesses();
-            await datasource.unsubscribe();
 
             googleOauth2ClientId = resp.googleOauth2ClientId;
             googleOauth2ClientSecret = resp.googleOauth2ClientSecret;
