@@ -762,13 +762,15 @@ button:disabled .fb-ipicon,
   background: rgba(0, 0, 0, 0.35);
 }
 
-/* A dialog that drops down from the top edge of the viewport rather
-   than sitting centered -- the navigation categories maintenance
-   dialog (John, Oct 2026), which is about the menu bar right above
-   it, so it reads as pulling down out of it. A <dialog> centers
-   itself via `margin: auto` on both axes, so the top margin has to
-   be zeroed explicitly; `inset-block-start` alone wouldn't move it.
-   The rounded corners go flat at the top for the same reason. */
+/* Every dialog drops down from the top edge of the viewport rather
+   than sitting centered. It began as the navigation categories
+   dialog's own behaviour, which is about the menu bar right above it,
+   and John made it the general rule (Oct 2026) -- a dialog reads as
+   pulling out of the bar above it, and it stays put as its content
+   grows. A <dialog> centers itself via `margin: auto` on both axes,
+   so the top margin has to be zeroed explicitly; `inset-block-start`
+   alone wouldn't move it. The rounded corners go flat at the top for
+   the same reason. */
 .fb-dialog-slide-top {
   top: 0;
   margin-top: 0;
@@ -895,8 +897,12 @@ button:disabled .fb-ipicon,
   margin-right: 8px;
 }
 
+/* Dialogs size to their content, so on a short screen the browser's
+   own max-height on <dialog> is what stops them -- scroll the content
+   there rather than clipping it (John, Oct 2026). */
 .fb-dialog-content-frame {
   padding: 16px;
+  overflow: auto;
 }
 
 .fb-dialog-icon {

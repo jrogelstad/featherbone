@@ -59,7 +59,7 @@ const editWorkbookConfig = {
     }, {
         attr: "authorizations",
         showLabel: false,
-        height: "183px",
+        height: "240px",
         grid: 2,
         columns: [{
             attr: "role"
@@ -1164,8 +1164,7 @@ workbookPage.viewModel = function (options) {
         model: workbook,
         config: editWorkbookConfig
     }));
-    vm.editWorkbookDialog().style().width = "500px";
-    vm.editWorkbookDialog().style().height = "450px";
+    vm.editWorkbookDialog().style().width = "640px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(f.createViewModel("Button", {
