@@ -97,12 +97,10 @@ describe("security", function () {
         });
     });
 
-    // Plan 1.8: crud.js interpolates the pgcrypto key into SQL text for
-    // encrypted columns, where pg_stat_activity (and statement logging)
-    // can see it. TenantService.pgPassword is the core encrypted column.
-    it("keeps the crypto key out of SQL text (plan 1.8)", {
-        todo: "plan 1.8: crud.js puts the pgcrypto key in SQL text"
-    }, async function (t) {
+    // Plan 1.8: the pgcrypto key is a bound query parameter, so it never
+    // appears in SQL text (pg_stat_activity, statement logs).
+    // TenantService.pgPassword is the core encrypted column.
+    it("keeps the crypto key out of SQL text (plan 1.8)", async function (t) {
         let key = settings.config.pgCryptoKey;
         let svc = await admin.create("TenantService", {
             name: MARK,
