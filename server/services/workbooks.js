@@ -77,12 +77,15 @@
                         throw err;
                     }
 
-                    theClient.query(sql, [obj.data.name], function (err) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-
+                    // Remove the workbook's authorization rows first, or they
+                    // are left orphaned
+                    return theClient.query(
+                        "DELETE FROM \"$auth\" WHERE object_pk IN (" +
+                        "SELECT _pk FROM \"$workbook\" WHERE name=$1);",
+                        [obj.data.name]
+                    ).then(function () {
+                        return theClient.query(sql, [obj.data.name]);
+                    }).then(function () {
                         resolve(true);
                     });
                 }).catch(reject);
@@ -516,12 +519,16 @@
                                         JSON.stringify(launchConfig),
                                         JSON.stringify(defaultConfig),
                                         JSON.stringify(localConfig),
-                                        wb.module,
+                                        wb.module || row.module,
                                         icon,
                                         wb.sequence || row.sequence || 0,
                                         {}, // TODO
                                         wb.label || row.label,
-                                        wb.isTemplate || row.isTemplate,
+                                        (
+                                            wb.isTemplate === undefined
+                                            ? row.is_template
+                                            : wb.isTemplate
+                                        ),
                                         resolveCategory(wb, row)
                                     ];
                                     execute();
