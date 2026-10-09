@@ -247,6 +247,27 @@
         try {
             // Configure logger
             let resp = await config.read();
+            let missing = config.missingSecrets(resp);
+            if (missing.length) {
+                // Logger isn't configured yet
+                console.error(
+                    "Featherbone will not start: set " + missing.join(", ") +
+                    " in server/config.json (or the environment). " +
+                    "pgCryptoKey cannot be changed on an existing database " +
+                    "without re-encrypting its data."
+                );
+                process.exit(1);
+            }
+            let placeholders = config.placeholderSecrets(resp);
+            if (placeholders.length) {
+                console.warn(
+                    "WARNING: " + placeholders.join(", ") + " in " +
+                    "server/config.json still hold the template " +
+                    "placeholder text. Anyone can forge sessions or decrypt " +
+                    "data. Change them (an existing database's pgCryptoKey " +
+                    "must be re-encrypted, not just edited)."
+                );
+            }
             let log = {
                 level: resp.logLevel,
                 zippedArchive: resp.logZippedArchive,
@@ -372,6 +393,48 @@
         }
     }
 
+    // Copy of a request payload that is safe to write to the log: the tenant
+    // is reduced to its database name and anything that looks like a
+    // credential is masked.
+    const SECRET_KEY = /pass|pwd|secret|token|credential|api.?key/i;
+
+    function redact(value, key) {
+        if (key && SECRET_KEY.test(key) && typeof value !== "object") {
+            return "****";
+        }
+        if (Array.isArray(value)) {
+            return value.map(function (item) {
+                // JSON patch operation on a secret property
+                if (
+                    item && typeof item === "object" &&
+                    SECRET_KEY.test(String(item.path || ""))
+                ) {
+                    return Object.assign({}, item, {value: "****"});
+                }
+                return redact(item);
+            });
+        }
+        if (value && typeof value === "object") {
+            let ret = {};
+            Object.keys(value).forEach(function (k) {
+                ret[k] = redact(value[k], k);
+            });
+            return ret;
+        }
+        return value;
+    }
+
+    function loggable(payload) {
+        let log = Object.assign({}, payload);
+        if (log.tenant) {
+            log.tenant = log.tenant.pgDatabase;
+        }
+        if (log.data !== undefined) {
+            log.data = redact(log.data);
+        }
+        return log;
+    }
+
     function postify(req, res) {
         let payload = {
             method: "POST",
@@ -381,7 +444,7 @@
             tenant: req.tenant
         };
 
-        logger.info(payload);
+        logger.info(loggable(payload));
         datasource.request(
             payload
         ).then(
@@ -413,7 +476,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -436,7 +499,7 @@
         let log = f.copy(payload);
         log.data.password = "****";
 
-        logger.verbose(log);
+        logger.verbose(loggable(log));
         datasource.request(payload, req.user.isSuper).then(
             async function (data) {
                 let cntct = await datasource.request({
@@ -481,7 +544,7 @@
         });
         log.data.password = "****";
 
-        logger.verbose(log);
+        logger.verbose(loggable(log));
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -523,7 +586,7 @@
 
         payload.filter.offset = payload.filter.offset || 0;
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload, isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -542,7 +605,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload,
             req.user.isSuper
@@ -560,7 +623,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload,
             req.user.isSuper
@@ -579,7 +642,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -600,7 +663,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -650,7 +713,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -695,7 +758,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             function () {
                 registerDataRoutes();
@@ -719,7 +782,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             function (resp) {
                 registerDataRoutes();
@@ -762,7 +825,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload
         ).then(
@@ -782,7 +845,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload
         ).then(
@@ -1131,7 +1194,7 @@
             };
 
             logger.verbose("Send mail");
-            logger.verbose(payload);
+            logger.verbose(loggable(payload));
             resp = await datasource.request(payload, true);
             respond.bind(res)(resp);
         } catch (e) {
@@ -1341,25 +1404,35 @@
     async function doNotice(req, res, next) {
         let signature;
         let hash;
+        let valid = false;
 
         try {
-            if (webhookHeader) {
+            // Fail closed: with no secret or header configured there is
+            // nothing to verify against, so nothing is accepted.
+            if (webhookHeader && webhookSecret) {
                 signature = req.header(webhookHeader);
-                hash = crypto.createHmac(
-                    "SHA256",
-                    webhookSecret
-                ).update(
-                    req.rawBody
-                ).digest("base64");
-                logger.verbose(
-                    "WEBHOOK HEADERS->" +
-                    JSON.stringify(req.headers, null, 2)
+                if (signature && req.rawBody !== undefined) {
+                    hash = crypto.createHmac(
+                        "SHA256",
+                        webhookSecret
+                    ).update(
+                        req.rawBody
+                    ).digest("base64");
+                    let a = Buffer.from(hash);
+                    let b = Buffer.from(String(signature));
+                    valid = (
+                        a.length === b.length &&
+                        crypto.timingSafeEqual(a, b)
+                    );
+                }
+            } else {
+                logger.error(
+                    "Webhook rejected: webhookHeader and webhookSecret " +
+                    "must both be configured."
                 );
             }
 
-            logger.verbose("WEBHOOK SIGNATURE->" + signature);
-            logger.verbose("WEBHOOK HASH->" + hash);
-            if (hash === signature) {
+            if (valid) {
                 await datasource.request({
                     data: {payload: req.body},
                     method: "POST",
@@ -1545,7 +1618,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1560,7 +1633,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1575,7 +1648,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1599,7 +1672,7 @@
             payload.data.feather = req.query.feather;
         }
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1618,7 +1691,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1640,7 +1713,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1657,7 +1730,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1676,7 +1749,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(

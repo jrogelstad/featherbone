@@ -17,7 +17,7 @@
 > nor the control plane, and they are live money and scaling defects. Start
 > there, alongside items 1.2, 1.3, 1.5 and 1.7, which also stand on their own.
 
-**Progress 2026-10-08:** Tier 0 items 0.7, 0.8 and 0.9 are fixed on their own branches (PRs to open). Todo counts in the table below are as of the suite's creation and are not recalculated.
+**Progress 2026-10-08:** Tier 0 items 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3 and 1.7 are fixed on their own branches (PRs to open). Todo counts in the table below are as of the suite's creation and are not recalculated.
 
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
 
@@ -40,8 +40,10 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
 - [ ] **0.2 Server crash on a bad relation id:** a PATCH pointing a relation at a nonexistent id kills the server (`crud.js:2323`, unhandled promise). Skipped in the suite because it takes the shared server down; belongs with 6.1.
 - [ ] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
 - [ ] **0.4 Authorization gaps:** any signed-in user can list all user accounts, read `smtpPassword` and `TenantService.pgPassword` decrypted, create or overwrite settings, and a read-only user can overwrite a workbook and its permissions (`workbooks.js:430`). Update and delete denials return 500 while create denials return 401.
-- [ ] **0.5 Currency conversion inverts the rate** (`currency.js:331`, 10 becomes 40 instead of 2.5); same-currency conversion returns a string; the first `/currency/base` after start returns 500.
-- [ ] **0.6 `PUT /profile` always 409** (`profile.js:111`); stale settings etags are accepted (`settings.js:228`); workbook update without module/isTemplate clears them; deleting a workbook leaves its permission rows.
+- [x] **0.5 Currency conversion inverts the rate** (`currency.js:331`, 10 becomes 40 instead of 2.5); same-currency conversion returns a string; the first `/currency/base` after start returns 500.
+    - *Done: `fix/0.5-currency-conversion`, 2026-10-08. Conversion divides only when the from-currency is the base currency, otherwise multiplies; same-currency returns the amount; base-currency cache listener fixed (`events.js` tenant copy, receiver filter).*
+- [x] **0.6 `PUT /profile` always 409** (`profile.js:111`); stale settings etags are accepted (`settings.js:228`); workbook update without module/isTemplate clears them; deleting a workbook leaves its permission rows.
+    - *Done: `fix/0.6-profile-settings-workbooks`, 2026-10-08. Profile PUT accepts the etag envelope; stale settings etags rejected (client refreshes etag after PUT); workbook update keeps module/isTemplate and deleteWorkbook removes `$auth` rows. Settings and workbooks API suites could not run in the cloud; check locally.*
 - [x] **0.7 Null handling:** null natural key or null filter value gives a 500 TypeError (`crud.js:48`); PATCH of a missing id gives 500 `"undefined" is not valid JSON` (`datasource.js:1501`); required strings are saved as `""`; `/do/is-authorized?id=<unknown>` never answers and holds a pooled connection (`feathers.js:1048`).
     - Fixed on `fix/0.7-null-handling` (2026-10-08): null filter values become IS NULL, PATCH of an unknown id answers not-found, an omitted required string is rejected, `/do/is-authorized` answers for an unknown id. Not covered: `{}` as a relation filter (todo test remains).
 - [x] **0.8 Client model statecharts:** `model.save()` never settles when invalid or when called in Clean; a failed lock strands the model in Locking; a failed delete leaves it frozen; settings and workbook `doPut` have no catch (`.catch(model.error)` is undefined); `clear()` on a new record with child arrays overflows the stack; `list.subscribe(false)` and `list.inFilter` (`search()` at position 0) misbehave; `button.isPrimary()` always false and clears the flag when read.
@@ -75,10 +77,12 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
     - Quick fix: refuse to create a user whose role exists but has no `user_account` row in this database.
     - Real fix: per-tenant role prefix, or app-level authentication and authorization, or one cluster per tenant. Decide before the refactor goes further; it shapes the auth model.
     - Done when: a two-tenant test shows tenant B cannot change or use tenant A's users or roles.
-- [ ] **1.2 Make the webhook fail closed.** With `webhookHeader` empty (the default), `hash` and `signature` are both `undefined` and the check passes.
+- [x] **1.2 Make the webhook fail closed.** With `webhookHeader` empty (the default), `hash` and `signature` are both `undefined` and the check passes.
+    - *Done: `fix/1.2-webhook-fail-closed`, 2026-10-08. Rejects unless `webhookHeader` and `webhookSecret` are both set and the signature matches (`timingSafeEqual`); headers/hash no longer logged. The two todo tests are normal tests; positive-path (valid signature) is not covered by a test.*
     - Where: `server.js` `doNotice` (~1311).
     - Fix: reject when no secret is configured; compare with `crypto.timingSafeEqual`; stop logging all headers at verbose.
-- [ ] **1.3 Stop logging request bodies on module routes.** `postify` logs the full payload, so `/admin-console/create-template-database` writes the Postgres superuser password to the log.
+- [x] **1.3 Stop logging request bodies on module routes.** `postify` logs the full payload, so `/admin-console/create-template-database` writes the Postgres superuser password to the log.
+    - *Done: `fix/1.3-no-body-logging`, 2026-10-08. All request-payload logs in `server.js` go through `loggable()` (tenant → db name, credential-like keys masked). Rotate the superuser password if the template-database route was ever used.*
     - Where: `server.js` `postify` (~375–392).
     - Fix: log route name and user only, or redact known secret fields as `doPostUserAccount` already does. Rotate the superuser password if this was ever used.
 - [ ] **1.4 Remove drop-on-failure from `createDatabase`.** **[→ tenant-management-plan D.2]** If `CREATE DATABASE` fails because the name exists, the catch fires an un-awaited `DROP DATABASE IF EXISTS`.
@@ -90,7 +94,8 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
 - [ ] **1.6 Fix the login connection leak.** **[deleted by tenant-management-plan B.2 — no connection is opened as the user]** Each failed sign-in strands a pooled connection and creates two new pools.
     - Where: `server/database.js` `authenticate()` ~140–215.
     - Fix: `try/finally` release and end; reuse the service pool for the bookkeeping queries; use the tenant host, not `conf.pgHost`.
-- [ ] **1.7 Remove default secrets from the repo config.** `server/config.json` ships a `secret` and `pgCryptoKey`.
+- [x] **1.7 Remove default secrets from the repo config.** `server/config.json` ships a `secret` and `pgCryptoKey`.
+    - *Done: `fix/1.7-default-secrets`, 2026-10-08. Template ships empty `secret`/`pgCryptoKey`; `server.js` and `install.js` refuse to start when empty or the old placeholder. Unit test `test/unit/config.test.js`.*
     - Fix: ship empty values and refuse to start until they are set. Document that `pgCryptoKey` cannot be changed on an existing database without re-encrypting (you just hit this).
     - Note (2026-10-06): `server/config.json` is now git-ignored and the repo ships `config.template.json`; the template still carries placeholder values and the server does not yet refuse to start with them.
 - [ ] **1.8 Take secrets out of SQL text.** **[role-password half deleted by tenant-management-plan B.4; the `pgp_sym_decrypt` half stays here]** The crypto key and role passwords are concatenated into statements, so they can show up in `pg_stat_activity` and server logs.

@@ -50,7 +50,7 @@ const COMPONENT_FILES = [
     "form-widget", "money-relation", "search-input", "search-page",
     "sort-dialog", "settings-page", "table-dialog", "table-widget",
     "url-widget", "gantt", "sign-in-page", "form-page", "workbook-page",
-    "account-menu", "navigator-menu", "send-mail-page"
+    "account-menu", "navigator-menu", "send-mail-page", "ribbon"
 ];
 
 // Object feather as the server's /settings/catalog returns it
