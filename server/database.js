@@ -23,6 +23,7 @@
 (function (exports) {
     "use strict";
 
+    const crypto = require("crypto");
     const fs = require("fs");
     const {Pool} = require("pg");
     const {Config} = require("./config");
@@ -114,7 +115,14 @@
 
         function setNodeId(resp) {
             return new Promise(function (resolve) {
-                that.nodeId = resp.nodeId.toSnakeCase();
+                // Configured id names the deployment; the suffix makes each
+                // process distinct so two nodes started from one config file
+                // never share locks, subscriptions or a LISTEN channel.
+                that.nodeBase = resp.nodeId.toSnakeCase();
+                that.nodeId = (
+                    that.nodeBase + "_" + process.pid + "_" +
+                    crypto.randomBytes(3).toString("hex")
+                );
                 resolve(resp);
             });
         }
