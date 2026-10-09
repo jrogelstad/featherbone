@@ -51,9 +51,15 @@
     */
     let target;
     let targetDb;
+    // Which banner the database shows: dev, test or prod. Recorded in
+    // the database rather than on each server (John, Oct 2026).
+    let mode;
 
     argv.forEach(function (arg) {
         switch (arg) {
+        case "--mode":
+            mode = argv[argv.indexOf("--mode") + 1];
+            break;
         case "--control-plane":
             target = "controlPlane";
             break;
@@ -128,6 +134,14 @@
         conf = confresp;
 
         target = target || config.serverRole(conf);
+        mode = mode || conf.mode || "prod";
+
+        if (!config.modes().includes(mode)) {
+            throw new Error(
+                "Mode must be one of " + config.modes().join(", ") +
+                ", not \"" + mode + "\""
+            );
+        }
 
         if (!config.roles().includes(target)) {
             throw new Error(
@@ -151,7 +165,8 @@
         }
 
         console.log(
-            "Installing " + target + " database \"" + targetDb + "\""
+            "Installing " + target + " database \"" + targetDb +
+            "\" in " + mode + " mode"
         );
 
         let missing = config.missingSecrets(conf);
@@ -289,7 +304,7 @@
             client,
             dir,
             user,
-            {isSuper: true, target}
+            {isSuper: true, target, mode}
         );
     }
 

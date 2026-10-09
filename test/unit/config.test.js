@@ -125,3 +125,11 @@ describe("config control plane", function () {
         );
     });
 });
+
+describe("config modes", function () {
+    const config = new Config();
+
+    it("knows the modes a database may be in", function () {
+        assert.deepEqual(config.modes().sort(), ["dev", "prod", "test"]);
+    });
+});
