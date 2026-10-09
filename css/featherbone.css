@@ -502,6 +502,27 @@ a.pure-button-selected {
     object-fit: contain;
     vertical-align: middle;
     user-select: none;
+    /* The set is drawn in blue and <img> ignores `color`, so a tint is a
+       filter. --fb-icon-filter comes from a Style colour on the cell or row
+       (table-widget.js, via f.iconFilter); --fb-icon-tone is the default
+       for the semantic classes below. */
+    filter: var(--fb-icon-filter, var(--fb-icon-tone, none));
+}
+
+/* Default tones so error / warning / success read as such (the filters
+   rotate the set's blue, roughly hue 213, to red / orange / green). */
+.fb-ip-error,
+.fb-ipicon.fb-error {
+    --fb-icon-tone: hue-rotate(147deg) saturate(1.25);
+}
+
+.fb-ip-warning,
+.fb-ipicon.fb-warning {
+    --fb-icon-tone: hue-rotate(186deg) saturate(2) brightness(1.25);
+}
+
+.fb-ip-success {
+    --fb-icon-tone: hue-rotate(290deg) saturate(1.1);
 }
 
 /* A disabled control used to grey its glyph with `color`. */
