@@ -347,7 +347,17 @@
         "inherits": "Document",
         "isFetchOnStartup": true,
         "description": "User authorization role",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": false,
+                                "canRead": true,
+                                "canUpdate": false,
+                                "canDelete": false
+                        }
+                }
+        ],
         "properties": {
             "name": {
                 "description": "Name",
@@ -432,7 +442,17 @@
         "inherits": "Script",
         "module": "Core",
         "description": "Functional application module",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": false,
+                                "canRead": true,
+                                "canUpdate": false,
+                                "canDelete": false
+                        }
+                }
+        ],
         "properties": {
             "version": {
                 "description": "Software version",
@@ -524,7 +544,17 @@
         "name": "Honorific",
         "plural": "Honorifics",
         "module": "Core",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": true,
+                                "canRead": true,
+                                "canUpdate": true,
+                                "canDelete": true
+                        }
+                }
+        ],
         "inherits": "Document",
         "description": "Honorific",
         "properties": {
@@ -607,7 +637,17 @@
         "name": "Contact",
         "plural": "Contacts",
         "module": "Core",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": true,
+                                "canRead": true,
+                                "canUpdate": true,
+                                "canDelete": true
+                        }
+                }
+        ],
         "description": "Information about a person",
         "inherits": "Document",
         "properties": {
@@ -710,7 +750,17 @@
         "plural": "UserAccounts",
         "inherits": "Role",
         "module": "Core",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": false,
+                                "canRead": true,
+                                "canUpdate": false,
+                                "canDelete": false
+                        }
+                }
+        ],
         "description": "System users",
         "isFetchOnStartup": true,
         "properties": {

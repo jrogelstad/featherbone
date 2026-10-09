@@ -804,8 +804,21 @@ describe("client components", function () {
             });
             assert.deepEqual(labels(out.tree),
                     ["Unit Page Settings", "Host:", "Port:"]);
-            assert.deepEqual(env.requests().map((r) => r.path),
-                    ["/settings/unitPageSettings"]);
+            assert.deepEqual(env.requests().map((r) => r.path), [
+                "/settings/unitPageSettings",
+                // Who may change them: a tenant super user, or a role the
+                // settings grant canUpdate
+                "/settings/is-authorized/unitPageSettings"
+            ]);
+
+            // Nothing answers the check here, so the page treats the user
+            // as unauthorized and the fields go read-only
+            await env.flush();
+            assert.equal(out.state.viewModel.isAuthorized(), false);
+            assert.equal(
+                out.state.viewModel.model().data.host.isReadOnly(),
+                true
+            );
         });
 
         it("send-mail-page.js renders message fields", function () {
