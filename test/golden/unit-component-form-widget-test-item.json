@@ -27,12 +27,12 @@
                   "fragment": [
                     {
                       "attrs": {
-                        "class": "material-icons-outlined fb-dialog-icon fb-warning"
+                        "alt": "",
+                        "class": "material-icons-outlined fb-dialog-icon fb-warning fb-ipicon fb-ip-warning",
+                        "draggable": false,
+                        "src": "/media/icons/iconpark/caution.svg"
                       },
-                      "children": [
-                        "report_problem"
-                      ],
-                      "tag": "i"
+                      "tag": "img"
                     }
                   ]
                 },
@@ -591,12 +591,12 @@
                                               "fragment": [
                                                 {
                                                   "attrs": {
-                                                    "class": "material-icons-outlined fb-button-icon"
+                                                    "alt": "",
+                                                    "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                                                    "draggable": false,
+                                                    "src": "/media/icons/iconpark/add-one.svg"
                                                   },
-                                                  "children": [
-                                                    "add_circle_outline"
-                                                  ],
-                                                  "tag": "i"
+                                                  "tag": "img"
                                                 }
                                               ]
                                             },
@@ -634,12 +634,12 @@
                                               "fragment": [
                                                 {
                                                   "attrs": {
-                                                    "class": "material-icons-outlined fb-button-icon"
+                                                    "alt": "",
+                                                    "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                                                    "draggable": false,
+                                                    "src": "/media/icons/iconpark/delete.svg"
                                                   },
-                                                  "children": [
-                                                    "delete"
-                                                  ],
-                                                  "tag": "i"
+                                                  "tag": "img"
                                                 }
                                               ]
                                             },
@@ -677,12 +677,12 @@
                                               "fragment": [
                                                 {
                                                   "attrs": {
-                                                    "class": "material-icons-outlined fb-button-icon"
+                                                    "alt": "",
+                                                    "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                                                    "draggable": false,
+                                                    "src": "/media/icons/iconpark/undo.svg"
                                                   },
-                                                  "children": [
-                                                    "undo"
-                                                  ],
-                                                  "tag": "i"
+                                                  "tag": "img"
                                                 }
                                               ]
                                             }
@@ -711,12 +711,12 @@
                                               "fragment": [
                                                 {
                                                   "attrs": {
-                                                    "class": "material-icons-outlined fb-button-icon"
+                                                    "alt": "",
+                                                    "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                                                    "draggable": false,
+                                                    "src": "/media/icons/iconpark/folder-open.svg"
                                                   },
-                                                  "children": [
-                                                    "file_open"
-                                                  ],
-                                                  "tag": "i"
+                                                  "tag": "img"
                                                 }
                                               ]
                                             }
@@ -749,12 +749,12 @@
                                               "fragment": [
                                                 {
                                                   "attrs": {
-                                                    "class": "material-icons-outlined fb-button-icon"
+                                                    "alt": "",
+                                                    "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                                                    "draggable": false,
+                                                    "src": "/media/icons/iconpark/up.svg"
                                                   },
-                                                  "children": [
-                                                    "keyboard_arrow_up"
-                                                  ],
-                                                  "tag": "i"
+                                                  "tag": "img"
                                                 }
                                               ]
                                             }
@@ -781,12 +781,12 @@
                                               "fragment": [
                                                 {
                                                   "attrs": {
-                                                    "class": "material-icons-outlined fb-button-icon"
+                                                    "alt": "",
+                                                    "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                                                    "draggable": false,
+                                                    "src": "/media/icons/iconpark/down.svg"
                                                   },
-                                                  "children": [
-                                                    "keyboard_arrow_down"
-                                                  ],
-                                                  "tag": "i"
+                                                  "tag": "img"
                                                 }
                                               ]
                                             }
@@ -829,12 +829,12 @@
                                                       "fragment": [
                                                         {
                                                           "attrs": {
-                                                            "class": "material-icons-outlined fb-dialog-icon"
+                                                            "alt": "",
+                                                            "class": "material-icons-outlined fb-dialog-icon fb-ipicon",
+                                                            "draggable": false,
+                                                            "src": "/media/icons/iconpark/help.svg"
                                                           },
-                                                          "children": [
-                                                            "help_outline"
-                                                          ],
-                                                          "tag": "i"
+                                                          "tag": "img"
                                                         }
                                                       ]
                                                     },
@@ -981,12 +981,12 @@
                                                       "fragment": [
                                                         {
                                                           "attrs": {
-                                                            "class": "material-icons-outlined fb-dialog-icon fb-error"
+                                                            "alt": "",
+                                                            "class": "material-icons-outlined fb-dialog-icon fb-error fb-ipicon fb-ip-error",
+                                                            "draggable": false,
+                                                            "src": "/media/icons/iconpark/close-one.svg"
                                                           },
-                                                          "children": [
-                                                            "error"
-                                                          ],
-                                                          "tag": "i"
+                                                          "tag": "img"
                                                         }
                                                       ]
                                                     },
@@ -1127,7 +1127,7 @@
                                               "children": [
                                                 {
                                                   "attrs": {
-                                                    "class": "pure-menu-link",
+                                                    "class": "pure-menu-link fb-menu-list-item",
                                                     "id": "nav-actions-print-list",
                                                     "onclick": "<fn>",
                                                     "title": "Print entire list"
@@ -1137,13 +1137,13 @@
                                                       "fragment": [
                                                         {
                                                           "attrs": {
-                                                            "class": "material-icons-outlined fb-menu-list-icon",
-                                                            "id": "nav-actions-print-list-icon"
+                                                            "alt": "",
+                                                            "class": "material-icons-outlined fb-menu-list-icon fb-ipicon",
+                                                            "draggable": false,
+                                                            "id": "nav-actions-print-list-icon",
+                                                            "src": "/media/icons/iconpark/printer.svg"
                                                           },
-                                                          "children": [
-                                                            "print"
-                                                          ],
-                                                          "tag": "i"
+                                                          "tag": "img"
                                                         }
                                                       ]
                                                     },
@@ -1153,7 +1153,7 @@
                                                 },
                                                 {
                                                   "attrs": {
-                                                    "class": "pure-menu-link",
+                                                    "class": "pure-menu-link fb-menu-list-item",
                                                     "id": "nav-actions-export",
                                                     "onclick": "<fn>",
                                                     "title": "Export data"
@@ -1163,13 +1163,13 @@
                                                       "fragment": [
                                                         {
                                                           "attrs": {
-                                                            "class": "material-icons-outlined fb-menu-list-icon",
-                                                            "id": "nav-actions-export-icon"
+                                                            "alt": "",
+                                                            "class": "material-icons-outlined fb-menu-list-icon fb-ipicon",
+                                                            "draggable": false,
+                                                            "id": "nav-actions-export-icon",
+                                                            "src": "/media/icons/iconpark/download.svg"
                                                           },
-                                                          "children": [
-                                                            "file_download"
-                                                          ],
-                                                          "tag": "i"
+                                                          "tag": "img"
                                                         }
                                                       ]
                                                     },
@@ -1179,7 +1179,7 @@
                                                 },
                                                 {
                                                   "attrs": {
-                                                    "class": "pure-menu-link",
+                                                    "class": "pure-menu-link fb-menu-list-item",
                                                     "id": "nav-actions-import",
                                                     "onclick": "<fn>",
                                                     "title": "Import data"
@@ -1189,13 +1189,13 @@
                                                       "fragment": [
                                                         {
                                                           "attrs": {
-                                                            "class": "material-icons-outlined fb-menu-list-icon",
-                                                            "id": "nav-actions-import-icon"
+                                                            "alt": "",
+                                                            "class": "material-icons-outlined fb-menu-list-icon fb-ipicon",
+                                                            "draggable": false,
+                                                            "id": "nav-actions-import-icon",
+                                                            "src": "/media/icons/iconpark/upload.svg"
                                                           },
-                                                          "children": [
-                                                            "file_upload"
-                                                          ],
-                                                          "tag": "i"
+                                                          "tag": "img"
                                                         }
                                                       ]
                                                     },

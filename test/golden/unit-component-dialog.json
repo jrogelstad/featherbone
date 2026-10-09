@@ -18,12 +18,12 @@
           "fragment": [
             {
               "attrs": {
-                "class": "material-icons-outlined fb-dialog-icon"
+                "alt": "",
+                "class": "material-icons-outlined fb-dialog-icon fb-ipicon",
+                "draggable": false,
+                "src": "/media/icons/iconpark/help.svg"
               },
-              "children": [
-                "help_outline"
-              ],
-              "tag": "i"
+              "tag": "img"
             }
           ]
         },

@@ -40,9 +40,18 @@ function golden(name, tree) {
     matchGolden("unit-component-" + name, R.toJSON(tree));
 }
 
+// Icon Park icons render as <img src=".../name.svg">, so they add no text;
+// returns the icon file names (without extension) found under a node.
+function iconNames(node) {
+    return R.findAll(node, R.byTag("img")).map(
+        (i) => String(i.attrs.src).replace(/^.*\//, "").replace(/\.svg$/, "")
+    );
+}
+
 function buttons(tree) {
     return R.findAll(tree, R.byTag("button")).map(function (b) {
         return {
+            icons: iconNames(b),
             text: R.text(b),
             title: b.attrs.title,
             disabled: Boolean(b.attrs.disabled),
@@ -103,7 +112,7 @@ describe("client components", function () {
             "envBanner", "filterDialog", "formDialog", "formPage", "formWidget", "gantt",
             "helpLinkRelation", "moneyRelation", "navigatorMenu",
             "relationWidget", "resendCodePage", "resourceLinkRelation",
-            "searchInput", "searchPage", "sendMailPage", "settingsPage",
+            "ribbon", "searchInput", "searchPage", "sendMailPage", "settingsPage",
             "signInPage", "sortDialog", "tableDialog", "tableWidget",
             "toolbar", "urlWidget", "workbookPage"
         ]);
@@ -111,7 +120,7 @@ describe("client components", function () {
             "accountMenu", "aggregateDialog", "button", "childFormPage",
             "childTable", "contactRelation", "dialog", "filterDialog",
             "formDialog", "formWidget", "gantt", "helpLinkRelation",
-            "navigatorMenu", "relationWidget", "resourceLinkRelation",
+            "navigatorMenu", "relationWidget", "resourceLinkRelation", "ribbon",
             "searchInput", "searchPage", "sortDialog", "tableDialog",
             "tableWidget", "toolbar"
         ]);
@@ -127,7 +136,8 @@ describe("client components", function () {
             let out = R.render(comps.button, {viewModel: vm});
             let b = R.find(out.tree, R.byTag("button"));
             assert.equal(vm.hotKey(), "S".charCodeAt(0));
-            assert.equal(R.text(b), "cloud_upload S ave");
+            assert.equal(R.text(b), "S ave");
+            assert.deepEqual(iconNames(b), ["upload-one"]);
             assert.equal(b.attrs.title, "Save record (Alt + S)");
             assert.equal(b.attrs.type, "button");
             assert.equal(b.attrs.disabled, false);
@@ -168,6 +178,31 @@ describe("client components", function () {
         });
     });
 
+    describe("button.js label", function () {
+        it("builds fresh vnodes on every call", function () {
+            // The toolbar renders a measuring copy of each button beside
+            // the real one; sharing vnodes between the two corrupts the DOM
+            // ("New" rendered as "Newew").
+            let vm = vms.button({label: "Save and &New"});
+            let first = vm.label();
+            let second = vm.label();
+            assert.notStrictEqual(first, second);
+            first.forEach((v, i) => assert.notStrictEqual(v, second[i]));
+        });
+
+        it("follows a label change between hotkey positions", function () {
+            let vm = vms.button({label: "Save and &New"});
+            assert.deepEqual(vm.label().map((v) => R.text(v)),
+                    ["Save and", "N", "ew"]);
+            assert.equal(vm.hotKey(), "N".charCodeAt(0));
+            vm.label("&New");
+            assert.deepEqual(vm.label().map((v) => R.text(v)), ["N", "ew"]);
+            assert.equal(vm.hotKey(), "N".charCodeAt(0));
+            vm.label("Plain");
+            assert.equal(vm.label(), "Plain");
+        });
+    });
+
     describe("button.js isPrimary", function () {
         it("isPrimary(true) reports true",
                 function () {
@@ -194,8 +229,9 @@ describe("client components", function () {
             let out = R.render(comps.dialog, {viewModel: vm});
             assert.equal(R.find(out.tree, R.byTag("dialog")).attrs.style.width,
                     "500px");
-            assert.equal(R.text(R.find(out.tree, R.byTag("h3"))),
-                    "help_outline Confirm");
+            let h3 = R.find(out.tree, R.byTag("h3"));
+            assert.equal(R.text(h3), "Confirm");
+            assert.deepEqual(iconNames(h3), ["help"]);
             assert.ok(R.text(out.tree).includes("Are you sure?"));
             assert.deepEqual(buttons(out.tree).map((b) => b.text),
                     ["O k", "C ancel"]);
@@ -583,9 +619,13 @@ describe("client components", function () {
                 filter: f.prop({sort: []})
             });
             let out = R.render(comps.tableDialog, {viewModel: vm});
-            assert.deepEqual(buttons(out.tree).map((b) => b.text).slice(0, 3),
-                    ["add_circle_outline Add", "remove_circle_outline Remove",
-                    "clear"]);
+            assert.deepEqual(buttons(out.tree).slice(0, 3).map(
+                (b) => [b.text, b.icons]
+            ), [
+                ["Add", ["add-one"]],
+                ["Remove", ["reduce-one"]],
+                ["", ["close"]]
+            ]);
             assert.equal(vm.isSelected(), false);
         });
 
@@ -625,6 +665,15 @@ describe("client components", function () {
     });
 
     describe("pages", function () {
+        before(function () {
+            // Pieces main.js registers that the ribbon pages mount. Inert
+            // here: pages render one at a time, without the app shell.
+            let inert = {view: () => null};
+            catalog.register("components", "homeDialogs", inert);
+            catalog.register("components", "connectionBanner", inert);
+            catalog.register("global", "homeRibbonGroups", () => []);
+        });
+
         it("search-page.js builds toolbar, search and table", function () {
             catalog.register("config", "unitSearch", {
                 columns: [{attr: "name"}, {attr: "qty"}]
@@ -634,7 +683,7 @@ describe("client components", function () {
                 config: "unitSearch"
             });
             let texts = buttons(out.tree).map((b) => b.text);
-            assert.ok(texts.includes("arrow_back B ack"));
+            assert.ok(texts.includes("B ack"));
             assert.ok(texts.includes("S elect"));
             assert.ok(R.find(out.tree, R.byTag("table")));
         });
@@ -655,11 +704,10 @@ describe("client components", function () {
                 isNew: false
             }]);
             let texts = buttons(out.tree).map((b) => b.text);
-            assert.ok(texts.includes("arrow_back B ack"));
-            assert.ok(texts.includes("cloud_upload S ave"));
-            let save = buttons(out.tree).find(
-                (b) => b.text === "cloud_upload S ave"
-            );
+            assert.ok(texts.includes("B ack"));
+            assert.ok(texts.includes("S ave"));
+            let save = buttons(out.tree).find((b) => b.text === "S ave");
+            assert.deepEqual(save.icons, ["upload-one"]);
             assert.equal(save.disabled, true, "invalid new record");
             assert.equal(save.title, "\"Name\" is required");
             assert.ok(labels(out.tree).includes("Name:"));
@@ -684,7 +732,7 @@ describe("client components", function () {
             }
             let texts = buttons(out.tree).map((b) => b.text);
             assert.ok(texts.includes("D one"));
-            assert.ok(texts.includes("arrow_upward P revious"));
+            assert.ok(texts.includes("P revious"));
             assert.ok(labels(out.tree).includes("Product:"));
         });
 
@@ -729,7 +777,7 @@ describe("client components", function () {
             let out = R.render(comps.sendMailPage, {});
             assert.deepEqual(labels(out.tree),
                     ["Send Mail", "To:", "Subject:", "Text:"]);
-            assert.ok(buttons(out.tree).some((b) => b.text === "send S end"));
+            assert.ok(buttons(out.tree).some((b) => b.text === "S end"));
         });
 
         it("workbook-page.js renders a worksheet", function () {
@@ -771,24 +819,37 @@ describe("client components", function () {
             let text = R.text(out.tree);
             assert.ok(text.includes("Home"));
             assert.ok(text.includes("Unit Book"));
-            assert.ok(text.includes("chevron_left"));
+            assert.ok(iconNames(out.tree).includes("left"));
             assert.deepEqual(vm.state().current(), ["/Expanded"]);
             vm.toggle();
             assert.deepEqual(vm.state().current(), ["/Collapsed"]);
             out = R.render(comps.navigatorMenu, {viewModel: vm});
-            assert.ok(R.text(out.tree).includes("expand_more"));
+            assert.ok(iconNames(out.tree).includes("down"));
             assert.ok(!R.text(out.tree).includes("Unit Book"),
                     "labels hidden when collapsed");
             vm.toggle();
             assert.deepEqual(vm.state().current(), ["/Expanded"]);
         });
 
-        it("account-menu.js renders the user menu", function () {
+        it("account-menu.js mounts the account dialogs", function () {
             let out = R.render(comps.accountMenu, {});
             let text = R.text(out.tree);
-            ["Change Password", "Edit my contact information", "Info",
-                    "Sign out"].forEach((t) => assert.ok(text.includes(t), t));
+            ["Change Password", "Edit my contact information"].forEach(
+                (t) => assert.ok(text.includes(t), t)
+            );
             assert.equal(R.findAll(out.tree, R.byTag("dialog")).length, 3);
+        });
+
+        it("account-menu.js offers its actions as ribbon buttons",
+                function () {
+            let vm = vms.accountMenu();
+            assert.deepEqual(vm.actionButtons().map(
+                (b) => [b.label, b.icon, b.title]
+            ), [
+                ["Info", "edit", "Edit my contact information"],
+                ["Password", "key", "Change password"],
+                ["Sign Out", "logout", "Sign out of application"]
+            ]);
         });
 
         it("sign-in-page.js renders the sign in pages", function () {
