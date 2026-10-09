@@ -69,12 +69,7 @@ describe("security", function () {
             );
         });
 
-        it("rejects a notice without a signature", {
-            todo: (
-                "plan 1.2: with webhookHeader empty doNotice compares " +
-                "undefined === undefined and accepts anything"
-            )
-        }, async function () {
+        it("rejects a notice without a signature", async function () {
             let start = await notices();
             let resp = await new Session().raw("POST", "/notice", {
                 marker: MARK,
@@ -86,9 +81,7 @@ describe("security", function () {
             assert.equal(await notices(), start);
         });
 
-        it("rejects a notice with an invalid signature", {
-            todo: "plan 1.2: any signature header is accepted"
-        }, async function () {
+        it("rejects a notice with an invalid signature", async function () {
             let start = await notices();
             let resp = await new Session().raw("POST", "/notice", {
                 marker: MARK,
