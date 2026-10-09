@@ -168,6 +168,31 @@ describe("client components", function () {
         });
     });
 
+    describe("button.js label", function () {
+        it("builds fresh vnodes on every call", function () {
+            // The toolbar renders a measuring copy of each button beside
+            // the real one; sharing vnodes between the two corrupts the DOM
+            // ("New" rendered as "Newew").
+            let vm = vms.button({label: "Save and &New"});
+            let first = vm.label();
+            let second = vm.label();
+            assert.notStrictEqual(first, second);
+            first.forEach((v, i) => assert.notStrictEqual(v, second[i]));
+        });
+
+        it("follows a label change between hotkey positions", function () {
+            let vm = vms.button({label: "Save and &New"});
+            assert.deepEqual(vm.label().map((v) => R.text(v)),
+                    ["Save and", "N", "ew"]);
+            assert.equal(vm.hotKey(), "N".charCodeAt(0));
+            vm.label("&New");
+            assert.deepEqual(vm.label().map((v) => R.text(v)), ["N", "ew"]);
+            assert.equal(vm.hotKey(), "N".charCodeAt(0));
+            vm.label("Plain");
+            assert.equal(vm.label(), "Plain");
+        });
+    });
+
     describe("button.js isPrimary", function () {
         it("isPrimary(true) reports true",
                 function () {
