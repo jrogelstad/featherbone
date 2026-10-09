@@ -95,6 +95,16 @@
     async function start(confresp) {
         conf = confresp;
 
+        let missing = config.missingSecrets(conf);
+        if (missing.length) {
+            throw new Error(
+                "Set " + missing.join(", ") + " in server/config.json " +
+                "before installing. The crypto key is baked into the " +
+                "database and cannot be changed later without " +
+                "re-encrypting its data."
+            );
+        }
+
         let conn = (
             "postgres://" +
             (superuser || conf.pgUser) + ":" +

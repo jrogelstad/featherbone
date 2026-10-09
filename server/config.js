@@ -24,6 +24,32 @@
     exports.Config = function () {
         let config = {};
 
+        // Settings that must be set by the deployer. Empty values and the
+        // placeholder text once shipped in the template are refused.
+        const REQUIRED_SECRETS = {
+            pgCryptoKey: ["Your db encryption key here"],
+            secret: ["Your own session key here"]
+        };
+
+        /**
+            Names of required secret settings that are missing or still hold
+            a placeholder.
+
+            @method missingSecrets
+            @param {Object} data Configuration as returned by `read`
+            @return {Array}
+        */
+        config.missingSecrets = function (data) {
+            return Object.keys(REQUIRED_SECRETS).filter(function (key) {
+                let value = data[key];
+                return (
+                    typeof value !== "string" ||
+                    !value.trim() ||
+                    REQUIRED_SECRETS[key].includes(value)
+                );
+            });
+        };
+
         config.read = function () {
             return new Promise(function (resolve, reject) {
                 let filename = path.format(
