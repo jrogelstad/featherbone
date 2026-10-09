@@ -649,7 +649,8 @@
                     exp.execute({
                         user: pUser,
                         client: pClient,
-                        target: pTarget
+                        target: pTarget,
+                        mode: opts.mode
                     }).then(processFile.bind(pClient)).catch(rollback);
                 }
 

@@ -300,6 +300,34 @@
         }
     }
 
+    /*
+        What banner the database a user signed into should show. It is
+        recorded in that database's own "$db" row, so one server serving
+        a test and a production database says the right thing for each
+        (John, Oct 2026). A database installed before the mode moved
+        there has none, and the `mode` setting stands in.
+    */
+    async function modeOf(tenant) {
+        let conn;
+        let resp;
+
+        try {
+            conn = await datasource.getPool(tenant);
+            resp = await conn.query(
+                "SELECT mode FROM pg_tables, \"$db\" " +
+                "WHERE tablename = '$db' AND schemaname = 'public'"
+            );
+        } catch (ignore) {
+            return mode;
+        }
+
+        return (
+            resp.rows.length && resp.rows[0].mode
+            ? resp.rows[0].mode
+            : mode
+        );
+    }
+
     async function init() {
         try {
             // Configure logger
@@ -1552,7 +1580,7 @@
             message = msg;
         };
 
-        function next(err) {
+        async function next(err) {
             if (err) {
                 res.status(res.statusCode).json(message);
                 return;
@@ -1598,7 +1626,8 @@
                     error.bind(res)(e);
                 }
             } else {
-                req.user.mode = mode;
+                req.user.mode = await modeOf(req.tenant);
+                req.session.mode = req.user.mode;
                 req.session.database = req.database;
                 req.session.save(function () {
                     res.json(req.user);
@@ -2708,7 +2737,7 @@
             }
             if (req.user) {
                 webauthn.applyToken(req);
-                req.user.mode = mode;
+                req.user.mode = req.session.mode || mode;
                 sessions[req.sessionID] = setTimeout(function () {
                     logger.verbose("Session " + req.sessionID + " timed out");
                     doSignOut(req, res);

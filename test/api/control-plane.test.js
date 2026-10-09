@@ -40,6 +40,40 @@ describe("control plane", function () {
             assert.match(resp.rows[0].schema_version, /^\d+$/);
         });
 
+        it("records the mode the database shows a banner for",
+                async function () {
+            let resp = await db.query("SELECT mode FROM \"$db\"");
+            let mode = resp.rows[0].mode;
+
+            // Null is allowed: a database installed before the mode
+            // moved here falls back to the `mode` setting
+            assert.ok(
+                mode === null || config.modes().includes(mode),
+                "mode " + mode
+            );
+        });
+
+        it("reports its own mode at sign-in, not the server's",
+                async function () {
+            let resp = await db.query("SELECT mode FROM \"$db\"");
+            let stored = resp.rows[0].mode;
+            let conf = await config.read();
+
+            assert.equal(
+                (await signedIn()).user.mode,
+                stored || conf.mode || "prod"
+            );
+        });
+
+        it("refuses a mode it does not know", async function () {
+            await assert.rejects(
+                () => db.query(
+                    "UPDATE \"$db\" SET mode = 'staging'"
+                ),
+                /violates check constraint/i
+            );
+        });
+
         it("holds one row and nothing else", async function () {
             await assert.rejects(
                 () => db.query(

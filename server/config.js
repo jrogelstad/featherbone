@@ -42,6 +42,16 @@
         */
         const ROLES = ["controlPlane", "tenant", "both"];
 
+        /*
+            What a database warns about: a development or test database
+            shows a banner, production shows none. It lives in the
+            database's own "$db" row, so one server can serve a test and
+            a production database and each says the right thing. The
+            `mode` setting seeds it at install time and is the fallback
+            for a database installed before it moved.
+        */
+        const MODES = ["dev", "test", "prod"];
+
         // Connection settings the `controlPlane` block may override.
         // Anything it leaves out falls back to the top-level value, so
         // a control plane on the same server as the tenants needs only
@@ -173,6 +183,16 @@
         */
         config.roles = function () {
             return ROLES.slice();
+        };
+
+        /**
+            Modes a database may be in, for error messages.
+
+            @method modes
+            @return {Array}
+        */
+        config.modes = function () {
+            return MODES.slice();
         };
 
         /**
