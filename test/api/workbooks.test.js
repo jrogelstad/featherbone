@@ -49,7 +49,13 @@ describe("workbooks", function () {
                 feather: "Contact",
                 list: {columns: [{attr: "email"}]}
             }],
-            authorizations: [{role: "everyone", canRead: true, canUpdate: false}]
+            authorizations: [{
+                role: "everyone",
+                canRead: true,
+                canUpdate: false,
+                // Only has an effect when launchConfig names settings
+                canUpdateSettings: false
+            }]
         };
     }
 
@@ -251,6 +257,69 @@ describe("workbooks", function () {
             assert.equal(wb.description, "Regression test workbook");
             assert.deepEqual(wb.authorizations, spec(name).authorizations);
         });
+    });
+
+    // The "Settings" box in a workbook's permissions grants a role the
+    // right to change the settings the workbook opens. The grant belongs
+    // to the settings row, not the workbook, so one settings row has one
+    // answer however many workbooks open it.
+    it("stores canUpdateSettings against the settings row",
+            async function () {
+        let sname = "fbtWbSettings" + access.uniq("x").slice(2);
+        let name = wbName("Settings");
+        let wb = spec(name);
+
+        function auths(flag) {
+            return [{
+                role: "everyone",
+                canRead: true,
+                canUpdate: false,
+                canUpdateSettings: flag
+            }];
+        }
+
+        function granted() {
+            return db.query((
+                "SELECT auth.can_update " +
+                "FROM \"$auth\" AS auth, \"$settings\" AS settings " +
+                "WHERE settings.name = $1 " +
+                "  AND settings._pk = auth.object_pk " +
+                "  AND auth.role = 'everyone'"
+            ), [sname]);
+        }
+
+        await admin.call("PUT", "/settings/" + sname, {data: {probe: true}});
+        wb.launchConfig = {sheet: "Contacts", settings: sname};
+        wb.authorizations = auths(true);
+
+        try {
+            await admin.call("PUT", path(name), wb);
+
+            assert.deepEqual(
+                (await admin.get(path(name))).authorizations,
+                auths(true)
+            );
+            assert.deepEqual((await granted()).rows, [{can_update: true}]);
+
+            // Clearing the box takes the grant away
+            wb.authorizations = auths(false);
+            await admin.call("PUT", path(name), wb);
+
+            assert.deepEqual((await granted()).rows, []);
+            assert.deepEqual(
+                (await admin.get(path(name))).authorizations,
+                auths(false)
+            );
+        } finally {
+            await db.query((
+                "DELETE FROM \"$auth\" WHERE object_pk IN (" +
+                "  SELECT _pk FROM \"$settings\" WHERE name = $1)"
+            ), [sname]);
+            await db.query(
+                "DELETE FROM \"$settings\" WHERE name = $1",
+                [sname]
+            );
+        }
     });
 
     it("deletes a workbook", async function () {

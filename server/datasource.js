@@ -2652,6 +2652,11 @@
     that.registerFunction("GET", "getProfile", profile.getProfile);
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getSettings", settings.getSettings);
+    that.registerFunction(
+        "GET",
+        "settingIsAuthorized",
+        settings.settingIsAuthorized
+    );
     that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
     that.registerFunction(
         "GET",

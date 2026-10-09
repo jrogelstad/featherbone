@@ -220,4 +220,76 @@ describe("settings", function () {
                 resp.status);
         assert.equal(await row(name), undefined);
     });
+
+    // A settings row inherits `object`, so "$auth" can grant `canUpdate`
+    // on it the way it does on a workbook. That grant is what the
+    // "Settings" box in a workbook's permissions sets.
+    describe("a role the settings grant canUpdate", function () {
+        async function grant(value) {
+            if (value) {
+                await db.query(
+                    "INSERT INTO \"$auth\" (object_pk, role, can_read, " +
+                    "  can_update) " +
+                    "SELECT _pk, 'everyone', true, true " +
+                    "FROM \"$settings\" WHERE name = 'globalSettings' " +
+                    "ON CONFLICT (object_pk, role) DO UPDATE " +
+                    "  SET can_read = true, can_update = true"
+                );
+                return;
+            }
+            await db.query(
+                "DELETE FROM \"$auth\" WHERE role = 'everyone' " +
+                "AND object_pk = (SELECT _pk FROM \"$settings\" " +
+                "  WHERE name = 'globalSettings')"
+            );
+        }
+
+        before(async function () {
+            await grant(true);
+        });
+
+        after(async function () {
+            await grant(false);
+        });
+
+        it("may write them", async function () {
+            let before = await basicS.get("/settings/globalSettings");
+            let data = Object.assign({}, before.data, {smtpPort: 2626});
+            let resp = await basicS.call("PUT", "/settings/globalSettings", {
+                etag: before.etag,
+                data
+            });
+
+            assert.equal(resp, true);
+            assert.equal(
+                (await admin.get("/settings/globalSettings")).data.smtpPort,
+                2626
+            );
+        });
+
+        it("sees the decrypted secret", async function () {
+            let resp = await basicS.get("/settings/globalSettings");
+            assert.equal(resp.data.smtpPassword, SECRET);
+        });
+
+        it("is reported by /settings/is-authorized", async function () {
+            assert.equal(
+                await basicS.get("/settings/is-authorized/globalSettings"),
+                true
+            );
+            await grant(false);
+            try {
+                assert.equal(
+                    await basicS.get("/settings/is-authorized/globalSettings"),
+                    false
+                );
+                assert.equal(
+                    await admin.get("/settings/is-authorized/globalSettings"),
+                    true
+                );
+            } finally {
+                await grant(true);
+            }
+        });
+    });
 });
