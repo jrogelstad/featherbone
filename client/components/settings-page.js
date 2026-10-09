@@ -67,7 +67,7 @@ settingsPage.viewModel = function (options) {
         @method doDone
     */
     vm.doDone = function () {
-        if (theModel.canSave()) {
+        if (vm.isAuthorized() && theModel.canSave()) {
             vm.formWidget().model().save().then(function () {
                 window.history.back();
             });
@@ -76,6 +76,17 @@ settingsPage.viewModel = function (options) {
 
         window.history.back();
     };
+    /**
+        Whether this user may change these settings. A tenant super user
+        may; so may a role the settings grant `canUpdate`, which is what
+        the "Settings" box in a workbook's permissions sets. Everyone
+        else sees the values and cannot save them.
+
+        @method isAuthorized
+        @param {Boolean} flag
+        @return {Boolean}
+    */
+    vm.isAuthorized = f.prop(false);
     /**
         @method formWidget
         @param {ViewModels.FormWidget} widget
@@ -115,6 +126,23 @@ settingsPage.viewModel = function (options) {
     if (theModel.state().current()[0] === "/Ready/New") {
         theModel.fetch();
     }
+
+    f.datasource().request({
+        method: "GET",
+        path: "/settings/is-authorized/" + options.settings
+    }).then(function (authorized) {
+        vm.isAuthorized(Boolean(authorized));
+
+        if (!vm.isAuthorized()) {
+            Object.keys(theModel.data).forEach(function (key) {
+                theModel.data[key].isReadOnly(true);
+            });
+            vm.buttonDone().title(
+                "Not authorized to change these settings"
+            );
+            m.redraw();
+        }
+    });
 
     return vm;
 };

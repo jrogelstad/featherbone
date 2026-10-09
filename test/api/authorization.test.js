@@ -227,9 +227,8 @@ describe("authorization", function () {
             assert.equal(rec.isDeleted, false);
         });
 
-        it("answers update and delete denials with 401 like create", {
-            todo: "defect: PATCH/DELETE denials return 500 (create gives 401)"
-        }, async function () {
+        it("answers update and delete denials with 401 like create",
+                async function () {
             let one = "/data/" + toSpinal(guarded.name) + "/" + guardedRec.id;
             let patch = await clerkS.raw("PATCH", one, [{
                 op: "replace",

@@ -276,6 +276,15 @@ const workbookAuth = {
             ),
             type: "boolean",
             default: false
+        },
+        canUpdateSettings: {
+            description: (
+                "User can change the settings this workbook opens. " +
+                "Stored against the settings themselves, so workbooks " +
+                "that open the same settings share the grant"
+            ),
+            type: "boolean",
+            default: false
         }
     }
 };

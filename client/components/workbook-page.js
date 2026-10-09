@@ -59,7 +59,7 @@ const editWorkbookConfig = {
     }, {
         attr: "authorizations",
         showLabel: false,
-        height: "183px",
+        height: "240px",
         grid: 2,
         columns: [{
             attr: "role"
@@ -70,6 +70,12 @@ const editWorkbookConfig = {
         }, {
             label: "Update",
             attr: "canUpdate",
+            width: 70
+        }, {
+            // Only means anything when the workbook opens settings from
+            // its ribbon (`launchConfig.settings`); ignored otherwise
+            label: "Settings",
+            attr: "canUpdateSettings",
             width: 70
         }]
     }]
@@ -1158,8 +1164,7 @@ workbookPage.viewModel = function (options) {
         model: workbook,
         config: editWorkbookConfig
     }));
-    vm.editWorkbookDialog().style().width = "500px";
-    vm.editWorkbookDialog().style().height = "450px";
+    vm.editWorkbookDialog().style().width = "640px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(f.createViewModel("Button", {
