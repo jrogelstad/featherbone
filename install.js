@@ -41,9 +41,28 @@
     let dir;
     let superuser;
     let superpwd;
+    /*
+        Which kind of database to install into (tenant plan A.1):
+        "controlPlane" installs the tenant management database named by
+        the `controlPlane` configuration block, "tenant" installs an
+        application database, and "both" -- the default, and what a
+        single database install has always been -- installs one database
+        that serves as each.
+    */
+    let target;
+    let targetDb;
 
     argv.forEach(function (arg) {
         switch (arg) {
+        case "--control-plane":
+            target = "controlPlane";
+            break;
+        case "--tenant":
+            target = "tenant";
+            break;
+        case "--target":
+            target = argv[argv.indexOf("--target") + 1];
+            break;
         case "--dir":
             thedir = argv[argv.indexOf("--dir") + 1];
             break;
@@ -78,9 +97,22 @@
 
     function connect() {
         return new Promise(function (resolve, reject) {
-            function callback(config) {
-                user = config.pgUser;
-                db.connect().then(function (resp) {
+            function callback(data) {
+                user = data.pgUser;
+                /*
+                    Name the database rather than taking the default
+                    connection: the default is the control plane, which
+                    is not where a tenant install goes.
+                */
+                db.connect({
+                    pgDatabase: targetDb,
+                    pgService: {
+                        pgHost: data.pgHost,
+                        pgPort: data.pgPort,
+                        pgUser: data.pgUser,
+                        pgPassword: data.pgPassword
+                    }
+                }).then(function (resp) {
                     client = resp.client;
                     client.currentUser = () => user;
                     resolve();
@@ -94,6 +126,33 @@
     // Connect to postgres so we can inquire on db status
     async function start(confresp) {
         conf = confresp;
+
+        target = target || config.serverRole(conf);
+
+        if (!config.roles().includes(target)) {
+            throw new Error(
+                "Install target must be one of " +
+                config.roles().join(", ") + ", not \"" + target + "\""
+            );
+        }
+
+        // The control plane has a database of its own to install into
+        targetDb = (
+            target === "controlPlane"
+            ? config.controlPlane(conf).pgDatabase
+            : conf.pgDatabase
+        );
+
+        if (!targetDb) {
+            throw new Error(
+                "No database to install into. Set controlPlane.pgDatabase " +
+                "in server/config.json to install a control plane."
+            );
+        }
+
+        console.log(
+            "Installing " + target + " database \"" + targetDb + "\""
+        );
 
         let missing = config.missingSecrets(conf);
         if (missing.length) {
@@ -132,7 +191,7 @@
 
         let resp = await client.query(
             sql,
-            [conf.pgDatabase]
+            [targetDb]
         );
 
         // Deal with database inquiry
@@ -143,7 +202,7 @@
             await client.end();
             // Check if this database has been initialized
             client = new Client({
-                connectionString: conn + conf.pgDatabase
+                connectionString: conn + targetDb
             });
             await client.connect();
             sql = (
@@ -158,20 +217,20 @@
         // Otherwise create database first
         } else {
             msg = "Creating database \"";
-            msg += conf.pgDatabase + "\"";
+            msg += targetDb + "\"";
             console.log(msg);
 
             sql = "CREATE DATABASE %I;";
             sql = format(
                 sql,
-                conf.pgDatabase,
+                targetDb,
                 conf.pgUser
             );
 
             await client.query(sql);
             await client.end();
             client = new Client({
-                connectionString: conn + conf.pgDatabase
+                connectionString: conn + targetDb
             });
             await client.connect();
             sql = "CREATE EXTENSION IF NOT EXISTS pgcrypto;";
@@ -216,7 +275,7 @@
                 superuser + ":" +
                 superpwd + "@" +
                 conf.pgHost + ":" +
-                conf.pgPort + "/" + conf.pgDatabase
+                conf.pgPort + "/" + targetDb
             );
 
             client = new Client({connectionString: conn});
@@ -230,7 +289,7 @@
             client,
             dir,
             user,
-            {isSuper: true}
+            {isSuper: true, target}
         );
     }
 

@@ -162,6 +162,35 @@
         "to_camel_case(tableoid::regclass::text) AS object_type FROM object;"
     );
 
+    /*
+        What kind of database this is, and which revision of the
+        framework's own tables it carries. A control plane holds
+        organizations, identities, grants and the tenant registry; a
+        tenant holds an application's data; "both" is the single
+        database install the framework has always supported. Written
+        once at bootstrap and checked at boot, so pointing a server at
+        the wrong database is refused rather than acted on (tenant plan
+        A.1). The unique index keeps it to one row.
+    */
+    const SCHEMA_VERSION = "1";
+
+    const createDbSql = (
+        "CREATE TABLE \"$db\" (" +
+        "kind text not null," +
+        "schema_version text not null," +
+        "created timestamp with time zone not null default now()," +
+        "updated timestamp with time zone not null default now()," +
+        "CONSTRAINT \"$db_kind_check\" CHECK (" +
+        "  kind IN ('controlPlane', 'tenant', 'both')));" +
+        "CREATE UNIQUE INDEX \"$db_singleton\" ON \"$db\" ((true));" +
+        "COMMENT ON TABLE \"$db\" IS " +
+        "'Internal table recording what this database is for';" +
+        "COMMENT ON COLUMN \"$db\".kind IS " +
+        "'controlPlane, tenant or both';" +
+        "COMMENT ON COLUMN \"$db\".schema_version IS " +
+        "'Revision of the framework tables in this database';"
+    );
+
     const createAuthSql = (
         "CREATE TABLE \"$auth\" (" +
         "pk serial PRIMARY KEY," +
@@ -385,6 +414,7 @@
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
             let createCamelCase;
+            let createDb;
             let createMoney;
             let createObject;
             let createFeather;
@@ -660,11 +690,71 @@
                                 "catalog",
                                 JSON.stringify(objectDef)
                             ];
-                            obj.client.query(sql, params, createEventTrigger);
+                            obj.client.query(sql, params, createDb);
                         });
                         return;
                     }
-                    createEventTrigger();
+                    createDb();
+                });
+            };
+
+            /*
+                Record what this database is for. An existing marker is
+                left alone and verified instead: changing a database's
+                kind underneath its data is never what a stray install
+                command means, so say so and stop.
+            */
+            createDb = function () {
+                let kind = obj.target || "both";
+
+                sqlCheck("$db", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    function record() {
+                        obj.client.query((
+                            "INSERT INTO \"$db\" (kind, schema_version) " +
+                            "VALUES ($1, $2);"
+                        ), [kind, SCHEMA_VERSION], createEventTrigger);
+                    }
+
+                    if (!exists) {
+                        obj.client.query(createDbSql, record);
+                        return;
+                    }
+
+                    obj.client.query(
+                        "SELECT kind FROM \"$db\";",
+                        function (err, resp) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+
+                            if (!resp.rows.length) {
+                                record();
+                                return;
+                            }
+
+                            if (resp.rows[0].kind !== kind) {
+                                reject(new Error(
+                                    "Database is installed as \"" +
+                                    resp.rows[0].kind + "\" and cannot be " +
+                                    "installed as \"" + kind + "\". Install " +
+                                    "with the matching target, or change " +
+                                    "\"$db\".kind deliberately first."
+                                ));
+                                return;
+                            }
+
+                            obj.client.query((
+                                "UPDATE \"$db\" SET schema_version = $1, " +
+                                "updated = now();"
+                            ), [SCHEMA_VERSION], createEventTrigger);
+                        }
+                    );
                 });
             };
 
