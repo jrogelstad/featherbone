@@ -380,7 +380,8 @@ describe("user accounts", function () {
         assert.equal((await access.roleInfo(u.name)).rolcanlogin, false);
         resp = await new Session().signIn(u.name, u.password);
         assert.equal(resp.status, 401);
-        assert.match(String(resp.body), /No active user account/);
+        // Same answer as any other failed sign in (plan 0.3)
+        assert.equal(String(resp.body), "Invalid sign in credentials.");
 
         resp = await admin.raw(
             "PATCH",

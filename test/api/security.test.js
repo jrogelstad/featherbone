@@ -236,33 +236,18 @@ describe("security", function () {
             assert.deepEqual(result, expected);
         });
 
-        it("cannot list sessions", {
-            todo: (
-                "defect: \"sessions\" is missing from server.js check[], " +
-                "so GET /sessions lists every session id and user"
-            )
-        }, async function () {
+        it("cannot list sessions", async function () {
             let resp = await new Session().raw("GET", "/sessions");
             assert.equal(resp.status, 401);
         });
 
-        it("get 401 from /currency/base", {
-            todo: (
-                "defect: \"currency\" is missing from check[]; the handler " +
-                "dereferences req.user and answers 500 HTML"
-            )
-        }, async function () {
+        it("get 401 from /currency/base", async function () {
             let resp = await new Session().raw("GET", "/currency/base");
             assert.equal(resp.status, 401);
         });
     });
 
-    it("does not let an ordinary user end another user's session", {
-        todo: (
-            "defect: /sessions and /do/disconnect/:id are open to every " +
-            "signed-in user"
-        )
-    }, async function () {
+    it("does not let an ordinary user end another user's session", async function () {
         let victim = await signedIn();
         let resp = await userS.raw(
             "POST",
@@ -293,24 +278,14 @@ describe("security", function () {
             assert.equal(unknown.status, 401);
         });
 
-        it("does not return the raw Postgres error", {
-            todo: (
-                "defect: body is the Postgres message 'password " +
-                "authentication failed for user ...'"
-            )
-        }, function () {
+        it("does not return the raw Postgres error", function () {
             assert.doesNotMatch(
                 String(wrong.body),
                 /password authentication failed/
             );
         });
 
-        it("does not reveal whether the user or database exists", {
-            todo: (
-                "defect: unknown users get 'User x does not exist on " +
-                "database <db>', a different message than a wrong password"
-            )
-        }, function () {
+        it("does not reveal whether the user or database exists", function () {
             assert.doesNotMatch(String(unknown.body), new RegExp(
                 settings.testDb
             ));
