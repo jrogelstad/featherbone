@@ -74,6 +74,7 @@
     }
 
     const check = [
+        "currency",
         "data",
         "do",
         "feather",
@@ -81,6 +82,7 @@
         "modules",
         "navigation-categories",
         "profile",
+        "sessions",
         "settings",
         "settings-definition",
         "workbook",
@@ -352,6 +354,27 @@
             logger.error(err.message);
             console.log(err);
         }
+    }
+
+    // What a failed sign in may tell the caller. Account states the user can
+    // act on pass through; anything else (raw Postgres errors, "no such
+    // user ... on database x") is logged and replaced, so the response
+    // doesn't reveal which users or databases exist.
+    const SIGN_IN_MESSAGES = [
+        "Too many sign in attempts.",
+        "Invalid sign in credentials. One more attempt",
+        "User account is locked",
+        "Maximum allowed sessions"
+    ];
+
+    function signInMessage(err) {
+        let msg = String((err && err.message) || "");
+
+        if (SIGN_IN_MESSAGES.some((m) => msg.startsWith(m))) {
+            return msg;
+        }
+
+        return "Invalid sign in credentials.";
     }
 
     function resolveName(apiPath) {
@@ -1529,11 +1552,9 @@
 
         if (!rows.length) {
             res.statusCode = 401;
-            message = (
-                "User " + req.body.username +
-                " does not exist on database " +
-                req.tenant.pgDatabase
-            );
+            // Same answer as a wrong password: don't reveal which users or
+            // databases exist
+            message = "Invalid sign in credentials.";
             next(true);
             return;
         }
@@ -1566,8 +1587,20 @@
         });
     }
 
+    // Session lists and disconnects are an administrator's tool
+    function requireSuper(req, res) {
+        if (req.user && req.user.isSuper) {
+            return true;
+        }
+        res.status(403).json("Forbidden");
+        return false;
+    }
+
     async function doGetSessions(req, res) {
-        // Notify all instances on same session
+        if (!requireSuper(req, res)) {
+            return;
+        }
+
         let sql = (
             "SELECT * FROM \"$session\" " +
             "WHERE sess->>'database'=$1 " +
@@ -1587,8 +1620,14 @@
     }
 
     async function doDisconnectSession(req, res) {
-        // Notify all instances on same session
-        let sql = "DELETE FROM \"$session\" WHERE sid=$1;";
+        if (!requireSuper(req, res)) {
+            return;
+        }
+
+        // Only this database's sessions, never another tenant's
+        let sql = (
+            "DELETE FROM \"$session\" WHERE sid=$1 AND sess->>'database'=$2;"
+        );
 
         // Notify all instances on same session
         Object.keys(eventSessions).forEach(function (key) {
@@ -1605,7 +1644,7 @@
             }
         });
 
-        await req.sessionStore.pool.query(sql, [req.params.id]);
+        await req.sessionStore.pool.query(sql, [req.params.id, req.database]);
 
         respond.bind(res)(true);
     }
@@ -2303,7 +2342,7 @@
                         logger.error("/signin: " + err);
                         console.error("/signin: " + err);
                         return done(null, false, {
-                            message: err.message
+                            message: signInMessage(err)
                         });
                     }
                 );
