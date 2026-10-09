@@ -18,6 +18,10 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
 - **Postgres:** the cluster is Postgres 16 (`/usr/lib/postgresql/16/bin`). Run `initdb` as the `postgres` user, auth md5. Because of PG15+ public-schema permissions, before `node install.js` run `ALTER SCHEMA public OWNER TO admin; ALTER DATABASE demo OWNER TO admin; ALTER ROLE admin CREATEDB CREATEROLE`.
 - **SupplyChain** is a private repo (`jrogelstad/SupplyChain`). Rebuild it by staging the `.git` pack from `Documents/SupplyChain`. Install `17aabed`, not HEAD `9de2417`: that commit fails with "Relation feather Product required by InventoryValueDetail not found". Install by zipping the folder and POSTing it to `/demo/module/install/x=1` as `admin`/`password`.
+- **An ordinary test user no longer needs Job Shop.** `test/api/lib/access.js` `createUser` falls back to `Contact` where there is no `Employee` feather, so the settings, workbooks, authorization and security suites run against a framework-only database. The full battery there fails 503 tests (639 before the 0.4 branch); the rest need Job Shop and SupplyChain.
+- **Cloud Postgres, 2026-10-09:** `admin` was given SUPERUSER so the harness's `pg_dump | pg_restore` fallback can replay `GRANT SELECT ON pg_authid`, which it hits whenever the server holds a connection to `demo` and `CREATE DATABASE ... TEMPLATE` is therefore refused. Local Postgres does not need this.
+- **Driving the client headless:** Chromium is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` with `playwright-core`; sign in at `http://localhost:3003/demo/` and collect console errors and failed requests. Two pre-existing console errors show up for every user on master: `TypeError: Cannot read properties of undefined (reading 'selected')` at `client/main.js:513`, and the Mithril `removeChild` `NotFoundError`.
+- **These docs keep reverting on the laptop (twice on 2026-10-09).** They are tracked in the repo, so a pull, merge or checkout restores the committed version over edits made from a session. The Claude project copies under `claude/` are the ones to trust; commit the docs on the laptop if the local copy is to survive.
 - **Job Shop:** without it, five snapshot tests fail (`catalog-routes`, `catalog-settings-definition`, `catalog-workbooks`, `settings-definitions`, `workbooks-catalog`). Never regenerate those from the cloud database.
 
 - **Cloud Postgres, as rebuilt 2026-10-08:** the `postgres` user cannot traverse the scratchpad under `/tmp`, so put the cluster in `/var/lib/pgtest` (initdb with `--pwfile`, start with `pg_ctl`, use absolute paths because `su` resets PATH). Create `admin` (LOGIN CREATEDB CREATEROLE) and database `demo`, run `CREATE EXTENSION pgcrypto`, `ALTER SCHEMA public OWNER TO admin` and `GRANT SELECT ON pg_authid TO admin`, copy `server/config.template.json` to `server/config.json` (set `pgCryptoKey`, `secret`, `clientPort` 3003), then `node install.js`. `Kind`, `Category`, `Location` and `Contact` are framework feathers; `Terms`, `Employee` and the authorization and query suites' `before` hooks need SupplyChain and Job Shop.
@@ -45,10 +49,11 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 | (reporter fix) | Test output | Merged; summary of failing tests now prints above the totals |
 | (ribbon tests) | Unit tests | Merged; updated for the ribbon and Icon Park icons |
 | (button label fix) | Bug | Merged; `button.js` builds fresh label vnodes (fixed the "Newew" label and dead Add button); regression tests added |
-| `fix/0.2-bad-relation-id` | 0.2 | Pushed 2026-10-09, PR to open |
-| `fix/0.3-unauthenticated-endpoints` | 0.3 | Pushed 2026-10-09, PR to open |
-| `fix/1.8-crypto-key-param` | 1.8 | Pushed 2026-10-09, PR to open; `security` suite needs Job Shop, check locally |
-| | 0.1, 0.4, 0.11 | Next, one branch each (0.1 and parts of 0.3/0.4 move to the tenant plan) |
+| `fix/0.2-bad-relation-id` | 0.2 | Merged |
+| `fix/0.3-unauthenticated-endpoints` | 0.3 | Merged |
+| `fix/1.8-crypto-key-param` | 1.8 | Merged |
+| `fix/0.4-authorization-gaps` | 0.4 | Pushed 2026-10-09, PR to open, two commits. **Reinstalling the Core module is part of the fix** -- it rewrites the `$auth` grants. Tightens permissions on an existing database; check ordinary users afterwards. The second commit adds per-settings-row authorization, set from a workbook's permissions (`canUpdateSettings`). Raised 0.12, 0.13 and 0.14 |
+| | 0.1, 0.11 | Next, one branch each (0.1 and the role-resolution part of 0.4 move to the tenant plan) |
 | | 0.10 | SupplyChain repo; later |
 
 ## Notes from 2026-10-06 (checkout rebuilt)

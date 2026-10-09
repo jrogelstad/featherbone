@@ -19,14 +19,75 @@
 const settings = {};
 const {Database} = require("../database");
 const {Events} = require("./events");
+const {Tools} = require("./tools");
 const f = require("../../common/core");
 const events = new Events();
 const pgdb = new Database();
+const tools = new Tools();
 const dbsettings = {};
+const dbencrypted = {};
 
 /**
     @module Settings
 */
+
+/*
+    Remember which properties of a settings row are encrypted, so reads
+    can keep them away from users who may not see them. Called wherever a
+    definition is in hand; a row without a definition has no secrets.
+*/
+function noteEncrypted(db, name, definition) {
+    let props = (
+        definition
+        ? definition.properties
+        : null
+    );
+
+    if (!dbencrypted[db]) {
+        dbencrypted[db] = {};
+    }
+
+    dbencrypted[db][name] = (
+        props
+        ? Object.keys(props).filter((key) => props[key].isEncrypted)
+        : []
+    );
+}
+
+/*
+    Blank encrypted properties unless the caller may change this row. The
+    values are decrypted on the way out of the database and the result is
+    cached for every user of this database, so the copy is made here
+    rather than in the cache.
+*/
+async function withoutSecrets(obj, name, data) {
+    let db = obj.client.database;
+    let keys = (dbencrypted[db] || {})[name];
+    let copy;
+
+    if (!keys || !keys.length || !data) {
+        return data;
+    }
+
+    if (await settings.settingIsAuthorized({
+        client: obj.client,
+        data: {
+            name: name,
+            user: obj.user
+        }
+    })) {
+        return data;
+    }
+
+    copy = f.copy(data);
+    keys.forEach(function (key) {
+        if (copy[key] !== undefined) {
+            copy[key] = "";
+        }
+    });
+
+    return copy;
+}
 
 // ..........................................................
 // PUBLIC
@@ -88,6 +149,8 @@ settings.getSettings = async function (obj) {
                     }
                 }
 
+                noteEncrypted(db, name, rec.definition);
+
                 if (!dbsettings[db].data[name]) {
                     dbsettings[db].data[name] = {data: {}};
                 }
@@ -117,7 +180,11 @@ settings.getSettings = async function (obj) {
                         [rec.id]
                     );
                 }
-                return dbsettings[db].data[name].data;
+                return await withoutSecrets(
+                    obj,
+                    name,
+                    dbsettings[db].data[name].data
+                );
             }
 
             return false;
@@ -140,7 +207,11 @@ settings.getSettings = async function (obj) {
                     [dbsettings[db].data[name].id]
                 );
             }
-            return dbsettings[db].data[name].data;
+            return await withoutSecrets(
+                obj,
+                name,
+                dbsettings[db].data[name].data
+            );
         }
 
         // Request the settings from the database
@@ -195,7 +266,10 @@ settings.getSettingsRow = function (obj) {
         function callback(resp) {
             if (resp !== false) {
                 ret.etag = dbsettings[db].data[obj.data.name].etag;
-                ret.data = dbsettings[db].data[obj.data.name].data;
+                // What `getSettings` resolved to, not the cached row:
+                // encrypted properties are blanked for users who may not
+                // see them
+                ret.data = resp;
                 resolve(ret);
                 return;
             }
@@ -208,6 +282,55 @@ settings.getSettingsRow = function (obj) {
 };
 
 /**
+    Whether a user may change a settings row.
+
+    A tenant super user always may. Otherwise the row itself has to grant
+    `canUpdate` to one of the user's roles: settings rows inherit
+    `object`, so the grant is an ordinary "$auth" row, the same kind a
+    workbook carries. A row nobody has been granted is therefore super
+    users only, which is what every settings row starts as.
+
+    @method settingIsAuthorized
+    @for Services.Settings
+    @param {Object} payload
+    @param {Object} payload.data Payload data
+    @param {String} payload.data.name Settings name
+    @param {String} [payload.data.user] User. Defaults to current user
+    @param {Object} payload.client Database client
+    @return {Promise} Resolves to Boolean
+*/
+settings.settingIsAuthorized = async function (obj) {
+    let resp;
+    let client = obj.client;
+    let name = obj.data.name;
+    let user = obj.data.user || client.currentUser();
+    let sql = (
+        "SELECT auth.can_update " +
+        "FROM \"$settings\" AS settings, \"$auth\" AS auth, pg_authid " +
+        "WHERE settings.name = $1 " +
+        "  AND settings._pk = auth.object_pk " +
+        "  AND auth.role = pg_authid.rolname " +
+        "  AND pg_has_role($2, pg_authid.oid, 'member') " +
+        "  AND auth.can_update " +
+        "LIMIT 1;"
+    );
+
+    if (!name) {
+        throw new Error("Authorization check requires name");
+    }
+
+    if (await tools.isSuperUser({
+        client: client,
+        user: user
+    })) {
+        return true;
+    }
+
+    resp = await client.query(sql, [name, user]);
+    return resp.rows.length > 0;
+};
+
+/**
     Create or upate settings.
     @method saveSettings
     @for Services.Settings
@@ -217,6 +340,10 @@ settings.getSettingsRow = function (obj) {
     @param {String} payload.data.etag Etag
     @param {Object} payload.data.data Settings data
     @param {Object} payload.client Database client
+    @param {Boolean} [payload.isInternal] Skip the super user check. For
+    settings the server maintains itself, such as the feather catalog,
+    where the authorization decision belongs to the work that triggered
+    the save. Never set from a request payload.
     @return {Promise}
 */
 settings.saveSettings = async function (obj) {
@@ -240,6 +367,12 @@ settings.saveSettings = async function (obj) {
     }
 
     function done() {
+        noteEncrypted(db, name, (
+            row
+            ? row.definition
+            : null
+        ));
+
         if (!dbsettings[db].data[name]) {
             dbsettings[db].data[name] = {};
         }
@@ -249,6 +382,20 @@ settings.saveSettings = async function (obj) {
     }
 
     try {
+        if (!obj.isInternal && !await settings.settingIsAuthorized({
+            client: client,
+            data: {
+                name: name,
+                user: obj.user
+            }
+        })) {
+            msg = "Not authorized to change settings \"" + name + "\"";
+            return Promise.reject({
+                statusCode: 401,
+                message: msg
+            });
+        }
+
         resp = await client.query(sql, [name]);
 
         // If found existing, update

@@ -17,7 +17,7 @@
 > nor the control plane, and they are live money and scaling defects. Start
 > there, alongside items 1.2, 1.3, 1.5 and 1.7, which also stand on their own.
 
-**Progress 2026-10-09:** Tier 0 items 0.2, 0.3, 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3, 1.7 and 1.8 are fixed (all merged except 0.2, 0.3 and 1.8, which are pushed). Also merged: tenant plan A.2, a test reporter fix, ribbon component tests and a button label fix (see `featherbone-fix-branches.md`). Todo counts in the table below are as of the suite's creation and are not recalculated.
+**Progress 2026-10-09:** Tier 0 items 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3, 1.7 and 1.8 are fixed (all merged except 0.4, which is pushed). Also merged: tenant plan A.2, a test reporter fix, ribbon component tests and a button label fix (see `featherbone-fix-branches.md`). Todo counts in the table below are as of the suite's creation and are not recalculated.
 
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
 
@@ -41,7 +41,54 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
     - *Done: `fix/0.2-bad-relation-id`, 2026-10-09. `afterGetRelKey` in `crud.js` now throws instead of returning a rejected promise, so the request gets an error and the server stays up. The skipped test is enabled (uses Currency `displayUnit`).*
 - [x] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
     - *Done: `fix/0.3-unauthenticated-endpoints`, 2026-10-09. `currency` and `sessions` added to `check[]`; `/sessions` and `/do/disconnect` require a superuser (403) and disconnect is limited to the caller's database; sign-in errors use an allowlist with the generic "Invalid sign in credentials." for unknown users. Todo markers removed from `security.test.js` and `users.test.js`.*
-- [ ] **0.4 Authorization gaps:** any signed-in user can list all user accounts, read `smtpPassword` and `TenantService.pgPassword` decrypted, create or overwrite settings, and a read-only user can overwrite a workbook and its permissions (`workbooks.js:430`). Update and delete denials return 500 while create denials return 401.
+- [x] **0.4 Authorization gaps:** any signed-in user can list all user accounts, read `smtpPassword` and `TenantService.pgPassword` decrypted, create or overwrite settings, and a read-only user can overwrite a workbook and its permissions (`workbooks.js:430`). Update and delete denials return 500 while create denials return 401.
+    - *Done: `fix/0.4-authorization-gaps`, 2026-10-09. Six holes, each
+      reachable by any signed-in user. `crud.js` update and delete denials
+      now carry 401 like create. `settings.js` writes require a super user
+      and encrypted properties are blanked on read for everyone else (the
+      catalog saves itself through the same service, so those calls say
+      `isInternal`). `workbooks.js` update requires `canUpdate`, and
+      changing the permissions requires a super user; an unchanged
+      authorization list is not treated as a change, because the client
+      sends the whole workbook back when a user shares a layout.
+      `scripts/services.js` no longer replaces an empty authorization list
+      with everyone-everything on update -- the Core manifest installs the
+      system feathers twice, so a plain install was granting every user
+      full access to `user_account`, `role`, `script`, `feather` and
+      `document`, and every module reinstall widened its feathers the same
+      way. `server.js doQueryRequest` no longer runs Form, Module, Role and
+      UserAccount queries as a super user; the install grants `everyone`
+      read on them instead, which an administrator can revoke.
+      TenantService and Tenant now declare no authorizations, closing the
+      `pgPassword` read. Honorific, Contact and Role keep populate.js's
+      grants, declared in the feather so a reinstall cannot drop them.*
+    - *Follow-up in the same branch, 2026-10-09: super user turned out to be
+      the right floor but too coarse a ceiling, so a settings row can now
+      grant `canUpdate` to a role. Settings rows inherit `object`, so the
+      grant is an ordinary `$auth` row like a workbook's, and
+      `settings.settingIsAuthorized` answers for both the save and the
+      encrypted-property mask -- whoever may change a secret may read it. A
+      row nobody has been granted stays super users only, so nothing
+      existing changes. The grant is set from a workbook's permissions as a
+      third box, `canUpdateSettings`, beside Read and Update, and is stored
+      against the settings row named by `launchConfig.settings` rather than
+      against the workbook, so one settings row has one answer however many
+      workbooks open it. New route `GET /settings/is-authorized/:name`; the
+      settings page uses it to go read-only rather than letting an
+      unauthorized user type and then fail. `settingIsAuthorized` is a
+      seventh `pg_has_role` call site for tenant-plan B.3.*
+    - *Existing databases converge on the next install of the module,
+      which tightens permissions: check afterwards that ordinary users can
+      still reach what they need.*
+    - *Verified: full battery before and after, 639 failing tests on master
+      against 503 on the branch, with no test failing that master passed
+      (the rest need Job Shop and SupplyChain). Unit suite 293 pass. The
+      client was driven headless as an ordinary user and a super user: same
+      requests, no failures, same pre-existing console errors. The settings
+      grant was exercised end to end against a live server: granted through
+      a workbook, an ordinary user read the decrypted smtpPassword and
+      saved globalSettings; cleared, the grant row was gone, the secret
+      blanked and the save refused with 401.*
 - [x] **0.5 Currency conversion inverts the rate** (`currency.js:331`, 10 becomes 40 instead of 2.5); same-currency conversion returns a string; the first `/currency/base` after start returns 500.
     - *Done: `fix/0.5-currency-conversion`, 2026-10-08. Conversion divides only when the from-currency is the base currency, otherwise multiplies; same-currency returns the amount; base-currency cache listener fixed (`events.js` tenant copy, receiver filter).*
 - [x] **0.6 `PUT /profile` always 409** (`profile.js:111`); stale settings etags are accepted (`settings.js:228`); workbook update without module/isTemplate clears them; deleting a workbook leaves its permission rows.
@@ -53,6 +100,25 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
 - [x] **0.9 Common helpers:** `(-5).pad(3)` gives `0-5`; `'_foo'.toCamelCase()` drops the first letter; `netWorkDays` mutates its Date arguments; money `toType` rounds the conversion ratio to the currency scale (ratio 0.001 becomes 0, division by zero).
     - Fixed on `fix/0.9-common-helpers` (2026-10-08).
 - [ ] **0.10 SupplyChain:** `change-purchase-order-status` reads `ids[i]` so a single `id` gives 500; inbound move transactions have no `document`; a failed auto-post after save leaves no error on the record; `do-post-work-order-issue.js` rejects on-hold orders inside `try` without `await`, skipping error handling.
+- [ ] **0.12 A new feather still defaults to everyone-everything.** On
+  insert, a feather that declares no `authorizations` gets `everyone` full
+  CRUD (`scripts/services.js` `defaultAuth`). 0.4 fixed the update path
+  only, because application modules may rely on the insert default --
+  changing it needs a pass over Job Shop and SupplyChain to see which of
+  their feathers declare nothing. Candidates still open on a fresh install:
+  `edition`, `server_process`, `notice`, `send_mail`, `comment`, `kind`,
+  `layout`, `print_form`, `system_print_form`, `country`, `state`, `unit`
+  and the currency feathers.
+- [ ] **0.13 `POST /data/feather` crashes instead of refusing.** A
+  non-super user gets 500 "Cannot read properties of undefined (reading
+  'forEach')" from the Feather trigger, which runs before the create
+  authorization check. The record is not created, so this is a 6.1-class
+  unhandled error rather than a hole, but the denial should come first.
+- [ ] **0.14 User accounts have no column-level authorization.** With 0.4
+  in, `everyone` reads `user_account` because the client's user-name picker
+  needs it, which also exposes `isSuper`, `isLocked`, `signInAttempts` and
+  `lastSignIn` to every signed-in user. Narrowing it to names needs either
+  column-level authorization or a dedicated name-list route.
 - [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
 
 ## How to use this plan

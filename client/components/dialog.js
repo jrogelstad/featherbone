@@ -72,11 +72,9 @@ dialog.viewModel = function (options) {
     ]);
     /**
         Extra class name(s) applied to the dialog element alongside
-        `fb-dialog`, for a variant a caller needs to style -- the
-        navigation categories dialog uses it to slide down from the
-        top of the viewport instead of sitting centered (John, Oct
-        2026). Inline `style()` can't do that on its own, since the
-        animation needs a keyframe rule.
+        `fb-dialog` and `fb-dialog-slide-top`, for a variant a caller
+        needs to style. Inline `style()` can't do everything on its
+        own, since an animation needs a keyframe rule.
         @method class
         @param {String} [name]
         @return {String}
@@ -355,10 +353,18 @@ dialog.component = {
 
         return m("dialog", {
             id: ids.dialog,
+            /*
+                Every dialog drops down from the top edge of the
+                viewport. It started as the navigation categories
+                dialog's own behaviour and John made it the general
+                rule (Oct 2026): a dialog reads as pulling out of the
+                menu bar above it, and it stays put as its content
+                grows instead of drifting with the vertical centre.
+            */
             class: (
                 vm.class()
-                ? "fb-dialog " + vm.class()
-                : "fb-dialog"
+                ? "fb-dialog fb-dialog-slide-top " + vm.class()
+                : "fb-dialog fb-dialog-slide-top"
             ),
             style: f.copy(vm.style()),
             onupdate: function (vnode) {

@@ -1314,17 +1314,16 @@ function initApp() {
         deleteWbTemplateDlg.buttonOk().class("fb-button-delete");
 
         // View model for maintaining navigation categories -- the
-        // ribbon's tabs. Slides down from the top of the viewport
-        // rather than sitting centered, since it's about the menu bar
-        // directly above it (John, Oct 2026).
+        // ribbon's tabs. Dropping down from the top of the viewport
+        // started here and is now how every dialog behaves, so there
+        // is nothing to ask for (John, Oct 2026).
         navCategoryErrDlg = viewModels.dialog({
             icon: "error",
             title: "Error"
         });
         navCategoryDlg = viewModels.dialog({
             icon: "dashboard_customize",
-            title: "Navigation categories",
-            class: "fb-dialog-slide-top"
+            title: "Navigation categories"
         });
         navCategoryDlg.style().width = "640px";
         navCategoryDlg.content = function () {

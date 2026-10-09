@@ -139,12 +139,58 @@ describe("security", function () {
         }
     });
 
-    it("does not show decrypted tenant service passwords to ordinary users", {
-        todo: (
-            "defect: TenantService grants everyone read and returns " +
-            "pgPassword decrypted"
-        )
-    }, async function () {
+    // Plan 0.4: queries on Form, Module, Role and UserAccount used to run
+    // as a super user whatever the caller's rights, so "$auth" had no say.
+    // The install grants `everyone` read on them instead, which leaves an
+    // administrator able to take it away.
+    it("lets $auth decide who reads user accounts (plan 0.4)",
+            async function () {
+        const pk = (
+            "(SELECT _pk FROM \"$feather\" WHERE id = 'user_account')"
+        );
+
+        async function canRead(value) {
+            await db.query(
+                "UPDATE \"$auth\" SET can_read = $1 " +
+                "WHERE role = 'everyone' AND object_pk = " + pk,
+                [value]
+            );
+        }
+
+        assert.ok(
+            (await userS.list("UserAccounts", {})).length > 0,
+            "the install grants everyone read"
+        );
+
+        await canRead(false);
+        try {
+            assert.deepEqual(await userS.list("UserAccounts", {}), []);
+            assert.ok(
+                (await admin.list("UserAccounts", {})).length > 0,
+                "a super user still reads them"
+            );
+        } finally {
+            await canRead(true);
+        }
+    });
+
+    it("does not let an ordinary user create a user account", async function () {
+        let resp = await userS.raw("POST", "/data/user-account", {
+            name: "fbt_evil_" + MARK,
+            password: "Fbt-Evil-1!",
+            isSuper: true
+        });
+
+        assert.ok(resp.status >= 400, "status " + resp.status);
+        let rows = await db.query(
+            "SELECT name FROM user_account WHERE name LIKE $1",
+            ["fbt_evil_%"]
+        );
+        assert.deepEqual(rows.rows, []);
+    });
+
+    it("does not show decrypted tenant service passwords to ordinary users",
+            async function () {
         let secret = "Tenant-Secret-" + MARK;
         let svc = await admin.create("TenantService", {
             name: MARK + "-2",

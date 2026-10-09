@@ -1,6 +1,6 @@
 {
   "attrs": {
-    "class": "fb-dialog",
+    "class": "fb-dialog fb-dialog-slide-top",
     "id": "<id>",
     "onupdate": "<fn>",
     "style": {

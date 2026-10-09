@@ -197,12 +197,56 @@
                     sql += " ORDER BY _pk";
 
                     theClient.query(sql, params, function (err, resp) {
+                        let names = [];
+
                         function auths(a) {
                             return {
                                 role: a.f1,
                                 canRead: a.f2,
-                                canUpdate: a.f3
+                                canUpdate: a.f3,
+                                canUpdateSettings: false
                             };
+                        }
+
+                        /*
+                            Read back the grants on the settings rows these
+                            workbooks open, so the permission list shows who
+                            may change them. They live on the settings row --
+                            see `saveWorkbook`.
+                        */
+                        function addSettingsAuth() {
+                            let bySetting = {};
+
+                            return theClient.query((
+                                "SELECT settings.name, auth.role " +
+                                "FROM \"$settings\" AS settings, " +
+                                "  \"$auth\" AS auth " +
+                                "WHERE settings._pk = auth.object_pk " +
+                                "  AND auth.can_update " +
+                                "  AND settings.name = ANY($1);"
+                            ), [names]).then(function (granted) {
+                                granted.rows.forEach(function (gr) {
+                                    if (!bySetting[gr.name]) {
+                                        bySetting[gr.name] = [];
+                                    }
+                                    bySetting[gr.name].push(gr.role);
+                                });
+
+                                resp.rows.forEach(function (row) {
+                                    let cfg = row.launchConfig;
+                                    let roles = (
+                                        cfg && cfg.settings
+                                        ? bySetting[cfg.settings] || []
+                                        : []
+                                    );
+
+                                    row.authorizations.forEach(function (a) {
+                                        a.canUpdateSettings = (
+                                            roles.indexOf(a.role) !== -1
+                                        );
+                                    });
+                                });
+                            });
                         }
 
                         if (err) {
@@ -211,10 +255,26 @@
                         }
 
                         resp.rows.forEach(function (row) {
+                            let cfg = row.launchConfig;
+
                             row.authorizations = row.authorizations.map(auths);
+
+                            if (
+                                cfg && cfg.settings &&
+                                names.indexOf(cfg.settings) === -1
+                            ) {
+                                names.push(cfg.settings);
+                            }
                         });
 
-                        resolve(resp.rows);
+                        if (!names.length) {
+                            resolve(resp.rows);
+                            return;
+                        }
+
+                        addSettingsAuth().then(
+                            () => resolve(resp.rows)
+                        ).catch(reject);
                     });
                 }
 
@@ -332,12 +392,85 @@
 
                 findSql = (
                     "SELECT * FROM \"$workbook\" AS workbook, " +
-                    "to_json(ARRAY( SELECT ROW(role) " +
+                    "to_json(ARRAY( SELECT ROW(role, can_read, can_update) " +
                     "  FROM \"$auth\" as auth " +
                     "  WHERE auth.object_pk = workbook._pk " +
                     "  ORDER BY auth.pk)) AS authorizations " +
                     "WHERE name = $1;"
                 );
+
+                /*
+                    Whether the authorizations in a spec are the ones the
+                    workbook already has. The client sends the whole
+                    workbook back when a user shares a layout, so an
+                    unchanged list must not count as a permission change.
+                    `false` means "leave them alone"; anything else, this
+                    included, is compared against what is stored.
+                */
+                function authUnchanged(spec, stored) {
+                    let was;
+                    let is;
+
+                    function key(role, canRead, canUpdate) {
+                        return [
+                            role,
+                            Boolean(canRead),
+                            Boolean(canUpdate)
+                        ].join("/");
+                    }
+
+                    if (spec === false) {
+                        return true;
+                    }
+
+                    was = (stored || []).map(
+                        (a) => key(a.f1, a.f2, a.f3)
+                    ).sort();
+                    is = (spec || []).filter(
+                        (a) => a !== null
+                    ).map(
+                        (a) => key(a.role, a.canRead, a.canUpdate)
+                    ).sort();
+
+                    return (
+                        was.length === is.length &&
+                        was.every((k, idx) => k === is[idx])
+                    );
+                }
+
+                /*
+                    Who may change a workbook that already exists: a super
+                    user, or a user the workbook grants `canUpdate`.
+                    Changing the permissions themselves stays with super
+                    users -- `canUpdate` would otherwise be enough to widen
+                    your own access.
+                */
+                function mayUpdate(theWb, theRow) {
+                    return tools.isSuperUser({
+                        client: theClient,
+                        user: theUser
+                    }).then(function (isSuper) {
+                        if (isSuper) {
+                            return true;
+                        }
+
+                        if (!authUnchanged(
+                            theWb.authorizations,
+                            theRow.authorizations
+                        )) {
+                            return false;
+                        }
+
+                        return that.workbookIsAuthorized({
+                            client: theClient,
+                            data: {
+                                action: "canUpdate",
+                                name: theWb.name,
+                                user: theUser
+                            }
+                        });
+                    });
+                }
 
                 /*
                     Work out what to store in "$workbook".category.
@@ -380,6 +513,31 @@
 
                     return categoryNames[value] || null;
                 };
+
+                /*
+                    The settings row this workbook opens, as a list so
+                    there is nothing to do when it opens none. Takes the
+                    incoming spec's launch config, falling back to what is
+                    stored, because an update need not resend it.
+                */
+                function settingsName() {
+                    let cfg = wb.launchConfig || (
+                        row
+                        ? row.launch_config
+                        : null
+                    );
+                    let nme = (
+                        cfg
+                        ? cfg.settings
+                        : null
+                    );
+
+                    return (
+                        nme
+                        ? [nme]
+                        : []
+                    );
+                }
 
                 function execute() {
                     theClient.query(sql, params, function (err) {
@@ -455,6 +613,48 @@
                                 feathers.saveAuthorization(auth)
                             );
                         });
+
+                        /*
+                            `canUpdateSettings` grants a role the right to
+                            change the settings this workbook opens from
+                            its ribbon (`launchConfig.settings`). The grant
+                            is stored on the settings row, not here: the
+                            settings row is one object, so it gets one
+                            answer, and two workbooks that name the same
+                            settings show and edit the same grant. Settings
+                            rows inherit `object`, so this is an ordinary
+                            "$auth" row, written the same way as the
+                            workbook's own.
+                        */
+                        settingsName().forEach(function (nme) {
+                            auths.forEach(function (auth) {
+                                let may = Boolean(
+                                    authorizations && authorizations.find(
+                                        (a) => (
+                                            a !== null &&
+                                            a.role === auth.data.role &&
+                                            a.canUpdateSettings
+                                        )
+                                    )
+                                );
+
+                                requests.push(feathers.saveAuthorization({
+                                    client: theClient,
+                                    data: {
+                                        id: nme,
+                                        role: auth.data.role,
+                                        isInternal: true,
+                                        actions: {
+                                            canCreate: false,
+                                            canRead: may,
+                                            canUpdate: may,
+                                            canDelete: false
+                                        }
+                                    }
+                                }));
+                            });
+                        });
+
                         Promise.all(requests).then(nextWorkbook).catch(reject);
                     });
                 }
@@ -475,14 +675,10 @@
                                 let launchConfig;
                                 let localConfig;
                                 let defaultConfig;
+                                let update;
+                                let insert;
 
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-
-                                row = resp.rows[0];
-                                if (row) {
+                                update = function () {
                                     if (authorizations !== false) {
                                         oldAuth = row.authorizations;
                                     }
@@ -532,7 +728,9 @@
                                         resolveCategory(wb, row)
                                     ];
                                     execute();
-                                } else {
+                                };
+
+                                insert = function () {
                                     tools.isSuperUser({
                                         client: theClient,
                                         user: theUser
@@ -590,7 +788,34 @@
 
                                         execute();
                                     }).catch(reject);
+                                };
+
+                                if (err) {
+                                    reject(err);
+                                    return;
                                 }
+
+                                row = resp.rows[0];
+
+                                if (!row) {
+                                    insert();
+                                    return;
+                                }
+
+                                mayUpdate(wb, row).then(function (may) {
+                                    let e;
+
+                                    if (!may) {
+                                        e = new Error(
+                                            "Not authorized to update " +
+                                            "workbook \"" + wb.name + "\""
+                                        );
+                                        e.statusCode = 401;
+                                        throw e;
+                                    }
+
+                                    update();
+                                }).catch(reject);
                             }
                         );
                         return;
