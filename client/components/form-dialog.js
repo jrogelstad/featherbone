@@ -130,8 +130,6 @@ formDialog.viewModel = function (options) {
         vm.style().display = "none";
     });
 
-    vm.style().top = "50px";
-
     return vm;
 };
 
