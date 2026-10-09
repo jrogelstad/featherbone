@@ -2588,19 +2588,48 @@
             }
         }
 
+        /*
+            The database this process is configured against, which the
+            registry does not list. What it is depends on the declared
+            role (tenant plan A.1): for a control plane it is the tenant
+            management database, for a tenant server the application
+            database it was pointed at, and for "both" -- the single
+            database install -- the one database that serves as each.
+            A tenant server does not serve the control plane.
+        */
         if (!tenants.find((t) => t.id === "-1")) {
-            tenants.unshift({
-                id: "-1",
-                name: "System default",
-                pgService: {
-                    name: "Default service",
+            let role = config.serverRole(conf);
+            let cp = config.controlPlane(conf);
+            let local = (
+                role === "controlPlane"
+                ? cp
+                : {
+                    pgDatabase: conf.pgDatabase,
                     pgHost: conf.pgHost,
                     pgPort: conf.pgPort,
                     pgUser: conf.pgUser,
                     pgPassword: conf.pgPassword
-                },
-                pgDatabase: conf.pgDatabase
-            });
+                }
+            );
+
+            if (role !== "tenant" || local.pgDatabase !== cp.pgDatabase) {
+                tenants.unshift({
+                    id: "-1",
+                    name: (
+                        role === "controlPlane"
+                        ? "Control plane"
+                        : "System default"
+                    ),
+                    pgService: {
+                        name: "Default service",
+                        pgHost: local.pgHost,
+                        pgPort: local.pgPort,
+                        pgUser: local.pgUser,
+                        pgPassword: local.pgPassword
+                    },
+                    pgDatabase: local.pgDatabase
+                });
+            }
         }
         return tenants;
     };

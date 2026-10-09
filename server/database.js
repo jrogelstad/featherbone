@@ -95,18 +95,29 @@
         let pools = {};
         let that = {};
 
-        // Reslove connection string
+        /*
+            Resolve connection string.
+
+            The connection used when no tenant is named is the control
+            plane: the tenant registry, the sessions and everything else
+            a `tenant: false` request reaches (tenant plan A.1). With no
+            `controlPlane` block configured that is `pgDatabase`, which
+            is where those requests have always gone.
+        */
         function setConfig(resp) {
             return new Promise(function (resolve) {
+                let cp = config.controlPlane(resp);
+
                 cache = {
+                    pgDatabase: cp.pgDatabase,
                     postgres: {
-                        database: resp.pgDatabase,
-                        host: resp.pgHost,
+                        database: cp.pgDatabase,
+                        host: cp.pgHost,
                         max: resp.pgMaxConnections || 10,
-                        password: resp.pgPassword,
-                        port: resp.pgPort,
+                        password: cp.pgPassword,
+                        port: cp.pgPort,
                         ssl: sslConfig(resp), // This doesn't look right
-                        user: resp.pgUser
+                        user: cp.pgUser
                     }
                 };
                 resolve(resp);
