@@ -72,7 +72,8 @@ button.viewModel = function (options) {
     let display;
     let primary;
     let mode;
-    let label;
+    let labelText = "";
+    let labelKey = -1;
     let hotkey;
     let style = options.style || {};
 
@@ -194,31 +195,41 @@ button.viewModel = function (options) {
     */
     vm.label = function (...args) {
         let idx;
-        let ary;
         let value = args[0];
 
         if (args.length) {
-            label = value;
+            // Keep plain text only. The vnodes are built fresh on every
+            // call below: the toolbar draws a measuring copy of each button
+            // beside the real one, and a vnode used in two places at once
+            // corrupts the DOM (the New button showed as "Newew").
+            labelText = value;
             idx = value.indexOf("&");
             if (idx > -1) {
-                label = value.replace("&", "");
+                labelText = value.replace("&", "");
+                labelKey = idx;
                 vm.hotKey(
-                    label.slice(idx, idx + 1).toUpperCase().charCodeAt(0)
+                    labelText.slice(idx, idx + 1).toUpperCase().charCodeAt(0)
                 );
-                ary = [];
-                if (idx > 0) {
-                    ary.push(m("span", label.slice(0, idx)));
-                }
-                ary.push(m("span", {
-                    style: {
-                        textDecoration: "underline"
-                    }
-                }, label.slice(idx, idx + 1)));
-                ary.push(m("span", label.slice(idx + 1, label.length)));
-                label = ary;
+            } else {
+                labelKey = -1;
             }
         }
-        return label;
+
+        if (labelKey < 0) {
+            return labelText;
+        }
+
+        return [
+            labelKey > 0
+            ? m("span", labelText.slice(0, labelKey))
+            : undefined,
+            m("span", {
+                style: {
+                    textDecoration: "underline"
+                }
+            }, labelText.slice(labelKey, labelKey + 1)),
+            m("span", labelText.slice(labelKey + 1))
+        ].filter((v) => v !== undefined);
     };
     /**
         @method onclick
