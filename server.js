@@ -580,13 +580,14 @@
     function doQueryRequest(req, res) {
         let payload = req.body || {};
         let name = resolveName(req.url);
-        let isSuper = (
-            req.user.isSuper ||
-            name === "Form" ||
-            name === "Module" ||
-            name === "Role" ||
-            name === "UserAccount"
-        );
+        /*
+            Queries on Form, Module, Role and UserAccount used to run as a
+            super user for every signed-in caller, so `$auth` had no say
+            and every user could list all user accounts. The client needs
+            these to start up, so the install grants `everyone` read on
+            them instead -- which an administrator can now revoke.
+        */
+        let isSuper = req.user.isSuper;
 
         payload.name = name;
         payload.method = "GET"; // Internally this is a select statement

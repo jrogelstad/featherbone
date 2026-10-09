@@ -52,7 +52,17 @@
         "name": "ResourceLink",
         "plural": "ResourceLinks",
         "module": "Core",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": false,
+                                "canRead": true,
+                                "canUpdate": false,
+                                "canDelete": false
+                        }
+                }
+        ],
         "description": "Fancy URI to internal or external information",
         "inherits": "Document",
         "properties": {
@@ -121,7 +131,17 @@
         "name": "HelpLink",
         "plural": "HelpLinks",
         "module": "Core",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": false,
+                                "canRead": true,
+                                "canUpdate": false,
+                                "canDelete": false
+                        }
+                }
+        ],
         "description": "Help file links",
         "inherits": "Document",
         "properties": {
@@ -196,7 +216,17 @@
         "module": "Core",
         "inherits": "Layout",
         "description": "Form definitions",
-        "authorizations": [],
+        "authorizations": [
+                {
+                        "role": "everyone",
+                        "actions": {
+                                "canCreate": false,
+                                "canRead": true,
+                                "canUpdate": false,
+                                "canDelete": false
+                        }
+                }
+        ],
         "properties": {
             "focus": {
                 "description": "Attribute that receives first focus",
@@ -1388,6 +1418,7 @@
         "module": "Core",
         "inherits": "Document",
         "description": "Tennant postgres service",
+        "authorizations": [],
         "properties": {
             "name": {
                 "description": "Name of service",
@@ -1456,6 +1487,7 @@
         "inherits": "Document",
         "module": "Core",
         "description": "Map of companies to their database",
+        "authorizations": [],
         "properties": {
             "name": {
                 "description": "Name of company or instance",

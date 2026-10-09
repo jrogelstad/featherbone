@@ -332,12 +332,85 @@
 
                 findSql = (
                     "SELECT * FROM \"$workbook\" AS workbook, " +
-                    "to_json(ARRAY( SELECT ROW(role) " +
+                    "to_json(ARRAY( SELECT ROW(role, can_read, can_update) " +
                     "  FROM \"$auth\" as auth " +
                     "  WHERE auth.object_pk = workbook._pk " +
                     "  ORDER BY auth.pk)) AS authorizations " +
                     "WHERE name = $1;"
                 );
+
+                /*
+                    Whether the authorizations in a spec are the ones the
+                    workbook already has. The client sends the whole
+                    workbook back when a user shares a layout, so an
+                    unchanged list must not count as a permission change.
+                    `false` means "leave them alone"; anything else, this
+                    included, is compared against what is stored.
+                */
+                function authUnchanged(spec, stored) {
+                    let was;
+                    let is;
+
+                    function key(role, canRead, canUpdate) {
+                        return [
+                            role,
+                            Boolean(canRead),
+                            Boolean(canUpdate)
+                        ].join("/");
+                    }
+
+                    if (spec === false) {
+                        return true;
+                    }
+
+                    was = (stored || []).map(
+                        (a) => key(a.f1, a.f2, a.f3)
+                    ).sort();
+                    is = (spec || []).filter(
+                        (a) => a !== null
+                    ).map(
+                        (a) => key(a.role, a.canRead, a.canUpdate)
+                    ).sort();
+
+                    return (
+                        was.length === is.length &&
+                        was.every((k, idx) => k === is[idx])
+                    );
+                }
+
+                /*
+                    Who may change a workbook that already exists: a super
+                    user, or a user the workbook grants `canUpdate`.
+                    Changing the permissions themselves stays with super
+                    users -- `canUpdate` would otherwise be enough to widen
+                    your own access.
+                */
+                function mayUpdate(theWb, theRow) {
+                    return tools.isSuperUser({
+                        client: theClient,
+                        user: theUser
+                    }).then(function (isSuper) {
+                        if (isSuper) {
+                            return true;
+                        }
+
+                        if (!authUnchanged(
+                            theWb.authorizations,
+                            theRow.authorizations
+                        )) {
+                            return false;
+                        }
+
+                        return that.workbookIsAuthorized({
+                            client: theClient,
+                            data: {
+                                action: "canUpdate",
+                                name: theWb.name,
+                                user: theUser
+                            }
+                        });
+                    });
+                }
 
                 /*
                     Work out what to store in "$workbook".category.
@@ -475,14 +548,10 @@
                                 let launchConfig;
                                 let localConfig;
                                 let defaultConfig;
+                                let update;
+                                let insert;
 
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-
-                                row = resp.rows[0];
-                                if (row) {
+                                update = function () {
                                     if (authorizations !== false) {
                                         oldAuth = row.authorizations;
                                     }
@@ -532,7 +601,9 @@
                                         resolveCategory(wb, row)
                                     ];
                                     execute();
-                                } else {
+                                };
+
+                                insert = function () {
                                     tools.isSuperUser({
                                         client: theClient,
                                         user: theUser
@@ -590,7 +661,34 @@
 
                                         execute();
                                     }).catch(reject);
+                                };
+
+                                if (err) {
+                                    reject(err);
+                                    return;
                                 }
+
+                                row = resp.rows[0];
+
+                                if (!row) {
+                                    insert();
+                                    return;
+                                }
+
+                                mayUpdate(wb, row).then(function (may) {
+                                    let e;
+
+                                    if (!may) {
+                                        e = new Error(
+                                            "Not authorized to update " +
+                                            "workbook \"" + wb.name + "\""
+                                        );
+                                        e.statusCode = 401;
+                                        throw e;
+                                    }
+
+                                    update();
+                                }).catch(reject);
                             }
                         );
                         return;
