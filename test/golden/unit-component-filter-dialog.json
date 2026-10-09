@@ -18,12 +18,12 @@
           "fragment": [
             {
               "attrs": {
-                "class": "material-icons-outlined fb-dialog-icon"
+                "alt": "",
+                "class": "material-icons-outlined fb-dialog-icon fb-ipicon",
+                "draggable": false,
+                "src": "/media/icons/iconpark/filter.svg"
               },
-              "children": [
-                "filter_list"
-              ],
-              "tag": "i"
+              "tag": "img"
             }
           ]
         },
@@ -56,12 +56,12 @@
                       "fragment": [
                         {
                           "attrs": {
-                            "class": "material-icons-outlined fb-button-icon"
+                            "alt": "",
+                            "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                            "draggable": false,
+                            "src": "/media/icons/iconpark/add-one.svg"
                           },
-                          "children": [
-                            "add_circle_outline"
-                          ],
-                          "tag": "i"
+                          "tag": "img"
                         }
                       ]
                     },
@@ -98,12 +98,12 @@
                       "fragment": [
                         {
                           "attrs": {
-                            "class": "material-icons-outlined fb-button-icon"
+                            "alt": "",
+                            "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                            "draggable": false,
+                            "src": "/media/icons/iconpark/reduce-one.svg"
                           },
-                          "children": [
-                            "remove_circle_outline"
-                          ],
-                          "tag": "i"
+                          "tag": "img"
                         }
                       ]
                     },
@@ -141,12 +141,12 @@
                       "fragment": [
                         {
                           "attrs": {
-                            "class": "material-icons-outlined fb-button-icon"
+                            "alt": "",
+                            "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                            "draggable": false,
+                            "src": "/media/icons/iconpark/close.svg"
                           },
-                          "children": [
-                            "clear"
-                          ],
-                          "tag": "i"
+                          "tag": "img"
                         }
                       ]
                     }
@@ -176,12 +176,12 @@
                       "fragment": [
                         {
                           "attrs": {
-                            "class": "material-icons-outlined fb-button-icon"
+                            "alt": "",
+                            "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                            "draggable": false,
+                            "src": "/media/icons/iconpark/down.svg"
                           },
-                          "children": [
-                            "keyboard_arrow_down"
-                          ],
-                          "tag": "i"
+                          "tag": "img"
                         }
                       ]
                     }
@@ -211,12 +211,12 @@
                       "fragment": [
                         {
                           "attrs": {
-                            "class": "material-icons-outlined fb-button-icon"
+                            "alt": "",
+                            "class": "material-icons-outlined fb-button-icon fb-ipicon",
+                            "draggable": false,
+                            "src": "/media/icons/iconpark/up.svg"
                           },
-                          "children": [
-                            "keyboard_arrow_up"
-                          ],
-                          "tag": "i"
+                          "tag": "img"
                         }
                       ]
                     }
