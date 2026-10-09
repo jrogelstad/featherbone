@@ -14,12 +14,12 @@
       "fragment": [
         {
           "attrs": {
-            "class": "material-icons-outlined fb-button-icon"
+            "alt": "",
+            "class": "material-icons-outlined fb-button-icon fb-ipicon",
+            "draggable": false,
+            "src": "/media/icons/iconpark/upload-one.svg"
           },
-          "children": [
-            "cloud_upload"
-          ],
-          "tag": "i"
+          "tag": "img"
         }
       ]
     },
