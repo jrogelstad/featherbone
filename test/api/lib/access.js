@@ -69,6 +69,10 @@ async function sqlRole(name, password, opts) {
     Employee contact (the Common module PATCHes Employee.userAccount when
     a user account is saved, so the contact has to be an employee).
 
+    Databases with only the framework installed have no Employee feather.
+    Fall back to a plain Contact there, so suites that just need an
+    ordinary user are not limited to databases carrying Job Shop.
+
     opts: {name, password, isSuper, changePassword, admin (Session)}
 */
 async function createUser(admin, opts) {
@@ -76,11 +80,21 @@ async function createUser(admin, opts) {
     let name = opts.name || uniq("fbt_user");
     let password = opts.password || settings.password;
     let email = name + "@example.com";
-    let emp = await admin.create("Employee", {
+    let feather = "Employee";
+    let emp;
+
+    let probe = await admin.raw("GET", "/feather/employee");
+
+    if (!(probe.status === 200 && probe.body && probe.body.name)) {
+        feather = "Contact";
+    }
+
+    emp = await admin.create(feather, {
         firstName: "Test",
         lastName: name,
         email
     });
+
     let pk = await db.query(
         "SELECT _pk FROM contact WHERE id = $1",
         [emp.id]

@@ -728,6 +728,7 @@
                         delete catalog[name];
                         settings.saveSettings({
                             client: theClient,
+                            isInternal: true,
                             data: {
                                 name: "catalog",
                                 data: catalog
@@ -2321,6 +2322,7 @@
 
                         settings.saveSettings({
                             client: theClient,
+                            isInternal: true,
                             data: {
                                 name: "catalog",
                                 data: catalog

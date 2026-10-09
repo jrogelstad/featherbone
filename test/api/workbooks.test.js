@@ -232,13 +232,8 @@ describe("workbooks", function () {
             assert.equal((await admin.raw("GET", path(shared))).status, 200);
         });
 
-        it("cannot overwrite a workbook it may only read", {
-            todo: (
-                "defect: workbooks.js saveWorkbook has no authorization " +
-                "check on update, so any user can rewrite a workbook and " +
-                "its authorizations"
-            )
-        }, async function () {
+        it("cannot overwrite a workbook it may only read",
+                async function () {
             let name = wbName("Guarded");
             await admin.call("PUT", path(name), spec(name));
             let resp = await basicS.raw("PUT", path(name), {

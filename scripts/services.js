@@ -218,22 +218,19 @@ function doUpsertFeather(obj) {
                 });
             });
 
-            if (
-                !obj.newRec.authorizations.length &&
-                !obj.newRec.properties.some(isChild) &&
-                !obj.newRec.isChild
-            ) {
-                obj.newRec.authorizations = f.copy(defaultAuth);
-            } else if (
-                !obj.newRec.authorizations.length &&
-                (
-                    obj.newRec.properties.some(isChild) ||
-                    obj.newRec.isChild
-                )
-            ) {
-                obj.newRec.authorizations = f.copy(defaultChildAuth);
-            }
-
+            /*
+                An empty authorization list on an update means no grants,
+                and is left alone. It used to be replaced with the
+                everyone-everything default, so saving a feather that
+                declares no authorizations -- which the system feathers in
+                scripts/feathers-bootstrap.json all do -- granted every
+                signed-in user full access to it. The Core manifest
+                installs those twice, so a plain install was enough to
+                open up `user_account`, `role`, `script`, `feather` and
+                `document`, and every reinstall of a module widened its
+                feathers the same way. The default below still applies on
+                insert, where there is nothing to overwrite.
+            */
             obj.newRec.authorizations.forEach(function (auth) {
                 if (auth === null) {
                     return;

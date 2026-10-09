@@ -203,16 +203,13 @@ describe("settings", function () {
         assert.equal(resp.data.smtpUser, "fbt-smtp@example.com");
     });
 
-    it("does not give decrypted secrets to a non-super user", {
-        todo: "defect: any signed-in user reads smtpPassword in plain text"
-    }, async function () {
+    it("does not give decrypted secrets to a non-super user",
+            async function () {
         let resp = await basicS.get("/settings/globalSettings");
         assert.notEqual(resp.data.smtpPassword, SECRET);
     });
 
-    it("does not let a non-super user write settings", {
-        todo: "defect: PUT /settings/:name has no authorization check"
-    }, async function () {
+    it("does not let a non-super user write settings", async function () {
         let name = "fbtBasicWrote" + Date.now().toString(36);
         createdNames.push(name);
         let resp = await basicS.raw("PUT", "/settings/" + name, {
