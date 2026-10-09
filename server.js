@@ -372,6 +372,48 @@
         }
     }
 
+    // Copy of a request payload that is safe to write to the log: the tenant
+    // is reduced to its database name and anything that looks like a
+    // credential is masked.
+    const SECRET_KEY = /pass|pwd|secret|token|credential|api.?key/i;
+
+    function redact(value, key) {
+        if (key && SECRET_KEY.test(key) && typeof value !== "object") {
+            return "****";
+        }
+        if (Array.isArray(value)) {
+            return value.map(function (item) {
+                // JSON patch operation on a secret property
+                if (
+                    item && typeof item === "object" &&
+                    SECRET_KEY.test(String(item.path || ""))
+                ) {
+                    return Object.assign({}, item, {value: "****"});
+                }
+                return redact(item);
+            });
+        }
+        if (value && typeof value === "object") {
+            let ret = {};
+            Object.keys(value).forEach(function (k) {
+                ret[k] = redact(value[k], k);
+            });
+            return ret;
+        }
+        return value;
+    }
+
+    function loggable(payload) {
+        let log = Object.assign({}, payload);
+        if (log.tenant) {
+            log.tenant = log.tenant.pgDatabase;
+        }
+        if (log.data !== undefined) {
+            log.data = redact(log.data);
+        }
+        return log;
+    }
+
     function postify(req, res) {
         let payload = {
             method: "POST",
@@ -381,7 +423,7 @@
             tenant: req.tenant
         };
 
-        logger.info(payload);
+        logger.info(loggable(payload));
         datasource.request(
             payload
         ).then(
@@ -413,7 +455,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -436,7 +478,7 @@
         let log = f.copy(payload);
         log.data.password = "****";
 
-        logger.verbose(log);
+        logger.verbose(loggable(log));
         datasource.request(payload, req.user.isSuper).then(
             async function (data) {
                 let cntct = await datasource.request({
@@ -481,7 +523,7 @@
         });
         log.data.password = "****";
 
-        logger.verbose(log);
+        logger.verbose(loggable(log));
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -523,7 +565,7 @@
 
         payload.filter.offset = payload.filter.offset || 0;
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload, isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -542,7 +584,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload,
             req.user.isSuper
@@ -560,7 +602,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload,
             req.user.isSuper
@@ -579,7 +621,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -600,7 +642,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -650,7 +692,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -695,7 +737,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             function () {
                 registerDataRoutes();
@@ -719,7 +761,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             function (resp) {
                 registerDataRoutes();
@@ -762,7 +804,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload
         ).then(
@@ -782,7 +824,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(
             payload
         ).then(
@@ -1131,7 +1173,7 @@
             };
 
             logger.verbose("Send mail");
-            logger.verbose(payload);
+            logger.verbose(loggable(payload));
             resp = await datasource.request(payload, true);
             respond.bind(res)(resp);
         } catch (e) {
@@ -1545,7 +1587,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1560,7 +1602,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1575,7 +1617,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1599,7 +1641,7 @@
             payload.data.feather = req.query.feather;
         }
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1618,7 +1660,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1640,7 +1682,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1657,7 +1699,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1676,7 +1718,7 @@
             tenant: req.tenant
         };
 
-        logger.verbose(payload);
+        logger.verbose(loggable(payload));
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
