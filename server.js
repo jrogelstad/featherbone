@@ -1341,25 +1341,35 @@
     async function doNotice(req, res, next) {
         let signature;
         let hash;
+        let valid = false;
 
         try {
-            if (webhookHeader) {
+            // Fail closed: with no secret or header configured there is
+            // nothing to verify against, so nothing is accepted.
+            if (webhookHeader && webhookSecret) {
                 signature = req.header(webhookHeader);
-                hash = crypto.createHmac(
-                    "SHA256",
-                    webhookSecret
-                ).update(
-                    req.rawBody
-                ).digest("base64");
-                logger.verbose(
-                    "WEBHOOK HEADERS->" +
-                    JSON.stringify(req.headers, null, 2)
+                if (signature && req.rawBody !== undefined) {
+                    hash = crypto.createHmac(
+                        "SHA256",
+                        webhookSecret
+                    ).update(
+                        req.rawBody
+                    ).digest("base64");
+                    let a = Buffer.from(hash);
+                    let b = Buffer.from(String(signature));
+                    valid = (
+                        a.length === b.length &&
+                        crypto.timingSafeEqual(a, b)
+                    );
+                }
+            } else {
+                logger.error(
+                    "Webhook rejected: webhookHeader and webhookSecret " +
+                    "must both be configured."
                 );
             }
 
-            logger.verbose("WEBHOOK SIGNATURE->" + signature);
-            logger.verbose("WEBHOOK HASH->" + hash);
-            if (hash === signature) {
+            if (valid) {
                 await datasource.request({
                     data: {payload: req.body},
                     method: "POST",
