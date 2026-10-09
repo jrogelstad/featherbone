@@ -14,7 +14,6 @@
     "logZippedArchive": false,
     "logSilent": false,
     "mode": "prod",
-    "nodeId": "node1",
     "passwordLength": 0,
     "pgCryptoKey": "Your db encryption key here",
     "pgDatabase": "demo",
