@@ -121,8 +121,10 @@ one-way door.
       strands no connection.
 - [ ] **B.3 Replace `pg_has_role()` with membership resolution.** (L)
     - A recursive CTE over `role` and `role_membership` in the tenant database.
-      Six call sites: `tools.js` ~200 and ~221, `workbooks.js` ~165 and ~255,
-      `feathers.js` ~1016, `scripts/services.js` ~1350.
+      Seven call sites: `tools.js` ~200 and ~221, `workbooks.js` ~165 and
+      ~255, `feathers.js` ~1016, `scripts/services.js` ~1350, and
+      `settings.js` `settingIsAuthorized` (added by improvement-plan 0.4,
+      which lets a role granted `canUpdate` on a settings row change it).
     - `$auth` rows and semantics do not change.
     - Add a per-tenant `everyone` equivalent: an implicit group every granted
       identity belongs to, replacing the cluster-wide role.
