@@ -247,6 +247,17 @@
         try {
             // Configure logger
             let resp = await config.read();
+            let missing = config.missingSecrets(resp);
+            if (missing.length) {
+                // Logger isn't configured yet
+                console.error(
+                    "Featherbone will not start: set " + missing.join(", ") +
+                    " in server/config.json (or the environment). " +
+                    "pgCryptoKey cannot be changed on an existing database " +
+                    "without re-encrypting its data."
+                );
+                process.exit(1);
+            }
             let log = {
                 level: resp.logLevel,
                 zippedArchive: resp.logZippedArchive,
