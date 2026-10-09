@@ -512,25 +512,62 @@
         }
     };
 
-    // For interrupted process cleanup after server restart
-    that.cleanupProcesses = async function () {
+    // Run an action against every registered tenant. A tenant that can't be
+    // reached is reported and skipped so one bad tenant can't block startup.
+    async function eachTenant(action) {
+        let n = 0;
         let resp;
+        let tenant;
+        while (n < tenants.length) {
+            tenant = tenants[n];
+            n += 1;
+            try {
+                resp = await db.connect(tenant);
+                try {
+                    await action(resp.client, tenant);
+                } finally {
+                    resp.done();
+                }
+            } catch (err) {
+                console.error(
+                    "Startup cleanup skipped " + tenant.pgDatabase + ": " +
+                    (err.message || err)
+                );
+            }
+        }
+    }
+
+    /**
+        Release record locks and subscriptions left by nodes that are no
+        longer running, on every tenant. Never touches a live node's, so
+        several nodes may share the same databases.
+
+        @method cleanupNodes
+        @return {Promise}
+    */
+    that.cleanupNodes = function () {
+        return eachTenant((client) => events.cleanupNodes(client));
+    };
+
+    // For interrupted process cleanup after server restart. Only processes
+    // whose Postgres backend is gone are stopped, so a restart of one node
+    // leaves another node's in-flight processes alone.
+    that.cleanupProcesses = function () {
         let sql1 = (
             "UPDATE server_process SET " +
             "  status = 'S', " +
             "  completed = now(), " +
-            "  error_message = 'Stopped by server restart'" +
-            "WHERE status = 'P';"
+            "  error_message = 'Stopped by server restart' " +
+            "WHERE status = 'P' AND (" +
+            "  (process_id IS NOT NULL AND NOT EXISTS (" +
+            "    SELECT 1 FROM pg_stat_activity " +
+            "    WHERE pid = server_process.process_id" +
+            "    AND datname = current_database()))" +
+            "  OR (process_id IS NULL AND " +
+            "    created < now() - interval '5 minutes')" +
+            ");"
         );
-        let tenant;
-        let n = 0;
-        while (n < tenants.length) {
-            tenant = tenants[0];
-            n += 1;
-            resp = await db.connect(tenant);
-            await resp.client.query(sql1);
-            resp.done();
-        }
+        return eachTenant((client) => client.query(sql1));
     };
 
     /**
