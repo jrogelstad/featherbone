@@ -162,11 +162,15 @@ function transition() {
         return;
     }
 
+    // Take the queue before running it. An enter handler may send an event
+    // (or go to another state) which re-enters this function; if the queue
+    // were still populated that nested call would run the same transitions
+    // again, recursing without end.
+    this.transitions = [];
+
     for (len = ts.length; i < len; i += 1) {
         enter.call(ts[i].pivot, ts[i].states, ts[i].opts);
     }
-
-    this.transitions = [];
 }
 
 // Internal: Invokes all registered enter handlers.

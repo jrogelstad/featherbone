@@ -268,10 +268,7 @@ describe("data API queries", function () {
             );
         });
 
-        it("treats a null value as IS NULL", {
-            todo: "defect: null criteria value -> TypeError 'Cannot read " +
-                    "properties of null' (crud.js:48 transformObj)"
-        }, async function () {
+        it("treats a null value as IS NULL", async function () {
             let resp = await admin.raw("POST", "/data/kinds", {filter: {
                 criteria: [mine, {property: "note", value: null}]
             }});

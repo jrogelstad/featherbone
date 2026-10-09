@@ -155,13 +155,7 @@ describe("settings", function () {
         assert.equal(after.etag, (await row("globalSettings")).etag);
     });
 
-    it("rejects a PUT with a stale etag", {
-        todo: (
-            "defect: settings.js saveSettings reads obj.etag (not " +
-            "obj.data.etag) and compares its cache with the database, " +
-            "never the client's etag"
-        )
-    }, async function () {
+    it("rejects a PUT with a stale etag", async function () {
         let current = await admin.get("/settings/globalSettings");
         let resp = await admin.raw("PUT", "/settings/globalSettings", {
             etag: "fbt-stale-etag",

@@ -45,7 +45,6 @@
         @return {String}
     */
     String.prototype.toCamelCase = function (upper) {
-        let f = this.slice(0, 1);
         let re = new RegExp("[_,-]+(.)?", "g");
         let str = this.replace(re, function (ignore, chr) {
             return (
@@ -55,10 +54,12 @@
             );
         });
 
+        // Take the first character from the converted string so a leading
+        // separator does not swallow a letter
         return (
             upper
-            ? f.toUpperCase()
-            : f.toLowerCase()
+            ? str.slice(0, 1).toUpperCase()
+            : str.slice(0, 1).toLowerCase()
         ) + str.slice(1);
     };
 

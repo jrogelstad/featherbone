@@ -425,12 +425,7 @@ describe("authorization", function () {
             );
         });
 
-        it("/do/is-authorized answers for an unknown id", {
-            todo: (
-                "defect: feathers.js isAuthorized never resolves when the " +
-                "id is not found, so the request hangs"
-            )
-        }, async function () {
+        it("/do/is-authorized answers for an unknown id", async function () {
             let resp = await access.rawTimeout(
                 basicS,
                 "GET",

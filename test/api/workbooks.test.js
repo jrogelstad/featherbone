@@ -150,12 +150,8 @@ describe("workbooks", function () {
         assert.deepEqual(wb.authorizations, []);
     });
 
-    it("keeps module and isTemplate when an update omits them", {
-        todo: (
-            "defect: workbooks.js update writes wb.module without fallback " +
-            "and reads row.isTemplate instead of row.is_template"
-        )
-    }, async function () {
+    it("keeps module and isTemplate when an update omits them",
+            async function () {
         let name = wbName("Partial");
         await admin.call("PUT", path(name), spec(name));
         await admin.call("PUT", path(name), {
@@ -276,9 +272,8 @@ describe("workbooks", function () {
         assert.equal(resp.body, true);
     });
 
-    it("removes the workbook's authorization rows on delete", {
-        todo: "defect: deleteWorkbook leaves its \"$auth\" rows orphaned"
-    }, async function () {
+    it("removes the workbook's authorization rows on delete",
+            async function () {
         let name = wbName("Orphan");
         await admin.call("PUT", path(name), spec(name));
         let pk = (await db.query(

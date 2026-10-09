@@ -106,8 +106,7 @@ describe("common/number.js", function () {
         assert.equal((7).pad(2), "07");
     });
 
-    it("pads negative numbers after the sign",
-            {todo: "defect: (-5).pad(3) gives '0-5'"}, function () {
+    it("pads negative numbers after the sign", function () {
         assert.equal((-5).pad(3), "-05");
     });
 });

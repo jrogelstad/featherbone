@@ -502,13 +502,17 @@
 
                     // Regular comparison ("name"="Andy")
                     } else if (
-                        typeof where.value === "object" &&
-                        !where.value.id
+                        where.value === null ||
+                        (typeof where.value === "object" && !where.value.id)
                     ) {
                         part = tools.resolvePath(
                             where.property,
                             tokens
-                        ) + " IS NULL";
+                        ) + (
+                            op === "!="
+                            ? " IS NOT NULL"
+                            : " IS NULL"
+                        );
                     } else {
                         if (typeof where.value === "object") {
                             where.property = where.property + ".id";

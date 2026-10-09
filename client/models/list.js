@@ -270,7 +270,7 @@ function createList(feather) {
                         prop = f.resolveProperty(mdl, p);
                         val = prop() || "";
                         rg = new RegExp(crit.value, "i");
-                        return val.search(rg);
+                        return String(val).search(rg) !== -1;
                     });
                 }
 
@@ -546,6 +546,7 @@ function createList(feather) {
                 catalog.register("subscriptions", sid, ary);
             } else {
                 if (isSubscribed) {
+                    isSubscribed = false;
                     catalog.unregister("subscriptions", sid);
 
                     // Let the server know we're unsubscribing
@@ -564,8 +565,6 @@ function createList(feather) {
 
                     return m.request(payload).catch(console.error);
                 }
-
-                isSubscribed = false;
             }
         }
 

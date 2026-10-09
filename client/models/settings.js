@@ -102,12 +102,33 @@ function settings(definition) {
                 context.reject("Settings failed to save");
                 return;
             }
-            that.state().send("fetched");
-            context.resolve(that.data);
+
+            // The server issues a new etag on every save. Pick it up, or the
+            // next save from this model is refused as out of date.
+            ds.request({
+                method: "GET",
+                path: "/settings/" + name
+            }).then(function (resp) {
+                that.etag(resp && resp.etag);
+                that.state().send("fetched");
+                context.resolve(that.data);
+            }).catch(function (err) {
+                that.state().send("error");
+                context.reject(err);
+            });
+        }
+
+        function error(err) {
+            // Settle the save and leave Busy (same as a false response)
+            that.state().send("error");
+            context.reject(err);
         }
 
         if (that.isValid()) {
-            ds.request(payload).then(callback);
+            ds.request(payload).then(callback).catch(error);
+        } else {
+            // isValid() has already raised the error state
+            context.reject(new Error(that.lastError().message));
         }
     };
 
