@@ -1025,7 +1025,12 @@
 
                 afterAuthorization = function (authorized) {
                     if (!authorized) {
-                        reject("Not authorized to delete \"" + obj.id + "\"");
+                        reject({
+                            statusCode: 401,
+                            message: (
+                                "Not authorized to delete \"" + obj.id + "\""
+                            )
+                        });
                         return;
                     }
 
@@ -2113,10 +2118,10 @@
                 }
 
                 if (!authorized) {
-                    return Promise.reject(
-                        "Not authorized to update \"" + theId + "\""
-                    );
-
+                    return Promise.reject({
+                        statusCode: 401,
+                        message: "Not authorized to update \"" + theId + "\""
+                    });
                 }
 
                 pk = await tools.getKey({
