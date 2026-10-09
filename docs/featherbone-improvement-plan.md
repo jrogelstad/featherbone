@@ -17,7 +17,7 @@
 > nor the control plane, and they are live money and scaling defects. Start
 > there, alongside items 1.2, 1.3, 1.5 and 1.7, which also stand on their own.
 
-**Progress 2026-10-08:** Tier 0 items 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3 and 1.7 are fixed on their own branches (PRs to open). Todo counts in the table below are as of the suite's creation and are not recalculated.
+**Progress 2026-10-09:** Tier 0 items 0.2, 0.3, 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3, 1.7 and 1.8 are fixed (all merged except 0.2, 0.3 and 1.8, which are pushed). Also merged: tenant plan A.2, a test reporter fix, ribbon component tests and a button label fix (see `featherbone-fix-branches.md`). Todo counts in the table below are as of the suite's creation and are not recalculated.
 
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
 
@@ -37,8 +37,10 @@ A todo test asserts the correct behavior for a known defect and is tagged with i
 Defects the suite found that are not in the tiers below (each has a todo test; file:line in the test's todo text):
 
 - [ ] **0.1 `POST /data/user-account` always fails** **[→ tenant-management-plan B.5]** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
-- [ ] **0.2 Server crash on a bad relation id:** a PATCH pointing a relation at a nonexistent id kills the server (`crud.js:2323`, unhandled promise). Skipped in the suite because it takes the shared server down; belongs with 6.1.
-- [ ] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
+- [x] **0.2 Server crash on a bad relation id:** a PATCH pointing a relation at a nonexistent id kills the server (`crud.js:2323`, unhandled promise). Skipped in the suite because it takes the shared server down; belongs with 6.1.
+    - *Done: `fix/0.2-bad-relation-id`, 2026-10-09. `afterGetRelKey` in `crud.js` now throws instead of returning a rejected promise, so the request gets an error and the server stays up. The skipped test is enabled (uses Currency `displayUnit`).*
+- [x] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
+    - *Done: `fix/0.3-unauthenticated-endpoints`, 2026-10-09. `currency` and `sessions` added to `check[]`; `/sessions` and `/do/disconnect` require a superuser (403) and disconnect is limited to the caller's database; sign-in errors use an allowlist with the generic "Invalid sign in credentials." for unknown users. Todo markers removed from `security.test.js` and `users.test.js`.*
 - [ ] **0.4 Authorization gaps:** any signed-in user can list all user accounts, read `smtpPassword` and `TenantService.pgPassword` decrypted, create or overwrite settings, and a read-only user can overwrite a workbook and its permissions (`workbooks.js:430`). Update and delete denials return 500 while create denials return 401.
 - [x] **0.5 Currency conversion inverts the rate** (`currency.js:331`, 10 becomes 40 instead of 2.5); same-currency conversion returns a string; the first `/currency/base` after start returns 500.
     - *Done: `fix/0.5-currency-conversion`, 2026-10-08. Conversion divides only when the from-currency is the base currency, otherwise multiplies; same-currency returns the amount; base-currency cache listener fixed (`events.js` tenant copy, receiver filter).*
@@ -95,10 +97,12 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
     - Where: `server/database.js` `authenticate()` ~140–215.
     - Fix: `try/finally` release and end; reuse the service pool for the bookkeeping queries; use the tenant host, not `conf.pgHost`.
 - [x] **1.7 Remove default secrets from the repo config.** `server/config.json` ships a `secret` and `pgCryptoKey`.
+    - *Follow-up 2026-10-08: the old placeholder text now only logs a warning at startup instead of refusing, because databases already encrypted with the placeholder cannot be re-keyed. Blank or missing still refuses.*
     - *Done: `fix/1.7-default-secrets`, 2026-10-08. Template ships empty `secret`/`pgCryptoKey`; `server.js` and `install.js` refuse to start when empty or the old placeholder. Unit test `test/unit/config.test.js`.*
     - Fix: ship empty values and refuse to start until they are set. Document that `pgCryptoKey` cannot be changed on an existing database without re-encrypting (you just hit this).
     - Note (2026-10-06): `server/config.json` is now git-ignored and the repo ships `config.template.json`; the template still carries placeholder values and the server does not yet refuse to start with them.
-- [ ] **1.8 Take secrets out of SQL text.** **[role-password half deleted by tenant-management-plan B.4; the `pgp_sym_decrypt` half stays here]** The crypto key and role passwords are concatenated into statements, so they can show up in `pg_stat_activity` and server logs.
+- [x] **1.8 Take secrets out of SQL text.** **[role-password half deleted by tenant-management-plan B.4; the `pgp_sym_decrypt` half stays here]** The crypto key and role passwords are concatenated into statements, so they can show up in `pg_stat_activity` and server logs.
+    - *Done (pgp_sym half): `fix/1.8-crypto-key-param`, 2026-10-09. `crud.js` binds the pgcrypto key as a query parameter for insert, update and select; with statement logging on, the key appeared 0 times against 35 before. Test in `security.test.js` enabled (skips if `pg_stat_activity` cannot see the queries). Tenant-service password exposure to ordinary users stays with 0.4.*
     - Where: `crud.js` `doSelect` (~1810, `pgp_sym_decrypt(col, '<key>')`); `role.js` `ALTER ROLE … PASSWORD %L` and `CREATE ROLE … PASSWORD %L`.
     - Fix: pass the key as a parameter as `settings.js` does; for role passwords, send a pre-hashed SCRAM secret or set `log_statement = none` for that session.
 
