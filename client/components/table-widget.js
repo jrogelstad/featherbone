@@ -64,12 +64,21 @@ outer.parentNode.removeChild(outer);
 scrWidth = widthNoScroll - widthWithScroll;
 
 function handleStyle(style, tdOpts) {
+    let tint;
+
     if (style) {
         style = f.getStyle(style);
         tdOpts.style.color = style.color;
         tdOpts.style.backgroundColor = style.backgroundColor;
         tdOpts.style.fontWeight = style.fontWeight;
         tdOpts.style.textDecoration = style.textDecoration;
+
+        // IconPark icons ignore `color`; pass it on as a filter
+        // (--fb-icon-filter, see featherbone.css)
+        tint = f.iconFilter(style.color);
+        if (tint) {
+            tdOpts.style["--fb-icon-filter"] = tint;
+        }
     }
 }
 
@@ -642,6 +651,7 @@ function createTableRow(options, pModel) {
     };
     let cellOpts = {};
     let rowClass;
+    let rowTint;
     let style;
     let thTitle;
 
@@ -678,6 +688,11 @@ function createTableRow(options, pModel) {
                 fontWeight: style.fontWeight,
                 textDecoration: style.textDecoration
             };
+
+            rowTint = f.iconFilter(style.color);
+            if (rowTint) {
+                rowOpts.style["--fb-icon-filter"] = rowTint;
+            }
 
             if (!isSelected) {
                 rowOpts.style.backgroundColor = style.backgroundColor;

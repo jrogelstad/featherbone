@@ -693,6 +693,138 @@ formats.gantt = gantt;
 const iconSet = new Set(icons);
 const ICON_PATH = "/media/icons/iconpark/";
 
+// The IconPark SVGs are drawn in blue and ignore CSS `color`, which the
+// Material font glyphs they replaced obeyed. Two things stand in for it:
+//   - an icon whose legacy Material name means error / warning / success
+//     is toned that way by default (class fb-ip-<tone>, featherbone.css);
+//   - any colour set on the icon, its cell or its row (a Style's colour,
+//     say) is turned into a CSS filter by f.iconFilter below.
+const iconTones = {
+    check_circle: "success",
+    check_circle_outline: "success",
+    dangerous: "error",
+    error: "error",
+    report_problem: "warning",
+    warning: "warning"
+};
+const ICON_BASE_HUE = 213; // hue of the blue the icons are drawn in
+const filterCache = {};
+let colorProbe;
+
+/**
+    The [r, g, b] of any CSS colour -- hex, rgb(), a name or a var() --
+    or undefined if the browser doesn't recognise it.
+    @method resolveColor
+    @param {String} color
+    @return {Array}
+*/
+function resolveColor(color) {
+    let rgb;
+
+    if (!colorProbe) {
+        colorProbe = document.createElement("span");
+        colorProbe.style.display = "none";
+        document.body.appendChild(colorProbe);
+    }
+    colorProbe.style.color = "";
+    colorProbe.style.color = color;
+    if (!colorProbe.style.color) {
+        return undefined;
+    }
+
+    rgb = window.getComputedStyle(colorProbe).color.match(/[\d.]+/g);
+    return (
+        rgb
+        ? rgb.slice(0, 3).map(Number)
+        : undefined
+    );
+}
+
+/**
+    CSS `filter` that shifts an IconPark icon from its blue toward
+    `color`, so a Style's colour (red for a critical alert, orange for a
+    warning, ...) still shows on an icon. Greys become grey and white is
+    left alone; "" means no filter is needed or the colour isn't one.
+    @method iconFilter
+    @param {String} color Any CSS colour
+    @return {String}
+*/
+f.iconFilter = function (color) {
+    let rgb;
+    let r;
+    let g;
+    let b;
+    let max;
+    let min;
+    let delta;
+    let lightness;
+    let hue;
+    let rotate;
+    let parts;
+    let result = "";
+    let cacheable = typeof color === "string" && !color.includes("var(");
+
+    if (typeof color !== "string" || !color) {
+        return "";
+    }
+    if (cacheable && Object.prototype.hasOwnProperty.call(filterCache, color)) {
+        return filterCache[color];
+    }
+
+    rgb = resolveColor(color);
+    if (rgb) {
+        r = rgb[0] / 255;
+        g = rgb[1] / 255;
+        b = rgb[2] / 255;
+        max = Math.max(r, g, b);
+        min = Math.min(r, g, b);
+        delta = max - min;
+        lightness = (max + min) / 2;
+
+        if (delta === 0 || delta / (1 - Math.abs(2 * lightness - 1)) < 0.15) {
+            // Grey, black or white
+            if (lightness < 0.85) {
+                result = (
+                    lightness < 0.3
+                    ? "grayscale(1) brightness(.5)"
+                    : "grayscale(1)"
+                );
+            }
+        } else {
+            if (max === r) {
+                hue = ((g - b) / delta) % 6;
+            } else if (max === g) {
+                hue = (b - r) / delta + 2;
+            } else {
+                hue = (r - g) / delta + 4;
+            }
+            hue = (hue * 60 + 360) % 360;
+            rotate = Math.round((hue - ICON_BASE_HUE + 360) % 360);
+
+            if (rotate > 6 && rotate < 354) {
+                parts = ["hue-rotate(" + rotate + "deg)"];
+                if (hue >= 15 && hue <= 75) {
+                    // Orange and yellow come out dark and brown without it
+                    parts.push("saturate(2) brightness(1.25)");
+                } else if (hue > 75 && hue < 165) {
+                    parts.push("saturate(1.1)");
+                } else {
+                    parts.push("saturate(1.25)");
+                }
+                if (lightness < 0.3) {
+                    parts.push("brightness(.8)");
+                }
+                result = parts.join(" ");
+            }
+        }
+    }
+
+    if (cacheable) {
+        filterCache[color] = result;
+    }
+    return result;
+};
+
 /**
     The IconPark icon to draw for `name`, or undefined if there isn't
     one. `name` is an IconPark name ("truck") or a Material icon name
@@ -736,9 +868,22 @@ f.icon = function (name, cls, attrs) {
     let ipName = iconParkName(name);
     let opts = Object.assign({}, attrs);
     let classes = "material-icons-outlined " + (cls || "");
+    let tone;
+    let tint;
 
     if (ipName) {
-        opts.class = classes + " fb-ipicon";
+        tone = (
+            Object.prototype.hasOwnProperty.call(iconTones, name)
+            ? " fb-ip-" + iconTones[name]
+            : ""
+        );
+        opts.class = classes + " fb-ipicon" + tone;
+        if (opts.style && typeof opts.style === "object") {
+            tint = f.iconFilter(opts.style.color);
+            if (tint) {
+                opts.style = Object.assign({}, opts.style, {filter: tint});
+            }
+        }
         opts.src = ICON_PATH + ipName + ".svg";
         opts.alt = "";
         opts.draggable = false;
