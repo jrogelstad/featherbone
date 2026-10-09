@@ -98,6 +98,23 @@
                 let role = obj.client.currentUser();
                 let etag = f.createId();
                 let client = obj.client;
+                let body = obj.data || {};
+                // A body with an etag is an envelope: {etag, data}. A bare
+                // body is the profile data itself, as sent to create one.
+                let isEnvelope = Object.prototype.hasOwnProperty.call(
+                    body,
+                    "etag"
+                );
+                let sentEtag = (
+                    isEnvelope
+                    ? body.etag
+                    : obj.etag
+                );
+                let data = (
+                    isEnvelope
+                    ? body.data
+                    : body
+                );
 
                 // Query profile
                 client.query(sql, [role], function (err, resp) {
@@ -108,7 +125,7 @@
 
                     // Send back result
                     if (resp.rows.length) {
-                        if (obj.etag !== resp.rows[0].etag) {
+                        if (sentEtag !== resp.rows[0].etag) {
                             reject(conflictErr);
                             return;
                         }
@@ -123,7 +140,7 @@
 
                     client.query(
                         sql,
-                        [role, etag, obj.data]
+                        [role, etag, data]
                     ).then(resolve.bind(null, etag)).catch(reject);
                 });
             });

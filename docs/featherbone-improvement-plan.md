@@ -17,6 +17,8 @@
 > nor the control plane, and they are live money and scaling defects. Start
 > there, alongside items 1.2, 1.3, 1.5 and 1.7, which also stand on their own.
 
+**Progress 2026-10-08:** Tier 0 items 0.7, 0.8 and 0.9 are fixed on their own branches (PRs to open). Todo counts in the table below are as of the suite's creation and are not recalculated.
+
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
 
 ## Tier 0: Regression suite (done)
@@ -40,9 +42,12 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
 - [ ] **0.4 Authorization gaps:** any signed-in user can list all user accounts, read `smtpPassword` and `TenantService.pgPassword` decrypted, create or overwrite settings, and a read-only user can overwrite a workbook and its permissions (`workbooks.js:430`). Update and delete denials return 500 while create denials return 401.
 - [ ] **0.5 Currency conversion inverts the rate** (`currency.js:331`, 10 becomes 40 instead of 2.5); same-currency conversion returns a string; the first `/currency/base` after start returns 500.
 - [ ] **0.6 `PUT /profile` always 409** (`profile.js:111`); stale settings etags are accepted (`settings.js:228`); workbook update without module/isTemplate clears them; deleting a workbook leaves its permission rows.
-- [ ] **0.7 Null handling:** null natural key or null filter value gives a 500 TypeError (`crud.js:48`); PATCH of a missing id gives 500 `"undefined" is not valid JSON` (`datasource.js:1501`); required strings are saved as `""`; `/do/is-authorized?id=<unknown>` never answers and holds a pooled connection (`feathers.js:1048`).
-- [ ] **0.8 Client model statecharts:** `model.save()` never settles when invalid or when called in Clean; a failed lock strands the model in Locking; a failed delete leaves it frozen; settings and workbook `doPut` have no catch (`.catch(model.error)` is undefined); `clear()` on a new record with child arrays overflows the stack; `list.subscribe(false)` and `list.inFilter` (`search()` at position 0) misbehave; `button.isPrimary()` always false and clears the flag when read.
-- [ ] **0.9 Common helpers:** `(-5).pad(3)` gives `0-5`; `'_foo'.toCamelCase()` drops the first letter; `netWorkDays` mutates its Date arguments; money `toType` rounds the conversion ratio to the currency scale (ratio 0.001 becomes 0, division by zero).
+- [x] **0.7 Null handling:** null natural key or null filter value gives a 500 TypeError (`crud.js:48`); PATCH of a missing id gives 500 `"undefined" is not valid JSON` (`datasource.js:1501`); required strings are saved as `""`; `/do/is-authorized?id=<unknown>` never answers and holds a pooled connection (`feathers.js:1048`).
+    - Fixed on `fix/0.7-null-handling` (2026-10-08): null filter values become IS NULL, PATCH of an unknown id answers not-found, an omitted required string is rejected, `/do/is-authorized` answers for an unknown id. Not covered: `{}` as a relation filter (todo test remains).
+- [x] **0.8 Client model statecharts:** `model.save()` never settles when invalid or when called in Clean; a failed lock strands the model in Locking; a failed delete leaves it frozen; settings and workbook `doPut` have no catch (`.catch(model.error)` is undefined); `clear()` on a new record with child arrays overflows the stack; `list.subscribe(false)` and `list.inFilter` (`search()` at position 0) misbehave; `button.isPrimary()` always false and clears the flag when read.
+    - Fixed on `fix/0.8-client-statecharts` (2026-10-08), including a re-entrancy bug in `client/state.js` that caused the `clear()` overflow. Settings still park in `/Error` after a failed save (pinned).
+- [x] **0.9 Common helpers:** `(-5).pad(3)` gives `0-5`; `'_foo'.toCamelCase()` drops the first letter; `netWorkDays` mutates its Date arguments; money `toType` rounds the conversion ratio to the currency scale (ratio 0.001 becomes 0, division by zero).
+    - Fixed on `fix/0.9-common-helpers` (2026-10-08).
 - [ ] **0.10 SupplyChain:** `change-purchase-order-status` reads `ids[i]` so a single `id` gives 500; inbound move transactions have no `document`; a failed auto-post after save leaves no error on the record; `do-post-work-order-issue.js` rejects on-hold orders inside `try` without `await`, skipping error handling.
 - [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
 

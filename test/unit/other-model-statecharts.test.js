@@ -122,14 +122,20 @@ describe("specialized model statecharts", function () {
             assert.equal(current(s), "/Ready/Fetched/Dirty");
             assert.equal(s.canSave(), true);
             answers["PUT /settings/unitSettings"] = true;
+            // The server issues a new etag on every save
+            answers["GET /settings/unitSettings"] = {
+                etag: "et2",
+                data: {host: "mail", port: 26}
+            };
             let promise = s.save();
             assert.equal(current(s), "/Busy/Saving");
             assert.equal(await promise, s.data);
             assert.equal(current(s), "/Ready/Fetched/Clean");
+            assert.equal(s.etag(), "et2", "next save uses the new etag");
             assert.deepEqual(requests(), [["PUT", "/settings/unitSettings", {
                 etag: "et1",
                 data: {host: "mail", port: 26, objectType: ""}
-            }]]);
+            }], ["GET", "/settings/unitSettings", undefined]]);
         });
 
         it("a false PUT response rejects and parks the model in /Error",
@@ -152,9 +158,6 @@ describe("specialized model statecharts", function () {
         });
 
         it("a rejected PUT rejects the save and leaves Busy",
-                {todo: "defect: settings doPut has no catch; a failed " +
-                "request is an unhandled rejection and the model stays in " +
-                "/Busy/Saving with a never-settling promise"},
                 async function () {
             let s = settings({
                 name: "unitSettingsRej",
@@ -250,9 +253,6 @@ describe("specialized model statecharts", function () {
         });
 
         it("a failed PUT rejects the save and returns to Ready",
-                {todo: "defect: workbook doPut uses .catch(model.error), " +
-                "which is undefined; failures are unhandled rejections " +
-                "and the model stays in /Busy/Saving"},
                 async function () {
             let wb = workbook("Fail");
             wb.data.label("x");

@@ -54,7 +54,12 @@
         */
         events.listen = function (client, channel, callback) {
             return new Promise(function (resolve, reject) {
-                let tenant = f.copy(client.tenant());
+                // Service connections opened without a tenant have none
+                let tenant = (
+                    client.tenant()
+                    ? f.copy(client.tenant())
+                    : undefined
+                );
                 client.on("notification", function (msg) {
                     msg.payload = JSON.parse(msg.payload);
                     msg.payload = tools.sanitize(msg.payload);

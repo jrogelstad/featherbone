@@ -20,13 +20,20 @@ import Big from "../node_modules/big.js/big.mjs";
 
 Number.prototype.pad = function (width, str) {
     let n = String(this);
+    let sign = "";
     let a = [];
     str = str || "0";
+    if (n.charAt(0) === "-") {
+        // Pad between the sign and the digits; width includes the sign
+        sign = "-";
+        n = n.slice(1);
+        width -= 1;
+    }
     if (n.length < width) {
         a.length = width - n.length + 1;
     }
 
-    return (
+    return sign + (
         a.length
         ? a.join(str) + n
         : n

@@ -1628,6 +1628,13 @@ button:disabled .fb-ipicon,
   vertical-align: bottom;
 }
 
+/* Resource / help link cells (f.types.resourceLink in core.js): gap
+   between the icon and the label that follows it. Only added when
+   there is a label, so an icon-only link isn't pushed off-centre. */
+.fb-table-icon.fb-link-icon {
+  margin-right: 6px;
+}
+
 /* Small list inside the data-type dialog (data-type.js) -- a separate,
    simple table that still scrolls its own tbody. */
 .fb-data-type-dialog-list-body {
