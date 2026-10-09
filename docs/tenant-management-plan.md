@@ -44,11 +44,12 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       own, and the control plane starts with no tenant application modules.
 - [x] **A.2 Per-process node identity, and scope the restart cleanup.** (S)
     - *Done 2026-10-08 on `fix/a2-node-identity`.* Node id is now
-      `<nodeId>_<pid>_<random>`; the listener holds an advisory lock, and startup
-      cleans only locks/subscriptions of nodes whose lock is free. Process
-      cleanup stops only rows whose Postgres backend is gone and covers every
-      tenant. Test: `test/api/node-identity.test.js`. Mixed-version caveat: an
-      old-version node (no advisory lock) looks dead to a new one.
+      `node_<pid>_<random>` (the `nodeId` config key was dropped); the listener
+      holds an advisory lock, and startup cleans only locks/subscriptions of
+      nodes whose lock is free. Process cleanup stops only rows whose Postgres
+      backend is gone and covers every tenant. Test:
+      `test/api/node-identity.test.js`. Mixed-version caveat: an old-version
+      node (no advisory lock) looks dead to a new one.
     - `nodeId` is a static config value (`"node1"`). Startup runs
       `datasource.unlock()` and `datasource.unsubscribe()` scoped by it
       (`server.js` ~311–314), so a second node booting wipes the first node's
