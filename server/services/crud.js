@@ -37,6 +37,8 @@
     const tools = new Tools();
     const formats = tools.formats;
     const f = require("../../common/core");
+    // Stands in for the pgcrypto key in a SELECT until its parameter number is known
+    const KEY_PARAM = "$__FBKEY__";
     const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
@@ -1609,10 +1611,13 @@
                         values.push(value);
 
                         if (prop.isEncrypted) {
+                            // The key travels as a parameter, never in
+                            // the SQL text (pg_stat_activity, logs)
                             params.push(
-                                "pgp_sym_encrypt($" + p +
-                                ", '" + db.cryptoKey() + "')"
+                                "pgp_sym_encrypt($" + p + ", $" + (p + 1) + ")"
                             );
+                            values.push(db.cryptoKey());
+                            p += 1;
                         } else {
                             params.push("$" + p);
                         }
@@ -1753,6 +1758,8 @@
             let attrs = [];
             let fp;
             let result;
+            let params;
+            let usesKey = false;
             let payload = {
                 name: obj.name,
                 client: theClient,
@@ -1831,13 +1838,14 @@
             keys.forEach(function (key) {
                 if (fp[key].isEncrypted) {
                     tokens.push("%s");
+                    // Key is bound as a parameter once the other parameters
+                    // are known (see KEY_PARAM below)
                     cols.push(
                         "pgp_sym_decrypt(" +
                         key.toSnakeCase() +
-                        "::BYTEA, '" +
-                        db.cryptoKey() +
-                        "')"
+                        "::BYTEA, " + KEY_PARAM + ")"
                     );
+                    usesKey = true;
                 } else {
                     tokens.push("%I");
                     cols.push(key.toSnakeCase());
@@ -1875,7 +1883,12 @@
                     );
                 }
 
-                result = await theClient.query(sql, [obj.id]);
+                params = [obj.id];
+                if (usesKey) {
+                    sql = sql.split(KEY_PARAM).join("$2");
+                    params.push(db.cryptoKey());
+                }
+                result = await theClient.query(sql, params);
                 result = mapKeys(result.rows[0]);
                 if (obj.sanitize !== false) {
                     result = tools.sanitize(result);
@@ -1918,7 +1931,10 @@
                     sql += " FOR UPDATE";
                 }
 
-                //console.log(sql, params);
+                if (usesKey) {
+                    params.push(db.cryptoKey());
+                    sql = sql.split(KEY_PARAM).join("$" + params.length);
+                }
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
@@ -2055,7 +2071,10 @@
                     msg = "Relation not found in \"";
                     msg += relation + "\" for \"" + key;
                     msg += "\" with id \"" + updRec[key].id + "\"";
-                    return Promise.reject(new Error(msg));
+                    // Throw, don't return a rejected promise: callers don't
+                    // use the return value, so it was left unhandled and
+                    // took the whole server down.
+                    throw new Error(msg);
                 }
 
                 tokens.push(tools.relationColumn(key, relation));

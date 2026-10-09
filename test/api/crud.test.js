@@ -368,20 +368,25 @@ describe("data API record lifecycle", function () {
             assert.equal((await admin.read("Kind", kind.id)).code, kind.code);
         });
 
-        // Skipped, not todo: running it kills the shared test server
-        it("rejects changing a relation to an unknown id", {
-            skip: "plan 6.1: crashes the server - crud.js:2323 drops the " +
-                    "rejected promise of afterGetRelKey (unhandled rejection)"
-        }, async function () {
-            let cat = await admin.create("Category", {code: uniq("CAT")});
+        // Used to crash the whole server: crud.js dropped the rejected
+        // promise of afterGetRelKey (plan 0.2 / 6.1)
+        it("rejects changing a relation to an unknown id", async function () {
+            let cur = await admin.create("Currency", {
+                code: uniq("RU").slice(0, 14),
+                description: "Relation probe",
+                symbol: "R",
+                minorUnit: 2
+            });
             expectError(
-                await admin.raw("PATCH", "/data/category/" + cat.id, [
-                    {op: "add", path: "/parent", value: {id: "nosuchid"}}
+                await admin.raw("PATCH", "/data/currency/" + cur.id, [
+                    {op: "add", path: "/displayUnit", value: {id: "nosuchid"}}
                 ]),
                 500,
-                "Relation not found in \"Kind\" for \"parent\" with id " +
-                "\"nosuchid\""
+                "Relation not found in \"CurrencyUnit\" for \"displayUnit\" " +
+                "with id \"nosuchid\""
             );
+            // And the server is still up
+            assert.equal((await admin.read("Currency", cur.id)).id, cur.id);
         });
 
         it("answers a clear not-found error for an unknown id",
