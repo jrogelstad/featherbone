@@ -36,7 +36,13 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 | `fix/0.9-common-helpers` | 0.9 | Pushed 2026-10-08, PR to open |
 | `fix/0.8-client-statecharts` | 0.8 | Pushed 2026-10-08, PR to open |
 | `fix/0.7-null-handling` | 0.7 | Pushed 2026-10-08, PR to open; the query and authorization suites could not run in the cloud (need Terms/Employee), so check them locally |
-| | 0.1–0.6, 0.11 | Next, one branch each (0.1 may move to the tenant plan) |
+| `fix/0.5-currency-conversion` | 0.5 | Pushed 2026-10-08, PR to open |
+| `fix/0.6-profile-settings-workbooks` | 0.6 | Pushed 2026-10-08, PR to open; settings and workbooks API suites could not run in the cloud, check locally |
+| `fix/a2-node-identity` | Tenant plan A.2 | Pushed 2026-10-08, PR to open |
+| `fix/1.2-webhook-fail-closed` | 1.2 | Pushed 2026-10-08, PR to open |
+| `fix/1.3-no-body-logging` | 1.3 | Pushed 2026-10-08, PR to open |
+| `fix/1.7-default-secrets` | 1.7 | Pushed 2026-10-08, PR to open; anyone with a template-copied `config.json` must set `secret` and `pgCryptoKey` |
+| | 0.1–0.4, 0.11 | Next, one branch each (0.1 and parts of 0.3/0.4 move to the tenant plan) |
 | | 0.10 | SupplyChain repo; later |
 
 ## Notes from 2026-10-06 (checkout rebuilt)
