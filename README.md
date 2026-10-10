@@ -28,6 +28,35 @@ From your browser navigate to <http://localhost/demo> to run the application whe
 
 A documentation server may be installed from [here](https://github.com/jrogelstad/featherbone-docs)
 
+## Database kinds and the control plane
+
+Every database Featherbone installs into carries a one row `"$db"` marker recording what it is for, the schema version, and its mode. Running `node install` against an existing database adds the marker; nothing else about a single database install changes.
+
+* `both` (default) -- one database holds the application and the tenant registry, as it always has.
+* `tenant` -- an application database for one company. It does not install the tenant registry.
+* `controlPlane` -- a dedicated tenant management database holding the tenant registry, tenant services and sessions, with no application data.
+
+Install flags:
+
+```text
+$ node install --control-plane --username postgres --password <pw>   # the controlPlane.pgDatabase database
+$ node install --tenant --mode test ...                              # the pgDatabase database as a tenant
+$ node install --target <both|tenant|controlPlane> ...               # same thing, spelled out
+```
+
+`--mode` is `dev`, `test` or `prod`. It is stored in the database (`"$db".mode`) and shown as the banner across the top of the page after sign-in, so each database says for itself what it is. The `mode` setting in `config.json` is only used for databases that have no stored mode yet.
+
+Server settings in `config.json`:
+
+* `serverRole` -- `both` (default), `tenant` or `controlPlane`. The server checks at boot that each database it connects to has a marker of a matching kind and refuses to start otherwise.
+* `controlPlane` -- connection for the control plane database. Any blank setting falls back to the matching `pg*` setting, so only `pgDatabase` is normally needed. Environment overrides take the form `controlPlanePgDatabase`.
+
+Feathers in `scripts/feathers.json` install into every kind of database; those that belong only to the control plane live in `scripts/feathers-control-plane.json`. A workbook manifest may declare `"target": "controlPlane"` to install only there (the default is `tenant`).
+
+To move an existing combined install onto a dedicated control plane, install the new database with `--control-plane`, set `controlPlane.pgDatabase`, then run `node scripts/split-control-plane.js` (a dry run; add `--apply` to copy). It copies tenant services and lists the tenants to be re-entered; tenant rows are not moved yet. Nothing is deleted from the source.
+
+This is groundwork for the tenant management rewrite: there is no administration screen for the control plane yet.
+
 # Tests
 
 A regression suite lives under `test/` and needs no extra dependencies (Node 18+ and the PostgreSQL client tools).
