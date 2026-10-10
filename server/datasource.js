@@ -621,7 +621,7 @@
         await db.endPool(tenant);
 
         const client = new Client({
-            database: conf.pgDatabase,
+            database: config.managerDatabase(conf),
             host: conf.pgHost,
             password: superpwd,
             port: conf.pgPort || 80,
@@ -2742,47 +2742,24 @@
         }
 
         /*
-            The database this process is configured against, which the
-            registry does not list. What it is depends on the declared
-            role (tenant plan A.1): for a control plane it is the tenant
-            management database, for a tenant server the application
-            database it was pointed at, and for "both" -- the single
-            database install -- the one database that serves as each.
-            A tenant server does not serve the control plane.
+            The manager database, which the registry does not list
+            because it is not an instance (tenant plan section 9). It is
+            here so requests that name no instance -- sessions, the
+            registry itself -- have a connection to reach.
         */
         if (!tenants.find((t) => t.id === "-1")) {
-            let role = config.serverRole(conf);
-            let cp = config.controlPlane(conf);
-            let local = (
-                role === "controlPlane"
-                ? cp
-                : {
-                    pgDatabase: conf.pgDatabase,
+            tenants.unshift({
+                id: "-1",
+                name: "Manager",
+                pgService: {
+                    name: "Default service",
                     pgHost: conf.pgHost,
                     pgPort: conf.pgPort,
                     pgUser: conf.pgUser,
                     pgPassword: conf.pgPassword
-                }
-            );
-
-            if (role !== "tenant" || local.pgDatabase !== cp.pgDatabase) {
-                tenants.unshift({
-                    id: "-1",
-                    name: (
-                        role === "controlPlane"
-                        ? "Control plane"
-                        : "System default"
-                    ),
-                    pgService: {
-                        name: "Default service",
-                        pgHost: local.pgHost,
-                        pgPort: local.pgPort,
-                        pgUser: local.pgUser,
-                        pgPassword: local.pgPassword
-                    },
-                    pgDatabase: local.pgDatabase
-                });
-            }
+                },
+                pgDatabase: config.managerDatabase(conf)
+            });
         }
         return tenants;
     };
@@ -2910,5 +2887,14 @@
     that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
     that.registerFunction("DELETE", "deleteModule", installer.deleteModule);
     that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);
+
+    /*
+        Service scripts loaded by the registry builder call
+        `f.datasource.registerFunction(...)`, and they load on the first
+        request whether this process is the server or the installer, so
+        the datasource wires itself up rather than relying on the entry
+        point to do it.
+    */
+    f.datasource = that;
 
 }(exports));
