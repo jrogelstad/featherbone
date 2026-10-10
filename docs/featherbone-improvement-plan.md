@@ -119,6 +119,21 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   needs it, which also exposes `isSuper`, `isLocked`, `signInAttempts` and
   `lastSignIn` to every signed-in user. Narrowing it to names needs either
   column-level authorization or a dedicated name-list route.
+- [ ] **0.15 A property's type and numeric settings cannot really be changed.**
+  Longstanding, confirmed by John 2026-10-10. Changing a property's type, its
+  precision or its scale leaves the old values behind: `Container.container`
+  and `SalesHistory.invoice` are relations carrying precision 18 scale 8 in
+  `demo`, which is meaningless, and neither `ship/feathers.json` nor
+  `bill/feathers.json` declares them. Reinstalling the owning module did not
+  clear it, although `updateCatalog` (`feathers.js` ~2330) assigns
+  `catalog[name] = spec` outright, so some install path is not rewriting the
+  feather it should. `client/models/feather.js` ~549 does reset scale,
+  precision, min and max when the type changes, so the editor is not the
+  whole story. Needed: find why a reinstall leaves the stale value, and give
+  the catalog a way to drop a property setting rather than only add one.
+  Until then a bad value has to be fixed with SQL against the `catalog`
+  settings row. Caught by the catalog golden test, which had been silently
+  failing -- see `fix/catalog-golden-sentinels`.
 - [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
 
 ## How to use this plan
