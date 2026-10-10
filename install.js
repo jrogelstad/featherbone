@@ -43,12 +43,11 @@
     let superuser;
     let superpwd;
     /*
-        Which kind of database to install into (tenant plan A.1):
-        "controlPlane" installs the tenant management database named by
-        the `controlPlane` configuration block, "tenant" installs an
-        application database, and "both" -- the default, and what a
-        single database install has always been -- installs one database
-        that serves as each.
+        Which kind of database to install into (tenant plan section 9):
+        "manager" installs the one database that holds the registry, the
+        identities and the sessions, and "instance" installs an
+        application database. With neither flag the manager is installed,
+        since that is what every installation needs first.
     */
     let target;
     let targetDb;
@@ -69,15 +68,12 @@
         case "--mode":
             mode = argv[argv.indexOf("--mode") + 1];
             break;
-        case "--control-plane":
-            target = "controlPlane";
-            break;
-        case "--tenant":
-            target = "tenant";
+        case "--manager":
+            target = "manager";
             break;
         case "--instance":
             instanceName = argv[argv.indexOf("--instance") + 1];
-            target = "tenant";
+            target = "instance";
             break;
         case "--target":
             target = argv[argv.indexOf("--target") + 1];
@@ -146,7 +142,7 @@
     async function start(confresp) {
         conf = confresp;
 
-        target = target || config.serverRole(conf);
+        target = target || "manager";
         mode = mode || conf.mode || "prod";
 
         if (!config.modes().includes(mode)) {
@@ -156,25 +152,25 @@
             );
         }
 
-        if (!config.roles().includes(target)) {
+        if (target !== "manager" && target !== "instance") {
             throw new Error(
-                "Install target must be one of " +
-                config.roles().join(", ") + ", not \"" + target + "\""
+                "Install target must be manager or instance, not \"" +
+                target + "\""
             );
         }
 
-        // The control plane has a database of its own to install into,
-        // and a named instance is its own database too
+        // The manager is named by configuration; an instance names itself
         targetDb = (
-            target === "controlPlane"
-            ? config.controlPlane(conf).pgDatabase
-            : instanceName || conf.pgDatabase
+            target === "manager"
+            ? config.managerDatabase(conf)
+            : instanceName
         );
 
         if (!targetDb) {
             throw new Error(
-                "No database to install into. Set controlPlane.pgDatabase " +
-                "in server/config.json to install a control plane."
+                "No database to install into. Name one with " +
+                "`--instance <name>`, or install the manager with " +
+                "`--manager`."
             );
         }
 
@@ -345,14 +341,14 @@
             return;
         }
 
-        let cp = config.controlPlane(conf);
+        let managerDb = config.managerDatabase(conf);
         let serviceName = "Default service";
         let cpClient = new Client({
-            database: cp.pgDatabase,
-            host: cp.pgHost,
-            password: superpwd || cp.pgPassword,
-            port: cp.pgPort,
-            user: superuser || cp.pgUser
+            database: managerDb,
+            host: conf.pgHost,
+            password: superpwd || conf.pgPassword,
+            port: conf.pgPort,
+            user: superuser || conf.pgUser
         });
         let servicePk;
         let resp;
@@ -361,9 +357,9 @@
             await cpClient.connect();
         } catch (ignore) {
             throw new Error(
-                "Cannot reach the control plane \"" + cp.pgDatabase +
+                "Cannot reach the manager \"" + managerDb +
                 "\" to register \"" + instanceName + "\". Install it " +
-                "first with `node install --control-plane`."
+                "first with `node install --manager`."
             );
         }
 
@@ -376,13 +372,12 @@
 
             if (
                 resp.rows.length &&
-                resp.rows[0].kind === "tenant"
+                resp.rows[0].kind !== "manager"
             ) {
                 throw new Error(
-                    "\"" + cp.pgDatabase + "\" is an application " +
-                    "database, not a control plane. Point " +
-                    "controlPlane.pgDatabase at the tenant management " +
-                    "database."
+                    "\"" + managerDb + "\" is an application database, " +
+                    "not a manager. Point managerDatabase at the " +
+                    "management database."
                 );
             }
 
@@ -436,7 +431,7 @@
 
             console.log(
                 "Registered instance \"" + instanceName + "\" in \"" +
-                cp.pgDatabase + "\""
+                managerDb + "\""
             );
         } finally {
             await cpClient.end();
