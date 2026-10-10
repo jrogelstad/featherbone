@@ -53,6 +53,8 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 | `fix/0.3-unauthenticated-endpoints` | 0.3 | Merged |
 | `fix/1.8-crypto-key-param` | 1.8 | Merged |
 | `fix/0.4-authorization-gaps` | 0.4 | Pushed 2026-10-09, PR to open, two commits. **Reinstalling the Core module is part of the fix** -- it rewrites the `$auth` grants. Tightens permissions on an existing database; check ordinary users afterwards. The second commit adds per-settings-row authorization, set from a workbook's permissions (`canUpdateSettings`). Raised 0.12, 0.13 and 0.14 |
+| `fix/bootstrap-authorizations` | — | Pushed 2026-10-09, PR to open. **Merge ahead of the A.1 work.** `node install.js` against a brand new database fails on master ("Role \"everyone\" not found"): 0.4 declared the `everyone` grants in `feathers-bootstrap.json`, which installs before populate.js creates the role row. A declared grant whose role is missing is now skipped, and the manifest's second pass applies it |
+| `feat/a1-control-plane` | Tenant plan A.1 | Pushed 2026-10-09, two commits, PR to open. Explicit control plane: `controlPlane` config block, `serverRole`, a `"$db"` marker, control-plane feathers in their own file, install targets, and `mode` moved into the database. Branched off master with `fix/bootstrap-authorizations` merged in, so merge that first |
 | | 0.1, 0.11 | Next, one branch each (0.1 and the role-resolution part of 0.4 move to the tenant plan) |
 | | 0.10 | SupplyChain repo; later |
 
