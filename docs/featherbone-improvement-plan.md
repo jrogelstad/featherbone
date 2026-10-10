@@ -132,7 +132,14 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   whole story. Needed: find why a reinstall leaves the stale value, and give
   the catalog a way to drop a property setting rather than only add one.
   Until then a bad value has to be fixed with SQL against the `catalog`
-  settings row. Caught by the catalog golden test, which had been silently
+  settings row. Confirmed again on 2026-10-10 from the other direction: a
+  catalog can gain a property setting but not lose one. Deleting
+  `"isRequired"` from `Tenant.contact` and reinstalling Core left the old
+  `true` in place, and only an explicit `"isRequired": false` overwrote it.
+  So the installer applies the values a declaration carries and never
+  removes the ones it has stopped carrying -- which is the same defect as
+  the stale precision, and the workaround is to declare the opposite value
+  rather than omit it. Caught by the catalog golden test, which had been silently
   failing -- see `fix/catalog-golden-sentinels`.
 - [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
 
