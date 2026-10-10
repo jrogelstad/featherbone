@@ -111,7 +111,7 @@
                 "isNaturalKey": true
             },
             "contact": {
-                "description": "Primary contact",
+                "description": "Primary contact. Optional since tenant plan A.3: a contact belongs to the owning organization, and an instance created by the installer has no one to name",
                 "type": {
                     "relation": "Contact",
                     "properties": [
@@ -121,7 +121,7 @@
                         "phone"
                     ]
                 },
-                "isRequired": true
+                "isRequired": false
             },
             "isActive": {
                 "type": "boolean",

@@ -79,6 +79,19 @@ describe("the identity model", function () {
             });
         });
 
+        it("lets an instance exist without a contact", async function () {
+            // The installer registers an instance it has just created
+            // and has nobody to name as the contact; a contact belongs
+            // to the owning organization anyway (tenant plan A.3), so
+            // requiring one here only blocked `install --instance`
+            let feather = await admin.get("/feather/tenant");
+
+            assert.notEqual(
+                feather.properties.contact.isRequired,
+                true
+            );
+        });
+
         it("hangs an organization off an instance", async function () {
             let feather = await admin.get("/feather/tenant");
 

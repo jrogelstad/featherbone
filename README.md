@@ -40,9 +40,18 @@ Install flags:
 
 ```text
 $ node install --control-plane --username postgres --password <pw>   # the controlPlane.pgDatabase database
+$ node install --instance acme --mode test ...                       # a database named "acme", registered
 $ node install --tenant --mode test ...                              # the pgDatabase database as a tenant
 $ node install --target <both|tenant|controlPlane> ...               # same thing, spelled out
 ```
+
+`--instance <name>` installs an application database of that name and then
+**registers it in the control plane**, so a server serves it at `/<name>/`
+straight away. It also creates a `Default service` pointing at the Postgres
+server in `config.json`, if one is not there already, and reuses it for every
+later instance. Running it again for the same database changes nothing. This
+is the only way to add an instance until the administration UI arrives, and
+the control plane has to exist first.
 
 `--mode` is `dev`, `test` or `prod`. It is stored in the database (`"$db".mode`) and shown as the banner across the top of the page after sign-in, so each database says for itself what it is. The `mode` setting in `config.json` is only used for databases that have no stored mode yet.
 
