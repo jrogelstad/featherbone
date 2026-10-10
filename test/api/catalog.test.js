@@ -81,13 +81,18 @@ function propertySignature(p, owner) {
     // precision/scale -1 and min/max 0 on non-numeric properties to mean
     // "not applicable"; installed feathers leave them out. Treat both the
     // same so a feather saved through the UI matches a fresh install.
-    // On number and integer properties these values are real settings
-    // (min 0 rejects negatives, see model.js validation), so keep them.
+    // On number and integer properties min and max are real settings
+    // (min 0 rejects negatives, see model.js validation, and
+    // UserAccount.signInAttempts really does declare max 0), so keep them.
     let numeric = (t === "number" || t === "integer");
     let notApplicable = function (key, value) {
         return !numeric && p[key] === value;
     };
-    if (p.precision !== undefined && !notApplicable("precision", -1)) {
+    // Precision and scale are the exception: -1 is the sentinel whatever
+    // the type. Nothing in the framework or in SupplyChain declares -1,
+    // and a number with no declared precision carries it too, so rendering
+    // it produced "numeric(-1,-1)" on every undeclared numeric property.
+    if (p.precision !== undefined && p.precision !== -1) {
         sig += " numeric(" + p.precision + "," + p.scale + ")";
     }
     if (p.min !== undefined && !notApplicable("min", 0)) {
