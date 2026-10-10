@@ -162,6 +162,51 @@
         "to_camel_case(tableoid::regclass::text) AS object_type FROM object;"
     );
 
+    /*
+        What kind of database this is, and which revision of the
+        framework's own tables it carries. A control plane holds
+        organizations, identities, grants and the tenant registry; a
+        tenant holds an application's data; "both" is the single
+        database install the framework has always supported. Written
+        once at bootstrap and checked at boot, so pointing a server at
+        the wrong database is refused rather than acted on (tenant plan
+        A.1). The unique index keeps it to one row.
+    */
+    const SCHEMA_VERSION = "1";
+
+    const createDbSql = (
+        "CREATE TABLE \"$db\" (" +
+        "kind text not null," +
+        "schema_version text not null," +
+        "mode text," +
+        "created timestamp with time zone not null default now()," +
+        "updated timestamp with time zone not null default now()," +
+        "CONSTRAINT \"$db_kind_check\" CHECK (" +
+        "  kind IN ('controlPlane', 'tenant', 'both'))," +
+        "CONSTRAINT \"$db_mode_check\" CHECK (" +
+        "  mode IS NULL OR mode IN ('dev', 'test', 'prod')));" +
+        "CREATE UNIQUE INDEX \"$db_singleton\" ON \"$db\" ((true));" +
+        "COMMENT ON TABLE \"$db\" IS " +
+        "'Internal table recording what this database is for';" +
+        "COMMENT ON COLUMN \"$db\".kind IS " +
+        "'controlPlane, tenant or both';" +
+        "COMMENT ON COLUMN \"$db\".schema_version IS " +
+        "'Revision of the framework tables in this database';" +
+        "COMMENT ON COLUMN \"$db\".mode IS " +
+        "'dev, test or prod -- what the banner warns about';"
+    );
+
+    /*
+        Databases installed before `mode` moved here have the column
+        added rather than being reinstalled from scratch.
+    */
+    const alterDbSql = (
+        "ALTER TABLE \"$db\" ADD COLUMN IF NOT EXISTS mode text;" +
+        "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS \"$db_mode_check\";" +
+        "ALTER TABLE \"$db\" ADD CONSTRAINT \"$db_mode_check\" CHECK (" +
+        "  mode IS NULL OR mode IN ('dev', 'test', 'prod'));"
+    );
+
     const createAuthSql = (
         "CREATE TABLE \"$auth\" (" +
         "pk serial PRIMARY KEY," +
@@ -385,6 +430,7 @@
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
             let createCamelCase;
+            let createDb;
             let createMoney;
             let createObject;
             let createFeather;
@@ -660,11 +706,98 @@
                                 "catalog",
                                 JSON.stringify(objectDef)
                             ];
-                            obj.client.query(sql, params, createEventTrigger);
+                            obj.client.query(sql, params, createDb);
                         });
                         return;
                     }
-                    createEventTrigger();
+                    createDb();
+                });
+            };
+
+            /*
+                Record what this database is for. An existing marker is
+                left alone and verified instead: changing a database's
+                kind underneath its data is never what a stray install
+                command means, so say so and stop.
+            */
+            createDb = function () {
+                let kind = obj.target || "both";
+                /*
+                    Which banner this database shows. It used to be a
+                    setting on each server process, so one server
+                    serving a test and a production database warned
+                    about both or neither; it belongs to the database
+                    (John, Oct 2026). The installer passes what
+                    configuration says, so an existing install keeps the
+                    mode it had, and from then on the database is the
+                    authority.
+                */
+                let mode = obj.mode || null;
+
+                sqlCheck("$db", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    function record() {
+                        obj.client.query((
+                            "INSERT INTO \"$db\" " +
+                            "(kind, schema_version, mode) " +
+                            "VALUES ($1, $2, $3);"
+                        ), [kind, SCHEMA_VERSION, mode], createEventTrigger);
+                    }
+
+                    if (!exists) {
+                        obj.client.query(createDbSql, record);
+                        return;
+                    }
+
+                    obj.client.query(
+                        "SELECT kind FROM \"$db\";",
+                        function (err, resp) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+
+                            if (!resp.rows.length) {
+                                record();
+                                return;
+                            }
+
+                            if (resp.rows[0].kind !== kind) {
+                                reject(new Error(
+                                    "Database is installed as \"" +
+                                    resp.rows[0].kind + "\" and cannot be " +
+                                    "installed as \"" + kind + "\". Install " +
+                                    "with the matching target, or change " +
+                                    "\"$db\".kind deliberately first."
+                                ));
+                                return;
+                            }
+
+                            obj.client.query(
+                                alterDbSql,
+                                function (err) {
+                                    if (err) {
+                                        reject(err);
+                                        return;
+                                    }
+
+                                    obj.client.query((
+                                        "UPDATE \"$db\" SET " +
+                                        "schema_version = $1, " +
+                                        "mode = coalesce($2, mode), " +
+                                        "updated = now();"
+                                    ), [
+                                        SCHEMA_VERSION,
+                                        mode
+                                    ], createEventTrigger);
+                                }
+                            );
+                        }
+                    );
                 });
             };
 
