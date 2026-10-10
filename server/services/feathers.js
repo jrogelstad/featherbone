@@ -1190,6 +1190,23 @@
                 afterGetRoleKey = function (resp) {
                     // Validation
                     if (!resp.rows.length) {
+                        /*
+                            A grant declared by a feather is skipped when
+                            its role does not exist yet, the way the owner
+                            check below is. The Core manifest installs
+                            scripts/feathers-bootstrap.json once before
+                            populate.js creates the `everyone` role and
+                            again afterwards, so on a brand new database
+                            the first pass cannot resolve `everyone` and
+                            the second pass is what applies the grant.
+                            Failing here instead stopped `node install.js`
+                            on any new database.
+                        */
+                        if (obj.data.isSilentError) {
+                            done(null, false);
+                            return;
+                        }
+
                         reject("Role \"" + obj.data.role + "\" not found");
                         return;
                     }

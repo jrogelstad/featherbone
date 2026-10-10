@@ -17,6 +17,14 @@
     "passwordLength": 0,
     "pgCryptoKey": "",
     "pgDatabase": "demo",
+    "serverRole": "both",
+    "controlPlane": {
+        "pgDatabase": "",
+        "pgHost": "",
+        "pgPort": "",
+        "pgUser": "",
+        "pgPassword": ""
+    },
     "pgHost": "127.0.0.1",
     "pgMaxConnections": 10,
     "pgPort": 5432,

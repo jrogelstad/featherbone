@@ -424,6 +424,48 @@ describe("authorization", function () {
             );
         });
 
+        /*
+            The Core manifest installs scripts/feathers-bootstrap.json
+            once before populate.js creates the `everyone` role and again
+            after, so on a new database the first pass cannot resolve the
+            role a feather declares. Failing there stopped
+            `node install.js` on any new database; the grant is skipped
+            and the second pass applies it.
+        */
+        it("saves a feather whose role does not exist yet",
+                async function () {
+            let name = access.featherName("FbtNoRole");
+            let feather = await access.createFeather(admin, {
+                name,
+                plural: name + "s",
+                properties: [{
+                    name: "code",
+                    type: "string",
+                    description: "Code"
+                }],
+                authorizations: [{
+                    role: "fbt_role_that_is_not_there",
+                    canCreate: true,
+                    canRead: true,
+                    canUpdate: true,
+                    canDelete: true
+                }]
+            });
+
+            try {
+                assert.ok(feather, "feather was not saved");
+                let granted = await db.query((
+                    "SELECT auth.role FROM \"$auth\" AS auth, " +
+                    "  \"$feather\" AS feather " +
+                    "WHERE feather.id = $1 " +
+                    "  AND feather._pk = auth.object_pk"
+                ), [access.toSpinal(name).replace(/-/g, "_")]);
+                assert.deepEqual(granted.rows, []);
+            } finally {
+                await access.deleteFeather(admin, name);
+            }
+        });
+
         it("/do/is-authorized answers for an unknown id", async function () {
             let resp = await access.rawTimeout(
                 basicS,
