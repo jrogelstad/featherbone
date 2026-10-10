@@ -247,13 +247,12 @@
 
     /*
         Refuse to start when the database configured as the control plane
-        is not one (tenant plan A.1). The marker is written by the
-        bootstrap; a database installed before it existed has none, and
-        is taken at its word so an upgrade is not blocked.
+        is not one (tenant plan A.1 and section 9). The marker is
+        written by the bootstrap; a database installed before it existed
+        has none, and is taken at its word so an upgrade is not blocked.
     */
-    async function checkControlPlane(conf) {
-        let cp = config.controlPlane(conf);
-        let role = config.serverRole(conf);
+    async function checkManager(conf) {
+        let managerDb = config.managerDatabase(conf);
         let conn = await datasource.getPool();
         let resp = await conn.query(
             "SELECT kind FROM pg_tables, \"$db\" " +
@@ -267,36 +266,24 @@
             : undefined
         );
 
-        logger.info(
-            "Serving as " + role + ", control plane \"" +
-            cp.pgDatabase + "\""
-        );
+        logger.info("Manager database \"" + managerDb + "\"");
 
         if (kind === undefined) {
             logger.warn(
-                "Database \"" + cp.pgDatabase + "\" carries no \"$db\" " +
+                "Database \"" + managerDb + "\" carries no \"$db\" " +
                 "marker. Install it to record what it is for."
             );
             return;
         }
 
-        if (kind !== "controlPlane" && kind !== "both") {
+        if (kind !== "manager") {
             console.error(
-                "Featherbone will not start: \"" + cp.pgDatabase +
-                "\" is installed as a \"" + kind + "\" database and " +
-                "cannot serve as the control plane. Point " +
-                "controlPlane.pgDatabase at the tenant management " +
-                "database."
+                "Featherbone will not start: \"" + managerDb +
+                "\" is installed as a \"" + kind + "\" database. Point " +
+                "managerDatabase at the management database, and install " +
+                "it with `node install --manager` if it does not exist."
             );
             process.exit(1);
-        }
-
-        if (role === "controlPlane" && kind === "both") {
-            logger.warn(
-                "Serving as a control plane from \"" + cp.pgDatabase +
-                "\", which is installed as \"both\". Install it as a " +
-                "control plane to keep application data out of it."
-            );
         }
     }
 
@@ -353,15 +340,6 @@
                     "must be re-encrypted, not just edited)."
                 );
             }
-            if (!config.isValidRole(resp)) {
-                console.error(
-                    "Featherbone will not start: serverRole \"" +
-                    config.serverRole(resp) + "\" is not one of " +
-                    config.roles().join(", ") + "."
-                );
-                process.exit(1);
-            }
-
             let log = {
                 level: resp.logLevel,
                 zippedArchive: resp.logZippedArchive,
@@ -424,7 +402,7 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
-            await checkControlPlane(resp);
+            await checkManager(resp);
             tenants = await datasource.loadTenants();
             await datasource.cleanupNodes();
             await datasource.cleanupProcesses();
@@ -2372,7 +2350,16 @@
         // Resolve database
         dbRouter.param("db", function (req, res, next, id) {
             id = id.toCamelCase().toSnakeCase();
-            let tenant = tenants.find((t) => id === t.pgDatabase);
+            /*
+                The manager is in `tenants` so requests that name no
+                instance have a connection to reach, but it is not an
+                instance and is never served as one: it holds the
+                registry, the identities and the sessions, not an
+                application (tenant plan section 9).
+            */
+            let tenant = tenants.find(
+                (t) => id === t.pgDatabase && t.id !== "-1"
+            );
             let msg = (
                 "Database " + id +
                 " is not a registered tenant"

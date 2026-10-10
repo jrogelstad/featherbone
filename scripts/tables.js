@@ -164,15 +164,27 @@
 
     /*
         What kind of database this is, and which revision of the
-        framework's own tables it carries. A control plane holds
-        organizations, identities, grants and the tenant registry; a
-        tenant holds an application's data; "both" is the single
-        database install the framework has always supported. Written
-        once at bootstrap and checked at boot, so pointing a server at
-        the wrong database is refused rather than acted on (tenant plan
-        A.1). The unique index keeps it to one row.
+        framework's own tables it carries. A manager holds the registry
+        of instances, the organizations, identities and grants, and the
+        sessions; an instance holds one application's data. Written once
+        at bootstrap and checked at boot, so pointing a server at the
+        wrong database is refused rather than acted on (tenant plan A.1
+        and section 9). The unique index keeps it to one row.
+
+        Schema 2 retires the kinds "controlPlane", "tenant" and "both".
+        The first two are renames. "both" becomes an instance, because a
+        single database install is exactly an instance once its registry
+        has moved to a manager -- `alterDbSql` converts an existing
+        marker rather than refusing it, so an upgrade is not blocked.
     */
-    const SCHEMA_VERSION = "1";
+    const SCHEMA_VERSION = "2";
+
+    // What an older kind becomes, for the check at install time
+    const RENAMED_KINDS = {
+        controlPlane: "manager",
+        tenant: "instance",
+        both: "instance"
+    };
 
     const createDbSql = (
         "CREATE TABLE \"$db\" (" +
@@ -182,14 +194,14 @@
         "created timestamp with time zone not null default now()," +
         "updated timestamp with time zone not null default now()," +
         "CONSTRAINT \"$db_kind_check\" CHECK (" +
-        "  kind IN ('controlPlane', 'tenant', 'both'))," +
+        "  kind IN ('manager', 'instance'))," +
         "CONSTRAINT \"$db_mode_check\" CHECK (" +
         "  mode IS NULL OR mode IN ('dev', 'test', 'prod')));" +
         "CREATE UNIQUE INDEX \"$db_singleton\" ON \"$db\" ((true));" +
         "COMMENT ON TABLE \"$db\" IS " +
         "'Internal table recording what this database is for';" +
         "COMMENT ON COLUMN \"$db\".kind IS " +
-        "'controlPlane, tenant or both';" +
+        "'manager or instance';" +
         "COMMENT ON COLUMN \"$db\".schema_version IS " +
         "'Revision of the framework tables in this database';" +
         "COMMENT ON COLUMN \"$db\".mode IS " +
@@ -204,7 +216,17 @@
         "ALTER TABLE \"$db\" ADD COLUMN IF NOT EXISTS mode text;" +
         "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS \"$db_mode_check\";" +
         "ALTER TABLE \"$db\" ADD CONSTRAINT \"$db_mode_check\" CHECK (" +
-        "  mode IS NULL OR mode IN ('dev', 'test', 'prod'));"
+        "  mode IS NULL OR mode IN ('dev', 'test', 'prod'));" +
+        // Schema 2: the constraint goes first, the values are converted,
+        // then the new constraint is applied. Doing it the other way
+        // round would refuse the row already there.
+        "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS \"$db_kind_check\";" +
+        "UPDATE \"$db\" SET kind = 'manager' WHERE kind = 'controlPlane';" +
+        "UPDATE \"$db\" SET kind = 'instance' " +
+        "  WHERE kind IN ('tenant', 'both');" +
+        "ALTER TABLE \"$db\" ADD CONSTRAINT \"$db_kind_check\" CHECK (" +
+        "  kind IN ('manager', 'instance'));" +
+        "COMMENT ON COLUMN \"$db\".kind IS 'manager or instance';"
     );
 
     const createAuthSql = (
@@ -721,7 +743,7 @@
                 command means, so say so and stop.
             */
             createDb = function () {
-                let kind = obj.target || "both";
+                let kind = obj.target || "instance";
                 /*
                     Which banner this database shows. It used to be a
                     setting on each server process, so one server
@@ -766,15 +788,27 @@
                                 return;
                             }
 
-                            if (resp.rows[0].kind !== kind) {
+                            let was = resp.rows[0].kind;
+
+                            if (
+                                was !== kind &&
+                                RENAMED_KINDS[was] !== kind
+                            ) {
                                 reject(new Error(
-                                    "Database is installed as \"" +
-                                    resp.rows[0].kind + "\" and cannot be " +
-                                    "installed as \"" + kind + "\". Install " +
-                                    "with the matching target, or change " +
-                                    "\"$db\".kind deliberately first."
+                                    "Database is installed as \"" + was +
+                                    "\" and cannot be installed as \"" +
+                                    kind + "\". Install with the matching " +
+                                    "target, or change \"$db\".kind " +
+                                    "deliberately first."
                                 ));
                                 return;
+                            }
+
+                            if (was !== kind) {
+                                console.log(
+                                    "Converting \"" + was +
+                                    "\" database to \"" + kind + "\""
+                                );
                             }
 
                             obj.client.query(
