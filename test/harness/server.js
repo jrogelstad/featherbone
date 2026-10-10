@@ -55,7 +55,7 @@ async function start() {
     child = spawn(process.execPath, ["server.js"], {
         cwd: settings.root,
         env: Object.assign({}, process.env, {
-            pgDatabase: settings.testDb,
+            managerDatabase: settings.managerDb,
             PORT: String(settings.port),
             clientPort: String(settings.port),
             logSilent: "true",

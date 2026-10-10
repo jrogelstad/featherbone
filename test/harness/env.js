@@ -51,6 +51,11 @@ const settings = Object.freeze({
     sourceDb: env.FB_TEST_SOURCE_DB || "demo",
     // Throwaway database the suite runs against
     testDb: env.FB_TEST_DB || "featherbone_test",
+    // Every installation is multi-instance (tenant plan section 9),
+    // so the suite needs a manager as well as the instance under
+    // test. Both are built from the same source database.
+    managerDb: env.FB_TEST_MANAGER_DB || "featherbone_test_manager",
+    pgCryptoKey: config.pgCryptoKey,
     pgHost: env.FB_TEST_PGHOST || config.pgHost,
     pgPort: Number(env.FB_TEST_PGPORT || config.pgPort),
     // Must be able to CREATE/DROP DATABASE and CREATE ROLE

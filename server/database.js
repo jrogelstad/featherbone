@@ -98,26 +98,24 @@
         /*
             Resolve connection string.
 
-            The connection used when no tenant is named is the control
-            plane: the tenant registry, the sessions and everything else
-            a `tenant: false` request reaches (tenant plan A.1). With no
-            `controlPlane` block configured that is `pgDatabase`, which
-            is where those requests have always gone.
+            The connection used when no instance is named is the
+            manager: the registry, the sessions and everything else a
+            `tenant: false` request reaches (tenant plan section 9).
         */
         function setConfig(resp) {
             return new Promise(function (resolve) {
-                let cp = config.controlPlane(resp);
+                let managerDb = config.managerDatabase(resp);
 
                 cache = {
-                    pgDatabase: cp.pgDatabase,
+                    pgDatabase: managerDb,
                     postgres: {
-                        database: cp.pgDatabase,
-                        host: cp.pgHost,
+                        database: managerDb,
+                        host: resp.pgHost,
                         max: resp.pgMaxConnections || 10,
-                        password: cp.pgPassword,
-                        port: cp.pgPort,
+                        password: resp.pgPassword,
+                        port: resp.pgPort,
                         ssl: sslConfig(resp), // This doesn't look right
-                        user: cp.pgUser
+                        user: resp.pgUser
                     }
                 };
                 resolve(resp);
@@ -163,7 +161,7 @@
                 pghost = req.tenant.pgService.pgHost;
                 pgport = req.tenant.pgService.pgPort;
             } else {
-                pgdb = conf.pgDatabase;
+                pgdb = config.managerDatabase(conf);
                 pghost = conf.pgHost;
                 pgport = conf.pgPort;
             }
