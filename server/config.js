@@ -34,13 +34,14 @@
         };
 
         /*
-            What this process serves. The control plane is the one
-            database that knows about organizations, identities, grants
-            and the tenant registry; a tenant server serves customer
-            databases. One process may do both, which is what a single
-            database install has always done and still the default.
+            Every installation is multi-instance (tenant plan section 9).
+            One manager database holds the registry, the identities and
+            the sessions; every application database is an instance
+            registered in it. Even a single company wants production,
+            test and demo, so there is no single-database shape worth a
+            second code path.
         */
-        const ROLES = ["controlPlane", "tenant", "both"];
+        const MANAGER_DEFAULT = "db_manager";
 
         /*
             What a database warns about: a development or test database
@@ -51,18 +52,6 @@
             for a database installed before it moved.
         */
         const MODES = ["dev", "test", "prod"];
-
-        // Connection settings the `controlPlane` block may override.
-        // Anything it leaves out falls back to the top-level value, so
-        // a control plane on the same server as the tenants needs only
-        // `pgDatabase`.
-        const CONNECTION_KEYS = [
-            "pgDatabase",
-            "pgHost",
-            "pgPort",
-            "pgUser",
-            "pgPassword"
-        ];
 
         /**
             Names of required secret settings that are missing or blank.
@@ -104,11 +93,12 @@
                     }
                     data = JSON.parse(data);
 
-                    // Present even when the file leaves them out, so
-                    // the environment can set them on its own: the
-                    // override loop below only visits keys it can see
-                    data.controlPlane = data.controlPlane || {};
-                    data.serverRole = data.serverRole || "both";
+                    // Present even when the file leaves it out, so the
+                    // environment can set it on its own: the override
+                    // loop below only visits keys it can see
+                    data.managerDatabase = (
+                        data.managerDatabase || MANAGER_DEFAULT
+                    );
 
                     function typed(value) {
                         if (value.toLowerCase() === "true") {
@@ -130,59 +120,9 @@
                         }
                     });
 
-                    // The control plane block takes one variable per
-                    // setting, named for the block and the setting
-                    // together -- `controlPlanePgDatabase` sets
-                    // `controlPlane.pgDatabase` -- and they work whether
-                    // or not the file carries the block. Spelled out
-                    // rather than using `toProperCase`, so configuration
-                    // can be read before common/string.js is loaded.
-                    CONNECTION_KEYS.forEach(function (key) {
-                        let name = "controlPlane" +
-                                key.charAt(0).toUpperCase() + key.slice(1);
-
-                        if (process.env[name] !== undefined) {
-                            data.controlPlane[key] = typed(process.env[name]);
-                        }
-                    });
-
                     resolve(data);
                 });
             });
-        };
-
-        /**
-            What this process serves: `"controlPlane"`, `"tenant"` or
-            `"both"`. Defaults to `"both"`, which is how a single
-            database install has always behaved.
-
-            @method serverRole
-            @param {Object} data Configuration as returned by `read`
-            @return {String}
-        */
-        config.serverRole = function (data) {
-            return data.serverRole || "both";
-        };
-
-        /**
-            Whether `serverRole` holds something this version knows.
-
-            @method isValidRole
-            @param {Object} data Configuration as returned by `read`
-            @return {Boolean}
-        */
-        config.isValidRole = function (data) {
-            return ROLES.includes(config.serverRole(data));
-        };
-
-        /**
-            Names a role may take, for error messages.
-
-            @method roles
-            @return {Array}
-        */
-        config.roles = function () {
-            return ROLES.slice();
         };
 
         /**
@@ -196,48 +136,24 @@
         };
 
         /**
-            Connection settings for the tenant management database --
-            the control plane. The `controlPlane` block names it; every
-            setting it leaves out falls back to the top-level value, and
-            with no block at all the control plane is `pgDatabase` on the
-            ordinary connection, which is what it has always been.
+            The manager database: the registry of instances, and where
+            identities and sessions live. One per Postgres server, named
+            `db_manager` unless `managerDatabase` says otherwise. The
+            setting exists so a developer can keep two installations on
+            one cluster and so the test harness can build its own
+            without colliding; ordinary deployments leave it alone.
 
-            @method controlPlane
+            @method managerDatabase
             @param {Object} data Configuration as returned by `read`
-            @return {Object}
+            @return {String}
         */
-        config.controlPlane = function (data) {
-            let block = data.controlPlane || {};
-            let ret = {};
-
-            CONNECTION_KEYS.forEach(function (key) {
-                let value = block[key];
-
-                ret[key] = (
-                    value === undefined || value === null || value === ""
-                    ? data[key]
-                    : value
-                );
-            });
-
-            return ret;
-        };
-
-        /**
-            Whether the control plane is a database of its own rather
-            than the one this server also serves as a tenant.
-
-            @method hasOwnControlPlane
-            @param {Object} data Configuration as returned by `read`
-            @return {Boolean}
-        */
-        config.hasOwnControlPlane = function (data) {
-            let cp = config.controlPlane(data);
+        config.managerDatabase = function (data) {
+            let name = (data || {}).managerDatabase;
 
             return (
-                cp.pgDatabase !== data.pgDatabase ||
-                cp.pgHost !== data.pgHost ||
-                Number(cp.pgPort) !== Number(data.pgPort)
+                typeof name === "string" && name.trim()
+                ? name.trim()
+                : MANAGER_DEFAULT
             );
         };
 
