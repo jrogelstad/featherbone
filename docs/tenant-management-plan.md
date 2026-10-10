@@ -161,6 +161,42 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
 The real work. B.1–B.2 are reversible by configuration; B.3–B.4 are the
 one-way door.
 
+**What moving off Postgres roles does and does not cost.** It is tempting to
+think the current design gets defense in depth from the database — that even
+a SQL injection is contained by Postgres's own permissions. Checked on
+2026-10-10, it does not:
+
+* Pools are keyed by database only (`database.js` ~352), and the connection
+  user is always the tenant service account, never the end user.
+* There is no `SET ROLE` or `SET SESSION AUTHORIZATION` anywhere in the
+  codebase.
+* Every `GRANT` in the repository is role-to-role membership
+  (`GRANT everyone TO <user>`, `role.js` ~279). No table or column privileges
+  are granted to user roles, and row-level security is not used — "row
+  authorization" in `crud.js` and `tools.js` is Featherbone's own `$auth`
+  check, not Postgres RLS.
+
+So `pg_authid` is a *membership store* that `pg_has_role()` queries, not an
+enforcement boundary. Every statement already runs with the service account's
+full privileges, and an injection on that connection bypasses `$auth` today
+exactly as it would with membership in an ordinary table. B.3 is therefore
+security-neutral, and B.4 is a net gain: it takes `CREATEROLE` away from the
+service account, which is currently an escalation path.
+
+Real database-enforced authorization remains *available* and is not closed off
+by this plan — it would mean per-request `SET ROLE`, table grants and RLS,
+which is an additive project of its own. Note that it pulls against E.4's
+connection pooling and PgBouncer.
+
+**Why Tier B is not about multiple Postgres clusters.** Its drivers are all
+single-cluster problems: role names are cluster-wide, so two customers cannot
+both have an `alice` (item 1.1); one consultant cannot hold separate
+credentials in two organizations (F.2); Postgres cannot verify an Azure AD
+token, so SSO is impossible without application-side identity (C.3); and the
+two-pool login path exists only because signing in means connecting as the
+user's role (item 1.6). Clustering is a side effect of this work, not its
+purpose.
+
 - [ ] **B.1 Application-side password verification.** (M)
     - Hash with `node:crypto` `scrypt` or argon2id (ADR §9 open question).
     - Import existing `SCRAM-SHA-256` verifiers from `pg_authid` and verify
@@ -531,24 +567,22 @@ as usable as it is today.
 
 ### Open questions
 
-1. **Hard-code `db_manager`, or default to it?** Hard-coding means one
+1. **Settled 2026-10-10: default `db_manager`, overridable by one setting,
+   not documented for ordinary use.** Hard-coding would mean one
    Featherbone installation per Postgres cluster. The integration harness
    clones the configured database into a throwaway copy, so with a fixed name
    parallel test runs collide, and a developer cannot keep two independent
    installations on one cluster — which is how this machine is set up today.
-   Recommend: default `db_manager`, overridable by one setting, not
-   documented for ordinary use.
-2. **Vocabulary.** The registry row is an *instance* (a database); an
-   *organization* owns instances; a single-company customer is one
-   organization with three instances. The existing feather is `Tenant`.
-   Rename it to `Instance`, or keep the name and say "instance" only in the
-   UI? The rename reaches into the Admin Console module
-   (`triggers-tenant.js`, the WooCommerce webhook), so the cheapest moment is
-   D.4, which redraws that seam anyway. Decide before A.3 builds on it.
-3. **Does multi-cluster stay out of scope?** For now, yes — but B.3 and B.4
-   already remove the reason it was a problem. Once membership resolves
-   through a CTE over `role` and `role_membership`, and no Postgres login
-   roles are created, `pg_authid` stops being the identity boundary and a
-   second cluster is just another connection; `tenant_service` already
-   carries per-service host and port. This is a sequencing question, not a
-   design dead end.
+2. **Settled 2026-10-10: rename `Tenant` to `Instance`.** The registry row is
+   an *instance* (a database); an *organization* owns instances; a
+   single-company customer is one organization with three instances. The
+   rename reaches into the Admin Console module (`triggers-tenant.js`, the
+   WooCommerce webhook), so the cheapest moment is D.4, which redraws that
+   seam anyway — but the feather and its relations must be settled before A.3
+   builds on them. `TenantService` becomes part of the same rename.
+3. **Settled 2026-10-10: multi-cluster stays out of scope**, and nothing is
+   being traded away to keep it out. Tier B's own drivers are single-cluster
+   (see the note at the head of Tier B), so it proceeds regardless; once it
+   has, `pg_authid` stops being the identity boundary and a second cluster
+   becomes an ordinary connection that `Instance`'s service row already
+   describes. Revisit only if a deployment actually needs one.
