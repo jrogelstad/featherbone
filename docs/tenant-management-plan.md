@@ -626,3 +626,69 @@ as usable as it is today.
    has, `pg_authid` stops being the identity boundary and a second cluster
    becomes an ordinary connection that `Instance`'s service row already
    describes. Revisit only if a deployment actually needs one.
+
+## 10. The blocker the collapse ran into: one catalog, or one per instance?
+
+*Found 2026-10-10 while implementing section 9 on `wip/one-instance-mode`.
+Needs a decision before that branch can be finished. Nothing else in this
+plan is blocked by it.*
+
+### What happened
+
+The collapse itself went in cleanly: `serverRole`, `both` and the
+`controlPlane` block gone, one `managerDatabase` setting, a schema 2 `"$db"`
+marker that converts an older one in place, `node install --manager` and
+`--instance`, a harness that builds both. A server boots, serves an instance,
+reports that instance's own mode, keeps sessions in the manager and refuses
+to serve the manager as an application.
+
+Then sixteen authorization tests hang on *"Routes for feather ... never
+appeared"*.
+
+### Why
+
+The server holds **one** catalog, **one** route table and **one** set of
+services. It reads them through `tenant: false` -- the connection used when
+no instance is named:
+
+* `datasource.getCatalog`, `getRoutes`, `getServices` (`datasource.js` ~729,
+  ~759, ~772)
+* the Feather, catalog and Route subscriptions (`server.js` ~1981, ~2066,
+  ~2086)
+
+In a single-database install that connection *was* the application database,
+so this worked by accident. Point it at a manager carrying no application
+modules and the feathers a request creates are written to the instance and
+looked for in the manager.
+
+This is not a naming problem. `registerRoute` (`server.js` ~551) mounts every
+module route at `/:db/<module><path>` on one shared router, so **every
+database a process serves has always shared one catalog and one route
+table**. That is the same finding as improvement item 5.6, which notes that a
+Standard tenant can call Professional routes: there is no per-tenant boundary
+because there is only one catalog.
+
+So the question is not where to read the catalog from. It is whether two
+instances may ever run different modules.
+
+### The options
+
+| | What it means | Cost | What it gives up |
+| --- | --- | --- | --- |
+| **A. A primary instance** | One instance is nominated; its catalog, routes and services are what the process serves, exactly as the configured database is today | Small. Re-point six call sites and move `loadTenants` ahead of `getCatalog` at boot | Nothing that works today -- but it fixes nothing either, and makes "they all share one catalog" an explicit design rather than an accident |
+| **B. Per instance** | Catalog, routes and services become per-instance, cached per instance, subscribed per instance | Large. Route registration, the subscription machinery and every `tenant: false` reader change | Nothing. This is what editions, and D.5, actually need |
+| **C. The manager carries the superset** | Every module's feathers install into the manager as well, so it holds the catalog | Medium, and it puts application schema in the manager, which section 9 exists to prevent | Coherence |
+
+**A is the honest interim** and keeps parity with today; **B is where this has
+to end up** if an edition is ever to mean anything. A does not block B.
+
+Worth noting that B overlaps D.5 almost entirely: deciding that editions are a
+real boundary *is* deciding for per-instance catalogs. If editions are
+cosmetic, A is enough and should be written down as deliberate.
+
+### What is waiting
+
+`wip/one-instance-mode` carries the finished configuration, installer,
+marker, boot and harness work and is pushed but **not mergeable**. Once this
+is decided it needs the chosen option plus a re-run of the API suite, and it
+can then be squashed into a branch worth merging.
