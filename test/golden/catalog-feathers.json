@@ -1,4 +1,31 @@
 {
+  "AccessGrant": {
+    "inherits": "Document",
+    "isChild": false,
+    "isFetchOnStartup": false,
+    "isReadOnly": false,
+    "isSystem": false,
+    "module": "Core",
+    "overloads": {},
+    "plural": "AccessGrants",
+    "properties": {
+      "created": "string:dateTime readOnly default=\"now()\" <Object",
+      "createdBy": "string readOnly <Object",
+      "etag": "string alwaysLoad default=\"createId()\" <Document",
+      "granted": "string:dateTime",
+      "grantedBy": "relation(Identity) [username,fullName]",
+      "id": "string required readOnly alwaysLoad default=\"createId()\" <Object",
+      "identity": "relation(Identity) [username,fullName,status] required alwaysLoad",
+      "isActive": "boolean required alwaysLoad default=true",
+      "isDeleted": "boolean readOnly alwaysLoad <Object",
+      "lock": "object:lock readOnly alwaysLoad <Object",
+      "objectType": "string readOnly alwaysLoad <Object",
+      "owner": "string:userAccount required alwaysLoad <Document",
+      "tenant": "relation(Tenant) [name,pgDatabase] required alwaysLoad",
+      "updated": "string:dateTime readOnly default=\"now()\" <Object",
+      "updatedBy": "string readOnly <Object"
+    }
+  },
   "Address": {
     "inherits": "Object",
     "isChild": true,
@@ -24,6 +51,34 @@
       "street": "string required",
       "type": "string:enum required default=\"W\" list=H|W|M|O",
       "unit": "string",
+      "updated": "string:dateTime readOnly default=\"now()\" <Object",
+      "updatedBy": "string readOnly <Object"
+    }
+  },
+  "AdminAudit": {
+    "inherits": "Document",
+    "isChild": false,
+    "isFetchOnStartup": false,
+    "isReadOnly": false,
+    "isSystem": false,
+    "module": "Core",
+    "overloads": {},
+    "plural": "AdminAudits",
+    "properties": {
+      "action": "string required labelKey alwaysLoad",
+      "actor": "relation(Identity) [username,fullName] alwaysLoad",
+      "created": "string:dateTime readOnly default=\"now()\" <Object",
+      "createdBy": "string readOnly <Object",
+      "detail": "string:textArea",
+      "etag": "string alwaysLoad default=\"createId()\" <Document",
+      "id": "string required readOnly alwaysLoad default=\"createId()\" <Object",
+      "isDeleted": "boolean readOnly alwaysLoad <Object",
+      "lock": "object:lock readOnly alwaysLoad <Object",
+      "objectType": "string readOnly alwaysLoad <Object",
+      "occurred": "string:dateTime required alwaysLoad",
+      "onBehalfOf": "relation(Organization) [name]",
+      "owner": "string:userAccount required alwaysLoad <Document",
+      "targetIdentity": "relation(Identity) [username,fullName]",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
       "updatedBy": "string readOnly <Object"
     }
@@ -1319,6 +1374,39 @@
       "updatedBy": "string readOnly <Object"
     }
   },
+  "Identity": {
+    "inherits": "Document",
+    "isChild": false,
+    "isFetchOnStartup": false,
+    "isReadOnly": false,
+    "isSystem": false,
+    "module": "Core",
+    "overloads": {},
+    "plural": "Identities",
+    "properties": {
+      "created": "string:dateTime readOnly default=\"now()\" <Object",
+      "createdBy": "string readOnly <Object",
+      "email": "string:email",
+      "etag": "string alwaysLoad default=\"createId()\" <Document",
+      "failedAttempts": "integer required readOnly default=0",
+      "fullName": "string required",
+      "id": "string required readOnly alwaysLoad default=\"createId()\" <Object",
+      "isDeleted": "boolean readOnly alwaysLoad <Object",
+      "isOrgAdmin": "boolean required default=false",
+      "isPlatformAdmin": "boolean required default=false",
+      "lastSignedIn": "string:dateTime readOnly",
+      "lock": "object:lock readOnly alwaysLoad <Object",
+      "lockedUntil": "string:dateTime readOnly",
+      "objectType": "string readOnly alwaysLoad <Object",
+      "organization": "relation(Organization) [name,isActive] required alwaysLoad",
+      "owner": "string:userAccount required alwaysLoad <Document",
+      "passwordHash": "string readOnly",
+      "status": "string:enum required alwaysLoad default=\"active\" list=active|suspended|locked",
+      "updated": "string:dateTime readOnly default=\"now()\" <Object",
+      "updatedBy": "string readOnly <Object",
+      "username": "string required labelKey alwaysLoad"
+    }
+  },
   "IncoTerms": {
     "inherits": "Document",
     "isChild": false,
@@ -2350,6 +2438,32 @@
       "postDate": "string:date readOnly",
       "quantity": "number required alwaysLoad default=0 numeric(18,8)",
       "startOperation": "boolean",
+      "updated": "string:dateTime readOnly default=\"now()\" <Object",
+      "updatedBy": "string readOnly <Object"
+    }
+  },
+  "Organization": {
+    "inherits": "Document",
+    "isChild": false,
+    "isFetchOnStartup": false,
+    "isReadOnly": false,
+    "isSystem": false,
+    "module": "Core",
+    "overloads": {},
+    "plural": "Organizations",
+    "properties": {
+      "authentication": "string:enum required default=\"password\" list=password|sso|both",
+      "created": "string:dateTime readOnly default=\"now()\" <Object",
+      "createdBy": "string readOnly <Object",
+      "etag": "string alwaysLoad default=\"createId()\" <Document",
+      "id": "string required readOnly alwaysLoad default=\"createId()\" <Object",
+      "isActive": "boolean required alwaysLoad default=true",
+      "isDeleted": "boolean readOnly alwaysLoad <Object",
+      "isTwoFactorRequired": "boolean required default=false",
+      "lock": "object:lock readOnly alwaysLoad <Object",
+      "name": "string required naturalKey labelKey alwaysLoad",
+      "objectType": "string readOnly alwaysLoad <Object",
+      "owner": "string:userAccount required alwaysLoad <Document",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
       "updatedBy": "string readOnly <Object"
     }
@@ -4853,7 +4967,8 @@
       "pgDatabase": "string required labelKey alwaysLoad",
       "pgService": "relation(TenantService) [name,pgHost] required",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
-      "updatedBy": "string readOnly <Object"
+      "updatedBy": "string readOnly <Object",
+      "organization": "relation(Organization) [name,isActive] alwaysLoad"
     }
   },
   "TenantService": {
