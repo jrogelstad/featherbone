@@ -4,6 +4,13 @@ Started 2026-10-07. The design this implements is `adr-001-identity-and-tenancy.
 When this plan is done, work returns to `featherbone-improvement-plan.md`,
 whose Tier 1 is gated by it. Section 7 lists what that plan loses to this one.
 
+> **Proposed direction change, 2026-10-10 — not settled.** Multi-instance
+> would become the *only* supported shape: every installation gets an instance
+> manager database plus one or more application instances, because even a
+> single-company customer wants production, test and demo. It retires part of
+> A.1, replaces A.5's backfill and makes D.4 mandatory. **Read section 9
+> before starting A.3.**
+
 Sizes are rough relative weights, not estimates: **S** a sitting, **M** a few
 days, **L** a week or more of focused work.
 
@@ -32,7 +39,62 @@ single-node bug today.
 
 No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
 
-- [ ] **A.1 Make the tenant management database explicit.** (M)
+- [x] **A.1 Make the tenant management database explicit.** (M)
+    - *Done 2026-10-09 on `feat/a1-control-plane`, two commits.*
+    - *A `controlPlane` configuration block names its connection; anything it
+      leaves out falls back to the ordinary `pg*` settings, and with no block
+      at all the control plane is `pgDatabase`, as before. Each setting also
+      takes an environment variable (`controlPlanePgDatabase` and friends),
+      which works whether or not the file carries the block.*
+    - *`serverRole` declares what the process serves: `controlPlane`,
+      `tenant` or `both`, defaulting to `both`. A tenant server does not
+      serve the control plane; a control plane serves only itself.*
+    - *A `"$db"` table records each database's kind, framework schema version
+      and mode. The bootstrap writes it and a mismatch is refused at install
+      time and at boot. A database installed before it existed has no marker
+      and is taken at its word, so upgrades are not blocked.*
+    - *`Tenant` and `TenantService` moved to
+      `scripts/feathers-control-plane.json`, installed only where they
+      belong. Manifest entries take a `target`, and a package declares which
+      kind of database it installs into, defaulting to `tenant` -- which is
+      what keeps application modules off a control plane. Core declares
+      `both`. **The Admin Console's manifest will need
+      `"target": "controlPlane"`** to install on a dedicated control plane.*
+    - *`install.js` takes `--control-plane`, `--tenant`, `--target` and
+      `--mode`, and installs into the control plane's own database when asked
+      for one. The connection used when no tenant is named is now the control
+      plane, which is where `tenant: false` requests were always going.*
+    - *`scripts/split-control-plane.js` helps an existing combined install:
+      it copies `tenant_service` rows across (their encrypted passwords
+      travel as they are, since both databases share the installation's
+      `pgCryptoKey`) and lists the tenants to re-enter. It does not copy
+      `tenant` rows -- a tenant points at a contact and an edition by primary
+      key, so moving one means moving application data, and a tenant will
+      also belong to an organization. **A.5 is where tenant rows move, with
+      their ownership.** Dry run by default, idempotent, deletes nothing.*
+    - *Also moved: `mode` (dev, test, prod) now lives in each database's
+      `"$db"` row rather than on each server process, so one server serving a
+      test and a production database says the right thing for each. Resolved
+      at sign-in and kept on the session. `mode` in configuration seeds the
+      install and stands in for a database whose row predates it.*
+    - *The README documents the database kinds, the install flags, the
+      `controlPlane` block, manifest `target` and the split script.*
+    - *Verified against three live servers on one cluster: a dedicated
+      control plane, a `--tenant` database with no `tenant` or
+      `tenant_service` tables in it, and `demo` as before. A tenant-role
+      server answers 404 for the control plane; a control-plane-role server
+      serves only itself; signing in to the tenant database writes its
+      session row in the control plane and none in the tenant. Pointing
+      `controlPlane` at a tenant database refuses to start, installing a
+      tenant database as a control plane is refused, and an application
+      package is refused on a control plane.*
+    - *Not done here: `both` remains supported rather than being removed,
+      because dropping it would break every running deployment on the next
+      pull. It is transitional; B or F can take it out.*
+    - ***Partly superseded by section 9.*** *If one mode is the only mode,
+      `serverRole`, `both` and the `controlPlane` block go away, and
+      `split-control-plane.js` is replaced by attaching an existing database.
+      The `"$db"` marker, the mode move and manifest `target` survive.*
     - Today it is whatever `config.pgDatabase` names, reached by requests
       passing `tenant: false` and acting as `systemUser` (`server.js` ~293).
     - Add a `controlPlane` configuration block distinct from tenant service
@@ -344,3 +406,149 @@ items either move here or are deleted by the design.
 4. **D.1–D.5** — can start as soon as A is done, in parallel with B.
 5. **C.1–C.3**, then **E.1–E.5**, then **F.1–F.3**.
 6. Return to `featherbone-improvement-plan.md`.
+
+## 9. Proposed: one mode, and the instance manager
+
+*Proposed 2026-10-10. Not settled — the open questions at the end need
+answers, and no tier above has been renumbered yet.*
+
+### Why
+
+Even the smallest customer — one job shop inside four walls — wants more than
+one database: a production system, a test system for trying a change before
+it is live, and often a demo kept as a reference for what a fully configured
+system looks like. Multiple instances are not an enterprise feature; they are
+how every customer runs. So there is no single-database deployment worth
+keeping a second code path for.
+
+This is a better justification for the control plane than multi-company
+tenancy was. It applies to every install, which means the manager gets
+exercised everywhere instead of rotting in a corner of the codebase.
+
+### The shape
+
+* Multi-instance is the only supported mode. No `serverRole`, no `both`, no
+  single-database install.
+* `server/config.json` names one Postgres connection and nothing more.
+  `pgDatabase` goes away.
+* The manager database is `db_manager`. `node install` creates it if absent
+  and upgrades it if present.
+* Every application database is an **instance**, registered in the manager.
+  Identity and sessions live in the manager; application data never does.
+
+### What this retires from A.1
+
+| A.1 work | Disposition |
+| --- | --- |
+| `"$db"` marker (kind, schema version, mode) | **Survives.** Kinds reduce to `manager` and `instance`. |
+| `mode` in the database | **Survives, and matters more.** Prod/test/demo per instance is the whole point of this section. |
+| Manifest `target` | **Survives.** The manager runs its own packages. |
+| `serverRole`, `both` | **Retired.** One shape, nothing to declare. |
+| `controlPlane` block and its environment overrides | **Retired.** One connection, one known database name. |
+| `install.js --control-plane/--tenant/--target` | **Mostly retired.** Install always builds the manager; `--mode` stays, for the first instance. |
+| `scripts/split-control-plane.js` | **Retired**, superseded by attach-an-existing-database below. |
+
+### What the administration console must do
+
+Requirements, not a design. Items 2–5 are largely D.1/D.2 work already;
+item 1 is new and it replaces A.5's backfill script.
+
+1. **Attach an existing database.** Register a database that already exists,
+   after checking it carries a `"$db"` marker with a schema version this
+   release understands. This is how an existing installation upgrades — the
+   old database becomes its first instance — so it replaces the migration
+   script rather than adding to it.
+2. **Copy a registered instance.** Production to test, most often.
+3. **Turn a registered instance into a template.**
+4. **Create an instance from a template.**
+5. **Create an empty instance** — what `node install` used to do.
+
+Not on the list, and needed:
+
+6. **Drop an instance**, guarded, and **rename** one.
+7. **Upgrade the fleet.** With N instances per customer, a release upgrade is
+   N schema upgrades; today that is one `node install` per database, by hand.
+   The manager should hold each instance's schema version, show which are
+   behind and upgrade them. This is new work that did not exist when a
+   customer had one database, and it is the operational cost of this section.
+
+Three constraints to record before any of it is designed:
+
+* `CREATE DATABASE … TEMPLATE` **requires no active connections to the
+  source.** Copying a live production instance therefore needs either a
+  maintenance state on that instance or `pg_dump`/`pg_restore` instead. (2)
+  cannot be one click on a database people are working in.
+* `createTemplateDatabase` (`datasource.js` ~468) sets `datistemplate` with a
+  direct `UPDATE pg_database`, which needs a Postgres superuser. A Featherbone
+  template is better as a flag on the registry row — an instance offered as a
+  starting point — than as Postgres's template flag, which buys nothing here.
+  D.2 already lists this function's other bugs.
+* A template should be **inert**: never connected to, so it cannot drift and
+  so (4) always satisfies the no-active-connections rule.
+
+### Sign-in and instance selection
+
+The URL keeps the database as its first path element, as today. New: with no
+database in the URL, the user is shown the instances they have access to, and
+selecting one redirects there. No session means signing in first.
+
+This settles an ADR §9 open question by implication, and the plan should say
+so: **authentication happens once, against the manager; authorization is
+resolved per instance.** The manager holds the credential of record and the
+list of who may reach which instance; each instance still holds the `$auth`
+grants that say what they may do once there.
+
+Two consequences:
+
+* **E.3 is constrained, not open.** The picker cannot work if `$session`
+  lives in an instance — there is no instance to read it from before one is
+  chosen. ADR §5's preference for moving sessions into the tenant database
+  has to be reconciled with this, or dropped.
+* **The manager must repair the gap it creates.** If the manager says a user
+  may reach an instance but that instance has no account row or role for
+  them, the user gets a confusing failure. Provisioning into the instance,
+  and re-checking it, belongs to the manager. This is the same provisioning
+  job A.4/B.5 describe, now with a UI that makes its absence visible.
+
+### How much of this is new work
+
+Most of it is already in this plan under other names:
+
+| Requirement | Already |
+| --- | --- |
+| Guarded create, copy and delete | D.2 |
+| Provisioning as a resumable state machine | D.1 |
+| Template management in the framework, not the module | D.4 |
+| Registry leaks on delete | D.3 |
+| Where `$session` lives | E.3 |
+
+Genuinely new: attach-an-existing-database, the instance picker, fleet
+upgrade — and **D.4 stops being a tidy-up and becomes a gate.** A fresh
+install would otherwise have a manager and no way to create its first
+instance until the registry UI ships in the framework. So `node install`
+should create the manager *and* a first instance, leaving a new installation
+as usable as it is today.
+
+### Open questions
+
+1. **Hard-code `db_manager`, or default to it?** Hard-coding means one
+   Featherbone installation per Postgres cluster. The integration harness
+   clones the configured database into a throwaway copy, so with a fixed name
+   parallel test runs collide, and a developer cannot keep two independent
+   installations on one cluster — which is how this machine is set up today.
+   Recommend: default `db_manager`, overridable by one setting, not
+   documented for ordinary use.
+2. **Vocabulary.** The registry row is an *instance* (a database); an
+   *organization* owns instances; a single-company customer is one
+   organization with three instances. The existing feather is `Tenant`.
+   Rename it to `Instance`, or keep the name and say "instance" only in the
+   UI? The rename reaches into the Admin Console module
+   (`triggers-tenant.js`, the WooCommerce webhook), so the cheapest moment is
+   D.4, which redraws that seam anyway. Decide before A.3 builds on it.
+3. **Does multi-cluster stay out of scope?** For now, yes — but B.3 and B.4
+   already remove the reason it was a problem. Once membership resolves
+   through a CTE over `role` and `role_membership`, and no Postgres login
+   roles are created, `pg_authid` stops being the identity boundary and a
+   second cluster is just another connection; `tenant_service` already
+   carries per-service host and port. This is a sequencing question, not a
+   design dead end.
