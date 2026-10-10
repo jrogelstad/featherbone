@@ -96,6 +96,14 @@
                 let pProcess;
                 let pIsSuper = opts.isSuper;
                 let pSubscr = opts.subscription;
+                /*
+                    What the database being installed into is for:
+                    "controlPlane", "tenant" or "both" (tenant plan A.1).
+                    A manifest entry may name a `target` of its own and is
+                    skipped where it does not apply, which is how the
+                    control-plane feathers stay out of tenant databases.
+                */
+                let pTarget = opts.target || "both";
                 let reqClient = pClient;
                 let conn;
 
@@ -113,6 +121,27 @@
                         pClient = conn.client;
                         pClient.currentUser(pUser);
                         isRemote = true;
+                    }
+
+                    /*
+                        Unless the caller said, take the kind from the
+                        database itself, so installing a package through
+                        the UI is checked the same way the command line
+                        is. A database installed before the marker
+                        existed has none, and accepts anything.
+                    */
+                    if (!opts.target) {
+                        let marked = await pClient.query(
+                            "SELECT kind FROM pg_tables, \"$db\" " +
+                            "WHERE tablename = '$db' " +
+                            "  AND schemaname = 'public'"
+                        ).catch(function () {
+                            return {rows: []};
+                        });
+
+                        if (marked.rows.length) {
+                            pTarget = marked.rows[0].kind;
+                        }
                     }
 
                     function getCount(loc) {
@@ -619,7 +648,9 @@
 
                     exp.execute({
                         user: pUser,
-                        client: pClient
+                        client: pClient,
+                        target: pTarget,
+                        mode: opts.mode
                     }).then(processFile.bind(pClient)).catch(rollback);
                 }
 
@@ -796,6 +827,15 @@
                     file = manifest.files[i];
                     i += 1;
 
+                    // Not for this kind of database -- move along
+                    while (
+                        file && file.target && pTarget !== "both" &&
+                        file.target !== pTarget
+                    ) {
+                        file = manifest.files[i];
+                        i += 1;
+                    }
+
                     // If we've processed all the files, wrap this up
                     if (!file) {
                         handleFeathers().then(function () {
@@ -898,6 +938,30 @@
                         }
 
                         manifest = JSON.parse(data);
+
+                        /*
+                            A package says which kind of database it
+                            belongs in. Application modules do not have
+                            to say anything -- they default to "tenant",
+                            which is what keeps them off a control plane
+                            (tenant plan A.1). The framework's own
+                            manifest declares "both".
+                        */
+                        if (
+                            pTarget !== "both" &&
+                            (manifest.target || "tenant") !== "both" &&
+                            (manifest.target || "tenant") !== pTarget
+                        ) {
+                            reject(new Error(
+                                "Package " + (manifest.module || "") +
+                                " installs into a \"" +
+                                (manifest.target || "tenant") +
+                                "\" database, and this one is a \"" +
+                                pTarget + "\" database."
+                            ));
+                            return;
+                        }
+
                         pClient.query("BEGIN;").then(processFile);
                     });
                 }

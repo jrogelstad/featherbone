@@ -1,0 +1,411 @@
+[
+    {
+        "name": "Organization",
+        "plural": "Organizations",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "A customer account. Owns instances and the identities that reach them",
+        "authorizations": [],
+        "properties": {
+            "name": {
+                "description": "Name of the organization",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isNaturalKey": true,
+                "isLabelKey": true
+            },
+            "isActive": {
+                "description": "Whether the organization is active",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "authentication": {
+                "description": "How this organization's identities sign in",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "password",
+                "dataList": [
+                    {
+                        "value": "password",
+                        "label": "Local password"
+                    },
+                    {
+                        "value": "sso",
+                        "label": "Single sign-on only"
+                    },
+                    {
+                        "value": "both",
+                        "label": "Either"
+                    }
+                ]
+            },
+            "isTwoFactorRequired": {
+                "description": "Whether two-factor authentication is required",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            }
+        }
+    },
+    {
+        "name": "TenantService",
+        "plural": "TenantServices",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Tennant postgres service",
+        "authorizations": [],
+        "properties": {
+            "name": {
+                "description": "Name of service",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isNaturalKey": true
+            },
+            "pgHost": {
+                "description": "Postgres host url",
+                "type": "string",
+                "alias": "Host",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "pgPort": {
+                "description": "Postgres port number",
+                "type": "string",
+                "alias": "Port",
+                "isRequired": true
+            },
+            "pgUser": {
+                "description": "Administrative user",
+                "type": "string",
+                "alias": "User",
+                "isRequired": true
+            },
+            "pgPassword": {
+                "description": "Administrative user password",
+                "type": "string",
+                "alias": "Password",
+                "format": "password",
+                "isRequired": true,
+                "isEncrypted": true
+            }
+        }
+    },
+    {
+        "name": "Tenant",
+        "plural": "Tenants",
+        "inherits": "Document",
+        "module": "Core",
+        "description": "Map of companies to their database",
+        "authorizations": [],
+        "properties": {
+            "name": {
+                "description": "Name of company or instance",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isNaturalKey": true
+            },
+            "contact": {
+                "description": "Primary contact",
+                "type": {
+                    "relation": "Contact",
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "address",
+                        "phone"
+                    ]
+                },
+                "isRequired": true
+            },
+            "isActive": {
+                "type": "boolean",
+                "description": "Whether tennant is active",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "pgService": {
+                "description": "Postgres data service",
+                "type": {
+                    "relation": "TenantService",
+                    "properties": [
+                        "name",
+                        "pgHost"
+                    ]
+                },
+                "alias": "Service",
+                "isRequired": true
+            },
+            "pgDatabase": {
+                "description": "Postgres database name",
+                "type": "string",
+                "alias": "Database",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isLabelKey": true
+            },
+            "modules": {
+                "description": "List of modules installed on tenant",
+                "type": "array",
+                "isReadOnly": true,
+                "isAlwaysLoad": true
+            },
+            "edition": {
+                "description": "Edition of software used",
+                "type": {
+                    "relation": "Edition",
+                    "properties": [
+                        "name",
+                        "description",
+                        "maxSessions"
+                    ]
+                },
+                "isReadOnly": false
+            },
+            "isDemo": {
+                "description": "Flag whether demo database",
+                "type": "boolean"
+            },
+            "expiration": {
+                "description": "Expiration date",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null"
+            },
+            "organization": {
+                "description": "Organization that owns this instance. Backfilled by A.5",
+                "type": {
+                    "relation": "Organization",
+                    "properties": [
+                        "name",
+                        "isActive"
+                    ]
+                },
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "Identity",
+        "plural": "Identities",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "A person within one organization. Owns the credential, not the database role",
+        "authorizations": [],
+        "properties": {
+            "organization": {
+                "description": "Organization this identity belongs to",
+                "type": {
+                    "relation": "Organization",
+                    "properties": [
+                        "name",
+                        "isActive"
+                    ]
+                },
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "username": {
+                "description": "Sign-in name, unique within the organization",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isLabelKey": true
+            },
+            "fullName": {
+                "description": "Name of the person",
+                "type": "string",
+                "isRequired": true
+            },
+            "email": {
+                "description": "Email address",
+                "type": "string",
+                "format": "email"
+            },
+            "passwordHash": {
+                "description": "Verifier for the local password. Never a reversible secret",
+                "type": "string",
+                "isReadOnly": true
+            },
+            "status": {
+                "description": "Whether this identity may sign in",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "active",
+                "isAlwaysLoad": true,
+                "dataList": [
+                    {
+                        "value": "active",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "suspended",
+                        "label": "Suspended"
+                    },
+                    {
+                        "value": "locked",
+                        "label": "Locked out"
+                    }
+                ]
+            },
+            "isPlatformAdmin": {
+                "description": "Platform administrator. Not a Postgres superuser",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "isOrgAdmin": {
+                "description": "Administrator of their own organization",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "failedAttempts": {
+                "description": "Consecutive failed sign-in attempts",
+                "type": "integer",
+                "isRequired": true,
+                "default": 0,
+                "isReadOnly": true
+            },
+            "lockedUntil": {
+                "description": "Locked out until this time",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true
+            },
+            "lastSignedIn": {
+                "description": "Last successful sign-in",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true
+            }
+        }
+    },
+    {
+        "name": "AccessGrant",
+        "plural": "AccessGrants",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Which instances an identity may reach. The reachability boundary",
+        "authorizations": [],
+        "properties": {
+            "identity": {
+                "description": "Identity being granted access",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName",
+                        "status"
+                    ]
+                },
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "tenant": {
+                "description": "Instance the identity may reach",
+                "type": {
+                    "relation": "Tenant",
+                    "properties": [
+                        "name",
+                        "pgDatabase"
+                    ]
+                },
+                "alias": "Instance",
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "isActive": {
+                "description": "Whether the grant is in force",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "granted": {
+                "description": "When access was granted",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null"
+            },
+            "grantedBy": {
+                "description": "Identity that granted the access",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "name": "AdminAudit",
+        "plural": "AdminAudits",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Privileged actions: who did what, to whom, and on whose behalf",
+        "authorizations": [],
+        "properties": {
+            "action": {
+                "description": "What was done",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isLabelKey": true
+            },
+            "occurred": {
+                "description": "When it happened",
+                "type": "string",
+                "format": "dateTime",
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "actor": {
+                "description": "Identity that performed the action",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName"
+                    ]
+                },
+                "isAlwaysLoad": true
+            },
+            "onBehalfOf": {
+                "description": "Organization the action was taken for",
+                "type": {
+                    "relation": "Organization",
+                    "properties": [
+                        "name"
+                    ]
+                }
+            },
+            "targetIdentity": {
+                "description": "Identity the action was taken against",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName"
+                    ]
+                }
+            },
+            "detail": {
+                "description": "What changed",
+                "type": "string",
+                "format": "textArea"
+            }
+        }
+    }
+]

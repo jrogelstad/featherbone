@@ -245,6 +245,89 @@
         });
     }
 
+    /*
+        Refuse to start when the database configured as the control plane
+        is not one (tenant plan A.1). The marker is written by the
+        bootstrap; a database installed before it existed has none, and
+        is taken at its word so an upgrade is not blocked.
+    */
+    async function checkControlPlane(conf) {
+        let cp = config.controlPlane(conf);
+        let role = config.serverRole(conf);
+        let conn = await datasource.getPool();
+        let resp = await conn.query(
+            "SELECT kind FROM pg_tables, \"$db\" " +
+            "WHERE tablename = '$db' AND schemaname = 'public'"
+        ).catch(function () {
+            return {rows: []};
+        });
+        let kind = (
+            resp.rows.length
+            ? resp.rows[0].kind
+            : undefined
+        );
+
+        logger.info(
+            "Serving as " + role + ", control plane \"" +
+            cp.pgDatabase + "\""
+        );
+
+        if (kind === undefined) {
+            logger.warn(
+                "Database \"" + cp.pgDatabase + "\" carries no \"$db\" " +
+                "marker. Install it to record what it is for."
+            );
+            return;
+        }
+
+        if (kind !== "controlPlane" && kind !== "both") {
+            console.error(
+                "Featherbone will not start: \"" + cp.pgDatabase +
+                "\" is installed as a \"" + kind + "\" database and " +
+                "cannot serve as the control plane. Point " +
+                "controlPlane.pgDatabase at the tenant management " +
+                "database."
+            );
+            process.exit(1);
+        }
+
+        if (role === "controlPlane" && kind === "both") {
+            logger.warn(
+                "Serving as a control plane from \"" + cp.pgDatabase +
+                "\", which is installed as \"both\". Install it as a " +
+                "control plane to keep application data out of it."
+            );
+        }
+    }
+
+    /*
+        What banner the database a user signed into should show. It is
+        recorded in that database's own "$db" row, so one server serving
+        a test and a production database says the right thing for each
+        (John, Oct 2026). A database installed before the mode moved
+        there has none, and the `mode` setting stands in.
+    */
+    async function modeOf(tenant) {
+        let conn;
+        let resp;
+
+        try {
+            conn = await datasource.getPool(tenant);
+            resp = await conn.query(
+                "SELECT mode FROM pg_tables, \"$db\" " +
+                "WHERE tablename = '$db' AND schemaname = 'public'"
+            );
+        } catch (ignore) {
+            return mode;
+        }
+
+        return (
+            resp.rows.length && resp.rows[0].mode
+            ? resp.rows[0].mode
+            : mode
+        );
+    }
+
     async function init() {
         try {
             // Configure logger
@@ -270,6 +353,15 @@
                     "must be re-encrypted, not just edited)."
                 );
             }
+            if (!config.isValidRole(resp)) {
+                console.error(
+                    "Featherbone will not start: serverRole \"" +
+                    config.serverRole(resp) + "\" is not one of " +
+                    config.roles().join(", ") + "."
+                );
+                process.exit(1);
+            }
+
             let log = {
                 level: resp.logLevel,
                 zippedArchive: resp.logZippedArchive,
@@ -332,6 +424,7 @@
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
+            await checkControlPlane(resp);
             tenants = await datasource.loadTenants();
             await datasource.cleanupNodes();
             await datasource.cleanupProcesses();
@@ -1487,7 +1580,7 @@
             message = msg;
         };
 
-        function next(err) {
+        async function next(err) {
             if (err) {
                 res.status(res.statusCode).json(message);
                 return;
@@ -1533,7 +1626,8 @@
                     error.bind(res)(e);
                 }
             } else {
-                req.user.mode = mode;
+                req.user.mode = await modeOf(req.tenant);
+                req.session.mode = req.user.mode;
                 req.session.database = req.database;
                 req.session.save(function () {
                     res.json(req.user);
@@ -2643,7 +2737,7 @@
             }
             if (req.user) {
                 webauthn.applyToken(req);
-                req.user.mode = mode;
+                req.user.mode = req.session.mode || mode;
                 sessions[req.sessionID] = setTimeout(function () {
                     logger.verbose("Session " + req.sessionID + " timed out");
                     doSignOut(req, res);

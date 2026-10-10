@@ -34,6 +34,16 @@
             "path": "scripts/feathers.json"
         },
         {
+            "type": "feather",
+            "path": "scripts/feathers-control-plane.json",
+            "target": "controlPlane"
+        },
+        {
+            "type": "execute",
+            "path": "scripts/control-plane-constraints.js",
+            "target": "controlPlane"
+        },
+        {
             "type": "workbook",
             "path": "scripts/workbooks.json"
         },
@@ -46,6 +56,6 @@
             "type": "batch",
             "path": "scripts/data.json"
         }
-    ]
+    ],
+    "target": "both"
 }
-
