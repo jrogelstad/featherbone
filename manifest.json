@@ -39,6 +39,11 @@
             "target": "controlPlane"
         },
         {
+            "type": "execute",
+            "path": "scripts/control-plane-constraints.js",
+            "target": "controlPlane"
+        },
+        {
             "type": "workbook",
             "path": "scripts/workbooks.json"
         },

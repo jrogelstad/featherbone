@@ -125,7 +125,47 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       the `tenants[0]` loop.
     - Done when: two processes started from one config file do not disturb each
       other's locks, subscriptions or process rows.
-- [ ] **A.3 Control-plane feathers.** (M)
+- [x] **A.3 Control-plane feathers.** (M)
+    - *Done 2026-10-10 on `feat/a3-identity-model`.*
+    - *`Organization`, `Identity`, `AccessGrant` and `AdminAudit` added to
+      `scripts/feathers-control-plane.json`, and `Tenant` gains an optional
+      `organization` relation. Pure addition: nothing reads them yet, so
+      behaviour is unchanged. `Contact`, which `Tenant` requires, comes from
+      the bootstrap and so is present in a manager database too.*
+    - ***The uniqueness that item 1.1 is about is now a database
+      constraint.*** *A feather's `isNaturalKey` builds an ordinary index,
+      not a unique one, and a feather cannot declare a constraint spanning
+      two columns -- so `username` was left off the natural key (making it
+      one would have recreated the cluster-wide collision in a new place)
+      and `scripts/control-plane-constraints.js` adds the real constraints:
+      unique `(organization, lower(username))` on `identity`, unique
+      `lower(name)` on `organization`, and one grant per identity and
+      instance. All partial on `NOT is_deleted`, since rows here are
+      soft-deleted and a deleted identity must not reserve its name for
+      ever. It runs from the manifest after the control-plane feathers, on a
+      control plane only, and is idempotent.*
+    - *Proven: two organizations may each employ an `alice`; one
+      organization may not hold `bob` and `BOB`; deleting an identity frees
+      its username. `test/api/identity-model.test.js`, 10 tests. Full API
+      suite 256 tests, 178 pass, 23 fail -- the identical failure set to
+      `john/master` on the same cluster, so no regressions. Unit suite 302
+      pass.*
+    - ***The `Tenant` to `Instance` rename is deferred to D.4, correcting
+      what I said on 2026-10-10.*** *`Tenant` is referenced by the Admin
+      Console module, which lives in a separate repository, so renaming the
+      feather here would break it. A.3 therefore adds a relation **to**
+      `Tenant`, which survives the rename; section 9's open question 2 keeps
+      its answer and only the timing changes.*
+    - *Goldens updated by hand rather than regenerated: this cluster has
+      neither SupplyChain nor Job Shop, so `FB_UPDATE_GOLDEN=1` would strip
+      114 feathers out of `catalog-feathers.json`. Only the four new
+      feathers, `Tenant.organization` and the twelve new index rows were
+      added, taken verbatim from the live catalog. **The catalog golden test
+      cannot pass on a cluster missing those modules, so confirm it on a
+      full install.***
+    - *Not done here: `identity_credential` and `identity_federation`, which
+      belong with C.1 and C.3; and service accounts and API tokens, still
+      unmodelled (ADR §9).*
     - `organization`, `identity`, `access_grant`, `admin_audit`, and the
       `organization` relation on `tenant`. Schema per ADR §4.
     - Built into the framework, not an installable module. The control plane is
