@@ -614,6 +614,39 @@ describe("data API record lifecycle", function () {
         });
     });
 
+    describe("projection", function () {
+        it("refuses a property the feather does not have", async function () {
+            // Was a TypeError the caller could do nothing about,
+            // "Cannot read properties of undefined (reading
+            // 'isEncrypted')" -- improvement item 0.16
+            let resp = await admin.raw("POST", "/data/contacts", {
+                properties: ["id", "bogus"]
+            });
+
+            expectError(resp, 400, /bogus/);
+            assert.match(String(resp.body), /Contact/);
+        });
+
+        it("names every unknown property, not just the first",
+                async function () {
+            let resp = await admin.raw("POST", "/data/contacts", {
+                properties: ["bogus", "alsoBogus"]
+            });
+
+            expectError(resp, 400, /bogus/);
+            assert.match(String(resp.body), /alsoBogus/);
+        });
+
+        it("still returns only the properties asked for", async function () {
+            let rows = await admin.list("Contacts", {properties: ["id"]});
+
+            assert.ok(rows.length > 0, "expected at least one contact");
+            rows.forEach(function (r) {
+                assert.deepEqual(Object.keys(r), ["id"]);
+            });
+        });
+    });
+
     describe("natural keys", function () {
         let kind;
 
