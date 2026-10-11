@@ -361,7 +361,7 @@ At default settings, about 8 tenants on one Node server can exhaust Postgres's 1
 
 One stray rejected promise can take down every tenant on the server, so 6.1 is worth doing early despite its tier. The rest makes the refactor safer.
 
-- [ ] **6.1 Stop unhandled rejections from crashing the server.** **[→ tenant-management-plan E.5]** There's no `unhandledRejection` handler, and on Node 15+ one floating rejection kills the process.
+- [~] **6.1 Stop unhandled rejections from crashing the server.** **[→ tenant-management-plan E.5]** *Handler done 2026-10-11 on `fix/6.1-unhandled-rejection`: `unhandledRejection` logs the stack and the server keeps serving (verified: a floated rejection, then HTTP 200). `uncaughtException` deliberately left fatal. Hunting down the floating rejections themselves stays with E.5.* There's no `unhandledRejection` handler, and on Node 15+ one floating rejection kills the process.
     - Add a process-level handler that logs and alerts.
     - Fix the sources: `plan/do-transact-allocated.js:54` and `sell/do-sales-order-hold.js:66` (reject without `return`); un-awaited Alert requests in `ship-engine/do-import-ship-engine-carriers.js`; un-awaited `client.query` in `make/triggers-work-order.js:864`; the `onCommit` Alert without `catch` in `do-transact-allocated.js` ~166–182.
 - [ ] **6.2 Remove multi-tenant shortcuts in app code.** **[→ tenant-management-plan E.5]**
