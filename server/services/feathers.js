@@ -838,7 +838,17 @@
 
                 ckeys.forEach(function (key) {
                     if (childProps[key] === undefined) {
-                        childProps[key] = parentProps[key];
+                        /*
+                            A copy, never a reference: stamping the
+                            parent's own object wrote inheritedFrom into
+                            the cached catalog, where it persisted and
+                            made the save path skip the ancestor's own
+                            column (improvement plan 0.17)
+                        */
+                        childProps[key] = Object.assign(
+                            {},
+                            parentProps[key]
+                        );
                         childProps[key].inheritedFrom = parent;
                     }
                 });
@@ -878,11 +888,27 @@
                     delete result.inherits;
                 }
 
-                /* Now add local properties back in */
+                /* Now add local properties back in -- as copies, so
+                   the overload defaults applied below (and anything a
+                   caller does to the result) never write into the
+                   cached catalog */
                 featherProps = theFeather.properties;
                 resultProps = result.properties;
                 Object.keys(featherProps).forEach(function (key) {
-                    resultProps[key] = featherProps[key];
+                    resultProps[key] = Object.assign(
+                        {},
+                        featherProps[key]
+                    );
+                    /*
+                        Repair catalogs the old reference bug already
+                        polluted: a feather "inheriting" a property from
+                        itself is the bug's signature, never a real
+                        declaration
+                    */
+                    if (resultProps[key].inheritedFrom === theName) {
+                        delete resultProps[key].inheritedFrom;
+                        delete featherProps[key].inheritedFrom;
+                    }
                 });
                 // Apply overload default values
                 overloads = theFeather.overloads;
@@ -1527,6 +1553,25 @@
                     ? obj.data.specs
                     : [obj.data.specs]
                 );
+
+                /*
+                    A property genuinely inherited carries the ancestor's
+                    name; one marked as inherited from the feather itself
+                    is pollution from the old appendParent reference bug
+                    (0.17) and would make the column loop below skip the
+                    feather's own column. Scrub it, so reinstalling a
+                    module also cleans a polluted catalog.
+                */
+                specs.forEach(function (sp) {
+                    if (!sp || !sp.properties) {
+                        return;
+                    }
+                    Object.keys(sp.properties).forEach(function (key) {
+                        if (sp.properties[key].inheritedFrom === sp.name) {
+                            delete sp.properties[key].inheritedFrom;
+                        }
+                    });
+                });
                 let c = 0;
                 let len = specs.length;
                 let theClient = obj.client;
