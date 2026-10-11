@@ -1771,6 +1771,9 @@
                 showDeleted: obj.showDeleted
             };
 
+            let unknown;
+            let err;
+
             function mapKeys(row) {
                 let rkeys;
                 let ret = {};
@@ -1839,6 +1842,29 @@
                     )
                 );
             });
+
+            /*
+                A property the feather does not have is dereferenced
+                below, so asking for one answered with a TypeError the
+                caller could do nothing about ("Cannot read properties
+                of undefined (reading 'isEncrypted')"). Name it, and say
+                it is the request that is wrong rather than the server
+                (improvement item 0.16).
+            */
+            unknown = keys.filter(function (key) {
+                return fp[key] === undefined;
+            });
+
+            if (unknown.length) {
+                err = new Error(
+                    "Feather \"" + feather.name + "\" has no property " +
+                    unknown.map(function (key) {
+                        return "\"" + key + "\"";
+                    }).join(", ")
+                );
+                err.statusCode = 400;
+                throw err;
+            }
 
             keys.forEach(function (key) {
                 if (fp[key].isEncrypted) {
