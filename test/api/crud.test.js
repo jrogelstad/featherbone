@@ -5,7 +5,9 @@
     changes, GET by id, PATCH with JSON patch, soft DELETE, validation
     errors, read-only properties, relations, child arrays and natural keys.
 
-    Uses core feathers that need no setup: Kind/Category (Category
+    Uses Kind, a core feather that needs no setup, and Category
+    (which comes from SupplyChain's common module, so the tests touching
+    it are skipped on an install without it). Category
     inherits Kind and its natural key), Location, Contact with its child
     arrays, and Terms (validated by a SupplyChain trigger).
 */
@@ -685,10 +687,10 @@ describe("data API record lifecycle", function () {
             );
         });
 
-        it("is enforced by a unique index in the database", {
-            todo: "plan 2.6: natural keys are only checked in crud.js; " +
-                    "no unique index, so concurrent inserts can duplicate"
-        }, async function () {
+        it("is enforced by a unique index in the database",
+                async function () {
+            // Was checked only in crud.js, so two concurrent inserts
+            // could both pass the check and both commit (item 2.6)
             let resp = await db.query(
                 "SELECT count(*)::int AS n FROM pg_index i " +
                 "JOIN pg_attribute a ON a.attrelid = i.indrelid " +
@@ -697,6 +699,43 @@ describe("data API record lifecycle", function () {
                 "  AND i.indnatts = 1 AND a.attname = 'code'"
             );
             assert.equal(resp.rows[0].n, 1, "unique index on kind(code)");
+        });
+
+        it("indexes an inherited natural key on the child table too",
+                async function () {
+            // Postgres inheritance does not propagate an index, and the
+            // ancestor that declares the key is usually the empty table,
+            // so the child needs its own (item 3.3)
+            // user_account inherits its name from role and had no
+            // index on it at all, which is the login lookup. Core
+            // feathers only, so this runs without SupplyChain.
+            let resp = await db.query(
+                "SELECT count(*)::int AS n FROM pg_index i " +
+                "JOIN pg_attribute a ON a.attrelid = i.indrelid " +
+                "  AND a.attnum = i.indkey[0] " +
+                "WHERE i.indrelid = 'user_account'::regclass " +
+                "  AND i.indisunique AND i.indnatts = 1 " +
+                "  AND a.attname = 'name'"
+            );
+            assert.equal(
+                resp.rows[0].n,
+                1,
+                "unique index on user_account(name)"
+            );
+        });
+
+        it("lets a deleted record's key be used again", async function () {
+            // The index is partial on NOT is_deleted: rows here are
+            // soft-deleted, and a deleted record must not reserve its
+            // key for ever
+            let doomed = await admin.create("Kind", {code: uniq("NKR")});
+
+            await admin.remove("Kind", doomed.id);
+
+            let reused = await admin.create("Kind", {code: doomed.code});
+
+            assert.equal(reused.code, doomed.code);
+            assert.notEqual(reused.id, doomed.id);
         });
     });
 });
