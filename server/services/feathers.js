@@ -1614,6 +1614,7 @@
                     let fns = [];
                     let unique = [];
                     let indices = [];
+                    let relations = [];
                     let ancestor;
                     let aprops;
                     let i = 0;
@@ -2317,21 +2318,55 @@
                         */
                         aprops = spec.properties || {};
 
-                        Object.keys(aprops).forEach(function (key) {
-                            if (
-                                aprops[key].isNaturalKey &&
-                                unique.indexOf(key) === -1
-                            ) {
-                                unique.push(key);
-                            }
+                        /*
+                            Every relation column gets an index
+                            (improvement items 3.1 and 3.4): the
+                            generated views run a correlated subquery
+                            per row against these columns, and the
+                            child side of every to-many is one. A
+                            parentOf property has no column -- the
+                            child holds the pointer -- and the
+                            discriminator never became a column either.
+                        */
+                        function collect(owner) {
+                            let ps = owner.properties || {};
 
-                            if (
-                                aprops[key].isIndexed &&
-                                indices.indexOf(key) === -1
-                            ) {
-                                indices.push(key);
-                            }
-                        });
+                            Object.keys(ps).forEach(function (key) {
+                                let ptype = ps[key].type;
+
+                                if (
+                                    ps[key].isNaturalKey &&
+                                    unique.indexOf(key) === -1
+                                ) {
+                                    unique.push(key);
+                                }
+
+                                if (
+                                    ps[key].isIndexed &&
+                                    indices.indexOf(key) === -1
+                                ) {
+                                    indices.push(key);
+                                }
+
+                                if (
+                                    typeof ptype === "object" &&
+                                    ptype.relation &&
+                                    !ptype.parentOf &&
+                                    key !== owner.discriminator
+                                ) {
+                                    let col = tools.relationColumn(
+                                        key,
+                                        ptype.relation
+                                    );
+
+                                    if (relations.indexOf(col) === -1) {
+                                        relations.push(col);
+                                    }
+                                }
+                            });
+                        }
+
+                        collect(spec);
 
                         ancestor = spec.inherits;
 
@@ -2340,28 +2375,15 @@
                             ancestor !== "Object" &&
                             catalog[ancestor]
                         ) {
-                            aprops = catalog[ancestor].properties || {};
-
-                            Object.keys(aprops).forEach(function (key) {
-                                if (
-                                    aprops[key].isNaturalKey &&
-                                    unique.indexOf(key) === -1
-                                ) {
-                                    unique.push(key);
-                                }
-
-                                if (
-                                    aprops[key].isIndexed &&
-                                    indices.indexOf(key) === -1
-                                ) {
-                                    indices.push(key);
-                                }
-                            });
-
+                            collect(catalog[ancestor]);
                             ancestor = catalog[ancestor].inherits;
                         }
 
-                        if (unique.length || indices.length) {
+                        if (
+                            unique.length ||
+                            indices.length ||
+                            relations.length
+                        ) {
                             sql = "";
                             tokens = [];
 
@@ -2398,6 +2420,18 @@
                                     table + "_index_" + key.toSnakeCase(),
                                     table,
                                     key.toSnakeCase()
+                                ]);
+                            });
+
+                            relations.forEach(function (col) {
+                                sql += (
+                                    "CREATE INDEX IF NOT EXISTS " +
+                                    "%I ON %I (%I);"
+                                );
+                                tokens = tokens.concat([
+                                    table + "_index" + col,
+                                    table,
+                                    col
                                 ]);
                             });
 
