@@ -503,16 +503,9 @@ describe("data API queries", function () {
             }]);
         });
 
-        it("rejects an unknown projected property with a clear error", {
-            todo: "defect: unknown property in 'properties' -> TypeError " +
-                    "'reading isEncrypted' (crud.js doSelect keys.forEach)"
-        }, async function () {
-            let resp = await admin.raw("POST", "/data/terms-list", {
-                properties: ["code", "bogus"],
-                filter: {criteria: [mine]}
-            });
-            assert.match(String(resp.body), /bogus/);
-        });
+        // "rejects an unknown projected property" lived here as a todo
+        // until improvement item 0.16 was fixed. The coverage moved to
+        // crud.test.js, which does not need SupplyChain installed to run.
 
         it("hides deleted records unless showDeleted is set",
                 async function () {
