@@ -21,14 +21,43 @@
 /*
   Feather specification
 */
-function doUpsertFeather(obj) {
+async function doUpsertFeather(obj) {
     "use strict";
+
+    /*
+        The denial comes before anything else: this trigger used to run
+        ahead of the create authorization check and crash on the payload
+        (plan 0.13), so an unauthorized user got a 500 instead of a 401.
+    */
+    let canDo = await f.datasource.request({
+        method: "GET",
+        name: "isAuthorized",
+        client: obj.client,
+        data: {
+            feather: "Feather",
+            action: (
+                obj.oldRec
+                ? "canUpdate"
+                : "canCreate"
+            )
+        }
+    });
+    if (!canDo) {
+        throw {
+            statusCode: 401,
+            message: "Not authorized to " + (
+                obj.oldRec
+                ? "update"
+                : "create"
+            ) + " feathers"
+        };
+    }
 
     return new Promise(function (resolve, reject) {
         let payload;
         let auths = [];
         let feather = f.copy(obj.newRec);
-        let props = feather.properties;
+        let props = feather.properties || [];
         let overloads = feather.overloads || [];
         let exclusions = [
             "id",

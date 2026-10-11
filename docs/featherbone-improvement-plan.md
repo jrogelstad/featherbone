@@ -109,11 +109,17 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   `edition`, `server_process`, `notice`, `send_mail`, `comment`, `kind`,
   `layout`, `print_form`, `system_print_form`, `country`, `state`, `unit`
   and the currency feathers.
-- [ ] **0.13 `POST /data/feather` crashes instead of refusing.** A
+- [x] **0.13 `POST /data/feather` crashes instead of refusing.** A
   non-super user gets 500 "Cannot read properties of undefined (reading
   'forEach')" from the Feather trigger, which runs before the create
   authorization check. The record is not created, so this is a 6.1-class
   unhandled error rather than a hole, but the denial should come first.
+  *Fixed 2026-10-11 on `fix/0.13-feather-denial`: the trigger checks
+  isAuthorized (canCreate/canUpdate on Feather) before touching the
+  payload and rejects 401 "Not authorized to create feathers"; a missing
+  properties array no longer crashes either. **Reinstall Core after
+  merging** -- the trigger is a deployed data service. Test in
+  authorization.test.js.*
 - [ ] **0.14 User accounts have no column-level authorization.** With 0.4
   in, `everyone` reads `user_account` because the client's user-name picker
   needs it, which also exposes `isSuper`, `isLocked`, `signInAttempts` and
