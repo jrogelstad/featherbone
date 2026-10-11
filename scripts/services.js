@@ -1417,10 +1417,12 @@ async function createUserAccount(obj) {
         );
     }
 
-    // Forward user account based options for role
+    // Forward user account based options for role. isActive defaults
+    // to true, so only an explicit false means a disabled login
+    // (plan 0.1: an unset value created the role NOLOGIN)
     obj.roleOptions = {
         name: obj.newRec.name.toLowerCase(),
-        isLogin: obj.newRec.isActive,
+        isLogin: obj.newRec.isActive !== false,
         isSuper: obj.newRec.isSuper,
         password: obj.newRec.password || f.createId(),
         isInherits: false
