@@ -1,7 +1,8 @@
 # ADR-002: Packages on disk, and Install apart from Deploy
 
-Status: **proposed**, 2026-10-11. Supersedes the choice offered in
-`tenant-management-plan.md` section 10.
+Status: **accepted**, 2026-10-11 -- every question in section 8 settled
+the same day. Supersedes the choice offered in `tenant-management-plan.md`
+section 10.
 Author: John, written up by Claude from his direction of 2026-10-11.
 
 ## 1. The question that forced this
@@ -144,14 +145,46 @@ Stated plainly, because these are real and some are John's to accept.
 
 * **Editing feathers, services, routes and modules in the application is
   gone.** Accepted deliberately.
-* **Customers can no longer add a custom field.** This is the one worth
-  pausing on. Adding a column through the UI is a thing ERP customers expect,
-  and today a tenant can do it. Afterwards the schema of a version is the
-  same everywhere it is deployed. For a SaaS where every tenant runs a
-  supported version that is a feature, not a loss -- but it is a product
-  capability being dropped and should be a decision, not a side effect. If
-  custom fields must survive, the shape is probably a per-database extension
-  namespace that Deploy never touches.
+* **Adding a column through the UI is gone, and is replaced by two tiers**
+  (settled 2026-10-11). This was the one question that could have changed
+  what gets built, so it is written out in full rather than listed as a
+  loss.
+
+  **A package, for anything real.** A customer who needs more than fields
+  gets a package of their own that builds on the ones they have, declaring a
+  feather that inherits an existing one and adds columns. This needs a
+  developer, which John judges warranted: companies are generally not expert
+  enough to change a schema safely, and the discipline is the point.
+
+  *This works on a mechanism that already exists.* Featherbone compiles
+  `inherits` to Postgres table inheritance -- `feathers.js` ~1830 emits
+  `INHERITS (%I)`, and `document` inherits `object`, `feather` inherits
+  `document`, and so on all the way down. So `AcmeItem inherits Item`
+  produces `acme_item INHERITS (item)`, and every query on `item` sees Acme
+  items, while the added columns stay invisible to anything that only knows
+  `Item`. A relation holding an `Item` can hold an `AcmeItem`. Nothing new
+  is needed for the data model.
+
+  *But the mechanism has known defects, and leaning on it harder makes them
+  matter more.* Postgres does not propagate unique constraints or foreign
+  keys to inheriting tables, which is improvement item 2.6 (natural keys are
+  not unique in the database) and 3.3 (natural-key and status indexes sit on
+  empty parents). Both should be fixed before extension-by-inheritance is
+  offered to customers, or a customer's subclass will quietly escape the
+  parent's natural key.
+
+  **Spare user columns, for simple fields.** The classic approach: a fixed
+  set of user columns on tables, which a customer aliases and places on
+  forms themselves. The alias is per-database metadata and so lives with
+  forms and styles, surviving Deploy. The limit is deliberate -- **no
+  business logic on a user column without a package** -- so anything
+  conditional, calculated or validated needs a development environment.
+
+  *One gap to close first.* There is no column-level authorization today
+  (improvement item 0.14), so a user column is readable by anyone who can
+  read the row. That is fine for a label or a reference number and wrong for
+  anything sensitive, and customers will reach for the second before being
+  told.
 * **Edit-and-run immediacy.** A development mode that watches the module
   directory and reloads would cover most of it.
 * **`ModuleNpm` rows go away** (see section 8, question 1). Any module
@@ -161,7 +194,7 @@ Stated plainly, because these are real and some are John's to accept.
   The migration needs to export what is there and reconcile it against the
   package it came from, and report what it cannot.
 
-## 8. Open questions
+## 8. Questions, and the answers
 
 1. **Settled 2026-10-11: npm is the package format and the transport;
    Featherbone owns the layout.**
@@ -210,20 +243,44 @@ Stated plainly, because these are real and some are John's to accept.
    one mechanism serves both. There is no deduplication across module
    versions, which costs disk rather than correctness. And resolution is
    ours to do, using the `semver` package for comparison.
-2. **How does a database record its deployed versions?** Most likely a table
-   beside `"$db"`, one row per module with its version -- which is also what
-   lets the manager show which instances are behind.
-3. **Can one process hold two versions of a module whose feathers differ?**
-   It must, or test and production cannot run different versions. That means
-   the in-process catalog is keyed by version, not global -- the real work in
-   this ADR.
-4. **Rollback.** Deploying forward is a migration; deploying backward may not
-   be expressible. Probably: forward only, restore from backup otherwise.
-5. **Does the manager follow the same rules?** It is a Featherbone
-   application too, with its own modules and its own version.
-6. **What happens to `Script` rows that are not part of a module?**
-7. **Does a Deploy need the database quiet?** Schema changes under live
-   traffic, across many instances, is its own problem.
+2. **Settled: a table beside `"$db"`, one row per module with its version.**
+   The same record is what lets the manager show which instances are behind,
+   so one mechanism serves Deploy and the fleet view. It is also what
+   dispatch reads to pick a handler.
+
+3. **Settled: yes, one process must hold two versions of a module whose
+   feathers differ.** Otherwise test and production cannot run different
+   versions, which is the whole point. The in-process catalog is therefore
+   keyed by `(module, version)` rather than global -- the real work in this
+   ADR, and the thing section 10 of the tenant plan was groping for.
+
+4. **Settled: forward only. Rollback is restore from backup.** A migration
+   forward can be expressed; the reverse often cannot. This has never been
+   handled properly before either, so nothing is being given up. *Deploy
+   should therefore confirm a restore point exists before it begins* --
+   "forward only" is only safe if the backup is real.
+
+5. **Settled: yes, the manager follows the same rules.** It is a Featherbone
+   application with its own modules and its own version. *One consequence:
+   upgrading the manager takes down the administration UI that would
+   otherwise drive it, so a manager Deploy is a command-line operation.*
+
+6. **Settled: dropped, deliberately.** `Script` rows that belong to no
+   module are not carried forward. They were a loophole that could create
+   problems rather than a feature worth preserving.
+
+7. **Settled: a database is down, or in maintenance mode, for any install or
+   upgrade.** Schema changes under live traffic are not attempted.
+
+   *Three consequences.* The instance record needs a state -- active or in
+   maintenance -- which Deploy sets and clears. The router must refuse an
+   instance in maintenance, with something better than a 404. And a fleet
+   upgrade across many instances is a rolling outage, which is an operational
+   fact the manager's fleet view should make visible before someone starts
+   one.
+
+**Nothing in this ADR is open any more.** What remains is implementation,
+and the order in section 9.
 
 ## 9. What this does to the existing plans
 
@@ -239,6 +296,9 @@ changes the shape of several items.
 * **Improvement items 4.1, 4.3 and 0.15** are substantially addressed.
 * Tier B (identity) is **untouched** by this and can proceed in parallel.
 
-Suggested order: settle the custom-field question in section 7, then the
-deployed-version record (open question 2), because everything else hangs off
-knowing which version a database is on.
+Suggested order: the deployed-version record first (section 8, question 2),
+because dispatch, Deploy and the fleet view all hang off knowing which
+version a database is on. Then the per-version catalog (question 3), which
+is the bulk of the work. Improvement items 2.6, 3.3 and 0.14 should be
+fixed before extension-by-inheritance or user columns are offered to
+customers, for the reasons in section 7.
