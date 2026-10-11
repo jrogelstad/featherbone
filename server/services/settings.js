@@ -383,11 +383,10 @@ settings.settingIsAuthorized = async function (obj) {
     let user = obj.data.user || client.currentUser();
     let sql = (
         "SELECT auth.can_update " +
-        "FROM \"$settings\" AS settings, \"$auth\" AS auth, pg_authid " +
+        "FROM \"$settings\" AS settings, \"$auth\" AS auth " +
         "WHERE settings.name = $1 " +
         "  AND settings._pk = auth.object_pk " +
-        "  AND auth.role = pg_authid.rolname " +
-        "  AND pg_has_role($2, pg_authid.oid, 'member') " +
+        "  AND auth.role IN (" + tools.memberNames(2) + ") " +
         "  AND auth.can_update " +
         "LIMIT 1;"
     );

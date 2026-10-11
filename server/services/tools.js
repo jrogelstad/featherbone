@@ -134,6 +134,38 @@
             @static
         */
         tools.PKCOL = "_pk";
+
+        /*
+            The set of role names a user belongs to, resolved from the
+            application's own tables (ADR-001 B.3): the user itself,
+            "everyone" for any active user account, and every group
+            reachable through role_membership, transitively. Replaces
+            pg_has_role(), which read the same memberships from
+            pg_authid -- Postgres roles stop being the membership store
+            so identity can live above the database.
+
+            Returns a subquery string selecting one column, name, with
+            the user name as parameter $<p>.
+
+            @method memberNames
+            @param {Integer} p Parameter number of the user name
+            @return {String}
+        */
+        tools.memberNames = function (p) {
+            return (
+                "WITH RECURSIVE member_of AS (" +
+                "SELECT $" + p + "::text AS name " +
+                "UNION " +
+                "SELECT 'everyone'::text FROM user_account " +
+                "WHERE name = $" + p + " AND is_active AND NOT is_deleted " +
+                "UNION " +
+                "SELECT rm.role FROM role_membership rm " +
+                "JOIN role r ON rm._parent_role_pk = r._pk " +
+                "JOIN member_of m ON r.name = m.name " +
+                "WHERE NOT rm.is_deleted AND NOT r.is_deleted" +
+                ") SELECT name FROM member_of"
+            );
+        };
         /**
             Return a SQL clause that adds checks for use authorization to a
             `WHERE` clause.
@@ -197,11 +229,11 @@
                 "WHERE EXISTS (" +
                 "  SELECT " + action + " FROM ( " +
                 "    SELECT " + action +
-                "    FROM \"$auth\", pg_authid" +
-                "    WHERE pg_has_role($" + p + ", pg_authid.oid, 'member')" +
-                "      AND \"$auth\".object_pk " +
+                "    FROM \"$auth\"" +
+                "    WHERE \"$auth\".object_pk " +
                 "        IN (\"$feather\".parent_pk, %I._pk)" +
-                "      AND \"$auth\".role=pg_authid.rolname" +
+                "      AND \"$auth\".role IN (" +
+                tools.memberNames(p) + ")" +
                 "      AND " + action + " IS NOT NULL " +
                 "    ORDER BY " + action + " DESC" +
                 "    LIMIT 1" +
@@ -218,11 +250,10 @@
                     "WHERE EXISTS ( " +
                     "  SELECT " + action + " FROM (" +
                     "    SELECT " + action +
-                    "    FROM \"$auth\", pg_authid" +
-                    "    WHERE pg_has_role($" + p +
-                    ", pg_authid.oid, 'member')" +
-                    "      AND \"$auth\".object_pk=%I._pk" +
-                    "      AND \"$auth\".role=pg_authid.rolname" +
+                    "    FROM \"$auth\"" +
+                    "    WHERE \"$auth\".object_pk=%I._pk" +
+                    "      AND \"$auth\".role IN (" +
+                    tools.memberNames(p) + ")" +
                     "      AND " + action + " IS NOT NULL " +
                     "    ORDER BY " + action + " DESC" +
                     "    LIMIT 1 " +
