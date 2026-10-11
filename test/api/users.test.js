@@ -42,15 +42,13 @@ describe("user accounts", function () {
         await access.dropAll();
     });
 
-    it("creates a user account through POST /data/user-account", {
-        todo: (
-            "defect: createUserAccount (scripts/services.js:1357) loops " +
-            "past the end of pg_roles and throws TypeError, so every " +
-            "create fails with 500"
-        )
-    }, async function () {
+    // Plan 0.1: the reserved-name loop ran past the end of pg_roles and
+    // threw, so every create failed with 500 (fixed on master in
+    // 4254cf11; promoted from todo once the suite could prove it)
+    it("creates a user account through POST /data/user-account",
+            async function () {
         let name = access.track(access.uniq("fbt_new"));
-        let emp = await admin.create("Employee", {
+        let emp = await admin.create("Contact", {
             firstName: "New",
             lastName: "User",
             email: name + "@example.com"
@@ -75,7 +73,7 @@ describe("user accounts", function () {
     });
 
     it("rejects a user account named after a NOLOGIN role", async function () {
-        let emp = await admin.create("Employee", {
+        let emp = await admin.create("Contact", {
             firstName: "Reserved",
             lastName: "Name",
             email: "reserved@example.com"
@@ -94,15 +92,10 @@ describe("user accounts", function () {
     // Plan 1.1: tenants share one cluster, so an account name that
     // matches another tenant's login role must not take that role over.
     it("does not reset the password of an existing login role when " +
-            "creating a user account with its name", {
-        todo: (
-            "plan 1.1: createRole (role.js:230) ALTERs an existing role's " +
-            "password; currently masked by the createUserAccount TypeError"
-        )
-    }, async function () {
+            "creating a user account with its name", async function () {
         let name = access.uniq("fbt_tenant");
         await access.sqlRole(name, "Other-Tenant-Pw1");
-        let emp = await admin.create("Employee", {
+        let emp = await admin.create("Contact", {
             firstName: "Tenant",
             lastName: "Clash",
             email: name + "@example.com"
