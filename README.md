@@ -74,6 +74,30 @@ that belong only to the manager live in `scripts/feathers-manager.json`.
 A workbook manifest may declare `"target": "manager"` to install only
 there (the default is `instance`).
 
+## Identity sign-in
+
+Sign-in has two strategies, chosen by `authStrategy` in `config.json`
+(ADR-001, `docs/adr-001-identity-and-tenancy.md`):
+
+* `role` (the default) -- today's path: the password is checked by
+  opening a Postgres connection as the user's login role.
+* `identity` -- the password is verified in Node against the `identity`
+  table in the manager. An identity belongs to an organization, a
+  username is unique within its organization, and an `access_grant` row
+  per instance says which databases the identity may enter -- so one
+  person is one password across their test and production instances,
+  and no Postgres login role is involved.
+
+To move an existing installation, run `node scripts/migrate-identities.js`
+(a dry run; add `--apply` to write). It creates the organization, attaches
+registered instances, and makes an identity per existing user with an
+access grant per instance. Given superuser credentials
+(`--username`/`--password`) it also copies each user's password verifier
+from `pg_authid`, so every password keeps working and is re-hashed to the
+application's own form (scrypt) on first sign-in. Then set
+`"authStrategy": "identity"` and restart; setting it back to `"role"`
+reverses the cutover until login roles are retired.
+
 ## Installed packages
 
 Module code loads from packages installed on the server when they are
