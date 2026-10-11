@@ -483,10 +483,19 @@ items either move here or are deleted by the design.
 5. **C.1–C.3**, then **E.1–E.5**, then **F.1–F.3**.
 6. Return to `featherbone-improvement-plan.md`.
 
-## 9. Proposed: one mode, and the instance manager
+## 9. One mode, and the instance manager
 
-*Proposed 2026-10-10. Not settled — the open questions at the end need
-answers, and no tier above has been renumbered yet.*
+*Proposed 2026-10-10; open questions settled the same day. **Implemented
+2026-10-11 on `feat/one-mode`**, rebuilt on ADR-002 after the first attempt
+(`wip/one-instance-mode`) hit the catalog question in section 10. What
+shipped: `managerDatabase` (default `db_manager`) replaces `serverRole`,
+`both` and the `controlPlane` block; `"$db"` schema 2 with kinds `manager`
+and `instance`, converting older markers in place so `node install.js
+--instance <name>` upgrades an existing database; `--manager` builds the
+manager; the manager holds the registry and the sessions and is never
+routable; the harness builds a manager plus two instances. Still open here:
+the Tenant → Instance rename (question 2, lands with D.4) and the admin
+console requirements below, which are D.1/D.2 work.*
 
 ### Why
 
