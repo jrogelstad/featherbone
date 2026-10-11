@@ -40,6 +40,7 @@ Precisely, so the move is not guesswork:
 | Routes | `Route` (`module`, `path`, `function`) | `registerRoute` (`server.js` ~573) mounts `/:db/<module><path>`; `function` names a service registered by the scripts above |
 | Feathers | the `catalog` settings row, plus `feather`, `feather_property`, `feather_authorization` | read into the process at boot; defines every table |
 | Forms, print forms, styles, help | `Form`, `Style`, `HelpLink`, `ResourceLink` | rendered by the client |
+| Module library dependencies | `ModuleNpm` (`module`, `package`, `version`, `property`, `export`) | loaded into the process at boot, globally |
 | Workbooks and settings | `$workbook`, `$settings` | per database |
 
 So two of these are not data at all. **`Script.script` and `Module.script`
@@ -99,10 +100,11 @@ security costs above.
 
 ### Install (the server)
 
-Registers a package's files on the server: `<module>/<version>/` on disk,
-recorded so the server knows which versions exist. Nothing about any
-database changes. A platform administrator does this from the Admin Console,
-or it arrives by whatever mechanism puts files on a server.
+Registers a package's files on the server: unpacked to
+`modules/<name>/<version>/`, recorded so the server knows which versions
+exist. Nothing about any database changes. A platform administrator does this
+from the Admin Console, or it arrives by whatever mechanism puts files on a
+server. The format and the layout are settled in section 8, question 1.
 
 ### Deploy (a database)
 
@@ -152,6 +154,8 @@ Stated plainly, because these are real and some are John's to accept.
   namespace that Deploy never touches.
 * **Edit-and-run immediacy.** A development mode that watches the module
   directory and reloads would cover most of it.
+* **`ModuleNpm` rows go away** (see section 8, question 1). Any module
+  declaring its libraries that way needs them moved into its `package.json`.
 * **Existing databases carrying hand-edited definitions.** Anyone who changed
   a feather or wrote a service through the UI has it only in their database.
   The migration needs to export what is there and reconcile it against the
@@ -159,8 +163,53 @@ Stated plainly, because these are real and some are John's to accept.
 
 ## 8. Open questions
 
-1. **Where do module files live, and how do they arrive?** A directory per
-   `<module>/<version>/`, filled by upload and unpack, by git, or by npm.
+1. **Settled 2026-10-11: npm is the package format and the transport;
+   Featherbone owns the layout.**
+
+   Every module becomes a valid npm package -- a real `package.json` with
+   name, version and dependencies, and `"private": true` so `npm publish`
+   refuses outright. It travels as an `npm pack` tarball, a git tag, or a
+   private registry later; all three produce the same artifact, so the
+   choice of channel can be deferred. Install unpacks it to
+   `modules/<name>/<version>/`, one directory per version.
+
+   *Why not npm's own installer.* npm is three things: a format, a
+   transport, and a resolver that writes `node_modules/<name>` -- one
+   version per name, driven by a single root `package.json`. Only the third
+   is a poor fit, and only because of one requirement: two versions of a
+   module must be live in **one process**, since test may run 2.1 while
+   production runs 2.2. npm can express that only through aliasing
+   (`"supplychain-2-1": "npm:@fb/supplychain@2.1.0"`), which means editing
+   `package.json` every time a deployed combination changes -- a worse
+   version of the problem this ADR exists to solve.
+
+   The deeper reason is that **a module is not a dependency of Featherbone**.
+   It is a runtime plugin: chosen by an administrator, installed after the
+   fact, several versions at once. npm's installer solves build-time
+   dependencies of one application, which is a different problem. VS Code
+   does exactly this -- extensions are npm-format packages shipped as zips,
+   placed in `extensions/<publisher>.<name>-<version>/` by its own
+   installer. `require()` caches by resolved path, so one directory per
+   version gives genuinely separate instances.
+
+   *npm's installer is still used*, inside each module version, to install
+   that module's own libraries into its own `node_modules`. Its
+   one-version-per-name rule is exactly right at that scale.
+
+   **This retires `ModuleNpm`.** Library dependencies are declared in the
+   module's `package.json` instead of in rows, and
+   `npm install --prefix modules/<name>/<version>` isolates them per
+   version. That also fixes a live collision: today those rows are loaded
+   globally into the process ("Applying npm packages..."), so two module
+   versions needing different releases of the same library cannot both be
+   satisfied.
+
+   *What is given up, on the record:* `npm ls`, `npm outdated` and
+   `npm audit` will not see Featherbone modules, so their equivalents have
+   to be built -- the manager already needs "which instances are behind", so
+   one mechanism serves both. There is no deduplication across module
+   versions, which costs disk rather than correctness. And resolution is
+   ours to do, using the `semver` package for comparison.
 2. **How does a database record its deployed versions?** Most likely a table
    beside `"$db"`, one row per module with its version -- which is also what
    lets the manager show which instances are behind.
