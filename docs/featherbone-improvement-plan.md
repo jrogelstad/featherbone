@@ -141,6 +141,14 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   the stale precision, and the workaround is to declare the opposite value
   rather than omit it. Caught by the catalog golden test, which had been silently
   failing -- see `fix/catalog-golden-sentinels`.
+- [x] **0.16 An unknown projected property crashed the query.** Asking for a
+  property a feather does not have answered `Cannot read properties of
+  undefined (reading 'isEncrypted')` -- `doSelect` dereferenced `fp[key]`
+  for every requested key (`crud.js` ~1844). *Fixed 2026-10-11 on
+  `fix/0.16-unknown-property`: 400 naming the feather and every unknown
+  property. Found while confirming the application still ran after the
+  tenancy merges; `query.test.js` had carried a todo for it, and the
+  coverage moved to `crud.test.js` so it does not need SupplyChain to run.*
 - [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
 
 ## How to use this plan
