@@ -629,6 +629,14 @@ as usable as it is today.
 
 ## 10. The blocker the collapse ran into: one catalog, or one per instance?
 
+> **Answered 2026-10-11 by `adr-002-packages-on-disk.md`, and the three
+> options below are withdrawn.** None of them is right, because all three
+> assume a database has to own the catalog. Module code and feather
+> definitions move to versioned packages on the server's file system; a
+> database records which versions are deployed into it. Read the ADR instead
+> of this section; what follows is kept only for the diagnosis in "Why".
+
+
 *Found 2026-10-10 while implementing section 9 on `wip/one-instance-mode`.
 Needs a decision before that branch can be finished. Nothing else in this
 plan is blocked by it.*
