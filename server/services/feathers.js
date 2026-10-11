@@ -1570,6 +1570,8 @@
                     let fns = [];
                     let unique = [];
                     let indices = [];
+                    let ancestor;
+                    let aprops;
                     let i = 0;
                     let n = 0;
                     let p = 1;
@@ -2248,13 +2250,94 @@
                             return;
                         }
 
+                        /*
+                            An inherited property is not added as a
+                            column -- Postgres inheritance supplies it --
+                            so it never reached this builder, and a
+                            natural key was indexed on the ancestor that
+                            declared it, which on a hierarchy is usually
+                            the empty table. `user_account` inherits its
+                            `name` from `role` and carried no index on it
+                            at all, and that is the login lookup
+                            (improvement items 2.6 and 3.3). Walk the
+                            chain and give this table its own.
+                        */
+                        /*
+                            The feather's own keys are collected here
+                            too, not only when a column is first added.
+                            Otherwise a database installed before this
+                            change kept the old plain index on its
+                            natural key for ever, because nothing was
+                            being added on a reinstall and the builder
+                            never saw the key.
+                        */
+                        aprops = spec.properties || {};
+
+                        Object.keys(aprops).forEach(function (key) {
+                            if (
+                                aprops[key].isNaturalKey &&
+                                unique.indexOf(key) === -1
+                            ) {
+                                unique.push(key);
+                            }
+
+                            if (
+                                aprops[key].isIndexed &&
+                                indices.indexOf(key) === -1
+                            ) {
+                                indices.push(key);
+                            }
+                        });
+
+                        ancestor = spec.inherits;
+
+                        while (
+                            ancestor &&
+                            ancestor !== "Object" &&
+                            catalog[ancestor]
+                        ) {
+                            aprops = catalog[ancestor].properties || {};
+
+                            Object.keys(aprops).forEach(function (key) {
+                                if (
+                                    aprops[key].isNaturalKey &&
+                                    unique.indexOf(key) === -1
+                                ) {
+                                    unique.push(key);
+                                }
+
+                                if (
+                                    aprops[key].isIndexed &&
+                                    indices.indexOf(key) === -1
+                                ) {
+                                    indices.push(key);
+                                }
+                            });
+
+                            ancestor = catalog[ancestor].inherits;
+                        }
+
                         if (unique.length || indices.length) {
                             sql = "";
                             tokens = [];
 
+                            /*
+                                Dropped and rebuilt rather than created
+                                only when absent, so a database carrying
+                                the old plain index on a natural key is
+                                upgraded in place rather than keeping it.
+                                Partial on NOT is_deleted, because rows
+                                are soft-deleted here and a deleted
+                                record must not reserve its key for ever.
+                            */
                             unique.forEach(function (key) {
-                                sql += "CREATE INDEX %I ON %I (%I);";
+                                sql += (
+                                    "DROP INDEX IF EXISTS %I;" +
+                                    "CREATE UNIQUE INDEX %I ON %I (%I) " +
+                                    "WHERE NOT is_deleted;"
+                                );
                                 tokens = tokens.concat([
+                                    table + "_index_" + key.toSnakeCase(),
                                     table + "_index_" + key.toSnakeCase(),
                                     table,
                                     key.toSnakeCase()
@@ -2262,8 +2345,12 @@
                             });
 
                             indices.forEach(function (key) {
-                                sql += "CREATE INDEX %I ON %I (%I);";
+                                sql += (
+                                    "DROP INDEX IF EXISTS %I;" +
+                                    "CREATE INDEX %I ON %I (%I);"
+                                );
                                 tokens = tokens.concat([
+                                    table + "_index_" + key.toSnakeCase(),
                                     table + "_index_" + key.toSnakeCase(),
                                     table,
                                     key.toSnakeCase()
@@ -2272,7 +2359,31 @@
 
                             theClient.query(
                                 sql.format(tokens),
-                                updateCatalog
+                                function (ierr) {
+                                    /*
+                                        A database that already holds two
+                                        rows with the same natural key
+                                        cannot take the index, and
+                                        Postgres reports it as a bare
+                                        "could not create unique index".
+                                        Say which feather and which key,
+                                        so the duplicates can be found.
+                                    */
+                                    if (
+                                        ierr &&
+                                        ierr.code === "23505"
+                                    ) {
+                                        ierr.message = (
+                                            "Cannot make the natural key of " +
+                                            "\"" + spec.name + "\" unique: " +
+                                            (ierr.detail || ierr.message) +
+                                            " Remove or correct the " +
+                                            "duplicates in \"" + table +
+                                            "\" and install again."
+                                        );
+                                    }
+                                    updateCatalog(ierr);
+                                }
                             );
                             return;
                         }
