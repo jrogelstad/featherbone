@@ -580,6 +580,8 @@
         );
     }
 
+    const mountedRoutes = {};
+
     function registerRoute(route) {
         let fullPath = (
             "/:db/" +
@@ -587,8 +589,55 @@
         );
         let doPostRequest = postify.bind(route.function);
 
+        /*
+            Routes mount once however many databases declare them: the
+            path carries the database and the function name resolves in
+            that database's own registry, so one mount dispatches to
+            whatever version each database deployed (ADR-002).
+        */
+        if (mountedRoutes[fullPath]) {
+            return;
+        }
+        mountedRoutes[fullPath] = true;
+
         logger.info("Registering module route: " + fullPath);
         dbRouter.post(fullPath, doPostRequest);
+    }
+
+    /*
+        Module routes of every registered tenant database, so a route
+        that exists only in a tenant is reachable (the boot route list
+        reads one database). Failures are tolerated per tenant: an
+        unreachable tenant must not stop the server.
+    */
+    async function unionTenantRoutes(tenantList) {
+        let i = 0;
+
+        while (i < tenantList.length) {
+            let tenant = tenantList[i];
+            i += 1;
+
+            if (tenant.id === "-1") {
+                continue;
+            }
+
+            try {
+                let rows = await datasource.request({
+                    method: "GET",
+                    name: "Route",
+                    user: systemUser,
+                    properties: ["id", "module", "path", "function"],
+                    tenant
+                }, true);
+
+                rows.forEach(registerRoute);
+            } catch (err) {
+                logger.warn(
+                    "Could not read routes for tenant \"" +
+                    tenant.pgDatabase + "\": " + err.message
+                );
+            }
+        }
     }
 
     /*
@@ -2936,6 +2985,7 @@
 
         // REGISTER MODULE ROUTES
         routes.forEach(registerRoute);
+        await unionTenantRoutes(tenants);
 
         // Last of all: the generic data fallback, strictly after every
         // specific route so none is shadowed

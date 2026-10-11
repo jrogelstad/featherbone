@@ -56,6 +56,7 @@ async function start() {
         cwd: settings.root,
         env: Object.assign({}, process.env, {
             pgDatabase: settings.testDb,
+            modulesDir: settings.modulesDir,
             PORT: String(settings.port),
             clientPort: String(settings.port),
             logSilent: "true",
