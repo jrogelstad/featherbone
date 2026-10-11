@@ -49,80 +49,57 @@ describe("config secrets", function () {
 });
 
 /*
-    The control plane block and the declared server role (tenant plan
-    A.1). A deployment that says nothing keeps the single database
-    behaviour it has always had.
+    The manager database (tenant plan section 9). Every installation is
+    multi-instance, so there is no role to declare and no second
+    connection block -- only which database holds the registry.
 */
-describe("config control plane", function () {
+describe("config manager database", function () {
     const config = new Config();
     const base = {
-        pgDatabase: "demo",
         pgHost: "127.0.0.1",
         pgPort: 5432,
         pgUser: "admin",
         pgPassword: "pw"
     };
 
-    it("defaults to serving both roles", function () {
-        assert.equal(config.serverRole(base), "both");
-        assert.equal(config.isValidRole(base), true);
+    it("defaults to db_manager", function () {
+        assert.equal(config.managerDatabase(base), "db_manager");
+        assert.equal(config.managerDatabase({}), "db_manager");
+        assert.equal(config.managerDatabase(), "db_manager");
     });
 
-    it("knows the roles it accepts", function () {
-        assert.deepEqual(config.roles().sort(), [
-            "both", "controlPlane", "tenant"
-        ]);
+    it("takes the name configuration gives it", function () {
         assert.equal(
-            config.isValidRole(Object.assign({}, base, {
-                serverRole: "controlplane"
+            config.managerDatabase(Object.assign({}, base, {
+                managerDatabase: "fbt_manager"
             })),
-            false
+            "fbt_manager"
         );
     });
 
-    it("falls back to the ordinary connection", function () {
-        assert.deepEqual(config.controlPlane(base), base);
-        assert.equal(config.hasOwnControlPlane(base), false);
+    it("treats a blank name as absent", function () {
+        assert.equal(
+            config.managerDatabase(Object.assign({}, base, {
+                managerDatabase: "   "
+            })),
+            "db_manager"
+        );
+        assert.equal(
+            config.managerDatabase(Object.assign({}, base, {
+                managerDatabase: null
+            })),
+            "db_manager"
+        );
     });
 
-    it("takes what the block names and falls back for the rest",
+    it("no longer answers to a server role or a control plane block",
             function () {
-        let data = Object.assign({}, base, {
-            controlPlane: {pgDatabase: "featherbone_control"}
-        });
-
-        assert.deepEqual(config.controlPlane(data), Object.assign({}, base, {
-            pgDatabase: "featherbone_control"
-        }));
-        assert.equal(config.hasOwnControlPlane(data), true);
-    });
-
-    it("treats a blank setting in the block as absent", function () {
-        let data = Object.assign({}, base, {
-            controlPlane: {
-                pgDatabase: "",
-                pgHost: null,
-                pgUser: undefined
-            }
-        });
-
-        assert.deepEqual(config.controlPlane(data), base);
-        assert.equal(config.hasOwnControlPlane(data), false);
-    });
-
-    it("notices a control plane on another server", function () {
-        assert.equal(
-            config.hasOwnControlPlane(Object.assign({}, base, {
-                controlPlane: {pgHost: "10.0.0.9"}
-            })),
-            true
-        );
-        assert.equal(
-            config.hasOwnControlPlane(Object.assign({}, base, {
-                controlPlane: {pgPort: 5433}
-            })),
-            true
-        );
+        // Retired by section 9: one shape, so nothing to declare
+        assert.equal(config.serverRole, undefined);
+        assert.equal(config.isValidRole, undefined);
+        assert.equal(config.roles, undefined);
+        assert.equal(config.controlPlane, undefined);
+        assert.equal(config.hasOwnControlPlane, undefined);
     });
 });
 

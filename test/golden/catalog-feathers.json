@@ -4949,7 +4949,7 @@
     "overloads": {},
     "plural": "Tenants",
     "properties": {
-      "contact": "relation(Contact) [fullName,email,address,phone] required",
+      "contact": "relation(Contact) [fullName,email,address,phone]",
       "created": "string:dateTime readOnly default=\"now()\" <Object",
       "createdBy": "string readOnly <Object",
       "edition": "relation(Edition) [name,description,maxSessions]",

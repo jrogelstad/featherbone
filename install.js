@@ -22,6 +22,7 @@
     require("./common/string.js");
 
     const {Client} = require("pg");
+    const f = require("./common/core");
     const {Config} = require("./server/config");
     const {Database} = require("./server/database");
     const {Installer} = require("./server/services/installer");
@@ -42,15 +43,22 @@
     let superuser;
     let superpwd;
     /*
-        Which kind of database to install into (tenant plan A.1):
-        "controlPlane" installs the tenant management database named by
-        the `controlPlane` configuration block, "tenant" installs an
-        application database, and "both" -- the default, and what a
-        single database install has always been -- installs one database
-        that serves as each.
+        Which kind of database to install into (tenant plan section 9):
+        "manager" installs the one database that holds the registry, the
+        identities and the sessions, and "instance" installs an
+        application database. With neither flag the manager is installed,
+        since that is what every installation needs first.
     */
     let target;
     let targetDb;
+    /*
+        An application database to install and register in the control
+        plane, so the server can serve it (tenant plan A.1). Without
+        this the control plane knows of no instance but itself, and
+        there is no way to make one short of the administration UI,
+        which does not exist yet.
+    */
+    let instanceName;
     // Which banner the database shows: dev, test or prod. Recorded in
     // the database rather than on each server (John, Oct 2026).
     let mode;
@@ -60,11 +68,12 @@
         case "--mode":
             mode = argv[argv.indexOf("--mode") + 1];
             break;
-        case "--control-plane":
-            target = "controlPlane";
+        case "--manager":
+            target = "manager";
             break;
-        case "--tenant":
-            target = "tenant";
+        case "--instance":
+            instanceName = argv[argv.indexOf("--instance") + 1];
+            target = "instance";
             break;
         case "--target":
             target = argv[argv.indexOf("--target") + 1];
@@ -133,7 +142,7 @@
     async function start(confresp) {
         conf = confresp;
 
-        target = target || config.serverRole(conf);
+        target = target || "manager";
         mode = mode || conf.mode || "prod";
 
         if (!config.modes().includes(mode)) {
@@ -143,24 +152,25 @@
             );
         }
 
-        if (!config.roles().includes(target)) {
+        if (target !== "manager" && target !== "instance") {
             throw new Error(
-                "Install target must be one of " +
-                config.roles().join(", ") + ", not \"" + target + "\""
+                "Install target must be manager or instance, not \"" +
+                target + "\""
             );
         }
 
-        // The control plane has a database of its own to install into
+        // The manager is named by configuration; an instance names itself
         targetDb = (
-            target === "controlPlane"
-            ? config.controlPlane(conf).pgDatabase
-            : conf.pgDatabase
+            target === "manager"
+            ? config.managerDatabase(conf)
+            : instanceName
         );
 
         if (!targetDb) {
             throw new Error(
-                "No database to install into. Set controlPlane.pgDatabase " +
-                "in server/config.json to install a control plane."
+                "No database to install into. Name one with " +
+                "`--instance <name>`, or install the manager with " +
+                "`--manager`."
             );
         }
 
@@ -308,6 +318,126 @@
         );
     }
 
+    /*
+        Put the instance in the control plane's registry so a server can
+        route "/<name>/" to it (tenant plan A.1). Without this an
+        instance database exists but nothing knows about it, and the
+        only way to register one is the administration UI, which is
+        still to come.
+
+        Idempotent: an instance already registered is left alone, and
+        one service row is shared by every instance on this Postgres
+        server.
+
+        Written as SQL rather than through the datasource on purpose.
+        The catalog this process is holding belongs to the instance just
+        installed, and an instance does not carry the Tenant feather at
+        all, so there is nothing to make the record with. The password
+        is encrypted the same way `crud.js` encrypts it, with the key
+        travelling as a parameter rather than in the SQL text.
+    */
+    async function registerInstance() {
+        if (!instanceName) {
+            return;
+        }
+
+        let managerDb = config.managerDatabase(conf);
+        let serviceName = "Default service";
+        let cpClient = new Client({
+            database: managerDb,
+            host: conf.pgHost,
+            password: superpwd || conf.pgPassword,
+            port: conf.pgPort,
+            user: superuser || conf.pgUser
+        });
+        let servicePk;
+        let resp;
+
+        try {
+            await cpClient.connect();
+        } catch (ignore) {
+            throw new Error(
+                "Cannot reach the manager \"" + managerDb +
+                "\" to register \"" + instanceName + "\". Install it " +
+                "first with `node install --manager`."
+            );
+        }
+
+        try {
+            resp = await cpClient.query((
+                "SELECT kind FROM \"$db\""
+            )).catch(function () {
+                return {rows: []};
+            });
+
+            if (
+                resp.rows.length &&
+                resp.rows[0].kind !== "manager"
+            ) {
+                throw new Error(
+                    "\"" + managerDb + "\" is an application database, " +
+                    "not a manager. Point managerDatabase at the " +
+                    "management database."
+                );
+            }
+
+            resp = await cpClient.query((
+                "SELECT _pk FROM tenant_service " +
+                "WHERE name = $1 AND NOT is_deleted"
+            ), [serviceName]);
+
+            if (resp.rows.length) {
+                servicePk = resp.rows[0]._pk;
+            } else {
+                resp = await cpClient.query((
+                    "INSERT INTO tenant_service (_pk, id, created, " +
+                    "created_by, updated, updated_by, is_deleted, " +
+                    "owner, etag, name, pg_host, pg_port, pg_user, " +
+                    "pg_password) VALUES (nextval('object__pk_seq'), " +
+                    "$1, now(), $2, now(), $2, false, $2, $3, $4, $5, " +
+                    "$6, $7, pgp_sym_encrypt($8, $9)::text) RETURNING _pk"
+                ), [
+                    f.createId(), conf.pgUser, f.createId(), serviceName,
+                    conf.pgHost, String(conf.pgPort), conf.pgUser,
+                    conf.pgPassword, conf.pgCryptoKey
+                ]);
+                servicePk = resp.rows[0]._pk;
+                console.log("Added tenant service \"" + serviceName + "\"");
+            }
+
+            resp = await cpClient.query((
+                "SELECT name FROM tenant " +
+                "WHERE pg_database = $1 AND NOT is_deleted"
+            ), [instanceName]);
+
+            if (resp.rows.length) {
+                console.log(
+                    "Instance \"" + instanceName + "\" is already " +
+                    "registered as \"" + resp.rows[0].name + "\""
+                );
+                return;
+            }
+
+            await cpClient.query((
+                "INSERT INTO tenant (_pk, id, created, created_by, " +
+                "updated, updated_by, is_deleted, owner, etag, name, " +
+                "is_active, _pg_service_tenant_service_pk, pg_database) " +
+                "VALUES (nextval('object__pk_seq'), $1, now(), $2, " +
+                "now(), $2, false, $2, $3, $4, true, $5, $6)"
+            ), [
+                f.createId(), conf.pgUser, f.createId(), instanceName,
+                servicePk, instanceName
+            ]);
+
+            console.log(
+                "Registered instance \"" + instanceName + "\" in \"" +
+                managerDb + "\""
+            );
+        } finally {
+            await cpClient.end();
+        }
+    }
+
     function done() {
         client.end();
         process.exit();
@@ -322,6 +452,8 @@
         connect // This time to database with service user
     ).then(
         install
+    ).then(
+        registerInstance
     ).then(
         done
     ).catch(
