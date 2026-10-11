@@ -149,6 +149,17 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   property. Found while confirming the application still ran after the
   tenancy merges; `query.test.js` had carried a todo for it, and the
   coverage moved to `crud.test.js` so it does not need SupplyChain to run.*
+- [ ] **0.17 Resolving inheritance mutates the stored catalog.**
+  `getFeather`'s `appendParent` (`feathers.js` ~840) does
+  `childProps[key] = parentProps[key]` and then sets `.inheritedFrom` on it --
+  the same object, so the *ancestor's own* property is stamped too. `Role.name`
+  in `demo` reads `inheritedFrom: "Role"`, which is how it was found, and the
+  value has been persisted into the `catalog` settings row. The save path
+  filters on `!prop.inheritedFrom` when deciding which columns to add
+  (`feathers.js` ~1993), so a feather whose own property has been mislabelled
+  can have that column skipped. Fix is a copy rather than a reference; the
+  care is in checking what already depends on the current behaviour, and
+  whether polluted catalogs need cleaning.
 - [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
 
 ## How to use this plan
@@ -221,9 +232,19 @@ These are SupplyChain bugs that change tax, cost, inventory and allocation figur
 - [ ] **2.5 Fix allocation drift.** `inventory.allocated` and `supply.allocated` diverge from allocation rows; manual WO issue never relieves allocations.
     - Where: `plan/do-transact-allocated.js` ~427–540; `make/do-post-work-order-issue.js:269` compares to `"issue"` but the value is `"issued"`.
     - Fix: accumulate after the negative on-hand adjustment; subtract only what was actually deallocated; fix the string.
-- [ ] **2.6 Make natural keys unique in the database.** Indexes are plain, and on hierarchies they sit on the empty parent table only.
-    - Where: `server/services/feathers.js` `createIndex` (~2233); check-then-insert in `crud.js` `afterUniqueCheck`.
-    - Fix: partial unique index `WHERE NOT is_deleted` per child table; for keys that must be unique across a hierarchy (Item, Demand, Supply), a shared key table or trigger, since Postgres can't enforce it across inherited tables.
+- [x] **2.6 Make natural keys unique in the database.** *Done 2026-10-11 on
+  `fix/2.6-natural-key-unique`, together with 3.3.* A natural key was a plain
+  index, so uniqueness lived only in `crud.js` and two concurrent inserts
+  could both pass the check. It is now a unique index partial on
+  `NOT is_deleted`, built on the declaring table **and on every child**, and
+  rebuilt rather than skipped so an existing database is upgraded. A database
+  holding duplicates is told which feather, which value and which table.
+    - **Still open: uniqueness across a hierarchy.** Postgres cannot span
+      inheriting tables with one index, so a `Role` and a `UserAccount` may
+      still share a name, and Item/Demand/Supply the same. Needs a shared key
+      table or a trigger. **This matters more since ADR-002**, which makes
+      extension-by-inheritance the supported way for a customer to add
+      columns -- a customer's subclass can otherwise escape the parent's key.
 - [ ] **2.7 Void ShipEngine labels on rollback.** Labels are bought over HTTP inside the ship transaction; the ids kept "in case of reject" are never voided.
     - Where: `ship/do-ship-sales-order-shipment.js` ~193–237, `do-ship-outside-process-shipments.js` ~121–165, `do-print-shipment-labels.js` ~81–91.
     - Fix: void in `client.onRollback`, or buy labels in a separate committed step keyed on the shipment.
@@ -243,7 +264,11 @@ In `demo`, all 364 relation columns across 127 tables have no index and no forei
 - [ ] **3.2 Add item/site composite indexes.** SupplyChain's raw SQL filters on `(_item_item_pk, _site_site_pk)` constantly.
     - Tables: every `demand` and `supply` child (`sales_order_line`, `work_order_requirement`, `sales_order_requirement`, `outside_process`, `purchase_order_line`, `work_order`, `inventory`, `planned_order` and its children), plus `inventory`, `item_site`, `inventory_transaction`.
     - Also: `allocation(_demand_demand_pk)`, `allocation(_supply_supply_pk)`, `product_bill_of_material_item(_product_product_pk)`, `tax_rate(zip_code)`.
-- [ ] **3.3 Put natural-key and status indexes on child tables.** Today they index empty parents, so SupplyChain's only two `isIndexed` properties do nothing.
+- [x] **3.3 Put natural-key and status indexes on child tables.** *Done
+  2026-10-11 with 2.6: the index builder walks the inheritance chain, so an
+  inherited natural key or `isIndexed` property is indexed on each table that
+  carries rows rather than only on the ancestor that declared it.
+  `user_account(name)` -- the login lookup -- had no index at all.*
     - Missing on children of: `demand` (number, status), `supply` (number, status), `item`, `operation`, `invoice`, `receipt`, `shipment`, `container`, `resource_group`, `task`, `carrier`, `package_type`, `ship_method`, `unit`, `kind`, `layout`, `script`.
     - Also `user_account(name)`, the login lookup.
 - [ ] **3.4 Change the framework DDL.** Make `feathers.js` create an index for every relation column and repeat inherited index and natural-key definitions on each child table when a feather is created or altered.
