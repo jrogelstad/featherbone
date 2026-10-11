@@ -1014,10 +1014,9 @@
                             "SELECT pk FROM \"$auth\" " +
                             "  JOIN \"$feather\" " +
                             "    ON \"$feather\"._pk=\"$auth\".object_pk " +
-                            "  JOIN pg_authid " +
-                            "   ON \"$auth\".role=pg_authid.rolname " +
                             "WHERE \"$feather\".id=$1" +
-                            "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                            "  AND \"$auth\".role IN (" +
+                            tools.memberNames(2) + ")" +
                             "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
                             "  AND %I;"
                         );
