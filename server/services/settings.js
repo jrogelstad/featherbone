@@ -222,6 +222,83 @@ settings.getSettings = async function (obj) {
 };
 
 /**
+    The catalog of the client's own database, from cache when it is
+    already loaded (ADR-002: a catalog belongs to a database, not to the
+    process). Returns the parsed catalog object.
+
+    @method catalogFor
+    @for Services.Settings
+    @param {Client} client Database client
+    @return {Promise}
+*/
+settings.catalogFor = async function (theClient) {
+    let db = theClient.database;
+
+    if (
+        dbsettings[db] &&
+        dbsettings[db].data.catalog &&
+        dbsettings[db].data.catalog.data
+    ) {
+        return dbsettings[db].data.catalog.data;
+    }
+
+    return await settings.getSettings({
+        client: theClient,
+        data: {name: "catalog"}
+    });
+};
+
+/**
+    The cached catalog of a database by name, or undefined when that
+    database's catalog has not been read yet. Synchronous by design:
+    URL name resolution happens before any client exists.
+
+    @method cachedCatalog
+    @for Services.Settings
+    @param {String} database
+    @return {Object|undefined}
+*/
+settings.cachedCatalog = function (database) {
+    if (
+        dbsettings[database] &&
+        dbsettings[database].data.catalog
+    ) {
+        return dbsettings[database].data.catalog.data;
+    }
+    return undefined;
+};
+
+/**
+    Every feather name any loaded catalog knows, merged. Only for
+    mounting routes: requests are always validated against the single
+    database they are for.
+
+    @method unionCatalog
+    @for Services.Settings
+    @return {Object}
+*/
+settings.unionCatalog = function () {
+    let ret = {};
+
+    Object.keys(dbsettings).forEach(function (db) {
+        let cat = settings.cachedCatalog(db);
+
+        if (cat) {
+            Object.keys(cat).forEach(function (name) {
+                if (
+                    ret[name] === undefined ||
+                    ret[name].isReadOnly && !cat[name].isReadOnly
+                ) {
+                    ret[name] = cat[name];
+                }
+            });
+        }
+    });
+
+    return ret;
+};
+
+/**
     Resolve settings definitions as array of objects.
     @method getSettingsDefinition
     @for Services.Settings

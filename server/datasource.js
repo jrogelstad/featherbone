@@ -73,8 +73,6 @@
     const mail = new Mail();
     const tenants = [];
 
-    settings.data = {};
-
     /**
         Server datasource class.
 
@@ -739,8 +737,28 @@
             tenant: false
         });
 
-        settings.data.catalog = {data: dat};
         return dat;
+    };
+
+    /**
+        Read and cache a database's catalog, so name resolution and
+        dispatch for that database work from its own feather set
+        (ADR-002).
+
+        @method primeCatalog
+        @param {Object} tenant Tenant whose database to read
+        @return {Promise}
+    */
+    that.primeCatalog = async function (tenant) {
+        let resp = await config.read();
+
+        return await that.request({
+            method: "GET",
+            name: "getSettings",
+            user: resp.pgUser,
+            data: {name: "catalog"},
+            tenant
+        });
     };
 
     /**
@@ -1666,7 +1684,7 @@
 
         async function doTraverseAfter(name) {
             // console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
-            let feather = settings.data.catalog.data[name];
+            let feather = catalog[name];
             let parent = feather.inherits || "Object";
 
             async function doTrigger() {
@@ -1741,7 +1759,7 @@
 
         async function doTraverseBefore(name) {
             // console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
-            let feather = settings.data.catalog.data[name];
+            let feather = catalog[name];
             let parent = feather.inherits || "Object";
 
             if (obj.noTrigger) {
@@ -1909,18 +1927,35 @@
                 done = resp.done;
             }
 
-            if (!settings.data.catalog) {
-                let dat = await settings.getSettings({
-                    client: theClient,
-                    data: {
-                        name: "catalog",
-                        force: true
-                    }
-                });
+            /*
+                The catalog of the database this request is for, never a
+                process-wide copy: two databases served by one process
+                may carry different modules at different versions
+                (ADR-002).
+            */
+            catalog = await settings.catalogFor(theClient);
 
-                settings.data.catalog = {data: dat};
+            /*
+                A read-only feather's write protection used to be that no
+                write route was mounted for it, which guarded exactly one
+                database's feather list. Enforce it here instead, for
+                whatever database the request reached. Internal calls
+                pass isSuperUser and install content into read-only
+                feathers, so only outside callers are refused.
+            */
+            if (
+                !isSuperUser &&
+                obj.method !== "GET" &&
+                catalog[obj.name] &&
+                catalog[obj.name].isReadOnly
+            ) {
+                return Promise.reject({
+                    statusCode: 405,
+                    message: (
+                        "Feather \"" + obj.name + "\" is read only"
+                    )
+                });
             }
-            catalog = settings.data.catalog.data;
 
             //console.log("REQUEST->", obj.name, obj.method);
             let msg;
