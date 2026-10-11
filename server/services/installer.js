@@ -98,14 +98,12 @@
                 let pSubscr = opts.subscription;
                 /*
                     What the database being installed into is for:
-                    "manager" or "instance" (tenant plan section 9). A
-                    manifest entry may name a `target` of its own and is
+                    "controlPlane", "tenant" or "both" (tenant plan A.1).
+                    A manifest entry may name a `target` of its own and is
                     skipped where it does not apply, which is how the
-                    manager's feathers stay out of application databases.
-                    A target of "both" on a file or a package means it
-                    installs either side -- the framework itself does.
+                    control-plane feathers stay out of tenant databases.
                 */
-                let pTarget = opts.target || "instance";
+                let pTarget = opts.target || "both";
                 let reqClient = pClient;
                 let conn;
 
@@ -831,8 +829,7 @@
 
                     // Not for this kind of database -- move along
                     while (
-                        file && file.target &&
-                        file.target !== "both" &&
+                        file && file.target && pTarget !== "both" &&
                         file.target !== pTarget
                     ) {
                         file = manifest.files[i];
@@ -945,19 +942,20 @@
                         /*
                             A package says which kind of database it
                             belongs in. Application modules do not have
-                            to say anything -- they default to
-                            "instance", which is what keeps them off a
-                            manager (tenant plan A.1). The framework's
-                            own manifest declares "both".
+                            to say anything -- they default to "tenant",
+                            which is what keeps them off a control plane
+                            (tenant plan A.1). The framework's own
+                            manifest declares "both".
                         */
                         if (
-                            (manifest.target || "instance") !== "both" &&
-                            (manifest.target || "instance") !== pTarget
+                            pTarget !== "both" &&
+                            (manifest.target || "tenant") !== "both" &&
+                            (manifest.target || "tenant") !== pTarget
                         ) {
                             reject(new Error(
                                 "Package " + (manifest.module || "") +
                                 " installs into a \"" +
-                                (manifest.target || "instance") +
+                                (manifest.target || "tenant") +
                                 "\" database, and this one is a \"" +
                                 pTarget + "\" database."
                             ));
