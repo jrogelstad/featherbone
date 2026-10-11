@@ -27,6 +27,7 @@
     const fs = require("fs");
     const {Pool} = require("pg");
     const {Config} = require("./config");
+    const {Identities} = require("./services/identities");
     const f = require("../common/core");
 
     const config = new Config();
@@ -71,6 +72,8 @@
         }
         return sslCfg;
     }
+
+    const identities = new Identities();
 
     function resolveTenant(tenant) {
         return tenant || {
@@ -134,6 +137,197 @@
             });
         }
 
+        /*
+            Sign in against the manager's identity table (ADR-001
+            B.1/B.2): database -> tenant -> organization -> identity ->
+            verify in Node -> access grant -> local profile. No Postgres
+            connection is ever opened as the user, so a failed sign-in
+            strands nothing (the leak item 1.6 described cannot happen
+            on this path).
+
+            Lock policy matches the role path: the fourth consecutive
+            failure locks the identity, and locking writes an audit row.
+        */
+        async function authenticateIdentity(req, username, pswd) {
+            const DOC = (
+                "nextval('object__pk_seq'),$1,now(),'system',now()," +
+                "'system',false,'system',$1"
+            );
+            let obj;
+
+            if (!req || !req.tenant || req.tenant.id === "-1") {
+                throw new Error("Sign in requires an instance");
+            }
+
+            obj = await that.connect();
+            try {
+                let client = obj.client;
+                let resp = await client.query(
+                    (
+                        "SELECT _pk, _organization_organization_pk AS org " +
+                        "FROM tenant WHERE id = $1 AND NOT is_deleted"
+                    ),
+                    [req.tenant.id]
+                );
+                let tenantPk;
+                let row;
+
+                if (!resp.rows.length) {
+                    throw new Error(
+                        "Instance " + req.tenant.name +
+                        " is not registered"
+                    );
+                }
+                tenantPk = resp.rows[0]._pk;
+                if (resp.rows[0].org === null) {
+                    throw new Error(
+                        "Instance " + req.tenant.name +
+                        " is not assigned to an organization"
+                    );
+                }
+
+                resp = await client.query(
+                    (
+                        "SELECT _pk, password_hash, status, " +
+                        "  failed_attempts, locked_until " +
+                        "FROM identity " +
+                        "WHERE _organization_organization_pk = $1 " +
+                        "  AND lower(username) = lower($2) " +
+                        "  AND NOT is_deleted"
+                    ),
+                    [resp.rows[0].org, username]
+                );
+
+                if (!resp.rows.length) {
+                    throw new Error(
+                        "No active user account " + username + " found"
+                    );
+                }
+                row = resp.rows[0];
+
+                if (
+                    row.status === "locked" || (
+                        row.locked_until &&
+                        new Date(row.locked_until) > new Date()
+                    )
+                ) {
+                    throw new Error("User account is locked");
+                }
+                if (row.status !== "active") {
+                    throw new Error(
+                        "No active user account " + username + " found"
+                    );
+                }
+
+                let check = identities.verifyPassword(
+                    pswd,
+                    row.password_hash,
+                    username
+                );
+
+                if (!check.ok) {
+                    let attempts = row.failed_attempts + 1;
+
+                    await client.query(
+                        (
+                            "UPDATE identity SET failed_attempts = $2, " +
+                            "updated = now(), updated_by = 'system' " +
+                            "WHERE _pk = $1"
+                        ),
+                        [row._pk, attempts]
+                    );
+
+                    if (attempts > 3) {
+                        await client.query(
+                            (
+                                "UPDATE identity SET status = 'locked', " +
+                                "updated = now(), updated_by = 'system' " +
+                                "WHERE _pk = $1"
+                            ),
+                            [row._pk]
+                        );
+                        // The lock is a privileged state change, so it
+                        // leaves an audit trail (ADR-001 A.4)
+                        await client.query(
+                            (
+                                "INSERT INTO admin_audit (_pk,id,created," +
+                                "created_by,updated,updated_by,is_deleted," +
+                                "owner,etag,action,occurred," +
+                                "_target_identity_identity_pk,detail) " +
+                                "VALUES (" + DOC + ",$2,now(),$3,$4)"
+                            ),
+                            [
+                                f.createId(),
+                                "identity.locked",
+                                row._pk,
+                                "Locked after too many failed sign-in " +
+                                "attempts"
+                            ]
+                        );
+                        throw new Error(
+                            "Too many sign in attempts. Account is locked."
+                        );
+                    }
+                    if (attempts === 3) {
+                        throw new Error(
+                            "Invalid sign in credentials. " +
+                            "One more attempt before account is locked."
+                        );
+                    }
+                    throw new Error("Invalid sign in credentials.");
+                }
+
+                /*
+                    A verifier imported from pg_authid is checked once
+                    and replaced with the application's own hash, so the
+                    password-equivalent export does not stay at rest
+                */
+                if (check.needsRehash) {
+                    await client.query(
+                        (
+                            "UPDATE identity SET password_hash = $2, " +
+                            "updated = now(), updated_by = 'system' " +
+                            "WHERE _pk = $1"
+                        ),
+                        [row._pk, identities.hashPassword(pswd)]
+                    );
+                }
+
+                // The access boundary: may this identity enter this
+                // instance?
+                resp = await client.query(
+                    (
+                        "SELECT 1 FROM access_grant " +
+                        "WHERE _identity_identity_pk = $1 " +
+                        "  AND _tenant_tenant_pk = $2 " +
+                        "  AND is_active AND NOT is_deleted"
+                    ),
+                    [row._pk, tenantPk]
+                );
+                if (!resp.rows.length) {
+                    throw new Error(
+                        "No access to instance " + req.tenant.name
+                    );
+                }
+
+                await client.query(
+                    (
+                        "UPDATE identity SET failed_attempts = 0, " +
+                        "last_signed_in = now(), " +
+                        "updated = now(), updated_by = 'system' " +
+                        "WHERE _pk = $1"
+                    ),
+                    [row._pk]
+                );
+            } finally {
+                obj.done();
+            }
+
+            // The local profile: preferences, contact and the stable
+            // key history points at. Still required (B.5).
+            return await that.deserializeUser(req, username);
+        }
+
         // ..........................................................
         // PUBLIC
         //
@@ -150,6 +344,11 @@
         */
         that.authenticate = async function (req, username, pswd) {
             let conf = await config.read();
+
+            if (config.authStrategy(conf) === "identity") {
+                return await authenticateIdentity(req, username, pswd);
+            }
+
             let pgdb;
             let pghost;
             let pgport;
