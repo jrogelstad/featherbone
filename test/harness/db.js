@@ -45,7 +45,7 @@ async function exists(client, name) {
 
 // Fallback when the source database has open connections (for example a
 // running Featherbone server): dump and restore with the pg client tools.
-function dumpRestore() {
+function dumpRestore(target) {
     const envVars = Object.assign({}, process.env, {
         PGPASSWORD: settings.pgPassword
     });
@@ -58,13 +58,93 @@ function dumpRestore() {
         "-Fc", settings.sourceDb
     ]), {env: envVars, maxBuffer: 1024 * 1024 * 1024});
     execFileSync("pg_restore", common.concat([
-        "--no-owner", "-d", settings.testDb
+        "--no-owner", "-d", target
     ]), {env: envVars, input: dump, maxBuffer: 1024 * 1024 * 64});
+}
+
+async function copyInto(client, target) {
+    await client.query(format(
+        "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+        target
+    ));
+    try {
+        await client.query(format(
+            "CREATE DATABASE %I TEMPLATE %I",
+            target,
+            settings.sourceDb
+        ));
+    } catch (err) {
+        if (!/being accessed by other users/.test(err.message)) {
+            throw err;
+        }
+        // Source is in use: create empty and copy with pg_dump
+        await client.query(format("CREATE DATABASE %I", target));
+        dumpRestore(target);
+    }
+}
+
+/*
+    Say what a copy is for. The source may still carry a schema 1 marker
+    ("controlPlane", "tenant" or "both"), whose check constraint would
+    refuse the new values, so the constraint is replaced the same way
+    `scripts/tables.js` replaces it on an upgrade.
+*/
+async function markAs(database, kind) {
+    await withClient(database, async function (client) {
+        await client.query(
+            "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS \"$db_kind_check\""
+        );
+        await client.query(format("UPDATE \"$db\" SET kind = %L", kind));
+        await client.query(
+            "ALTER TABLE \"$db\" ADD CONSTRAINT \"$db_kind_check\" " +
+            "CHECK (kind IN ('manager', 'instance'))"
+        );
+    });
+}
+
+/*
+    Register the instance under test in the manager, so the server can
+    reach it. Any registry rows the source database happened to carry
+    are dropped first: they point at databases this run knows nothing
+    about, and the server would open a pool for each one.
+*/
+async function registerInstance() {
+    await withClient(settings.managerDb, async function (client) {
+        await client.query("DELETE FROM tenant");
+        await client.query("DELETE FROM tenant_service");
+        await client.query((
+            "INSERT INTO tenant_service (_pk, id, created, created_by, " +
+            "updated, updated_by, is_deleted, owner, etag, name, pg_host, " +
+            "pg_port, pg_user, pg_password) VALUES " +
+            "(nextval('object__pk_seq'), 'fbtsvc', now(), $1, now(), $1, " +
+            "false, $1, 'fbtsvce', 'Default service', $2, $3, $1, " +
+            "pgp_sym_encrypt($4, $5)::text)"
+        ), [
+            settings.pgUser, settings.pgHost, String(settings.pgPort),
+            settings.pgPassword, settings.pgCryptoKey
+        ]);
+        await client.query((
+            "INSERT INTO tenant (_pk, id, created, created_by, updated, " +
+            "updated_by, is_deleted, owner, etag, name, is_active, " +
+            "_pg_service_tenant_service_pk, pg_database) SELECT " +
+            "nextval('object__pk_seq'), 'fbtinst', now(), $1, now(), $1, " +
+            "false, $1, 'fbtinste', $2, true, _pk, $2 " +
+            "FROM tenant_service WHERE id = 'fbtsvc'"
+        ), [settings.pgUser, settings.testDb]);
+    });
 }
 
 async function clone() {
     if (settings.testDb === settings.sourceDb) {
         throw new Error("FB_TEST_DB must differ from the source database");
+    }
+    if (settings.managerDb === settings.sourceDb) {
+        throw new Error(
+            "FB_TEST_MANAGER_DB must differ from the source database"
+        );
+    }
+    if (settings.managerDb === settings.testDb) {
+        throw new Error("FB_TEST_MANAGER_DB must differ from FB_TEST_DB");
     }
 
     await withClient("postgres", async function (client) {
@@ -74,28 +154,13 @@ async function clone() {
                 "\" not found. Set FB_TEST_SOURCE_DB."
             );
         }
-        await client.query(format(
-            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
-            settings.testDb
-        ));
-        try {
-            await client.query(format(
-                "CREATE DATABASE %I TEMPLATE %I",
-                settings.testDb,
-                settings.sourceDb
-            ));
-        } catch (err) {
-            if (!/being accessed by other users/.test(err.message)) {
-                throw err;
-            }
-            // Source is in use: create empty and copy with pg_dump
-            await client.query(format(
-                "CREATE DATABASE %I",
-                settings.testDb
-            ));
-            dumpRestore();
-        }
+        await copyInto(client, settings.testDb);
+        await copyInto(client, settings.managerDb);
     });
+
+    await markAs(settings.testDb, "instance");
+    await markAs(settings.managerDb, "manager");
+    await registerInstance();
 }
 
 async function ensureRole(client, name, password) {
@@ -163,6 +228,10 @@ async function drop() {
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",
             settings.testDb
+        ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.managerDb
         ));
         let roles = [settings.adminUser, settings.basicUser];
         let i = 0;
