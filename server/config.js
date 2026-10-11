@@ -109,6 +109,10 @@
                     // override loop below only visits keys it can see
                     data.controlPlane = data.controlPlane || {};
                     data.serverRole = data.serverRole || "both";
+                    // Where installed packages live on this server
+                    // (ADR-002): one directory per module and version,
+                    // modules/<name>/<version>/
+                    data.modulesDir = data.modulesDir || "./modules";
 
                     function typed(value) {
                         if (value.toLowerCase() === "true") {

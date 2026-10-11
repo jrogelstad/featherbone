@@ -40,6 +40,7 @@
     const {Packager} = require("./services/packager");
     const {Routes} = require("./services/routes");
     const {Services} = require("./services/services");
+    const {Packages} = require("./services/packages");
     const {Settings} = require("./services/settings");
     const {Role} = require("./services/role");
     const {Tools} = require("./services/tools");
@@ -71,6 +72,7 @@
     const workbooks = new Workbooks();
     const pdf = new PDF();
     const mail = new Mail();
+    const packages = new Packages();
     const tenants = [];
 
     /**
@@ -81,15 +83,37 @@
     */
     const that = {};
 
-    let registered;
-
-    registered = {
+    /*
+        Functions a request may call. The base registry holds the
+        framework's own registrations; each database gets a registry of
+        its own on top of it, holding the service registrations of the
+        modules deployed there -- loaded from the server's installed
+        packages when the module is on disk, from the database's
+        data_service rows when it is not (ADR-002). Two databases on
+        different versions of one module therefore dispatch to
+        different code in one process.
+    */
+    const baseRegistry = {
         GET: {},
         POST: {},
         PUT: {},
         PATCH: {},
         DELETE: {}
     };
+
+    // Registry service scripts are loading into right now. Scripts run
+    // synchronously, so this is set only for the duration of a build.
+    let loadTarget = null;
+
+    // database name -> built registry
+    let dbRegistries = {};
+
+    // database name -> registry under construction, so a service that
+    // issues a request while loading sees the partial registry instead
+    // of deadlocking on its own build
+    let dbBuilding = {};
+
+    let packagesScanned = false;
 
     const TRIGGER_BEFORE = 1;
     const TRIGGER_AFTER = 2;
@@ -98,8 +122,8 @@
     // PRIVATE
     //
 
-    function isRegistered(method, name, trigger) {
-        let found = registered[method][name];
+    function isRegistered(reg, method, name, trigger) {
+        let found = reg[method][name];
 
         if (trigger && found && found[trigger]) {
             return found[trigger];
@@ -110,6 +134,118 @@
         }
 
         return false;
+    }
+
+    async function buildRegistry(client) {
+        let reg = {
+            GET: {},
+            POST: {},
+            PUT: {},
+            PATCH: {},
+            DELETE: {}
+        };
+        let mods;
+        let onDisk = {};
+        let sources;
+        let run = [];
+        let fromDisk = {};
+
+        Object.keys(baseRegistry).forEach(function (method) {
+            Object.assign(reg[method], baseRegistry[method]);
+        });
+
+        if (!packagesScanned) {
+            packagesScanned = true;
+            packages.scan((await config.read()).modulesDir);
+        }
+
+        // Which modules this database carries, and which of those the
+        // server holds as packages on disk
+        try {
+            mods = await client.query(
+                "SELECT name, version FROM module WHERE NOT is_deleted;"
+            );
+        } catch (ignore) {
+            mods = {rows: []};
+        }
+
+        mods.rows.forEach(function (row) {
+            if (packages.resolve(row.name, row.version)) {
+                onDisk[row.name] = row.version;
+            }
+        });
+
+        sources = await services.getServices({client});
+
+        /*
+            Database rows load in module dependency order. A module the
+            server holds on disk loads from its package files instead,
+            in the same position, so load order matches what a plain
+            database install produces.
+        */
+        sources.forEach(function (src) {
+            let version = onDisk[src.module];
+
+            if (version !== undefined) {
+                if (!fromDisk[src.module]) {
+                    fromDisk[src.module] = true;
+                    packages.serviceSources(
+                        src.module,
+                        version
+                    ).forEach(function (dsrc) {
+                        run.push(dsrc);
+                    });
+                }
+                return;
+            }
+
+            run.push(src);
+        });
+
+        // A disk module with no service rows in the database still
+        // loads -- Deploy wrote its schema but its code lives here
+        Object.keys(onDisk).forEach(function (name) {
+            if (!fromDisk[name]) {
+                packages.serviceSources(
+                    name,
+                    onDisk[name]
+                ).forEach(function (dsrc) {
+                    run.push(dsrc);
+                });
+            }
+        });
+
+        loadTarget = reg;
+        dbBuilding[client.database] = reg;
+        try {
+            run.forEach(function (src) {
+                new Function(
+                    "f",
+                    "\"use strict\";" + src.script
+                )(f);
+            });
+        } finally {
+            loadTarget = null;
+            delete dbBuilding[client.database];
+        }
+
+        return reg;
+    }
+
+    async function registryFor(client) {
+        let database = client.database;
+
+        if (dbRegistries[database]) {
+            return dbRegistries[database];
+        }
+
+        if (dbBuilding[database]) {
+            return dbBuilding[database];
+        }
+
+        let reg = await buildRegistry(client);
+        dbRegistries[database] = reg;
+        return reg;
     }
 
     function subscribe(obj) {
@@ -1533,6 +1669,7 @@
         let transaction;
         let isChild;
         let catalog;
+        let reg;
         let isExternalClient = false;
         let wrap = false;
         let isTriggering = (
@@ -1660,8 +1797,8 @@
             obj.client = theClient;
             transactions = (
                 trigger
-                ? registered[obj.method][name][trigger].slice()
-                : [registered[obj.method][name]]
+                ? reg[obj.method][name][trigger].slice()
+                : [reg[obj.method][name]]
             );
 
             try {
@@ -1709,7 +1846,7 @@
                 }
 
                 // If business logic defined, do it
-                if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
+                if (isRegistered(reg, obj.method, name, TRIGGER_AFTER)) {
                     await doPrepareTrigger(obj);
                     return await doTrigger();
 
@@ -1784,7 +1921,9 @@
 
             try {
                 // If business logic defined, do it
-                if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
+                if (
+                    isRegistered(reg, obj.method, name, TRIGGER_BEFORE)
+                ) {
                     await doPrepareTrigger(obj);
                     return await doTrigger();
 
@@ -1934,6 +2073,7 @@
                 (ADR-002).
             */
             catalog = await settings.catalogFor(theClient);
+            reg = await registryFor(theClient);
 
             /*
                 A read-only feather's write protection used to be that no
@@ -2062,7 +2202,7 @@
                 }
 
             // If function, execute it
-            } else if (isRegistered(obj.method, obj.name)) {
+            } else if (isRegistered(reg, obj.method, obj.name)) {
                 try {
                     resp2 = await doMethod(obj.name);
                     await commit();
@@ -2416,16 +2556,38 @@
         @chainable
     */
     that.registerFunction = function (method, name, func, trigger) {
+        // Core registrations land in the base registry; a loading
+        // module's land in the registry being built for one database
+        let target = loadTarget || baseRegistry;
+
         if (trigger) {
-            if (!registered[method][name]) {
-                registered[method][name] = {};
+            /*
+                A module trigger attaching to an entry this registry
+                shares with the base registry must get its own copy
+                first, or the trigger would leak into every other
+                database's registry through the shared object.
+            */
+            if (
+                loadTarget &&
+                typeof target[method][name] === "function" &&
+                target[method][name] === baseRegistry[method][name]
+            ) {
+                let shared = target[method][name];
+
+                target[method][name] = function (...args) {
+                    return shared.apply(this, args);
+                };
             }
-            if (!registered[method][name][trigger]) {
-                registered[method][name][trigger] = [];
+
+            if (!target[method][name]) {
+                target[method][name] = {};
             }
-            registered[method][name][trigger].push(func);
+            if (!target[method][name][trigger]) {
+                target[method][name][trigger] = [];
+            }
+            target[method][name][trigger].push(func);
         } else {
-            registered[method][name] = func;
+            target[method][name] = func;
         }
         return that;
     };
@@ -2435,11 +2597,11 @@
         @return {Object} Object listing registered functions
     */
     that.registeredFunctions = function () {
-        let keys = Object.keys(registered);
+        let keys = Object.keys(baseRegistry);
         let result = {};
 
         keys.forEach(function (key) {
-            result[key] = Object.keys(registered[key]);
+            result[key] = Object.keys(baseRegistry[key]);
         });
 
         return result;
@@ -2501,66 +2663,22 @@
         @param {Object} [client]
         @return {Promise}
     */
-    that.loadServices = async function (pUser, pClient) {
-        let res;
-
-        function unregisterTriggers() {
-            function clearTriggers(fn, trigger) {
-                if (
-                    fn[trigger] &&
-                    fn[trigger].length
-                ) {
-                    fn[trigger].length = 0;
-                }
-            }
-
-            Object.keys(registered).forEach(function (method) {
-                Object.keys(registered[method]).forEach(function (fn) {
-                    let func = registered[method][fn];
-                    clearTriggers(func, TRIGGER_BEFORE);
-                    clearTriggers(func, TRIGGER_AFTER);
-                });
-            });
+    that.loadServices = async function (ignore, pClient) {
+        /*
+            Service registrations live in per-database registries built
+            on demand (ADR-002), so loading is invalidation: the next
+            request for the database rebuilds its registry from the
+            server's packages and the database's own rows. With no
+            client every registry is dropped, which is what boot and a
+            package installation on the server want.
+        */
+        if (pClient && pClient.database) {
+            delete dbRegistries[pClient.database];
+            return;
         }
 
-        function doLoadServices(resp) {
-            let err;
-            unregisterTriggers();
-
-            resp.every(function (service) {
-                try {
-                    new Function(
-                        "f",
-                        "\"use strict\";" + service.script
-                    )(f);
-                } catch (e) {
-                    err = e;
-                    return false;
-                }
-                return true;
-            });
-
-            if (err) {
-                return Promise.reject(err);
-            }
-        }
-
-        try {
-            if (pUser && pClient) {
-                res = await that.request({
-                    method: "GET",
-                    name: "getServices",
-                    user: pUser,
-                    client: pClient
-                }, true);
-                doLoadServices(res);
-            } else {
-                res = await that.getServices();
-                doLoadServices(res);
-            }
-        } catch (err) {
-            return Promise.reject(err);
-        }
+        dbRegistries = {};
+        packagesScanned = false;
     };
 
     /**
@@ -2680,19 +2798,23 @@
         @return {Function|Array} return a registered function
     */
     that.getFunction = function (method, name, trigger) {
-        if (!registered[method]) {
+        // The registry a module is loading into when called at load
+        // time, the base registry otherwise (ADR-002)
+        let reg = loadTarget || baseRegistry;
+
+        if (!reg[method]) {
             return;
         }
 
         if (trigger) {
-            if (registered[method][name]) {
-                return registered[method][name][trigger] || [];
+            if (reg[method][name]) {
+                return reg[method][name][trigger] || [];
             } else {
                 return;
             }
         }
 
-        return registered[method][name];
+        return reg[method][name];
     };
 
     /**
