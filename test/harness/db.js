@@ -45,7 +45,7 @@ async function exists(client, name) {
 
 // Fallback when the source database has open connections (for example a
 // running Featherbone server): dump and restore with the pg client tools.
-function dumpRestore() {
+function dumpRestore(target) {
     const envVars = Object.assign({}, process.env, {
         PGPASSWORD: settings.pgPassword
     });
@@ -58,7 +58,7 @@ function dumpRestore() {
         "-Fc", settings.sourceDb
     ]), {env: envVars, maxBuffer: 1024 * 1024 * 1024});
     execFileSync("pg_restore", common.concat([
-        "--no-owner", "-d", settings.testDb
+        "--no-owner", "-d", target
     ]), {env: envVars, input: dump, maxBuffer: 1024 * 1024 * 64});
 }
 
@@ -69,62 +69,118 @@ function dumpRestore() {
 const FIXTURE = {
     serviceId: "fbtsvc000001",
     tenantId: "fbttenant001",
+    tenant2Id: "fbttenant002",
     moduleId: "fbtmodule001",
     routeId: "fbtroute0001"
 };
 
-// Register the second copy as a tenant of the first, and deploy the
-// fbtest fixture: module rows point at versions of a package that only
-// exists on disk, which is what ADR-002 is for. The first copy runs
-// 1.0.0, the second 1.1.0.
-async function deployFixtures() {
-    const DOC = (
-        "_pk,id,created,created_by,updated,updated_by,is_deleted," +
-        "owner,etag"
-    );
-    const VALS = (
-        "nextval('object__pk_seq'),$1,now(),'admin',now(),'admin'," +
-        "false,'admin',$1"
-    );
+const DOC_COLS = (
+    "_pk,id,created,created_by,updated,updated_by,is_deleted," +
+    "owner,etag"
+);
+const DOC_VALS = (
+    "nextval('object__pk_seq'),$1,now(),'admin',now(),'admin'," +
+    "false,'admin',$1"
+);
 
-    await withClient(settings.testDb, async function (client) {
+async function copyInto(client, target, template) {
+    await client.query(format(
+        "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+        target
+    ));
+    try {
+        await client.query(format(
+            "CREATE DATABASE %I TEMPLATE %I",
+            target,
+            template
+        ));
+    } catch (err) {
+        if (!/being accessed by other users/.test(err.message)) {
+            throw err;
+        }
+        // Source is in use: create empty and copy with pg_dump
+        await client.query(format("CREATE DATABASE %I", target));
+        dumpRestore(target);
+    }
+}
+
+/*
+    Say what a copy is for. The source may still carry a schema 1 marker
+    ("controlPlane", "tenant" or "both"), whose check constraint would
+    refuse the new values, so the constraint is replaced the same way
+    `scripts/tables.js` replaces it on an upgrade.
+*/
+async function markAs(database, kind) {
+    await withClient(database, async function (client) {
+        await client.query(
+            "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS " +
+            "\"$db_kind_check\""
+        );
+        await client.query(format("UPDATE \"$db\" SET kind = %L", kind));
+        await client.query(
+            "ALTER TABLE \"$db\" ADD CONSTRAINT \"$db_kind_check\" " +
+            "CHECK (kind IN ('manager', 'instance'))"
+        );
+    });
+}
+
+/*
+    Register both instances in the manager, so the server can reach
+    them. Any registry rows the source database happened to carry are
+    dropped first: they point at databases this run knows nothing
+    about, and the server would open a pool for each one.
+*/
+async function registerInstances() {
+    await withClient(settings.managerDb, async function (client) {
+        await client.query("DELETE FROM tenant");
+        await client.query("DELETE FROM tenant_service");
         await client.query((
-            "INSERT INTO tenant_service (" + DOC + ",name,pg_host," +
-            "pg_port,pg_user,pg_password) VALUES (" + VALS + ",$2,$3," +
-            "$4,$5,pgp_sym_encrypt($6, $7)::text)"
+            "INSERT INTO tenant_service (" + DOC_COLS + ",name," +
+            "pg_host,pg_port,pg_user,pg_password) VALUES (" + DOC_VALS +
+            ",$2,$3,$4,$5,pgp_sym_encrypt($6, $7)::text)"
         ), [
             FIXTURE.serviceId, "Fixture service", settings.pgHost,
             String(settings.pgPort), settings.pgUser,
             settings.pgPassword, settings.pgCryptoKey
         ]);
-        await client.query((
-            "INSERT INTO tenant (" + DOC + ",name,is_active," +
-            "_pg_service_tenant_service_pk,pg_database) SELECT " + VALS +
-            ",$2,true,_pk,$3 FROM tenant_service WHERE id = $4"
-        ), [
-            FIXTURE.tenantId, settings.testDb2, settings.testDb2,
-            FIXTURE.serviceId
-        ]);
-        await client.query((
-            "INSERT INTO module (" + DOC + ",name,script,version) " +
-            "VALUES (" + VALS + ",'fbtest','','1.0.0')"
-        ), [FIXTURE.moduleId]);
-        await client.query((
-            "INSERT INTO route (" + DOC + ",module,path,function) " +
-            "VALUES (" + VALS + ",'fbtest','/version','fbtestVersion')"
-        ), [FIXTURE.routeId]);
-    });
 
-    await withClient(settings.testDb2, async function (client) {
-        await client.query((
-            "INSERT INTO module (" + DOC + ",name,script,version) " +
-            "VALUES (" + VALS + ",'fbtest','','1.1.0')"
-        ), [FIXTURE.moduleId]);
-        await client.query((
-            "INSERT INTO route (" + DOC + ",module,path,function) " +
-            "VALUES (" + VALS + ",'fbtest','/version','fbtestVersion')"
-        ), [FIXTURE.routeId]);
+        async function addTenant(id, database) {
+            await client.query((
+                "INSERT INTO tenant (" + DOC_COLS + ",name,is_active," +
+                "_pg_service_tenant_service_pk,pg_database) SELECT " +
+                DOC_VALS + ",$2,true,_pk,$3 FROM tenant_service " +
+                "WHERE id = $4"
+            ), [id, database, database, FIXTURE.serviceId]);
+        }
+
+        await addTenant(FIXTURE.tenantId, settings.testDb);
+        await addTenant(FIXTURE.tenant2Id, settings.testDb2);
     });
+}
+
+/*
+    Deploy the fbtest fixture: module rows point at versions of a
+    package that exists only on disk under test/fixtures/modules, which
+    is what ADR-002 is for. The first instance runs 1.0.0, the second
+    1.1.0.
+*/
+async function deployFixtures() {
+    async function deploy(database, version) {
+        await withClient(database, async function (client) {
+            await client.query((
+                "INSERT INTO module (" + DOC_COLS + ",name,script," +
+                "version) VALUES (" + DOC_VALS + ",'fbtest','',$2)"
+            ), [FIXTURE.moduleId, version]);
+            await client.query((
+                "INSERT INTO route (" + DOC_COLS + ",module,path," +
+                "function) VALUES (" + DOC_VALS +
+                ",'fbtest','/version','fbtestVersion')"
+            ), [FIXTURE.routeId]);
+        });
+    }
+
+    await deploy(settings.testDb, "1.0.0");
+    await deploy(settings.testDb2, "1.1.0");
 }
 
 async function clone() {
@@ -134,6 +190,15 @@ async function clone() {
     if (settings.testDb2 === settings.testDb) {
         throw new Error("FB_TEST_DB2 must differ from FB_TEST_DB");
     }
+    if (
+        settings.managerDb === settings.sourceDb ||
+        settings.managerDb === settings.testDb ||
+        settings.managerDb === settings.testDb2
+    ) {
+        throw new Error(
+            "FB_TEST_MANAGER_DB must differ from the other databases"
+        );
+    }
 
     await withClient("postgres", async function (client) {
         if (!await exists(client, settings.sourceDb)) {
@@ -142,41 +207,34 @@ async function clone() {
                 "\" not found. Set FB_TEST_SOURCE_DB."
             );
         }
-        await client.query(format(
-            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
-            settings.testDb
-        ));
+        await copyInto(client, settings.testDb, settings.sourceDb);
+
+        // Nothing is connected to the fresh copy yet, so template
+        // clones of it are cheap and always available
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",
             settings.testDb2
         ));
-        try {
-            await client.query(format(
-                "CREATE DATABASE %I TEMPLATE %I",
-                settings.testDb,
-                settings.sourceDb
-            ));
-        } catch (err) {
-            if (!/being accessed by other users/.test(err.message)) {
-                throw err;
-            }
-            // Source is in use: create empty and copy with pg_dump
-            await client.query(format(
-                "CREATE DATABASE %I",
-                settings.testDb
-            ));
-            dumpRestore();
-        }
-
-        // Nothing is connected to the fresh copy yet, so a template
-        // clone is cheap and always available
         await client.query(format(
             "CREATE DATABASE %I TEMPLATE %I",
             settings.testDb2,
             settings.testDb
         ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.managerDb
+        ));
+        await client.query(format(
+            "CREATE DATABASE %I TEMPLATE %I",
+            settings.managerDb,
+            settings.testDb
+        ));
     });
 
+    await markAs(settings.testDb, "instance");
+    await markAs(settings.testDb2, "instance");
+    await markAs(settings.managerDb, "manager");
+    await registerInstances();
     await deployFixtures();
 }
 
@@ -249,6 +307,10 @@ async function drop() {
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",
             settings.testDb2
+        ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.managerDb
         ));
         let roles = [settings.adminUser, settings.basicUser];
         let i = 0;
