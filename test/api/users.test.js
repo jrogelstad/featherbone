@@ -48,11 +48,7 @@ describe("user accounts", function () {
     it("creates a user account through POST /data/user-account",
             async function () {
         let name = access.track(access.uniq("fbt_new"));
-        let emp = await admin.create("Contact", {
-            firstName: "New",
-            lastName: "User",
-            email: name + "@example.com"
-        });
+        let emp = await access.createContact(admin, name);
         let resp = await admin.raw("POST", "/data/user-account", {
             name,
             password: "Created-Pw-1",
@@ -73,11 +69,7 @@ describe("user accounts", function () {
     });
 
     it("rejects a user account named after a NOLOGIN role", async function () {
-        let emp = await admin.create("Contact", {
-            firstName: "Reserved",
-            lastName: "Name",
-            email: "reserved@example.com"
-        });
+        let emp = await access.createContact(admin, access.uniq("fbt_c"));
         let resp = await admin.raw("POST", "/data/user-account", {
             name: "everyone",
             password: "Whatever-1",
@@ -95,11 +87,7 @@ describe("user accounts", function () {
             "creating a user account with its name", async function () {
         let name = access.uniq("fbt_tenant");
         await access.sqlRole(name, "Other-Tenant-Pw1");
-        let emp = await admin.create("Contact", {
-            firstName: "Tenant",
-            lastName: "Clash",
-            email: name + "@example.com"
-        });
+        let emp = await access.createContact(admin, name);
         let resp = await admin.raw("POST", "/data/user-account", {
             name,
             password: "Hijacked-Pw-2",
