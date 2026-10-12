@@ -254,12 +254,11 @@ describe("catalog endpoints", function () {
             assert.deepEqual(problems, []);
         });
 
-        it("does not leak inheritedFrom into the cached catalog", {
-            todo: "defect: getFeather appendParent (feathers.js:840) " +
-                    "assigns the cached parent property object and sets " +
-                    "inheritedFrom on it, so /settings/catalog and own " +
-                    "properties carry inheritedFrom depending on history"
-        }, async function () {
+        // Plan 0.17: appendParent assigned the cached parent property
+        // object and stamped inheritedFrom on it; fixed with a copy, and
+        // getFeather repairs the self-referential stamps it finds
+        it("does not leak inheritedFrom into the cached catalog",
+                async function () {
             let raw = (await admin.get("/settings/catalog")).data;
             let leaked = [];
             Object.keys(raw).forEach(function (name) {

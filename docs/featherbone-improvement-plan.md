@@ -149,7 +149,15 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   property. Found while confirming the application still ran after the
   tenancy merges; `query.test.js` had carried a todo for it, and the
   coverage moved to `crud.test.js` so it does not need SupplyChain to run.*
-- [ ] **0.17 Resolving inheritance mutates the stored catalog.**
+- [x] **0.17 Resolving inheritance mutates the stored catalog.** *Fixed
+  2026-10-11 on `fix/0.17-inherited-from`: appendParent and the local
+  property pass now copy property objects, so neither inheritedFrom nor an
+  overload default can write into the cached catalog. Self-referential
+  stamps (`Role.name` carrying `inheritedFrom: "Role"` -- the bug's
+  signature, never a real declaration) are repaired when getFeather reads
+  them and scrubbed when a feather is saved, so reinstalling a module also
+  cleans a polluted catalog row. The catalog suite's todo test for this now
+  passes and was promoted to a live assertion.*
   `getFeather`'s `appendParent` (`feathers.js` ~840) does
   `childProps[key] = parentProps[key]` and then sets `.inheritedFrom` on it --
   the same object, so the *ancestor's own* property is stamped too. `Role.name`
