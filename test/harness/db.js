@@ -293,6 +293,14 @@ async function bootstrap() {
         await createUser(client, settings.adminUser, settings.password, true);
         await createUser(client, settings.basicUser, settings.password, false);
     });
+
+    // The second database carries the same super user, so suites that
+    // talk to both do not depend on whatever accounts the source holds
+    if (settings.testDb2 !== settings.testDb) {
+        await withClient(settings.testDb2, async function (client) {
+            await createUser(client, settings.adminUser, settings.password, true);
+        });
+    }
 }
 
 async function drop() {
