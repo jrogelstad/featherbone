@@ -378,6 +378,26 @@
 
             logger.info("Featherbone server starting");
 
+            /*
+                One floating rejection must not take down a server that
+                is serving every instance (improvement plan 6.1): on
+                Node 15+ the default is to kill the process. Log it --
+                with the stack, since these are exactly the defects that
+                need finding -- and keep serving. uncaughtException is
+                deliberately left alone: after a synchronous throw the
+                process state is unknown and restarting is correct.
+            */
+            process.on("unhandledRejection", function (reason) {
+                let msg = (
+                    reason instanceof Error
+                    ? (reason.stack || reason.message)
+                    : String(reason)
+                );
+
+                logger.error("Unhandled rejection: " + msg);
+                console.error("Unhandled rejection: " + msg);
+            });
+
             // Other config
             debug = Boolean(resp.debug);
 
