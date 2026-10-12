@@ -161,12 +161,19 @@
 
         // Which modules this database carries, and which of those the
         // server holds as packages on disk
-        try {
+        /*
+            Probe for the table instead of catching a failed query: during
+            a first install this runs inside a transaction, and a failed
+            statement would leave that transaction aborted.
+        */
+        mods = {rows: []};
+        let hasModules = await client.query(
+            "SELECT to_regclass('module') IS NOT NULL AS found;"
+        );
+        if (hasModules.rows[0].found) {
             mods = await client.query(
                 "SELECT name, version FROM module WHERE NOT is_deleted;"
             );
-        } catch (ignore) {
-            mods = {rows: []};
         }
 
         mods.rows.forEach(function (row) {
@@ -175,7 +182,16 @@
             }
         });
 
-        sources = await services.getServices({client});
+        // A database mid-install has no service rows to load yet
+        let hasServices = await client.query(
+            "SELECT to_regclass('data_service') IS NOT NULL " +
+            "AND to_regclass('_module') IS NOT NULL AS found;"
+        );
+        sources = (
+            hasServices.rows[0].found
+            ? await services.getServices({client})
+            : []
+        );
 
         /*
             Database rows load in module dependency order. A module the
