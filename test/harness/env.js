@@ -51,10 +51,23 @@ const settings = Object.freeze({
     sourceDb: env.FB_TEST_SOURCE_DB || "demo",
     // Throwaway database the suite runs against
     testDb: env.FB_TEST_DB || "featherbone_test",
-    // Every installation is multi-instance (tenant plan section 9),
-    // so the suite needs a manager as well as the instance under
-    // test. Both are built from the same source database.
+    /*
+        Second instance, so one server demonstrably serves two
+        databases on different module versions (ADR-002). Carries the
+        fbtest fixture at 1.1.0 while the first carries 1.0.0.
+    */
+    testDb2: env.FB_TEST_DB2 || "featherbone_test2",
+    /*
+        Every installation is multi-instance (tenant plan section 9):
+        the manager holds the registry and the sessions, and both test
+        instances are registered in it. All three are built from the
+        same source database.
+    */
     managerDb: env.FB_TEST_MANAGER_DB || "featherbone_test_manager",
+    // Fixture packages the test server treats as installed on disk
+    modulesDir: path.join(TEST_DIR, "fixtures", "modules"),
+    // Encrypts the fixture service's password the same way the
+    // framework encrypts it
     pgCryptoKey: config.pgCryptoKey,
     pgHost: env.FB_TEST_PGHOST || config.pgHost,
     pgPort: Number(env.FB_TEST_PGPORT || config.pgPort),

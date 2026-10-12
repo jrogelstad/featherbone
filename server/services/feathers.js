@@ -838,7 +838,17 @@
 
                 ckeys.forEach(function (key) {
                     if (childProps[key] === undefined) {
-                        childProps[key] = parentProps[key];
+                        /*
+                            A copy, never a reference: stamping the
+                            parent's own object wrote inheritedFrom into
+                            the cached catalog, where it persisted and
+                            made the save path skip the ancestor's own
+                            column (improvement plan 0.17)
+                        */
+                        childProps[key] = Object.assign(
+                            {},
+                            parentProps[key]
+                        );
                         childProps[key].inheritedFrom = parent;
                     }
                 });
@@ -878,11 +888,27 @@
                     delete result.inherits;
                 }
 
-                /* Now add local properties back in */
+                /* Now add local properties back in -- as copies, so
+                   the overload defaults applied below (and anything a
+                   caller does to the result) never write into the
+                   cached catalog */
                 featherProps = theFeather.properties;
                 resultProps = result.properties;
                 Object.keys(featherProps).forEach(function (key) {
-                    resultProps[key] = featherProps[key];
+                    resultProps[key] = Object.assign(
+                        {},
+                        featherProps[key]
+                    );
+                    /*
+                        Repair catalogs the old reference bug already
+                        polluted: a feather "inheriting" a property from
+                        itself is the bug's signature, never a real
+                        declaration
+                    */
+                    if (resultProps[key].inheritedFrom === theName) {
+                        delete resultProps[key].inheritedFrom;
+                        delete featherProps[key].inheritedFrom;
+                    }
                 });
                 // Apply overload default values
                 overloads = theFeather.overloads;
@@ -1014,10 +1040,9 @@
                             "SELECT pk FROM \"$auth\" " +
                             "  JOIN \"$feather\" " +
                             "    ON \"$feather\"._pk=\"$auth\".object_pk " +
-                            "  JOIN pg_authid " +
-                            "   ON \"$auth\".role=pg_authid.rolname " +
                             "WHERE \"$feather\".id=$1" +
-                            "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                            "  AND \"$auth\".role IN (" +
+                            tools.memberNames(2) + ")" +
                             "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
                             "  AND %I;"
                         );
@@ -1528,6 +1553,25 @@
                     ? obj.data.specs
                     : [obj.data.specs]
                 );
+
+                /*
+                    A property genuinely inherited carries the ancestor's
+                    name; one marked as inherited from the feather itself
+                    is pollution from the old appendParent reference bug
+                    (0.17) and would make the column loop below skip the
+                    feather's own column. Scrub it, so reinstalling a
+                    module also cleans a polluted catalog.
+                */
+                specs.forEach(function (sp) {
+                    if (!sp || !sp.properties) {
+                        return;
+                    }
+                    Object.keys(sp.properties).forEach(function (key) {
+                        if (sp.properties[key].inheritedFrom === sp.name) {
+                            delete sp.properties[key].inheritedFrom;
+                        }
+                    });
+                });
                 let c = 0;
                 let len = specs.length;
                 let theClient = obj.client;
@@ -1570,6 +1614,9 @@
                     let fns = [];
                     let unique = [];
                     let indices = [];
+                    let relations = [];
+                    let ancestor;
+                    let aprops;
                     let i = 0;
                     let n = 0;
                     let p = 1;
@@ -2248,13 +2295,115 @@
                             return;
                         }
 
-                        if (unique.length || indices.length) {
+                        /*
+                            An inherited property is not added as a
+                            column -- Postgres inheritance supplies it --
+                            so it never reached this builder, and a
+                            natural key was indexed on the ancestor that
+                            declared it, which on a hierarchy is usually
+                            the empty table. `user_account` inherits its
+                            `name` from `role` and carried no index on it
+                            at all, and that is the login lookup
+                            (improvement items 2.6 and 3.3). Walk the
+                            chain and give this table its own.
+                        */
+                        /*
+                            The feather's own keys are collected here
+                            too, not only when a column is first added.
+                            Otherwise a database installed before this
+                            change kept the old plain index on its
+                            natural key for ever, because nothing was
+                            being added on a reinstall and the builder
+                            never saw the key.
+                        */
+                        aprops = spec.properties || {};
+
+                        /*
+                            Every relation column gets an index
+                            (improvement items 3.1 and 3.4): the
+                            generated views run a correlated subquery
+                            per row against these columns, and the
+                            child side of every to-many is one. A
+                            parentOf property has no column -- the
+                            child holds the pointer -- and the
+                            discriminator never became a column either.
+                        */
+                        function collect(owner) {
+                            let ps = owner.properties || {};
+
+                            Object.keys(ps).forEach(function (key) {
+                                let ptype = ps[key].type;
+
+                                if (
+                                    ps[key].isNaturalKey &&
+                                    unique.indexOf(key) === -1
+                                ) {
+                                    unique.push(key);
+                                }
+
+                                if (
+                                    ps[key].isIndexed &&
+                                    indices.indexOf(key) === -1
+                                ) {
+                                    indices.push(key);
+                                }
+
+                                if (
+                                    typeof ptype === "object" &&
+                                    ptype.relation &&
+                                    !ptype.parentOf &&
+                                    key !== owner.discriminator
+                                ) {
+                                    let col = tools.relationColumn(
+                                        key,
+                                        ptype.relation
+                                    );
+
+                                    if (relations.indexOf(col) === -1) {
+                                        relations.push(col);
+                                    }
+                                }
+                            });
+                        }
+
+                        collect(spec);
+
+                        ancestor = spec.inherits;
+
+                        while (
+                            ancestor &&
+                            ancestor !== "Object" &&
+                            catalog[ancestor]
+                        ) {
+                            collect(catalog[ancestor]);
+                            ancestor = catalog[ancestor].inherits;
+                        }
+
+                        if (
+                            unique.length ||
+                            indices.length ||
+                            relations.length
+                        ) {
                             sql = "";
                             tokens = [];
 
+                            /*
+                                Dropped and rebuilt rather than created
+                                only when absent, so a database carrying
+                                the old plain index on a natural key is
+                                upgraded in place rather than keeping it.
+                                Partial on NOT is_deleted, because rows
+                                are soft-deleted here and a deleted
+                                record must not reserve its key for ever.
+                            */
                             unique.forEach(function (key) {
-                                sql += "CREATE INDEX %I ON %I (%I);";
+                                sql += (
+                                    "DROP INDEX IF EXISTS %I;" +
+                                    "CREATE UNIQUE INDEX %I ON %I (%I) " +
+                                    "WHERE NOT is_deleted;"
+                                );
                                 tokens = tokens.concat([
+                                    table + "_index_" + key.toSnakeCase(),
                                     table + "_index_" + key.toSnakeCase(),
                                     table,
                                     key.toSnakeCase()
@@ -2262,17 +2411,57 @@
                             });
 
                             indices.forEach(function (key) {
-                                sql += "CREATE INDEX %I ON %I (%I);";
+                                sql += (
+                                    "DROP INDEX IF EXISTS %I;" +
+                                    "CREATE INDEX %I ON %I (%I);"
+                                );
                                 tokens = tokens.concat([
+                                    table + "_index_" + key.toSnakeCase(),
                                     table + "_index_" + key.toSnakeCase(),
                                     table,
                                     key.toSnakeCase()
                                 ]);
                             });
 
+                            relations.forEach(function (col) {
+                                sql += (
+                                    "CREATE INDEX IF NOT EXISTS " +
+                                    "%I ON %I (%I);"
+                                );
+                                tokens = tokens.concat([
+                                    table + "_index" + col,
+                                    table,
+                                    col
+                                ]);
+                            });
+
                             theClient.query(
                                 sql.format(tokens),
-                                updateCatalog
+                                function (ierr) {
+                                    /*
+                                        A database that already holds two
+                                        rows with the same natural key
+                                        cannot take the index, and
+                                        Postgres reports it as a bare
+                                        "could not create unique index".
+                                        Say which feather and which key,
+                                        so the duplicates can be found.
+                                    */
+                                    if (
+                                        ierr &&
+                                        ierr.code === "23505"
+                                    ) {
+                                        ierr.message = (
+                                            "Cannot make the natural key of " +
+                                            "\"" + spec.name + "\" unique: " +
+                                            (ierr.detail || ierr.message) +
+                                            " Remove or correct the " +
+                                            "duplicates in \"" + table +
+                                            "\" and install again."
+                                        );
+                                    }
+                                    updateCatalog(ierr);
+                                }
                             );
                             return;
                         }

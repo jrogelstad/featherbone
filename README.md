@@ -28,43 +28,93 @@ From your browser navigate to <http://localhost/demo> to run the application whe
 
 A documentation server may be installed from [here](https://github.com/jrogelstad/featherbone-docs)
 
-## Database kinds and the control plane
+## The manager and instances
 
-Every database Featherbone installs into carries a one row `"$db"` marker recording what it is for, the schema version, and its mode. Running `node install` against an existing database adds the marker; nothing else about a single database install changes.
-
-* `both` (default) -- one database holds the application and the tenant registry, as it always has.
-* `tenant` -- an application database for one company. It does not install the tenant registry.
-* `controlPlane` -- a dedicated tenant management database holding the tenant registry, tenant services and sessions, with no application data.
-
-Install flags:
+Every Featherbone installation has the same shape: one **manager**
+database holding the registry of instances, the shared services and the
+sessions, and any number of **instance** databases holding application
+data. Even the smallest deployment wants more than one instance --
+production, test, and often a demo -- so there is no single-database
+mode.
 
 ```text
-$ node install --control-plane --username postgres --password <pw>   # the controlPlane.pgDatabase database
-$ node install --instance acme --mode test ...                       # a database named "acme", registered
-$ node install --tenant --mode test ...                              # the pgDatabase database as a tenant
-$ node install --target <both|tenant|controlPlane> ...               # same thing, spelled out
+$ node install --manager --username postgres --password <pw>   # the manager (default name "db_manager")
+$ node install --instance acme --mode test ...                 # a database named "acme", registered in the manager
 ```
 
-`--instance <name>` installs an application database of that name and then
-**registers it in the control plane**, so a server serves it at `/<name>/`
-straight away. It also creates a `Default service` pointing at the Postgres
-server in `config.json`, if one is not there already, and reuses it for every
-later instance. Running it again for the same database changes nothing. This
-is the only way to add an instance until the administration UI arrives, and
-the control plane has to exist first.
+`--manager` builds or upgrades the manager database. Its name is
+`db_manager` unless `managerDatabase` in `config.json` says otherwise; the
+setting exists for developers keeping two installations on one cluster and
+for the test harness, and ordinary deployments leave it alone.
 
-`--mode` is `dev`, `test` or `prod`. It is stored in the database (`"$db".mode`) and shown as the banner across the top of the page after sign-in, so each database says for itself what it is. The `mode` setting in `config.json` is only used for databases that have no stored mode yet.
+`--instance <name>` installs an application database of that name and
+**registers it in the manager**, so a server serves it at `/<name>/`
+straight away. Run against an existing database -- including one installed
+before the manager existed -- it converts the database's marker in place
+and registers it, which is the upgrade path. It also creates a `Default
+service` pointing at the Postgres server in `config.json`, if one is not
+there already, and reuses it for every later instance. Running it again
+for the same database changes nothing. This is the only way to add an
+instance until the administration UI arrives, and the manager has to exist
+first.
 
-Server settings in `config.json`:
+Each database carries a one row `"$db"` marker recording its kind
+(`manager` or `instance`), the schema version and its mode. `--mode` is
+`dev`, `test` or `prod`; it is stored in the marker and shown as the
+banner across the top of the page after sign-in, so each instance says for
+itself what it is. The `mode` setting in `config.json` is only used for
+databases that have no stored mode yet.
 
-* `serverRole` -- `both` (default), `tenant` or `controlPlane`. The server checks at boot that each database it connects to has a marker of a matching kind and refuses to start otherwise.
-* `controlPlane` -- connection for the control plane database. Any blank setting falls back to the matching `pg*` setting, so only `pgDatabase` is normally needed. Environment overrides take the form `controlPlanePgDatabase`.
+The manager is never served as an application: `/db_manager/` answers 404.
+Sessions for every instance live in the manager, so signing out of one
+server signs out of all of its instances.
 
-Feathers in `scripts/feathers.json` install into every kind of database; those that belong only to the control plane live in `scripts/feathers-control-plane.json`. A workbook manifest may declare `"target": "controlPlane"` to install only there (the default is `tenant`).
+Feathers in `scripts/feathers.json` install into every database; those
+that belong only to the manager live in `scripts/feathers-manager.json`.
+A workbook manifest may declare `"target": "manager"` to install only
+there (the default is `instance`).
 
-To move an existing combined install onto a dedicated control plane, install the new database with `--control-plane`, set `controlPlane.pgDatabase`, then run `node scripts/split-control-plane.js` (a dry run; add `--apply` to copy). It copies tenant services and lists the tenants to be re-entered; tenant rows are not moved yet. Nothing is deleted from the source.
+## Identity sign-in
 
-This is groundwork for the tenant management rewrite: there is no administration screen for the control plane yet.
+Sign-in has two strategies, chosen by `authStrategy` in `config.json`
+(ADR-001, `docs/adr-001-identity-and-tenancy.md`):
+
+* `role` (the default) -- today's path: the password is checked by
+  opening a Postgres connection as the user's login role.
+* `identity` -- the password is verified in Node against the `identity`
+  table in the manager. An identity belongs to an organization, a
+  username is unique within its organization, and an `access_grant` row
+  per instance says which databases the identity may enter -- so one
+  person is one password across their test and production instances,
+  and no Postgres login role is involved.
+
+To move an existing installation, run `node scripts/migrate-identities.js`
+(a dry run; add `--apply` to write). It creates the organization, attaches
+registered instances, and makes an identity per existing user with an
+access grant per instance. Given superuser credentials
+(`--username`/`--password`) it also copies each user's password verifier
+from `pg_authid`, so every password keeps working and is re-hashed to the
+application's own form (scrypt) on first sign-in. Then set
+`"authStrategy": "identity"` and restart; setting it back to `"role"`
+reverses the cutover until login roles are retired.
+
+## Installed packages
+
+Module code loads from packages installed on the server when they are
+present (ADR-002, `docs/adr-002-packages-on-disk.md`):
+
+```text
+modules/<name>/<version>/      # npm-format package: package.json,
+                               # manifest.json and the module's files
+```
+
+One directory per version, because two databases served by one process
+may run different versions of one module: each database's `module` rows
+say which version it deployed, and its requests dispatch to that
+version's services. A module with no package on the server falls back
+to the code deployed into the database, so existing installations work
+unchanged until they are repackaged. `modulesDir` in `config.json`
+moves the directory.
 
 # Tests
 

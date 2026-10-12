@@ -173,7 +173,11 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       workbooks for the administration UI.
     - Done when: an organization, an identity and a grant can be created
       through the framework with no module installed.
-- [ ] **A.4 Administration model.** (M)
+- [~] **A.4 Administration model.** (M) *Partly done 2026-10-11 on
+  `feat/identity-cutover`: `admin_audit` is written by everything that
+  changes privileged state so far -- the backfill's creations and grants,
+  and the automatic lock after failed sign-ins. The break-glass UI and the
+  is_super rename wait on the admin console (D.1/D.2).*
     - Implement the three tiers in ADR §3: platform administrator,
       organization administrator, tenant roles.
     - A platform administrator is an identity with a flag — not a Postgres
@@ -186,7 +190,12 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
     - Done when: the break-glass path in requirement 3 — suspend a departed
       organization administrator, appoint a replacement — is doable in the UI
       by a platform administrator, and leaves an audit trail.
-- [ ] **A.5 Ownership backfill, and the interim fix for 1.1.** (S)
+- [x] **A.5 Ownership backfill.** (S) *Done 2026-10-11:
+  `scripts/migrate-identities.js` -- dry run by default, `--apply` to
+  write; builds the organization, attaches instances, creates one identity
+  per username across instances with the pg_authid verifier when superuser
+  credentials are given, and grants per instance; idempotent, audited. The
+  interim POST UserAccount fix is superseded: creation goes to B.5.*
     - Backfill one organization per existing customer; attach existing tenants;
       record which organization owns each existing username.
     - With ownership known, make `POST UserAccount` reject an existing role
@@ -237,7 +246,11 @@ two-pool login path exists only because signing in means connecting as the
 user's role (item 1.6). Clustering is a side effect of this work, not its
 purpose.
 
-- [ ] **B.1 Application-side password verification.** (M)
+- [x] **B.1 Application-side password verification.** (M) *Done
+  2026-10-11: `server/services/identities.js`, scrypt (node:crypto, zero
+  dependencies). Imports both pg_authid forms -- SCRAM-SHA-256 and md5 --
+  and re-hashes to scrypt on the first successful sign-in, so the
+  password-equivalent export does not stay at rest.*
     - Hash with `node:crypto` `scrypt` or argon2id (ADR §9 open question).
     - Import existing `SCRAM-SHA-256` verifiers from `pg_authid` and verify
       against them, re-hashing on first successful sign-in. Proven in
@@ -246,7 +259,13 @@ purpose.
       once re-hashed.
     - Done when: every existing user signs in with their current password, with
       no Postgres role involved, and their stored verifier is gone afterwards.
-- [ ] **B.2 Rewrite the sign-in path.** (M)
+- [x] **B.2 Rewrite the sign-in path.** (M) *Done 2026-10-11 behind
+  `authStrategy` in config.json: "role" (default) keeps today's path
+  byte-for-byte; "identity" runs database -> tenant -> organization ->
+  identity -> verify in Node -> access_grant -> local profile, opens no
+  connection as the user, and matches the role path's lock escalation and
+  client messages. The two-pool path is deleted at B.4, when the flag
+  goes.*
     - Flow per ADR §4: database → tenant → organization → identity → policy →
       verify → `access_grant` → MFA → session.
     - Delete the two-pool login path in `server/database.js` `authenticate()`.
@@ -257,7 +276,14 @@ purpose.
       B.4, so the cutover is reversible.
     - Done when: sign-in works with the fallback disabled, and a failed sign-in
       strands no connection.
-- [ ] **B.3 Replace `pg_has_role()` with membership resolution.** (L)
+- [x] **B.3 Replace `pg_has_role()` with membership resolution.** (L)
+  *Done 2026-10-11, unconditionally (not behind the flag): the GRANTs only
+  ever mirrored role_membership rows, so resolving against the
+  application's own tables answers identically for existing databases.
+  `tools.memberNames()` is the one CTE all six call sites share, and
+  "everyone" is implicit for every active user account. Authorization
+  suite passes unchanged; test user fbt_norole proves a user with no
+  Postgres role at all signs in and reads data.*
     - A recursive CTE over `role` and `role_membership` in the tenant database.
       Seven call sites: `tools.js` ~200 and ~221, `workbooks.js` ~165 and
       ~255, `feathers.js` ~1016, `scripts/services.js` ~1350, and
@@ -483,10 +509,19 @@ items either move here or are deleted by the design.
 5. **C.1–C.3**, then **E.1–E.5**, then **F.1–F.3**.
 6. Return to `featherbone-improvement-plan.md`.
 
-## 9. Proposed: one mode, and the instance manager
+## 9. One mode, and the instance manager
 
-*Proposed 2026-10-10. Not settled — the open questions at the end need
-answers, and no tier above has been renumbered yet.*
+*Proposed 2026-10-10; open questions settled the same day. **Implemented
+2026-10-11 on `feat/one-mode`**, rebuilt on ADR-002 after the first attempt
+(`wip/one-instance-mode`) hit the catalog question in section 10. What
+shipped: `managerDatabase` (default `db_manager`) replaces `serverRole`,
+`both` and the `controlPlane` block; `"$db"` schema 2 with kinds `manager`
+and `instance`, converting older markers in place so `node install.js
+--instance <name>` upgrades an existing database; `--manager` builds the
+manager; the manager holds the registry and the sessions and is never
+routable; the harness builds a manager plus two instances. Still open here:
+the Tenant → Instance rename (question 2, lands with D.4) and the admin
+console requirements below, which are D.1/D.2 work.*
 
 ### Why
 

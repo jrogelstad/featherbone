@@ -36,7 +36,17 @@ A todo test asserts the correct behavior for a known defect and is tagged with i
 
 Defects the suite found that are not in the tiers below (each has a todo test; file:line in the test's todo text):
 
-- [ ] **0.1 `POST /data/user-account` always fails** **[→ tenant-management-plan B.5]** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
+- [x] **0.1 `POST /data/user-account` always fails** **[→ tenant-management-plan B.5]** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
+  *Fixed 2026-10-11 on `fix/0.1-user-account-post` (the loop itself was
+  already fixed on master in 4254cf11, but the todo reporter had masked two
+  remaining defects). An unset `isActive` created the role NOLOGIN, so the
+  new user could never sign in; it now defaults to a login role. And
+  adopting an existing cluster role now requires proving its password
+  (a probe connection): the test-and-production case still works, a
+  takeover -- or a group role blanking a login role's password -- gets 409.
+  **Reinstall Core after merging** (deployed service). Both users-suite
+  todos are promoted to live assertions, rewritten on Contact so they run
+  on a bare-Core database. B.5 later replaces this path entirely.*
 - [x] **0.2 Server crash on a bad relation id:** a PATCH pointing a relation at a nonexistent id kills the server (`crud.js:2323`, unhandled promise). Skipped in the suite because it takes the shared server down; belongs with 6.1.
     - *Done: `fix/0.2-bad-relation-id`, 2026-10-09. `afterGetRelKey` in `crud.js` now throws instead of returning a rejected promise, so the request gets an error and the server stays up. The skipped test is enabled (uses Currency `displayUnit`).*
 - [x] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
@@ -109,11 +119,17 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   `edition`, `server_process`, `notice`, `send_mail`, `comment`, `kind`,
   `layout`, `print_form`, `system_print_form`, `country`, `state`, `unit`
   and the currency feathers.
-- [ ] **0.13 `POST /data/feather` crashes instead of refusing.** A
+- [x] **0.13 `POST /data/feather` crashes instead of refusing.** A
   non-super user gets 500 "Cannot read properties of undefined (reading
   'forEach')" from the Feather trigger, which runs before the create
   authorization check. The record is not created, so this is a 6.1-class
   unhandled error rather than a hole, but the denial should come first.
+  *Fixed 2026-10-11 on `fix/0.13-feather-denial`: the trigger checks
+  isAuthorized (canCreate/canUpdate on Feather) before touching the
+  payload and rejects 401 "Not authorized to create feathers"; a missing
+  properties array no longer crashes either. **Reinstall Core after
+  merging** -- the trigger is a deployed data service. Test in
+  authorization.test.js.*
 - [ ] **0.14 User accounts have no column-level authorization.** With 0.4
   in, `everyone` reads `user_account` because the client's user-name picker
   needs it, which also exposes `isSuper`, `isLocked`, `signInAttempts` and
@@ -141,7 +157,34 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   the stale precision, and the workaround is to declare the opposite value
   rather than omit it. Caught by the catalog golden test, which had been silently
   failing -- see `fix/catalog-golden-sentinels`.
-- [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
+- [x] **0.16 An unknown projected property crashed the query.** Asking for a
+  property a feather does not have answered `Cannot read properties of
+  undefined (reading 'isEncrypted')` -- `doSelect` dereferenced `fp[key]`
+  for every requested key (`crud.js` ~1844). *Fixed 2026-10-11 on
+  `fix/0.16-unknown-property`: 400 naming the feather and every unknown
+  property. Found while confirming the application still ran after the
+  tenancy merges; `query.test.js` had carried a todo for it, and the
+  coverage moved to `crud.test.js` so it does not need SupplyChain to run.*
+- [x] **0.17 Resolving inheritance mutates the stored catalog.** *Fixed
+  2026-10-11 on `fix/0.17-inherited-from`: appendParent and the local
+  property pass now copy property objects, so neither inheritedFrom nor an
+  overload default can write into the cached catalog. Self-referential
+  stamps (`Role.name` carrying `inheritedFrom: "Role"` -- the bug's
+  signature, never a real declaration) are repaired when getFeather reads
+  them and scrubbed when a feather is saved, so reinstalling a module also
+  cleans a polluted catalog row. The catalog suite's todo test for this now
+  passes and was promoted to a live assertion.*
+  `getFeather`'s `appendParent` (`feathers.js` ~840) does
+  `childProps[key] = parentProps[key]` and then sets `.inheritedFrom` on it --
+  the same object, so the *ancestor's own* property is stamped too. `Role.name`
+  in `demo` reads `inheritedFrom: "Role"`, which is how it was found, and the
+  value has been persisted into the `catalog` settings row. The save path
+  filters on `!prop.inheritedFrom` when deciding which columns to add
+  (`feathers.js` ~1993), so a feather whose own property has been mislabelled
+  can have that column skipped. Fix is a copy rather than a reference; the
+  care is in checking what already depends on the current behaviour, and
+  whether polluted catalogs need cleaning.
+- [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct. *Investigated 2026-10-11, could not reproduce without SupplyChain: a fixture module declaring `"type": "object", "format": "money"` installs as `mono` through `--dir` on current master, and a bare `"type": "money"` is refused with a clean error. So the defect needs SupplyChain's own declaration shape or install order (overloads? a property added to an existing table?) -- reproduce on a machine with the SupplyChain checkout before fixing. The `formats` map drives the DDL; `json` appears when a money property reaches the builder with its `format` lost, so look for where that path drops it.*
 
 ## How to use this plan
 
@@ -213,9 +256,19 @@ These are SupplyChain bugs that change tax, cost, inventory and allocation figur
 - [ ] **2.5 Fix allocation drift.** `inventory.allocated` and `supply.allocated` diverge from allocation rows; manual WO issue never relieves allocations.
     - Where: `plan/do-transact-allocated.js` ~427–540; `make/do-post-work-order-issue.js:269` compares to `"issue"` but the value is `"issued"`.
     - Fix: accumulate after the negative on-hand adjustment; subtract only what was actually deallocated; fix the string.
-- [ ] **2.6 Make natural keys unique in the database.** Indexes are plain, and on hierarchies they sit on the empty parent table only.
-    - Where: `server/services/feathers.js` `createIndex` (~2233); check-then-insert in `crud.js` `afterUniqueCheck`.
-    - Fix: partial unique index `WHERE NOT is_deleted` per child table; for keys that must be unique across a hierarchy (Item, Demand, Supply), a shared key table or trigger, since Postgres can't enforce it across inherited tables.
+- [x] **2.6 Make natural keys unique in the database.** *Done 2026-10-11 on
+  `fix/2.6-natural-key-unique`, together with 3.3.* A natural key was a plain
+  index, so uniqueness lived only in `crud.js` and two concurrent inserts
+  could both pass the check. It is now a unique index partial on
+  `NOT is_deleted`, built on the declaring table **and on every child**, and
+  rebuilt rather than skipped so an existing database is upgraded. A database
+  holding duplicates is told which feather, which value and which table.
+    - **Still open: uniqueness across a hierarchy.** Postgres cannot span
+      inheriting tables with one index, so a `Role` and a `UserAccount` may
+      still share a name, and Item/Demand/Supply the same. Needs a shared key
+      table or a trigger. **This matters more since ADR-002**, which makes
+      extension-by-inheritance the supported way for a customer to add
+      columns -- a customer's subclass can otherwise escape the parent's key.
 - [ ] **2.7 Void ShipEngine labels on rollback.** Labels are bought over HTTP inside the ship transaction; the ids kept "in case of reject" are never voided.
     - Where: `ship/do-ship-sales-order-shipment.js` ~193–237, `do-ship-outside-process-shipments.js` ~121–165, `do-print-shipment-labels.js` ~81–91.
     - Fix: void in `client.onRollback`, or buy labels in a separate committed step keyed on the shipment.
@@ -230,15 +283,19 @@ These are SupplyChain bugs that change tax, cost, inventory and allocation figur
 
 In `demo`, all 364 relation columns across 127 tables have no index and no foreign key, and inherited indexes exist only on empty parent tables. Doing 3.1–3.3 as a migration per tenant database is fast; 3.4 stops the problem recurring.
 
-- [ ] **3.1 Index every relation column.** Views run a correlated subquery per row on these columns, so every list page scans each child table once per parent row.
+- [x] **3.1 Index every relation column.** Views run a correlated subquery per row on these columns, so every list page scans each child table once per parent row. *Done 2026-10-11 on `fix/3.1-relation-indexes`, two mechanisms: feathers.js indexes relation columns whenever a feather is saved (the 3.4 half, walking the inheritance chain the way 2.6 does for natural keys), and `scripts/relation-indexes.js` sweeps the whole database at install, so existing databases and tables whose feathers are managed elsewhere are covered. **Reinstall Core (or any module) after merging to backfill.** The schema suite's 3.1 todo is promoted to a live assertion.*
     - Run the generator below per tenant database, review the names (63-character truncation can collide), then apply with `CREATE INDEX CONCURRENTLY` on live data.
 - [ ] **3.2 Add item/site composite indexes.** SupplyChain's raw SQL filters on `(_item_item_pk, _site_site_pk)` constantly.
     - Tables: every `demand` and `supply` child (`sales_order_line`, `work_order_requirement`, `sales_order_requirement`, `outside_process`, `purchase_order_line`, `work_order`, `inventory`, `planned_order` and its children), plus `inventory`, `item_site`, `inventory_transaction`.
     - Also: `allocation(_demand_demand_pk)`, `allocation(_supply_supply_pk)`, `product_bill_of_material_item(_product_product_pk)`, `tax_rate(zip_code)`.
-- [ ] **3.3 Put natural-key and status indexes on child tables.** Today they index empty parents, so SupplyChain's only two `isIndexed` properties do nothing.
+- [x] **3.3 Put natural-key and status indexes on child tables.** *Done
+  2026-10-11 with 2.6: the index builder walks the inheritance chain, so an
+  inherited natural key or `isIndexed` property is indexed on each table that
+  carries rows rather than only on the ancestor that declared it.
+  `user_account(name)` -- the login lookup -- had no index at all.*
     - Missing on children of: `demand` (number, status), `supply` (number, status), `item`, `operation`, `invoice`, `receipt`, `shipment`, `container`, `resource_group`, `task`, `carrier`, `package_type`, `ship_method`, `unit`, `kind`, `layout`, `script`.
     - Also `user_account(name)`, the login lookup.
-- [ ] **3.4 Change the framework DDL.** Make `feathers.js` create an index for every relation column and repeat inherited index and natural-key definitions on each child table when a feather is created or altered.
+- [~] **3.4 Change the framework DDL.** Make `feathers.js` create an index for every relation column and repeat inherited index and natural-key definitions on each child table when a feather is created or altered. *Relation columns and natural keys done (3.1 and 2.6); inherited `isIndexed` definitions repeat on children since 2.6's chain walk. Remaining here: 3.5's foreign-key decision.*
     - While there: fix `isIndexed` on relation properties, which indexes `key.toSnakeCase()` instead of the `_<key>_<relation>_pk` column.
 - [ ] **3.5 Decide on foreign keys.** None exist today, so nothing stops orphaned relation values. Adding them is safe for non-inherited targets; relations to inherited feathers (Item, Demand, Supply, Contact) can't use a plain FK and need trigger checks or a key table.
 
@@ -314,7 +371,7 @@ At default settings, about 8 tenants on one Node server can exhaust Postgres's 1
 
 One stray rejected promise can take down every tenant on the server, so 6.1 is worth doing early despite its tier. The rest makes the refactor safer.
 
-- [ ] **6.1 Stop unhandled rejections from crashing the server.** **[→ tenant-management-plan E.5]** There's no `unhandledRejection` handler, and on Node 15+ one floating rejection kills the process.
+- [~] **6.1 Stop unhandled rejections from crashing the server.** **[→ tenant-management-plan E.5]** *Handler done 2026-10-11 on `fix/6.1-unhandled-rejection`: `unhandledRejection` logs the stack and the server keeps serving (verified: a floated rejection, then HTTP 200). `uncaughtException` deliberately left fatal. Hunting down the floating rejections themselves stays with E.5.* There's no `unhandledRejection` handler, and on Node 15+ one floating rejection kills the process.
     - Add a process-level handler that logs and alerts.
     - Fix the sources: `plan/do-transact-allocated.js:54` and `sell/do-sales-order-hold.js:66` (reject without `return`); un-awaited Alert requests in `ship-engine/do-import-ship-engine-carriers.js`; un-awaited `client.query` in `make/triggers-work-order.js:864`; the `onCommit` Alert without `catch` in `do-transact-allocated.js` ~166–182.
 - [ ] **6.2 Remove multi-tenant shortcuts in app code.** **[→ tenant-management-plan E.5]**
