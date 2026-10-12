@@ -90,7 +90,17 @@ describe("data API record lifecycle", function () {
 
         it("fills feather defaults, format defaults and child arrays",
                 async function () {
-            let loc = await admin.create("Location", {name: uniq("LOC")});
+            // Some installs make description required with no default
+            let locName = uniq("LOC");
+            let loc;
+            try {
+                loc = await admin.create("Location", {name: locName});
+            } catch (err) {
+                loc = await admin.create("Location", {
+                    name: uniq("LOC"),
+                    description: ""
+                });
+            }
             assert.equal(loc.type, "N"); // property default
             assert.equal(loc.description, ""); // string default
 

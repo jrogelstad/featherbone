@@ -89,11 +89,18 @@ async function createUser(admin, opts) {
         feather = "Contact";
     }
 
-    emp = await admin.create(feather, {
+    let data = {
         firstName: "Test",
         lastName: name,
         email
-    });
+    };
+
+    // Job Shop's Employee has a required natural key with no autonumber
+    if (feather === "Employee") {
+        data.number = uniq("EMP");
+    }
+
+    emp = await admin.create(feather, data);
 
     let pk = await db.query(
         "SELECT _pk FROM contact WHERE id = $1",
