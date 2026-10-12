@@ -24,6 +24,7 @@
 
     const {Database} = require("../database");
     const {Config} = require("../config");
+    const {Client} = require("pg");
     const config = new Config();
     const db = new Database();
 
@@ -228,6 +229,65 @@
                     sql = sql.format([name, pwd]);
                     await client.query(sql);
                 } else {
+                    /*
+                        The role already exists on the cluster -- possibly
+                        another database's user (plan 1.1). Adopting it
+                        used to ALTER its login, password and createdb
+                        unconditionally, so any administrator could take
+                        over any user on the cluster, and creating a group
+                        over a login role set it NOLOGIN with a blank
+                        password. Adoption is now allowed only when the
+                        caller proves the password: the test-and-production
+                        case (the same person, the same password, a second
+                        database) still works, a takeover does not.
+                    */
+                    let existing = resp.rows[0];
+
+                    if (existing.rolcanlogin) {
+                        if (obj.data.isLogin !== true) {
+                            throw {
+                                statusCode: 409,
+                                message: (
+                                    "Name " + name + " is already in " +
+                                    "use by a user and cannot be used"
+                                )
+                            };
+                        }
+
+                        let conf = await config.read();
+                        let probe = new Client({
+                            database: client.database || conf.pgDatabase,
+                            host: conf.pgHost,
+                            port: conf.pgPort,
+                            user: name,
+                            password: pwd
+                        });
+
+                        try {
+                            await probe.connect();
+                        } catch (ignore) {
+                            throw {
+                                statusCode: 409,
+                                message: (
+                                    "User name " + name + " is already " +
+                                    "in use"
+                                )
+                            };
+                        } finally {
+                            probe.end().catch(function () {
+                                return;
+                            });
+                        }
+                    } else if (obj.data.isLogin === true) {
+                        throw {
+                            statusCode: 409,
+                            message: (
+                                "Name " + name + " is already a " +
+                                "reserved role name and cannot be used"
+                            )
+                        };
+                    }
+
                     await that.changeRoleLogin(obj);
                     await that.changeRolePassword(obj);
                     await that.changeRoleCreateDb(obj);

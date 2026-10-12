@@ -62,7 +62,28 @@ function dumpRestore(target) {
     ]), {env: envVars, input: dump, maxBuffer: 1024 * 1024 * 64});
 }
 
-async function copyInto(client, target) {
+/*
+    A deterministic set of ids keeps the fixture rows recognizable and
+    the inserts idempotent.
+*/
+const FIXTURE = {
+    serviceId: "fbtsvc000001",
+    tenantId: "fbttenant001",
+    tenant2Id: "fbttenant002",
+    moduleId: "fbtmodule001",
+    routeId: "fbtroute0001"
+};
+
+const DOC_COLS = (
+    "_pk,id,created,created_by,updated,updated_by,is_deleted," +
+    "owner,etag"
+);
+const DOC_VALS = (
+    "nextval('object__pk_seq'),$1,now(),'admin',now(),'admin'," +
+    "false,'admin',$1"
+);
+
+async function copyInto(client, target, template) {
     await client.query(format(
         "DROP DATABASE IF EXISTS %I WITH (FORCE)",
         target
@@ -71,7 +92,7 @@ async function copyInto(client, target) {
         await client.query(format(
             "CREATE DATABASE %I TEMPLATE %I",
             target,
-            settings.sourceDb
+            template
         ));
     } catch (err) {
         if (!/being accessed by other users/.test(err.message)) {
@@ -92,7 +113,8 @@ async function copyInto(client, target) {
 async function markAs(database, kind) {
     await withClient(database, async function (client) {
         await client.query(
-            "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS \"$db_kind_check\""
+            "ALTER TABLE \"$db\" DROP CONSTRAINT IF EXISTS " +
+            "\"$db_kind_check\""
         );
         await client.query(format("UPDATE \"$db\" SET kind = %L", kind));
         await client.query(
@@ -103,48 +125,79 @@ async function markAs(database, kind) {
 }
 
 /*
-    Register the instance under test in the manager, so the server can
-    reach it. Any registry rows the source database happened to carry
-    are dropped first: they point at databases this run knows nothing
+    Register both instances in the manager, so the server can reach
+    them. Any registry rows the source database happened to carry are
+    dropped first: they point at databases this run knows nothing
     about, and the server would open a pool for each one.
 */
-async function registerInstance() {
+async function registerInstances() {
     await withClient(settings.managerDb, async function (client) {
         await client.query("DELETE FROM tenant");
         await client.query("DELETE FROM tenant_service");
         await client.query((
-            "INSERT INTO tenant_service (_pk, id, created, created_by, " +
-            "updated, updated_by, is_deleted, owner, etag, name, pg_host, " +
-            "pg_port, pg_user, pg_password) VALUES " +
-            "(nextval('object__pk_seq'), 'fbtsvc', now(), $1, now(), $1, " +
-            "false, $1, 'fbtsvce', 'Default service', $2, $3, $1, " +
-            "pgp_sym_encrypt($4, $5)::text)"
+            "INSERT INTO tenant_service (" + DOC_COLS + ",name," +
+            "pg_host,pg_port,pg_user,pg_password) VALUES (" + DOC_VALS +
+            ",$2,$3,$4,$5,pgp_sym_encrypt($6, $7)::text)"
         ), [
-            settings.pgUser, settings.pgHost, String(settings.pgPort),
+            FIXTURE.serviceId, "Fixture service", settings.pgHost,
+            String(settings.pgPort), settings.pgUser,
             settings.pgPassword, settings.pgCryptoKey
         ]);
-        await client.query((
-            "INSERT INTO tenant (_pk, id, created, created_by, updated, " +
-            "updated_by, is_deleted, owner, etag, name, is_active, " +
-            "_pg_service_tenant_service_pk, pg_database) SELECT " +
-            "nextval('object__pk_seq'), 'fbtinst', now(), $1, now(), $1, " +
-            "false, $1, 'fbtinste', $2, true, _pk, $2 " +
-            "FROM tenant_service WHERE id = 'fbtsvc'"
-        ), [settings.pgUser, settings.testDb]);
+
+        async function addTenant(id, database) {
+            await client.query((
+                "INSERT INTO tenant (" + DOC_COLS + ",name,is_active," +
+                "_pg_service_tenant_service_pk,pg_database) SELECT " +
+                DOC_VALS + ",$2,true,_pk,$3 FROM tenant_service " +
+                "WHERE id = $4"
+            ), [id, database, database, FIXTURE.serviceId]);
+        }
+
+        await addTenant(FIXTURE.tenantId, settings.testDb);
+        await addTenant(FIXTURE.tenant2Id, settings.testDb2);
     });
+}
+
+/*
+    Deploy the fbtest fixture: module rows point at versions of a
+    package that exists only on disk under test/fixtures/modules, which
+    is what ADR-002 is for. The first instance runs 1.0.0, the second
+    1.1.0.
+*/
+async function deployFixtures() {
+    async function deploy(database, version) {
+        await withClient(database, async function (client) {
+            await client.query((
+                "INSERT INTO module (" + DOC_COLS + ",name,script," +
+                "version) VALUES (" + DOC_VALS + ",'fbtest','',$2)"
+            ), [FIXTURE.moduleId, version]);
+            await client.query((
+                "INSERT INTO route (" + DOC_COLS + ",module,path," +
+                "function) VALUES (" + DOC_VALS +
+                ",'fbtest','/version','fbtestVersion')"
+            ), [FIXTURE.routeId]);
+        });
+    }
+
+    await deploy(settings.testDb, "1.0.0");
+    await deploy(settings.testDb2, "1.1.0");
 }
 
 async function clone() {
     if (settings.testDb === settings.sourceDb) {
         throw new Error("FB_TEST_DB must differ from the source database");
     }
-    if (settings.managerDb === settings.sourceDb) {
-        throw new Error(
-            "FB_TEST_MANAGER_DB must differ from the source database"
-        );
+    if (settings.testDb2 === settings.testDb) {
+        throw new Error("FB_TEST_DB2 must differ from FB_TEST_DB");
     }
-    if (settings.managerDb === settings.testDb) {
-        throw new Error("FB_TEST_MANAGER_DB must differ from FB_TEST_DB");
+    if (
+        settings.managerDb === settings.sourceDb ||
+        settings.managerDb === settings.testDb ||
+        settings.managerDb === settings.testDb2
+    ) {
+        throw new Error(
+            "FB_TEST_MANAGER_DB must differ from the other databases"
+        );
     }
 
     await withClient("postgres", async function (client) {
@@ -154,13 +207,35 @@ async function clone() {
                 "\" not found. Set FB_TEST_SOURCE_DB."
             );
         }
-        await copyInto(client, settings.testDb);
-        await copyInto(client, settings.managerDb);
+        await copyInto(client, settings.testDb, settings.sourceDb);
+
+        // Nothing is connected to the fresh copy yet, so template
+        // clones of it are cheap and always available
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.testDb2
+        ));
+        await client.query(format(
+            "CREATE DATABASE %I TEMPLATE %I",
+            settings.testDb2,
+            settings.testDb
+        ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.managerDb
+        ));
+        await client.query(format(
+            "CREATE DATABASE %I TEMPLATE %I",
+            settings.managerDb,
+            settings.testDb
+        ));
     });
 
     await markAs(settings.testDb, "instance");
+    await markAs(settings.testDb2, "instance");
     await markAs(settings.managerDb, "manager");
-    await registerInstance();
+    await registerInstances();
+    await deployFixtures();
 }
 
 async function ensureRole(client, name, password) {
@@ -228,6 +303,10 @@ async function drop() {
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",
             settings.testDb
+        ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.testDb2
         ));
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",

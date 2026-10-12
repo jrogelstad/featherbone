@@ -109,6 +109,31 @@ describe("authorization", function () {
     });
 
     describe("feather level", function () {
+        // Plan 0.13: the Feather trigger ran before the create
+        // authorization check and crashed on the payload, so an
+        // unauthorized user got a 500 instead of a denial
+        it("denies feather creation cleanly to an unauthorized user",
+                async function () {
+            let resp = await basicS.raw("POST", "/data/feather", {
+                name: "FbtDenied",
+                plural: "FbtDenieds",
+                module: "",
+                inherits: "Document",
+                description: "Should never exist",
+                properties: [],
+                overloads: []
+            });
+
+            assert.equal(resp.status, 401);
+            assert.equal(resp.body, "Not authorized to create feathers");
+
+            // And the record was not created
+            let rows = await db.query(
+                "SELECT 1 FROM \"$feather\" WHERE id = 'fbt_denied'"
+            );
+            assert.equal(rows.rows.length, 0);
+        });
+
         it("stores the feather authorizations per role", async function () {
             let rows = await db.query(
                 "SELECT a.role, a.can_create, a.can_read, a.can_update, " +

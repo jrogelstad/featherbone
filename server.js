@@ -378,6 +378,26 @@
 
             logger.info("Featherbone server starting");
 
+            /*
+                One floating rejection must not take down a server that
+                is serving every instance (improvement plan 6.1): on
+                Node 15+ the default is to kill the process. Log it --
+                with the stack, since these are exactly the defects that
+                need finding -- and keep serving. uncaughtException is
+                deliberately left alone: after a synchronous throw the
+                process state is unknown and restarting is correct.
+            */
+            process.on("unhandledRejection", function (reason) {
+                let msg = (
+                    reason instanceof Error
+                    ? (reason.stack || reason.message)
+                    : String(reason)
+                );
+
+                logger.error("Unhandled rejection: " + msg);
+                console.error("Unhandled rejection: " + msg);
+            });
+
             // Other config
             debug = Boolean(resp.debug);
 
@@ -448,7 +468,7 @@
         return "Invalid sign in credentials.";
     }
 
-    function resolveName(apiPath) {
+    function resolveName(apiPath, tenant) {
         //  Remove database from path
         apiPath = apiPath.slice(1);
         apiPath = apiPath.slice(apiPath.indexOf("/"));
@@ -459,7 +479,17 @@
         let name;
         let keys;
         let found;
-        let catalog = settings.data.catalog.data;
+        /*
+            The catalog of the database the request is for (ADR-002).
+            `doRequest` primes it before resolving, so the fallback to
+            the union of loaded catalogs is only for callers that could
+            not prime first; the request itself is still validated
+            against the single right catalog inside the datasource.
+        */
+        let catalog = (
+            (tenant && settings.cachedCatalog(tenant.pgDatabase)) ||
+            settings.unionCatalog()
+        );
 
         if (apiPath.lastIndexOf("/") > 0) {
             name = apiPath.match("[/](.*)[/]")[1].toCamelCase(true);
@@ -548,6 +578,8 @@
         );
     }
 
+    const mountedRoutes = {};
+
     function registerRoute(route) {
         let fullPath = (
             "/:db/" +
@@ -555,13 +587,81 @@
         );
         let doPostRequest = postify.bind(route.function);
 
+        /*
+            Routes mount once however many databases declare them: the
+            path carries the database and the function name resolves in
+            that database's own registry, so one mount dispatches to
+            whatever version each database deployed (ADR-002).
+        */
+        if (mountedRoutes[fullPath]) {
+            return;
+        }
+        mountedRoutes[fullPath] = true;
+
         logger.info("Registering module route: " + fullPath);
         dbRouter.post(fullPath, doPostRequest);
     }
 
-    function doRequest(req, res) {
+    /*
+        Module routes of every registered tenant database, so a route
+        that exists only in a tenant is reachable (the boot route list
+        reads one database). Failures are tolerated per tenant: an
+        unreachable tenant must not stop the server.
+    */
+    async function unionTenantRoutes(tenantList) {
+        let i = 0;
+
+        while (i < tenantList.length) {
+            let tenant = tenantList[i];
+            i += 1;
+
+            if (tenant.id === "-1") {
+                continue;
+            }
+
+            try {
+                let rows = await datasource.request({
+                    method: "GET",
+                    name: "Route",
+                    user: systemUser,
+                    properties: ["id", "module", "path", "function"],
+                    tenant
+                }, true);
+
+                rows.forEach(registerRoute);
+            } catch (err) {
+                logger.warn(
+                    "Could not read routes for tenant \"" +
+                    tenant.pgDatabase + "\": " + err.message
+                );
+            }
+        }
+    }
+
+    /*
+        First request for a database this process has not touched yet:
+        read its catalog so names resolve against it rather than against
+        some other database's (ADR-002).
+    */
+    async function primeTenant(req) {
+        if (
+            req.tenant &&
+            settings.cachedCatalog(req.tenant.pgDatabase) === undefined
+        ) {
+            await datasource.primeCatalog(req.tenant);
+        }
+    }
+
+    async function doRequest(req, res) {
+        try {
+            await primeTenant(req);
+        } catch (err) {
+            error.bind(res)(err);
+            return;
+        }
+
         let payload = {
-            name: resolveName(req.url),
+            name: resolveName(req.url, req.tenant),
             method: req.method,
             user: req.user.name,
             eventKey: req.query.eventKey,
@@ -648,9 +748,16 @@
         );
     }
 
-    function doQueryRequest(req, res) {
+    async function doQueryRequest(req, res) {
+        try {
+            await primeTenant(req);
+        } catch (err) {
+            error.bind(res)(err);
+            return;
+        }
+
         let payload = req.body || {};
-        let name = resolveName(req.url);
+        let name = resolveName(req.url, req.tenant);
         /*
             Queries on Form, Module, Role and UserAccount used to run as a
             super user for every signed-in caller, so `$auth` had no say
@@ -814,9 +921,8 @@
         );
     }
 
-    function registerDataRoute(key) {
+    function registerDataRoute(catalog, key) {
         let name = key.toSpinalCase();
-        let catalog = settings.data.catalog.data;
 
         if (catalog[key].isReadOnly) {
             dbRouter.get("/:db/data/" + name + "/:id", doRequest);
@@ -834,12 +940,69 @@
 
     }
 
+    /*
+        A feather that only one database carries is in no catalog at
+        mount time, so generic routes resolve it when a request arrives
+        (ADR-002). Mounted once, after every specific route; read-only
+        enforcement happens in the datasource against the request's own
+        catalog, where it guards every database instead of one.
+    */
+    function registerDataFallback() {
+        if (registerDataFallback.done) {
+            return;
+        }
+        registerDataFallback.done = true;
+        dbRouter.get("/:db/data/:collection/:id", doRequest);
+        dbRouter.post("/:db/data/:collection", doDataPostFallback);
+        dbRouter.patch("/:db/data/:collection/:id", doRequest);
+        dbRouter.delete("/:db/data/:collection/:id", doRequest);
+    }
+
+    /*
+        A POST under /data is a create when the path names a feather and
+        a query when it names a feather's plural -- the enumerated
+        routes encode that distinction at mount time, so the fallback
+        has to make it at request time.
+    */
+    async function doDataPostFallback(req, res) {
+        try {
+            await primeTenant(req);
+        } catch (err) {
+            error.bind(res)(err);
+            return;
+        }
+
+        let raw = req.params.collection.toCamelCase(true);
+        let catalog = (
+            (
+                req.tenant &&
+                settings.cachedCatalog(req.tenant.pgDatabase)
+            ) || settings.unionCatalog()
+        );
+
+        if (catalog[raw]) {
+            doRequest(req, res);
+            return;
+        }
+
+        doQueryRequest(req, res);
+    }
+
     function registerDataRoutes() {
         let keys;
-        let catalog = settings.data.catalog.data;
+        let catalog = settings.unionCatalog();
 
         keys = Object.keys(catalog).filter((key) => key !== "UserAccount");
-        keys.forEach(registerDataRoute);
+        keys.forEach(registerDataRoute.bind(null, catalog));
+
+        /*
+            A feather that only a tenant database carries is not in any
+            catalog at mount time, so a generic route resolves it when
+            the request arrives (ADR-002). Mounted once, after the
+            enumerated routes; read-only enforcement happens in the
+            datasource against the request's own catalog, where it
+            guards every database instead of one.
+        */
     }
 
     function doSaveWorkbook(req, res) {
@@ -2829,6 +2992,11 @@
 
         // REGISTER MODULE ROUTES
         routes.forEach(registerRoute);
+        await unionTenantRoutes(tenants);
+
+        // Last of all: the generic data fallback, strictly after every
+        // specific route so none is shadowed
+        registerDataFallback();
 
         // START THE SERVER
         // ====================================================================

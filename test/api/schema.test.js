@@ -245,10 +245,10 @@ describe("database schema", function () {
             assert.deepEqual(missing, []);
         });
 
-        it("indexes every relation column", {
-            todo: "plan 3.1: relation columns (_<prop>_<table>_pk) have no " +
-                    "index, so joins and child lookups scan"
-        }, function () {
+        // Plan 3.1/3.4: feathers.js creates an index for every relation
+        // column (and the chain walk repeats them on inheriting tables),
+        // so joins and child lookups stop scanning
+        it("indexes every relation column", function () {
             let missing = [];
             Object.keys(tables).sort().forEach(function (t) {
                 if (skipTables.has(t)) {

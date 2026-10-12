@@ -222,6 +222,83 @@ settings.getSettings = async function (obj) {
 };
 
 /**
+    The catalog of the client's own database, from cache when it is
+    already loaded (ADR-002: a catalog belongs to a database, not to the
+    process). Returns the parsed catalog object.
+
+    @method catalogFor
+    @for Services.Settings
+    @param {Client} client Database client
+    @return {Promise}
+*/
+settings.catalogFor = async function (theClient) {
+    let db = theClient.database;
+
+    if (
+        dbsettings[db] &&
+        dbsettings[db].data.catalog &&
+        dbsettings[db].data.catalog.data
+    ) {
+        return dbsettings[db].data.catalog.data;
+    }
+
+    return await settings.getSettings({
+        client: theClient,
+        data: {name: "catalog"}
+    });
+};
+
+/**
+    The cached catalog of a database by name, or undefined when that
+    database's catalog has not been read yet. Synchronous by design:
+    URL name resolution happens before any client exists.
+
+    @method cachedCatalog
+    @for Services.Settings
+    @param {String} database
+    @return {Object|undefined}
+*/
+settings.cachedCatalog = function (database) {
+    if (
+        dbsettings[database] &&
+        dbsettings[database].data.catalog
+    ) {
+        return dbsettings[database].data.catalog.data;
+    }
+    return undefined;
+};
+
+/**
+    Every feather name any loaded catalog knows, merged. Only for
+    mounting routes: requests are always validated against the single
+    database they are for.
+
+    @method unionCatalog
+    @for Services.Settings
+    @return {Object}
+*/
+settings.unionCatalog = function () {
+    let ret = {};
+
+    Object.keys(dbsettings).forEach(function (db) {
+        let cat = settings.cachedCatalog(db);
+
+        if (cat) {
+            Object.keys(cat).forEach(function (name) {
+                if (
+                    ret[name] === undefined ||
+                    ret[name].isReadOnly && !cat[name].isReadOnly
+                ) {
+                    ret[name] = cat[name];
+                }
+            });
+        }
+    });
+
+    return ret;
+};
+
+/**
     Resolve settings definitions as array of objects.
     @method getSettingsDefinition
     @for Services.Settings
@@ -306,11 +383,10 @@ settings.settingIsAuthorized = async function (obj) {
     let user = obj.data.user || client.currentUser();
     let sql = (
         "SELECT auth.can_update " +
-        "FROM \"$settings\" AS settings, \"$auth\" AS auth, pg_authid " +
+        "FROM \"$settings\" AS settings, \"$auth\" AS auth " +
         "WHERE settings.name = $1 " +
         "  AND settings._pk = auth.object_pk " +
-        "  AND auth.role = pg_authid.rolname " +
-        "  AND pg_has_role($2, pg_authid.oid, 'member') " +
+        "  AND auth.role IN (" + tools.memberNames(2) + ") " +
         "  AND auth.can_update " +
         "LIMIT 1;"
     );

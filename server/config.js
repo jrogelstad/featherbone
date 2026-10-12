@@ -53,6 +53,16 @@
         */
         const MODES = ["dev", "test", "prod"];
 
+        /*
+            How sign-in verifies a password (ADR-001 Tier B). "role" is
+            today's path: open a Postgres connection as the user's login
+            role. "identity" verifies against the identity table in the
+            manager, in Node, with no connection opened as the user --
+            B.1/B.2. The flag exists so the cutover is reversible by
+            configuration until B.4 removes login roles for good.
+        */
+        const AUTH_STRATEGIES = ["role", "identity"];
+
         /**
             Names of required secret settings that are missing or blank.
 
@@ -93,12 +103,18 @@
                     }
                     data = JSON.parse(data);
 
-                    // Present even when the file leaves it out, so the
-                    // environment can set it on its own: the override
-                    // loop below only visits keys it can see
+                    // Present even when the file leaves them out, so
+                    // the environment can set them on its own: the
+                    // override loop below only visits keys it can see
                     data.managerDatabase = (
                         data.managerDatabase || MANAGER_DEFAULT
                     );
+                    // Where installed packages live on this server
+                    // (ADR-002): one directory per module and version,
+                    // modules/<name>/<version>/
+                    data.modulesDir = data.modulesDir || "./modules";
+                    // How sign-in verifies passwords (ADR-001 Tier B)
+                    data.authStrategy = data.authStrategy || "role";
 
                     function typed(value) {
                         if (value.toLowerCase() === "true") {
@@ -147,6 +163,30 @@
             @param {Object} data Configuration as returned by `read`
             @return {String}
         */
+        /**
+            How sign-in verifies a password: "role" (the Postgres login
+            role path, the default) or "identity" (application-side
+            verification against the manager's identity table, ADR-001
+            B.1/B.2). Anything else is refused so a typo cannot silently
+            fall back to the old path.
+
+            @method authStrategy
+            @param {Object} data Configuration as returned by `read`
+            @return {String}
+        */
+        config.authStrategy = function (data) {
+            let name = ((data || {}).authStrategy || "role").trim();
+
+            if (AUTH_STRATEGIES.indexOf(name) === -1) {
+                throw new Error(
+                    "Unknown authStrategy \"" + name + "\". Use one of: " +
+                    AUTH_STRATEGIES.join(", ")
+                );
+            }
+
+            return name;
+        };
+
         config.managerDatabase = function (data) {
             let name = (data || {}).managerDatabase;
 
