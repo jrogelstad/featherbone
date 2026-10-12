@@ -2925,3 +2925,156 @@ button:disabled .fb-ipicon,
     outline: 2px solid var(--rb-hue, var(--fb-accent));
     outline-offset: -2px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Identity administration (client/components/admin-page.js).          */
+/* The manager's records, shown inside an instance: two plain tables   */
+/* on the shared .fb-table styling, plus the few bits of chrome this   */
+/* page needs and nothing else uses.                                   */
+/* ------------------------------------------------------------------ */
+
+.fb-admin-scroll {
+  max-height: 40vh;
+  margin: 0 8px 12px 8px;
+  border: 1px solid var(--fb-border);
+}
+
+/* The rows carry more than a word per cell, so they wrap rather than
+   clip -- unlike the fixed grid this styling comes from. */
+.fb-admin-table {
+  table-layout: auto;
+}
+
+.fb-admin-table th,
+.fb-admin-table td {
+  white-space: normal;
+  vertical-align: top;
+}
+
+.fb-admin-col-user {
+  width: 15%;
+}
+
+.fb-admin-col-name {
+  width: 15%;
+}
+
+.fb-admin-col-status {
+  width: 10%;
+}
+
+.fb-admin-col-grants {
+  width: 18%;
+}
+
+.fb-admin-col-seen {
+  width: 13%;
+}
+
+/* Four buttons wide, so a row never wraps its own actions onto a
+   second line and grows taller than its neighbours. */
+.fb-admin-col-actions {
+  width: 29%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fb-admin-action {
+  margin: 1px 0 1px 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.fb-admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fb-admin-status-icon {
+  font-size: 15px !important;
+  line-height: 1;
+  vertical-align: -3px;
+}
+
+.fb-admin-status-locked {
+  color: var(--fb-danger);
+  font-weight: 600;
+}
+
+.fb-admin-status-disabled {
+  color: var(--fb-text-muted, var(--fb-text));
+  opacity: 0.75;
+}
+
+/* An instance an identity may reach. Clicking one revokes it, so it
+   reads as something you can act on rather than a label. */
+.fb-admin-grant {
+  display: inline-block;
+  margin: 1px 4px 1px 0;
+  padding: 1px 6px;
+  border: 1px solid var(--fb-border);
+  border-radius: 10px;
+  background-color: var(--fb-hover-accent-tint);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.fb-admin-grant-off {
+  background-color: transparent;
+  cursor: default;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* --fb-accent-text is the accent painting TEXT on a neutral surface,
+   not a colour to put on top of --fb-accent, so the pill is a tint with
+   accent lettering rather than a filled blue blob. */
+.fb-admin-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--fb-accent-text);
+  border-radius: 8px;
+  background-color: var(--fb-hover-accent-tint);
+  color: var(--fb-accent-text);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.fb-admin-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--fb-border);
+  border-left: 4px solid var(--fb-accent);
+  background-color: var(--fb-surface-alt);
+  color: var(--fb-text);
+  font-size: 13px;
+}
+
+.fb-admin-meta {
+  margin: 4px 8px 8px 8px;
+  color: var(--fb-text);
+  font-size: 12px;
+}
+
+.fb-admin-note {
+  margin: 4px 8px 8px 8px;
+  color: var(--fb-text);
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.fb-admin-muted {
+  opacity: 0.6;
+}
+
+.fb-admin-subtitle {
+  margin-top: 4px;
+}
