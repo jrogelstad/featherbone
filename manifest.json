@@ -35,13 +35,13 @@
         },
         {
             "type": "feather",
-            "path": "scripts/feathers-control-plane.json",
-            "target": "controlPlane"
+            "path": "scripts/feathers-manager.json",
+            "target": "manager"
         },
         {
             "type": "execute",
-            "path": "scripts/control-plane-constraints.js",
-            "target": "controlPlane"
+            "path": "scripts/manager-constraints.js",
+            "target": "manager"
         },
         {
             "type": "workbook",
