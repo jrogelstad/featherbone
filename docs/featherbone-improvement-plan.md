@@ -283,7 +283,7 @@ These are SupplyChain bugs that change tax, cost, inventory and allocation figur
 
 In `demo`, all 364 relation columns across 127 tables have no index and no foreign key, and inherited indexes exist only on empty parent tables. Doing 3.1–3.3 as a migration per tenant database is fast; 3.4 stops the problem recurring.
 
-- [ ] **3.1 Index every relation column.** Views run a correlated subquery per row on these columns, so every list page scans each child table once per parent row.
+- [x] **3.1 Index every relation column.** Views run a correlated subquery per row on these columns, so every list page scans each child table once per parent row. *Done 2026-10-11 on `fix/3.1-relation-indexes`, two mechanisms: feathers.js indexes relation columns whenever a feather is saved (the 3.4 half, walking the inheritance chain the way 2.6 does for natural keys), and `scripts/relation-indexes.js` sweeps the whole database at install, so existing databases and tables whose feathers are managed elsewhere are covered. **Reinstall Core (or any module) after merging to backfill.** The schema suite's 3.1 todo is promoted to a live assertion.*
     - Run the generator below per tenant database, review the names (63-character truncation can collide), then apply with `CREATE INDEX CONCURRENTLY` on live data.
 - [ ] **3.2 Add item/site composite indexes.** SupplyChain's raw SQL filters on `(_item_item_pk, _site_site_pk)` constantly.
     - Tables: every `demand` and `supply` child (`sales_order_line`, `work_order_requirement`, `sales_order_requirement`, `outside_process`, `purchase_order_line`, `work_order`, `inventory`, `planned_order` and its children), plus `inventory`, `item_site`, `inventory_transaction`.
@@ -295,7 +295,7 @@ In `demo`, all 364 relation columns across 127 tables have no index and no forei
   `user_account(name)` -- the login lookup -- had no index at all.*
     - Missing on children of: `demand` (number, status), `supply` (number, status), `item`, `operation`, `invoice`, `receipt`, `shipment`, `container`, `resource_group`, `task`, `carrier`, `package_type`, `ship_method`, `unit`, `kind`, `layout`, `script`.
     - Also `user_account(name)`, the login lookup.
-- [ ] **3.4 Change the framework DDL.** Make `feathers.js` create an index for every relation column and repeat inherited index and natural-key definitions on each child table when a feather is created or altered.
+- [~] **3.4 Change the framework DDL.** Make `feathers.js` create an index for every relation column and repeat inherited index and natural-key definitions on each child table when a feather is created or altered. *Relation columns and natural keys done (3.1 and 2.6); inherited `isIndexed` definitions repeat on children since 2.6's chain walk. Remaining here: 3.5's foreign-key decision.*
     - While there: fix `isIndexed` on relation properties, which indexes `key.toSnakeCase()` instead of the `_<key>_<relation>_pk` column.
 - [ ] **3.5 Decide on foreign keys.** None exist today, so nothing stops orphaned relation values. Adding them is safe for non-inherited targets; relations to inherited feathers (Item, Demand, Supply, Contact) can't use a plain FK and need trigger checks or a key table.
 
