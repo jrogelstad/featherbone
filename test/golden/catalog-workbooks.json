@@ -1,6 +1,6 @@
 [
   {
-    "icon": "notifications",
+    "icon": "remind",
     "isTemplate": false,
     "label": "Alerts",
     "module": "JobShop",
@@ -12,7 +12,7 @@
     ]
   },
   {
-    "icon": "attach_money",
+    "icon": "dollar",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -27,7 +27,7 @@
     ]
   },
   {
-    "icon": "shopping_cart",
+    "icon": "shopping-cart-one",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -45,7 +45,7 @@
     ]
   },
   {
-    "icon": "contacts",
+    "icon": "address-book",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -56,7 +56,7 @@
     ]
   },
   {
-    "icon": "format_list_numbered_rtl",
+    "icon": "list-numbers",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -69,7 +69,7 @@
     ]
   },
   {
-    "icon": "payments",
+    "icon": "bank-card",
     "isTemplate": true,
     "label": "Currency",
     "module": "Core",
@@ -82,7 +82,7 @@
     ]
   },
   {
-    "icon": "architecture",
+    "icon": "triangle-ruler",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -103,7 +103,7 @@
     ]
   },
   {
-    "icon": "architecture",
+    "icon": "triangle-ruler",
     "isTemplate": true,
     "label": "Develop",
     "module": "Core",
@@ -121,7 +121,7 @@
     ]
   },
   {
-    "icon": "engineering",
+    "icon": "tool",
     "isTemplate": false,
     "label": "Execute",
     "module": "JobShop",
@@ -147,7 +147,7 @@
     ]
   },
   {
-    "icon": "factory",
+    "icon": "factory-building",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -162,7 +162,7 @@
     ]
   },
   {
-    "icon": "calendar_today",
+    "icon": "calendar",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -177,7 +177,7 @@
     ]
   },
   {
-    "icon": "view_timeline",
+    "icon": "timeline",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -188,7 +188,7 @@
     ]
   },
   {
-    "icon": "account_balance",
+    "icon": "bank",
     "isTemplate": false,
     "label": "Report",
     "module": "JobShop",
@@ -204,7 +204,7 @@
     ]
   },
   {
-    "icon": "check_circle",
+    "icon": "check-one",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -220,7 +220,7 @@
     ]
   },
   {
-    "icon": "settings",
+    "icon": "setting-two",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -242,7 +242,7 @@
     ]
   },
   {
-    "icon": "local_shipping",
+    "icon": "truck",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -256,7 +256,7 @@
     ]
   },
   {
-    "icon": "label",
+    "icon": "tag",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -267,7 +267,7 @@
     ]
   },
   {
-    "icon": "inventory_2",
+    "icon": "box",
     "isTemplate": false,
     "label": "",
     "module": "JobShop",
@@ -283,7 +283,7 @@
     ]
   },
   {
-    "icon": "manage_accounts",
+    "icon": "config",
     "isTemplate": true,
     "label": "Admin",
     "module": "Core",
