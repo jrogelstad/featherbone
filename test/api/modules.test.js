@@ -30,7 +30,7 @@ describe("packages on disk", function () {
             "/" + settings.testDb2
         );
         admin2 = new Session(base);
-        let signedIn2 = await admin2.signIn("admin", "password");
+        let signedIn2 = await admin2.signIn();
         assert.equal(
             signedIn2.status,
             200,
