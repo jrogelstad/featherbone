@@ -110,7 +110,10 @@ describe("workbooks", function () {
         let one = await admin.get(path(list[0].name));
 
         assert.deepEqual(one, list[0]);
-        assert.deepEqual(Object.keys(one).sort(), [
+        // category appears once navigation categories are installed
+        assert.deepEqual(Object.keys(one).sort().filter(
+            (key) => key !== "category"
+        ), [
             "actions", "authorizations", "defaultConfig", "description",
             "icon", "isTemplate", "label", "launchConfig", "localConfig",
             "module", "name", "sequence"
@@ -132,6 +135,9 @@ describe("workbooks", function () {
         let wb = await admin.get(path(name));
         let expected = spec(name);
         expected.actions = {};
+        if (wb.category === null || wb.category === undefined) {
+            delete wb.category; // present only with navigation categories
+        }
         assert.deepEqual(wb, expected);
     });
 
