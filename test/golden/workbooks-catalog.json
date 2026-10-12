@@ -4,7 +4,7 @@
       "Alert",
       "ServerProcess"
     ],
-    "icon": "notifications",
+    "icon": "remind",
     "label": "Alerts",
     "module": "JobShop",
     "name": "Alerts"
@@ -17,7 +17,7 @@
       "Invoice",
       "SalesHistory"
     ],
-    "icon": "attach_money",
+    "icon": "dollar",
     "label": "",
     "module": "JobShop",
     "name": "Bill"
@@ -33,7 +33,7 @@
       "ItemSupplier",
       "PurchaseOrder"
     ],
-    "icon": "shopping_cart",
+    "icon": "shopping-cart-one",
     "label": "",
     "module": "JobShop",
     "name": "Buy"
@@ -42,7 +42,7 @@
     "feathers": [
       "Contact"
     ],
-    "icon": "contacts",
+    "icon": "address-book",
     "label": "",
     "module": "JobShop",
     "name": "Contacts"
@@ -53,7 +53,7 @@
       "PhysicalCountTag",
       "PhysicalCountTag"
     ],
-    "icon": "format_list_numbered_rtl",
+    "icon": "list-numbers",
     "label": "",
     "module": "JobShop",
     "name": "Count"
@@ -64,7 +64,7 @@
       "Currency",
       "CurrencyUnit"
     ],
-    "icon": "payments",
+    "icon": "bank-card",
     "label": "Currency",
     "module": "Core",
     "name": "Currency Maintenance"
@@ -83,7 +83,7 @@
       "SystemPrintForm",
       "Role"
     ],
-    "icon": "architecture",
+    "icon": "triangle-ruler",
     "label": "",
     "module": "JobShop",
     "name": "Develop"
@@ -99,7 +99,7 @@
       "Style",
       "HelpLink"
     ],
-    "icon": "architecture",
+    "icon": "triangle-ruler",
     "label": "Develop",
     "module": "Core",
     "name": "Development"
@@ -109,7 +109,7 @@
       "WorkOrderOperation",
       "OperationCompletion"
     ],
-    "icon": "engineering",
+    "icon": "tool",
     "label": "Execute",
     "module": "JobShop",
     "name": "Execute"
@@ -134,7 +134,7 @@
       "WorkOrderReceipt",
       "WorkOrder"
     ],
-    "icon": "factory",
+    "icon": "factory-building",
     "label": "",
     "module": "JobShop",
     "name": "Make"
@@ -147,7 +147,7 @@
       "Demand",
       "Allocation"
     ],
-    "icon": "calendar_today",
+    "icon": "calendar",
     "label": "",
     "module": "JobShop",
     "name": "Plan"
@@ -156,7 +156,7 @@
     "feathers": [
       "Project"
     ],
-    "icon": "view_timeline",
+    "icon": "timeline",
     "label": "",
     "module": "JobShop",
     "name": "Project"
@@ -170,7 +170,7 @@
       "SalesHistory",
       "InventoryTransaction"
     ],
-    "icon": "account_balance",
+    "icon": "bank",
     "label": "Report",
     "module": "JobShop",
     "name": "Report"
@@ -184,7 +184,7 @@
       "SalesOrder",
       "TaxRate"
     ],
-    "icon": "check_circle",
+    "icon": "check-one",
     "label": "",
     "module": "JobShop",
     "name": "Sell"
@@ -204,7 +204,7 @@
       "LaborResource",
       "MachineResource"
     ],
-    "icon": "settings",
+    "icon": "setting-two",
     "label": "",
     "module": "JobShop",
     "name": "Settings"
@@ -216,7 +216,7 @@
       "SalesOrderShipment",
       "SalesOrderShipment"
     ],
-    "icon": "local_shipping",
+    "icon": "truck",
     "label": "",
     "module": "JobShop",
     "name": "Ship"
@@ -225,7 +225,7 @@
     "feathers": [
       "ShipEngineCarrier"
     ],
-    "icon": "label",
+    "icon": "tag",
     "label": "",
     "module": "JobShop",
     "name": "Ship Engine"
@@ -239,7 +239,7 @@
       "InventoryAdjustment",
       "MoveInventory"
     ],
-    "icon": "inventory_2",
+    "icon": "box",
     "label": "",
     "module": "JobShop",
     "name": "Stock"
@@ -249,7 +249,7 @@
       "UserAccount",
       "Role"
     ],
-    "icon": "manage_accounts",
+    "icon": "config",
     "label": "Admin",
     "module": "Core",
     "name": "User Administration"

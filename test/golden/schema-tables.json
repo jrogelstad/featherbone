@@ -12,10 +12,32 @@
     "inherits": [],
     "triggers": []
   },
+  "$db": {
+    "columns": {
+      "created": "timestamp with time zone not null default now()",
+      "kind": "text not null",
+      "mode": "text",
+      "schema_version": "text not null",
+      "updated": "timestamp with time zone not null default now()"
+    },
+    "inherits": [],
+    "triggers": []
+  },
   "$feather": {
     "columns": {
       "is_child": "boolean",
       "parent_pk": "bigint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": []
+  },
+  "$navigation_category": {
+    "columns": {
+      "icon": "text",
+      "name": "text",
+      "sequence": "smallint"
     },
     "inherits": [
       "object"
@@ -68,6 +90,7 @@
   "$workbook": {
     "columns": {
       "actions": "json",
+      "category": "text",
       "default_config": "json",
       "description": "text",
       "icon": "text",
@@ -83,6 +106,23 @@
       "object"
     ],
     "triggers": []
+  },
+  "access_grant": {
+    "columns": {
+      "_granted_by_identity_pk": "bigint",
+      "_identity_identity_pk": "bigint",
+      "_tenant_tenant_pk": "bigint",
+      "granted": "timestamp with time zone",
+      "is_active": "boolean"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER access_grant_delete_trigger AFTER DELETE ON public.access_grant FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER access_grant_insert_trigger AFTER INSERT ON public.access_grant FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER access_grant_update_trigger AFTER UPDATE ON public.access_grant FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
   },
   "address": {
     "columns": {
@@ -103,6 +143,24 @@
       "CREATE TRIGGER address_delete_trigger AFTER DELETE ON public.address FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER address_insert_trigger AFTER INSERT ON public.address FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER address_update_trigger AFTER UPDATE ON public.address FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "admin_audit": {
+    "columns": {
+      "_actor_identity_pk": "bigint",
+      "_on_behalf_of_organization_pk": "bigint",
+      "_target_identity_identity_pk": "bigint",
+      "action": "text",
+      "detail": "text",
+      "occurred": "timestamp with time zone"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER admin_audit_delete_trigger AFTER DELETE ON public.admin_audit FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER admin_audit_insert_trigger AFTER INSERT ON public.admin_audit FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER admin_audit_update_trigger AFTER UPDATE ON public.admin_audit FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "alert": {
@@ -924,6 +982,29 @@
       "CREATE TRIGGER honorific_update_trigger AFTER UPDATE ON public.honorific FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
+  "identity": {
+    "columns": {
+      "_organization_organization_pk": "bigint",
+      "email": "text",
+      "failed_attempts": "integer",
+      "full_name": "text",
+      "is_org_admin": "boolean",
+      "is_platform_admin": "boolean",
+      "last_signed_in": "timestamp with time zone",
+      "locked_until": "timestamp with time zone",
+      "password_hash": "text",
+      "status": "text",
+      "username": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER identity_delete_trigger AFTER DELETE ON public.identity FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER identity_insert_trigger AFTER INSERT ON public.identity FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER identity_update_trigger AFTER UPDATE ON public.identity FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
   "inco_terms": {
     "columns": {
       "code": "text",
@@ -1594,6 +1675,22 @@
       "CREATE TRIGGER operation_completion_delete_trigger AFTER DELETE ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER operation_completion_insert_trigger AFTER INSERT ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER operation_completion_update_trigger AFTER UPDATE ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "organization": {
+    "columns": {
+      "authentication": "text",
+      "is_active": "boolean",
+      "is_two_factor_required": "boolean",
+      "name": "text"
+    },
+    "inherits": [
+      "document"
+    ],
+    "triggers": [
+      "CREATE TRIGGER organization_delete_trigger AFTER DELETE ON public.organization FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER organization_insert_trigger AFTER INSERT ON public.organization FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER organization_update_trigger AFTER UPDATE ON public.organization FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "outside_process": {
@@ -2933,6 +3030,7 @@
     "columns": {
       "_contact_contact_pk": "bigint",
       "_edition_edition_pk": "bigint",
+      "_organization_organization_pk": "bigint",
       "_pg_service_tenant_service_pk": "bigint",
       "expiration": "timestamp with time zone",
       "is_active": "boolean",
