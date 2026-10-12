@@ -172,11 +172,10 @@
                             "AND EXISTS (" +
                             "  SELECT can_read FROM ( " +
                             "    SELECT can_read " +
-                            "    FROM \"$auth\", pg_authid " +
-                            "    WHERE pg_has_role(" +
-                            "        $1, pg_authid.oid, 'member')" +
-                            "      AND \"$auth\".object_pk=workbook._pk" +
-                            "      AND \"$auth\".role=pg_authid.rolname" +
+                            "    FROM \"$auth\" " +
+                            "    WHERE \"$auth\".object_pk=workbook._pk" +
+                            "      AND \"$auth\".role IN (" +
+                            tools.memberNames(1) + ")" +
                             "    ORDER BY can_read DESC" +
                             "    LIMIT 1" +
                             "  ) AS data " +
@@ -321,12 +320,10 @@
                     sql = (
                         "SELECT _pk " +
                         "FROM \"$workbook\" AS workbook, " +
-                        "  \"$auth\" AS auth, " +
-                        "  pg_authid " +
+                        "  \"$auth\" AS auth " +
                         "WHERE name = $1 " +
                         "  AND workbook._pk=auth.object_pk" +
-                        "  AND auth.role=pg_authid.rolname " +
-                        "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                        "  AND auth.role IN (" + tools.memberNames(2) + ")" +
                         "  AND " + action + " " +
                         "LIMIT 1;"
                     );
