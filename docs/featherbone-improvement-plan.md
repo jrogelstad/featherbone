@@ -36,7 +36,17 @@ A todo test asserts the correct behavior for a known defect and is tagged with i
 
 Defects the suite found that are not in the tiers below (each has a todo test; file:line in the test's todo text):
 
-- [ ] **0.1 `POST /data/user-account` always fails** **[→ tenant-management-plan B.5]** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
+- [x] **0.1 `POST /data/user-account` always fails** **[→ tenant-management-plan B.5]** with 500 (`scripts/services.js:1357`, loop runs past the end of the roles list). Users can only be created in SQL today; also `POST /data/role` with an existing login role's name sets it NOLOGIN and blanks its password (`role.js:230`), the same class as 1.1.
+  *Fixed 2026-10-11 on `fix/0.1-user-account-post` (the loop itself was
+  already fixed on master in 4254cf11, but the todo reporter had masked two
+  remaining defects). An unset `isActive` created the role NOLOGIN, so the
+  new user could never sign in; it now defaults to a login role. And
+  adopting an existing cluster role now requires proving its password
+  (a probe connection): the test-and-production case still works, a
+  takeover -- or a group role blanking a login role's password -- gets 409.
+  **Reinstall Core after merging** (deployed service). Both users-suite
+  todos are promoted to live assertions, rewritten on Contact so they run
+  on a bare-Core database. B.5 later replaces this path entirely.*
 - [x] **0.2 Server crash on a bad relation id:** a PATCH pointing a relation at a nonexistent id kills the server (`crud.js:2323`, unhandled promise). Skipped in the suite because it takes the shared server down; belongs with 6.1.
     - *Done: `fix/0.2-bad-relation-id`, 2026-10-09. `afterGetRelKey` in `crud.js` now throws instead of returning a rejected promise, so the request gets an error and the server stays up. The skipped test is enabled (uses Currency `displayUnit`).*
 - [x] **0.3 Unauthenticated endpoints:** `GET /sessions` answers without sign-in and any user can disconnect any session; `/currency/base` without a session returns a 500 HTML stack trace; failed sign-in returns the raw Postgres error and the unknown-user message names the database.
