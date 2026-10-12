@@ -193,7 +193,10 @@ describe("catalog endpoints", function () {
             assert.equal(cat.properties.owner.inheritedFrom, "Document");
             assert.equal(cat.properties.code.inheritedFrom, "Kind");
             assert.equal(cat.properties.code.isNaturalKey, true);
-            assert.equal(cat.properties.parent.inheritedFrom, "Category");
+            // A property the feather defines itself carries no inheritedFrom;
+            // it used to say "Category" because of the self-reference
+            // plan 0.17 repairs.
+            assert.equal(cat.properties.parent.inheritedFrom, undefined);
             // isChild: false is written by some install paths and left
             // out by others; both mean the same thing.
             assert.deepEqual(
