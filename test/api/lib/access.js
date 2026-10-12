@@ -64,6 +64,32 @@ async function sqlRole(name, password, opts) {
 }
 
 /*
+    Create the contact a user account points at: an Employee where Job
+    Shop is installed (the Common module PATCHes Employee.userAccount, so
+    the contact has to be one), otherwise a plain Contact. Job Shop's
+    Employee has a required natural key with no autonumber.
+*/
+async function createContact(admin, name, email) {
+    let feather = "Employee";
+    let probe = await admin.raw("GET", "/feather/employee");
+    let data = {
+        firstName: "Test",
+        lastName: name,
+        email: email || name + "@example.com"
+    };
+
+    if (!(probe.status === 200 && probe.body && probe.body.name)) {
+        feather = "Contact";
+    }
+
+    if (feather === "Employee") {
+        data.number = uniq("EMP");
+    }
+
+    return admin.create(feather, data);
+}
+
+/*
     Create a user in SQL the same way the Admin Console would end up:
     login role, membership in "everyone", user_account row linked to an
     Employee contact (the Common module PATCHes Employee.userAccount when
@@ -80,20 +106,7 @@ async function createUser(admin, opts) {
     let name = opts.name || uniq("fbt_user");
     let password = opts.password || settings.password;
     let email = name + "@example.com";
-    let feather = "Employee";
-    let emp;
-
-    let probe = await admin.raw("GET", "/feather/employee");
-
-    if (!(probe.status === 200 && probe.body && probe.body.name)) {
-        feather = "Contact";
-    }
-
-    emp = await admin.create(feather, {
-        firstName: "Test",
-        lastName: name,
-        email
-    });
+    let emp = await createContact(admin, name, email);
 
     let pk = await db.query(
         "SELECT _pk FROM contact WHERE id = $1",
@@ -270,6 +283,7 @@ function featherName(prefix) {
 
 module.exports = {
     account,
+    createContact,
     createFeather,
     createUser,
     deleteFeather,
