@@ -30,7 +30,12 @@ describe("packages on disk", function () {
             "/" + settings.testDb2
         );
         admin2 = new Session(base);
-        await admin2.signIn("admin", "password");
+        let signedIn2 = await admin2.signIn("admin", "password");
+        assert.equal(
+            signedIn2.status,
+            200,
+            "sign in to the second database: " + JSON.stringify(signedIn2.body)
+        );
     });
 
     it("code deployed to a database is not in its data_service rows",
