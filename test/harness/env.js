@@ -51,6 +51,18 @@ const settings = Object.freeze({
     sourceDb: env.FB_TEST_SOURCE_DB || "demo",
     // Throwaway database the suite runs against
     testDb: env.FB_TEST_DB || "featherbone_test",
+    /*
+        Second throwaway, registered as a tenant of the first, so one
+        server demonstrably serves two databases on different module
+        versions (ADR-002). Carries the fbtest fixture at 1.1.0 while
+        the first carries 1.0.0.
+    */
+    testDb2: env.FB_TEST_DB2 || "featherbone_test2",
+    // Fixture packages the test server treats as installed on disk
+    modulesDir: path.join(TEST_DIR, "fixtures", "modules"),
+    // Encrypts the fixture tenant service's password the same way the
+    // framework encrypts it
+    pgCryptoKey: config.pgCryptoKey,
     pgHost: env.FB_TEST_PGHOST || config.pgHost,
     pgPort: Number(env.FB_TEST_PGPORT || config.pgPort),
     // Must be able to CREATE/DROP DATABASE and CREATE ROLE

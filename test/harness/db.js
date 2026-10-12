@@ -62,9 +62,77 @@ function dumpRestore() {
     ]), {env: envVars, input: dump, maxBuffer: 1024 * 1024 * 64});
 }
 
+/*
+    A deterministic set of ids keeps the fixture rows recognizable and
+    the inserts idempotent.
+*/
+const FIXTURE = {
+    serviceId: "fbtsvc000001",
+    tenantId: "fbttenant001",
+    moduleId: "fbtmodule001",
+    routeId: "fbtroute0001"
+};
+
+// Register the second copy as a tenant of the first, and deploy the
+// fbtest fixture: module rows point at versions of a package that only
+// exists on disk, which is what ADR-002 is for. The first copy runs
+// 1.0.0, the second 1.1.0.
+async function deployFixtures() {
+    const DOC = (
+        "_pk,id,created,created_by,updated,updated_by,is_deleted," +
+        "owner,etag"
+    );
+    const VALS = (
+        "nextval('object__pk_seq'),$1,now(),'admin',now(),'admin'," +
+        "false,'admin',$1"
+    );
+
+    await withClient(settings.testDb, async function (client) {
+        await client.query((
+            "INSERT INTO tenant_service (" + DOC + ",name,pg_host," +
+            "pg_port,pg_user,pg_password) VALUES (" + VALS + ",$2,$3," +
+            "$4,$5,pgp_sym_encrypt($6, $7)::text)"
+        ), [
+            FIXTURE.serviceId, "Fixture service", settings.pgHost,
+            String(settings.pgPort), settings.pgUser,
+            settings.pgPassword, settings.pgCryptoKey
+        ]);
+        await client.query((
+            "INSERT INTO tenant (" + DOC + ",name,is_active," +
+            "_pg_service_tenant_service_pk,pg_database) SELECT " + VALS +
+            ",$2,true,_pk,$3 FROM tenant_service WHERE id = $4"
+        ), [
+            FIXTURE.tenantId, settings.testDb2, settings.testDb2,
+            FIXTURE.serviceId
+        ]);
+        await client.query((
+            "INSERT INTO module (" + DOC + ",name,script,version) " +
+            "VALUES (" + VALS + ",'fbtest','','1.0.0')"
+        ), [FIXTURE.moduleId]);
+        await client.query((
+            "INSERT INTO route (" + DOC + ",module,path,function) " +
+            "VALUES (" + VALS + ",'fbtest','/version','fbtestVersion')"
+        ), [FIXTURE.routeId]);
+    });
+
+    await withClient(settings.testDb2, async function (client) {
+        await client.query((
+            "INSERT INTO module (" + DOC + ",name,script,version) " +
+            "VALUES (" + VALS + ",'fbtest','','1.1.0')"
+        ), [FIXTURE.moduleId]);
+        await client.query((
+            "INSERT INTO route (" + DOC + ",module,path,function) " +
+            "VALUES (" + VALS + ",'fbtest','/version','fbtestVersion')"
+        ), [FIXTURE.routeId]);
+    });
+}
+
 async function clone() {
     if (settings.testDb === settings.sourceDb) {
         throw new Error("FB_TEST_DB must differ from the source database");
+    }
+    if (settings.testDb2 === settings.testDb) {
+        throw new Error("FB_TEST_DB2 must differ from FB_TEST_DB");
     }
 
     await withClient("postgres", async function (client) {
@@ -77,6 +145,10 @@ async function clone() {
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",
             settings.testDb
+        ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.testDb2
         ));
         try {
             await client.query(format(
@@ -95,7 +167,17 @@ async function clone() {
             ));
             dumpRestore();
         }
+
+        // Nothing is connected to the fresh copy yet, so a template
+        // clone is cheap and always available
+        await client.query(format(
+            "CREATE DATABASE %I TEMPLATE %I",
+            settings.testDb2,
+            settings.testDb
+        ));
     });
+
+    await deployFixtures();
 }
 
 async function ensureRole(client, name, password) {
@@ -163,6 +245,10 @@ async function drop() {
         await client.query(format(
             "DROP DATABASE IF EXISTS %I WITH (FORCE)",
             settings.testDb
+        ));
+        await client.query(format(
+            "DROP DATABASE IF EXISTS %I WITH (FORCE)",
+            settings.testDb2
         ));
         let roles = [settings.adminUser, settings.basicUser];
         let i = 0;

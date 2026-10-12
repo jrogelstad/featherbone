@@ -66,6 +66,24 @@ To move an existing combined install onto a dedicated control plane, install the
 
 This is groundwork for the tenant management rewrite: there is no administration screen for the control plane yet.
 
+## Installed packages
+
+Module code loads from packages installed on the server when they are
+present (ADR-002, `docs/adr-002-packages-on-disk.md`):
+
+```text
+modules/<name>/<version>/      # npm-format package: package.json,
+                               # manifest.json and the module's files
+```
+
+One directory per version, because two databases served by one process
+may run different versions of one module: each database's `module` rows
+say which version it deployed, and its requests dispatch to that
+version's services. A module with no package on the server falls back
+to the code deployed into the database, so existing installations work
+unchanged until they are repackaged. `modulesDir` in `config.json`
+moves the directory.
+
 # Tests
 
 A regression suite lives under `test/` and needs no extra dependencies (Node 18+ and the PostgreSQL client tools).
