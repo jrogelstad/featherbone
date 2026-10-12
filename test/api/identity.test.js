@@ -20,6 +20,7 @@ const {spawn} = require("child_process");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
+const access = require("./lib/access");
 const {Identities} = require("../../server/services/identities");
 
 const identities = new Identities();
@@ -92,6 +93,19 @@ async function seed() {
             identities.hashPassword(settings.password)
         );
         await grant("fbtgrant0001", adminPk);
+
+        /*
+            The admin identity also reaches the second instance, so the
+            B.5 tests can prove that creating a user who already exists
+            in the organization grants access without touching the
+            password they already have.
+        */
+        await client.query((
+            "INSERT INTO access_grant (" + DOC_COLS +
+            ",_identity_identity_pk,_tenant_tenant_pk,is_active," +
+            "granted) SELECT " + docVals("fbtgrant0011") +
+            ",$1,_pk,true,now() FROM tenant WHERE pg_database = $2"
+        ), [adminPk, settings.testDb2]);
 
         // The imported Postgres verifier (migration path)
         let basicPk = await identity("fbtident0002", settings.basicUser, verifier);
@@ -335,6 +349,283 @@ describe("identity sign-in (authStrategy identity)", function () {
                 "SELECT count(*)::int AS n FROM \"$session\""
             );
             assert.ok(r.rows[0].n > 0);
+        });
+    });
+
+    /*
+        B.4 and B.5: creating users, setting passwords and revoking
+        access write identities, grants and the local profile. Nothing
+        in here may create or alter a Postgres role, which is what the
+        pg_roles assertions are for.
+    */
+    describe("users on the identity path (B.4, B.5)", function () {
+        let admin;
+
+        async function identityRow(username) {
+            let row;
+
+            await db.withClient(settings.managerDb, async function (client) {
+                let r = await client.query(
+                    (
+                        "SELECT i.*, g.is_active AS granted " +
+                        "FROM identity i " +
+                        "LEFT JOIN access_grant g " +
+                        "  ON g._identity_identity_pk = i._pk " +
+                        " AND g._tenant_tenant_pk = (" +
+                        "   SELECT _pk FROM tenant WHERE pg_database = $2" +
+                        " ) " +
+                        "WHERE lower(i.username) = lower($1) " +
+                        "  AND NOT i.is_deleted"
+                    ),
+                    [username, settings.testDb]
+                );
+                row = r.rows[0];
+            });
+
+            return row;
+        }
+
+        async function hasPgRole(name) {
+            let found;
+
+            await db.withClient("postgres", async function (client) {
+                let r = await client.query(
+                    "SELECT 1 FROM pg_roles WHERE rolname = $1",
+                    [name]
+                );
+                found = r.rows.length > 0;
+            });
+
+            return found;
+        }
+
+        async function auditCount(action, username) {
+            let n;
+
+            await db.withClient(settings.managerDb, async function (client) {
+                let r = await client.query(
+                    (
+                        "SELECT count(*)::int AS n FROM admin_audit " +
+                        "WHERE action = $1 " +
+                        "  AND _target_identity_identity_pk = (" +
+                        "    SELECT _pk FROM identity " +
+                        "    WHERE lower(username) = lower($2))"
+                    ),
+                    [action, username]
+                );
+                n = r.rows[0].n;
+            });
+
+            return n;
+        }
+
+        async function newUser(session, name, password) {
+            let contact = await access.createContact(session, name);
+            let resp = await session.raw("POST", "/data/user-account", {
+                contact: {id: contact.id},
+                membership: [{role: "everyone"}],
+                name,
+                password
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            return resp;
+        }
+
+        before(async function () {
+            admin = new Session(base);
+            let resp = await admin.signIn(
+                settings.adminUser,
+                settings.password
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        });
+
+        it("creates an identity and a grant, and no Postgres role",
+                async function () {
+            let name = access.track(access.uniq("fbt_ident"));
+
+            await newUser(admin, name, "Identity-Pw-1");
+
+            let row = await identityRow(name);
+            assert.ok(row, "identity created in the manager");
+            assert.equal(row.status, "active");
+            assert.ok(
+                row.password_hash.startsWith("scrypt$"),
+                "password stored as the application's own hash"
+            );
+            assert.equal(row.granted, true, "granted this instance");
+            assert.equal(
+                await hasPgRole(name),
+                false,
+                "no Postgres login role was created"
+            );
+            assert.equal(await auditCount("identity.created", name), 1);
+
+            // And the local profile is there, which sign-in needs
+            let profile = await admin.findBy("UserAccounts", "name", name);
+            assert.equal(profile.length, 1);
+        });
+
+        it("lets the user it just created sign in", async function () {
+            let name = access.track(access.uniq("fbt_signin"));
+
+            await newUser(admin, name, "Identity-Pw-2");
+
+            let resp = await new Session(base).signIn(name, "Identity-Pw-2");
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        });
+
+        it("sets the password on the identity, not on the cluster",
+                async function () {
+            let name = access.track(access.uniq("fbt_pwset"));
+
+            await newUser(admin, name, "Identity-Pw-3");
+            let original = await identityRow(name);
+
+            // An administrator sets another user's password by
+            // patching the account; /do/change-role-password/ is the
+            // caller changing their own and signs the session out
+            let account = await admin.findBy("UserAccounts", "name", name);
+
+            await admin.patch("UserAccount", account[0].id, [{
+                op: "replace",
+                path: "/password",
+                value: "Identity-Pw-4"
+            }]);
+
+            let updated = await identityRow(name);
+            assert.notEqual(
+                updated.password_hash,
+                original.password_hash,
+                "the stored hash changed"
+            );
+            assert.ok(updated.password_hash.startsWith("scrypt$"));
+            assert.equal(await hasPgRole(name), false);
+            assert.ok(await auditCount("identity.password_set", name) > 0);
+
+            let signedInAgain = await new Session(base).signIn(
+                name,
+                "Identity-Pw-4"
+            );
+            assert.equal(signedInAgain.status, 200);
+        });
+
+        it("deactivating a user deactivates its grant and blocks sign-in",
+                async function () {
+            let name = access.track(access.uniq("fbt_deact"));
+
+            await newUser(admin, name, "Identity-Pw-5");
+            let account = await admin.findBy("UserAccounts", "name", name);
+
+            await admin.update("UserAccount", account[0].id, function (rec) {
+                rec.isActive = false;
+            });
+
+            let row = await identityRow(name);
+            assert.equal(row.granted, false, "grant deactivated");
+            assert.equal(
+                row.status,
+                "active",
+                "the identity itself is untouched: it may hold other " +
+                "instances"
+            );
+
+            let resp = await new Session(base).signIn(name, "Identity-Pw-5");
+            assert.equal(resp.status, 401);
+            assert.equal(resp.body, GENERIC);
+        });
+
+        it("deleting a user revokes access and keeps the identity",
+                async function () {
+            let name = access.track(access.uniq("fbt_del"));
+
+            await newUser(admin, name, "Identity-Pw-6");
+            let account = await admin.findBy("UserAccounts", "name", name);
+
+            await admin.remove("UserAccount", account[0].id);
+
+            let row = await identityRow(name);
+            assert.ok(row, "identity survives the local delete");
+            assert.equal(row.granted, false);
+            assert.ok(await auditCount("grant.revoked", name) > 0);
+        });
+
+        it("grants a second instance without changing the password",
+                async function () {
+            let name = access.track(access.uniq("fbt_two"));
+
+            await newUser(admin, name, "Identity-Pw-7");
+            let first = await identityRow(name);
+
+            // The same person, created again in the other instance
+            let other = new Session(
+                base.replace("/" + settings.testDb, "/" + settings.testDb2)
+            );
+            let resp = await other.signIn(
+                settings.adminUser,
+                settings.password
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            await newUser(other, name, "Different-Pw-8");
+
+            let updated = await identityRow(name);
+            assert.equal(
+                updated.password_hash,
+                first.password_hash,
+                "an existing identity keeps the password it had"
+            );
+            assert.equal(await auditCount("grant.added", name), 1);
+
+            // The original password is the one that still works
+            assert.equal(
+                (await new Session(base).signIn(name, "Different-Pw-8")).status,
+                401
+            );
+            assert.equal(
+                (await new Session(base).signIn(name, "Identity-Pw-7")).status,
+                200
+            );
+        });
+
+        it("creates a group role with no Postgres role behind it",
+                async function () {
+            let name = access.track(access.uniq("fbt_group"));
+            let role = await admin.create("Role", {isLogin: false, name});
+
+            assert.equal(role.name, name);
+            assert.equal(
+                await hasPgRole(name),
+                false,
+                "a group role is rows in role and role_membership only"
+            );
+
+            // And a user may be made a member of it, which is a row too
+            let user = access.track(access.uniq("fbt_member"));
+            await newUser(admin, user, "Identity-Pw-9");
+            let account = await admin.findBy("UserAccounts", "name", user);
+
+            await admin.update("UserAccount", account[0].id, function (rec) {
+                rec.membership.push({role: name});
+            });
+
+            let resp = await db.query(
+                (
+                    "SELECT rm.role FROM role_membership rm " +
+                    "JOIN role r ON rm._parent_role_pk = r._pk " +
+                    "WHERE r.name = $1 AND NOT rm.is_deleted"
+                ),
+                [user]
+            );
+            let roles = resp.rows.map((row) => row.role);
+
+            let expected = ["everyone", name];
+
+            roles.sort();
+            expected.sort();
+            assert.deepEqual(roles, expected);
+            assert.equal(await hasPgRole(user), false);
         });
     });
 });
