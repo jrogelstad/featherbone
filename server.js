@@ -701,6 +701,11 @@
         logger.verbose(loggable(log));
         datasource.request(payload, req.user.isSuper).then(
             async function (data) {
+                // A system lookup, like the other systemUser requests:
+                // without the super user flag the service account's own
+                // authorization applied, which for a Contact that is an
+                // Employee answered nothing, and the account that had
+                // just been created came back as a 500.
                 let cntct = await datasource.request({
                     id: req.body.contact.id,
                     name: "Contact",
@@ -708,7 +713,10 @@
                     properties: ["id", "email"],
                     user: systemUser,
                     tenant: req.tenant
-                });
+                }, true);
+                if (!cntct) {
+                    throw new Error("Contact not found");
+                }
                 req.body.destination = cntct.email;
                 req.body.user = {name: req.body.name};
                 req.body.username = req.body.name;
