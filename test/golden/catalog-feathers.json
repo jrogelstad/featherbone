@@ -2808,7 +2808,7 @@
       "sequence": "integer required readOnly default=0 <PlannedOrder",
       "site": "relation(Site) [code,description,locationControlled] required alwaysLoad <Supply",
       "startDate": "string:date alwaysLoad <Supply",
-      "status": "string required readOnly indexed alwaysLoad default=\"A\" list=P|A|C <Supply",
+      "status": "string required readOnly indexed alwaysLoad default=\"U\" list=P|A|C <Supply",
       "supplier": "relation(Supplier) [number,name] alwaysLoad",
       "supplierItem": "string",
       "unit": "relation(ItemUnit) [code,description] required alwaysLoad",
@@ -2849,7 +2849,7 @@
       "sequence": "integer required readOnly default=0 <PlannedOrder",
       "site": "relation(Site) [code,description,locationControlled] required alwaysLoad <Supply",
       "startDate": "string:date alwaysLoad <Supply",
-      "status": "string required readOnly indexed alwaysLoad default=\"A\" list=P|A|C <Supply",
+      "status": "string required readOnly indexed alwaysLoad default=\"U\" list=P|A|C <Supply",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
       "updatedBy": "string readOnly <Object"
     }
@@ -3382,7 +3382,7 @@
       "shipped": "number readOnly default=0 numeric(18,8)",
       "site": "relation(Site) [code,description,locationControlled] required alwaysLoad <Supply",
       "startDate": "string:date alwaysLoad <Supply",
-      "status": "string required readOnly indexed alwaysLoad default=\"A\" list=P|A|C <Supply",
+      "status": "string required readOnly indexed alwaysLoad default=\"U\" list=P|A|C <Supply",
       "supplierItem": "string",
       "unit": "relation(ItemUnit) [code,description] required alwaysLoad",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
@@ -3423,7 +3423,7 @@
       "received": "number readOnly default=0 numeric(18,8)",
       "site": "relation(Site) [code,description,locationControlled] required alwaysLoad <Supply",
       "startDate": "string:date alwaysLoad <Supply",
-      "status": "string required readOnly indexed alwaysLoad default=\"A\" list=P|A|C <Supply",
+      "status": "string required readOnly indexed alwaysLoad default=\"U\" list=P|A|C <Supply",
       "unit": "relation(ItemUnit) [code,description] readOnly",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
       "updatedBy": "string readOnly <Object"
@@ -4778,7 +4778,7 @@
       "quantity": "number required readOnly alwaysLoad default=0 numeric(18,8) min=-9999999999",
       "site": "relation(Site) [code,description,locationControlled] required alwaysLoad",
       "startDate": "string:date alwaysLoad",
-      "status": "string required readOnly indexed alwaysLoad default=\"A\" list=P|A|C",
+      "status": "string required readOnly indexed alwaysLoad default=\"U\" list=P|A|C",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
       "updatedBy": "string readOnly <Object"
     }
@@ -4963,12 +4963,12 @@
       "modules": "array readOnly alwaysLoad",
       "name": "string required naturalKey alwaysLoad",
       "objectType": "string readOnly alwaysLoad <Object",
+      "organization": "relation(Organization) [name,isActive] alwaysLoad",
       "owner": "string:userAccount required alwaysLoad <Document",
       "pgDatabase": "string required labelKey alwaysLoad",
       "pgService": "relation(TenantService) [name,pgHost] required",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
-      "updatedBy": "string readOnly <Object",
-      "organization": "relation(Organization) [name,isActive] alwaysLoad"
+      "updatedBy": "string readOnly <Object"
     }
   },
   "TenantService": {
@@ -5111,7 +5111,7 @@
       "objectType": "string readOnly alwaysLoad <Object",
       "owner": "string:userAccount required alwaysLoad <Document",
       "password": "string:password default=\"createId()\"",
-      "signInAttempts": "integer readOnly min=0 max=0",
+      "signInAttempts": "integer readOnly",
       "updated": "string:dateTime readOnly default=\"now()\" <Object",
       "updatedBy": "string readOnly <Object"
     }
