@@ -445,6 +445,20 @@ function homeRibbonGroups() {
                 ? goGlobalSettings
                 : undefined
             )
+        }, {
+            label: "Users",
+            icon: "manage_accounts",
+            title: (
+                "Who may sign in, and to which instances. The manager " +
+                "holds these records and is not routable, so they are " +
+                "administered from here."
+            ),
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? () => m.route.set("/admin")
+                : undefined
+            )
         }]
     }];
 }
@@ -569,6 +583,7 @@ let routes = {
     "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
+    "/admin": components.adminPage,
     "/sign-in": components.signInPage,
     "/change-password": components.changePasswordPage,
     "/check-email": components.checkEmailPage,
