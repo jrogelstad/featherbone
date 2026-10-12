@@ -239,6 +239,11 @@
             err.statusCode = 500;
         }
         logger.error(err.message);
+        // Debugging aid: FB_LOG_STACK=1 prints where a datasource error
+        // came from; the client only ever gets the message.
+        if (process.env.FB_LOG_STACK) {
+            console.error(err.stack || err.message);
+        }
         this.status(err.statusCode).json(err.message);
         datasource.getCatalog().catch(function (e) {
             console.log(e);
