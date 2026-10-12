@@ -184,7 +184,7 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   can have that column skipped. Fix is a copy rather than a reference; the
   care is in checking what already depends on the current behaviour, and
   whether polluted catalogs need cleaning.
-- [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct.
+- [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct. *Investigated 2026-10-11, could not reproduce without SupplyChain: a fixture module declaring `"type": "object", "format": "money"` installs as `mono` through `--dir` on current master, and a bare `"type": "money"` is refused with a clean error. So the defect needs SupplyChain's own declaration shape or install order (overloads? a property added to an existing table?) -- reproduce on a machine with the SupplyChain checkout before fixing. The `formats` map drives the DDL; `json` appears when a money property reaches the builder with its `format` lost, so look for where that path drops it.*
 
 ## How to use this plan
 
