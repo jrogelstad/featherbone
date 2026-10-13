@@ -445,9 +445,10 @@ adminPage.component = {
                     "fb-admin-status fb-admin-status-" + identity.status
                 )
             }, [
-                m("i", {
-                    class: "material-icons fb-admin-status-icon"
-                }, STATUS_ICON[identity.status] || "help"),
+                f.icon(
+                    STATUS_ICON[identity.status] || "help",
+                    "fb-admin-status-icon"
+                ),
                 identity.status
             ]);
         }
@@ -590,9 +591,7 @@ adminPage.component = {
                 }, "Refresh")
             ]),
             m("div", {class: "fb-title"}, [
-                m("i", {
-                    class: "material-icons fb-title-icon"
-                }, "manage_accounts"),
+                f.icon("manage_accounts", "fb-title-icon"),
                 m("label", (
                     data.organization
                     ? "Users of " + data.organization.name
@@ -606,9 +605,7 @@ adminPage.component = {
             (
                 data.authStrategy === "role"
                 ? m("div", {class: "fb-admin-banner"}, [
-                    m("i", {
-                        class: "material-icons fb-admin-status-icon"
-                    }, "info"),
+                    f.icon("info", "fb-admin-status-icon"),
                     (
                         "Sign-in is still checking passwords against " +
                         "Postgres roles. These records are real and are " +
@@ -720,9 +717,7 @@ adminPage.component = {
                 ])
             ]),
             m("div", {class: "fb-title fb-admin-subtitle"}, [
-                m("i", {
-                    class: "material-icons fb-title-icon"
-                }, "history"),
+                f.icon("history", "fb-title-icon"),
                 m("label", "Recent changes")
             ]),
             m("div", {class: "fb-table-scroll fb-admin-scroll"}, [

@@ -929,4 +929,214 @@ describe("identity sign-in (authStrategy identity)", function () {
             assert.equal(await hasPgRole(user), false);
         });
     });
+
+    /*
+        The instances screen (tenant plan D.4). The registry lives in
+        the manager, which is not routable, so these run inside an
+        instance and act on that instance's organization.
+    */
+    describe("administration of the registry", function () {
+        let admin;
+
+        function flags(username, data) {
+            return db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "UPDATE identity SET is_org_admin = $2, " +
+                        "is_platform_admin = $3 WHERE username = $1"
+                    ),
+                    [
+                        username,
+                        data.isOrgAdmin === true,
+                        data.isPlatformAdmin === true
+                    ]
+                )
+            );
+        }
+
+        before(async function () {
+            admin = new Session(base);
+            let resp = await admin.signIn(
+                settings.adminUser,
+                settings.password
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            await flags(settings.adminUser, {isOrgAdmin: true});
+        });
+
+        after(async function () {
+            await flags(settings.adminUser, {});
+        });
+
+        it("lists the organization's instances and names the manager",
+                async function () {
+            let resp = await admin.get("/admin/instances");
+            let here = resp.instances.find(
+                (row) => row.database === settings.testDb
+            );
+
+            assert.equal(resp.organization.name, "FBTest");
+            assert.equal(resp.manager.database, settings.managerDb);
+            assert.ok(here, "the instance signed in to is listed");
+            assert.equal(here.isCurrent, true);
+            assert.equal(here.isActive, true);
+            assert.ok(
+                here.service && here.service.name,
+                "an instance says what it connects through"
+            );
+            assert.ok(
+                resp.instances.some(
+                    (row) => row.database === settings.testDb2
+                ),
+                "and so is the organization's other instance"
+            );
+        });
+
+        it("says which instances this server is actually serving",
+                async function () {
+            let resp = await admin.get("/admin/instances");
+            let here = resp.instances.find(
+                (row) => row.database === settings.testDb
+            );
+
+            // The server is answering this request through it
+            assert.equal(here.isServed, true);
+        });
+
+        it("does not offer the manager as a database to register",
+                async function () {
+            let resp = await admin.get("/admin/instances");
+
+            assert.equal(
+                resp.databases.includes(settings.managerDb),
+                false,
+                "the manager is not an instance and must not be offered"
+            );
+        });
+
+        it("refuses a database nothing is registered for", async function () {
+            let resp = await admin.raw("POST", "/admin/instance", {
+                database: "fbt_no_such_database",
+                name: "Nope",
+                service: "whatever"
+            });
+
+            assert.equal(resp.status, 400, JSON.stringify(resp.body));
+        });
+
+        it("wants a name and a connection", async function () {
+            let overview = await admin.get("/admin/instances");
+            let candidate = overview.databases[0];
+
+            if (!candidate) {
+                // Nothing spare in this cluster to register
+                return;
+            }
+
+            let unnamed = await admin.raw("POST", "/admin/instance", {
+                database: candidate,
+                name: "",
+                service: overview.services[0].id
+            });
+
+            assert.equal(unnamed.status, 400, JSON.stringify(unnamed.body));
+
+            let unrouted = await admin.raw("POST", "/admin/instance", {
+                database: candidate,
+                name: "No connection",
+                service: "fbt_no_such_service"
+            });
+
+            assert.equal(unrouted.status, 400, JSON.stringify(unrouted.body));
+        });
+
+        it("will not close the instance you are signed in to",
+                async function () {
+            let overview = await admin.get("/admin/instances");
+            let here = overview.instances.find((row) => row.isCurrent);
+            let resp = await admin.raw("POST", "/admin/instance/status", {
+                id: here.id,
+                isActive: false
+            });
+
+            assert.equal(resp.status, 400, JSON.stringify(resp.body));
+
+            let reread = await admin.get("/admin/instances");
+
+            assert.equal(
+                reread.instances.find((row) => row.isCurrent).isActive,
+                true,
+                "and it is still open"
+            );
+        });
+
+        it("closes another instance and opens it again", async function () {
+            let overview = await admin.get("/admin/instances");
+            let other = overview.instances.find(
+                (row) => row.database === settings.testDb2
+            );
+
+            let closed = await admin.raw("POST", "/admin/instance/status", {
+                id: other.id,
+                isActive: false
+            });
+
+            assert.ok(closed.status < 300, JSON.stringify(closed.body));
+
+            let afterClose = await admin.get("/admin/instances");
+
+            assert.equal(
+                afterClose.instances.find(
+                    (row) => row.database === settings.testDb2
+                ).isActive,
+                false
+            );
+            assert.ok(
+                afterClose.audit.some(
+                    (row) => row.action === "instance.closed"
+                ),
+                "closing is audited"
+            );
+
+            let opened = await admin.raw("POST", "/admin/instance/status", {
+                id: other.id,
+                isActive: true
+            });
+
+            assert.ok(opened.status < 300, JSON.stringify(opened.body));
+
+            let afterOpen = await admin.get("/admin/instances");
+
+            assert.equal(
+                afterOpen.instances.find(
+                    (row) => row.database === settings.testDb2
+                ).isActive,
+                true,
+                "left as it was found"
+            );
+        });
+
+        it("shows an ordinary administrator only their own instance",
+                async function () {
+            await flags(settings.adminUser, {});
+
+            let resp = await admin.get("/admin/instances");
+
+            assert.equal(resp.tier, "instance");
+            assert.equal(resp.instances.length, 1);
+            assert.equal(resp.instances[0].isCurrent, true);
+            assert.deepEqual(resp.databases, [], "nothing to register");
+            assert.deepEqual(resp.orphans, []);
+            assert.deepEqual(resp.audit, []);
+
+            let refused = await admin.raw("POST", "/admin/instance/status", {
+                id: resp.instances[0].id,
+                isActive: false
+            });
+
+            assert.equal(refused.status, 401, JSON.stringify(refused.body));
+            await flags(settings.adminUser, {isOrgAdmin: true});
+        });
+    });
 });
