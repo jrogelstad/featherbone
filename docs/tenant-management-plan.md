@@ -294,7 +294,20 @@ purpose.
       identity belongs to, replacing the cluster-wide role.
     - Done when: the authorization tests in `test/api/authorization.test.js`
       pass unchanged, with no Postgres role membership in the database.
-- [ ] **B.4 Stop creating Postgres login roles.** (M)
+- [x] **B.4 Stop creating Postgres login roles.** (M) *Done 2026-10-12
+  under `authStrategy` "identity": `server/services/role.js` is the one
+  seam, so the triggers in `scripts/services.js` are unchanged and no
+  module reinstall is needed. `createRole` writes an identity and a
+  grant for a user and does nothing at all for a group role;
+  `changeRolePassword` writes `identity.password_hash`;
+  `changeRoleLogin` flips the instance's `access_grant`;
+  `changeRoleCreateDb`, `grantMembership` and `revokeMembership` are
+  no-ops, because B.3 reads `role_membership` directly; `dropRole`
+  clears `$auth` and deactivates the grant. Proven by pg_roles
+  assertions in `test/api/identity.test.js`: creating a user, setting
+  its password and making it a member of a group leaves the cluster
+  without a single role. `CREATEROLE` on the service account and
+  `Role.isLogin` are the remainder -- see the note under B.5.*
     - No `CREATE ROLE`, `ALTER ROLE`, `DROP ROLE`, `GRANT` or `REVOKE` for
       users. Remove `CREATEROLE` from the service account. Deprecate
       `Role.isLogin`.
@@ -303,7 +316,18 @@ purpose.
       improvement plan.
     - Done when: a fresh install creates no login roles, and the service
       account has no `CREATEROLE`.
-- [ ] **B.5 `user_account` becomes the local profile.** (M)
+- [x] **B.5 `user_account` becomes the local profile.** (M) *Done
+  2026-10-12. `POST /data/user-account` under "identity" creates the
+  identity in the instance's organization, grants it that instance and
+  leaves the local row as the profile; the account keeps its name as the
+  key history points at. A user who already exists in the organization
+  is granted access and keeps the password they have, so creating the
+  same person in a second instance is not a password reset -- the
+  takeover item 1.1 described cannot be reached this way either, because
+  identities are organization-scoped. Deactivating or deleting the local
+  account deactivates the grant and keeps the identity and the grant
+  row, so the record of who could reach what survives. Every one of
+  these writes an `admin_audit` row.*
     - Keyed to an identity; holds preferences and contact; remains the target
       of existing relations and of `created_by` / `updated_by`.
     - Granting access provisions the local row; revoking deactivates it without
@@ -312,6 +336,25 @@ purpose.
       `scripts/services.js` ~1357) on the new path.
     - Done when: a grant creates a usable local profile, and
       `POST /data/user-account` succeeds.
+    - **What B.4 and B.5 deliberately left.** Two one-way steps wait for
+      the flag to become the default, because taking them now would
+      break the "role" path they share a build with:
+        - `CREATEROLE` stays on the service account, since the role path
+          still needs it. Revoking it is an operator's step once
+          `authStrategy` is "identity" everywhere, and it is what turns
+          B.4 from a code change into the privilege reduction this tier
+          promised.
+        - `Role.isLogin` still exists on the feather and still decides
+          whether `createRole` means a user or a group. Removing a
+          property means a migration, so it is deprecated in
+          documentation first.
+        - A write to the manager is not in the instance's transaction:
+          two databases cannot share one. The order is chosen so a
+          failure leaves something inert rather than something wrong --
+          an identity with no grant cannot sign in anywhere, and a grant
+          whose local profile was rolled back is refused at
+          `deserializeUser`. A sweep for identities with no grant
+          belongs with B.6.
 - [ ] **B.6 Migration tooling and rollback.** (M)
     - One command to migrate a cluster: backfill organizations, identities,
       grants and verifiers; report anything ambiguous rather than guessing.
