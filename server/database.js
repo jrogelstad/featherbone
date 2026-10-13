@@ -804,17 +804,45 @@
             @return {Promise}
         */
         that.endPool = async function (tenant) {
-            let pool = await that.getPool(tenant);
+            /*
+                Look the pool up instead of asking getPool for one:
+                getPool creates a pool when none exists, so ending the
+                pool of a database this process never connected to used
+                to build one just to tear it down (tenant plan D.3).
+            */
             let db = (
-                tenant
+                (tenant && tenant.pgDatabase)
                 ? tenant.pgDatabase
-                : cache.pgDatabase
+                : (cache && cache.pgDatabase)
+            );
+            let pool = (
+                db
+                ? pools[db]
+                : undefined
             );
 
             if (pool) {
                 await pool.end();
                 delete pools[db];
             }
+        };
+
+        /**
+            True if this process holds a connection pool for the
+            database. Lets a caller tell "no pool" from "pool ended".
+
+            @method hasPool
+            @param {Object} [tenant]
+            @return {Boolean}
+        */
+        that.hasPool = function (tenant) {
+            let db = (
+                (tenant && tenant.pgDatabase)
+                ? tenant.pgDatabase
+                : (cache && cache.pgDatabase)
+            );
+
+            return Boolean(db && pools[db]);
         };
 
         return that;
