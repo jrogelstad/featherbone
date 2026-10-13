@@ -34,8 +34,17 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
 ## Status
 
+**Update 2026-10-13.** Every branch in the table below that says "Pushed" is now **merged** into `FeatherboneJS/Featherbone` master (PRs #164-#177, in the order listed), as are `fix/install-fresh-database` (#177, with #191/#194 carrying John's own commits), `fix/test-required-fields` (#178/#194) and `fix/clean-numeric-bounds` (#179). Master verified on John's machine: API 262 pass, 0 fail, 0 cancelled; unit 306 pass. The "Reinstall Core after merging" notes still apply to any database not yet reinstalled. Open work is the three stacked branches in the first rows of the table.
+
+
 | Branch | Plan item | State |
 | --- | --- | --- |
+| `feat/b4-b5-identity-writes` (1fc8d896) | Tenant plan B.4, B.5 | **Open, merge first.** Under `authStrategy: identity`, `server/services/role.js` writes identities and `access_grant`s instead of Postgres roles: create (an existing identity keeps its password), change password, login on/off (flips the instance grant), drop (clears `$auth`, deactivates the grant, keeps the identity). Membership changes are no-ops (B.3 reads `role_membership`). Every action audited to `admin_audit`. Manager writes are a separate transaction from the instance's, ordered so a failure is inert. New `server/services/manager.js`. Default `role` strategy is unchanged. Identity suite 24 pass; API run equals master baseline |
+| `feat/manager-admin-api` (0479108e) | Tenant plan D.4 (part) | **Open, merge second** (on the first). `server/services/admin.js` and `/:db/admin/*` routes: overview, create identity, set password, activate/disable/unlock, grant/revoke instance access, org-admin flag. Three tiers: platform, organization, instance (limited to people who can already reach that instance); none gets 401 |
+| `feat/manager-admin-ui` (0b5fe711) | Tenant plan D.4 (part) | **Open, merge third.** The Users screen (`client/components/admin-page.js`, route `/admin`, "Users" button in the Global group). Verified in Chromium; `client/clientmin.js` is **not** regenerated. Creating an identity here does not create the local `user_account` profile a person still needs to sign in |
+| `fix/install-fresh-database` | Defect | Merged. `node install.js --manager` / first install of a new database no longer dies with 25P02 (`to_regclass` probes replace try/catch around failed queries in `buildRegistry`) |
+| `fix/test-required-fields` | Test defect | Merged. Test helper `createContact` supplies Employee `number`; second test database gets its admin; catalog signature ignores zero min/max; `inheritedFrom` assertion updated |
+| `fix/clean-numeric-bounds` | Catalog data | Merged (#179). `scripts/clean-numeric-bounds.js` removes the editor's stray `max: 0` (dry run by default); `--clear-min` exists but John keeps `min: 0` to reject negatives |
 | `fix/test-battery` (df4ec01) | Tier 0: battery green after UI refresh and on upgraded DBs | Merged (PR #125, 2026-10-06) |
 | `fix/0.9-common-helpers` | 0.9 | Merged |
 | `fix/0.8-client-statecharts` | 0.8 | Merged |
