@@ -98,6 +98,21 @@ application's own form (scrypt) on first sign-in. Then set
 `"authStrategy": "identity"` and restart; setting it back to `"role"`
 reverses the cutover until login roles are retired.
 
+Under `identity`, managing users stops touching the cluster. Creating a
+user account creates the identity in the organization of the instance it
+was created in and grants that instance; setting a password writes the
+identity's hash, so it changes once for every instance the person can
+reach; deactivating or deleting the account deactivates that instance's
+grant and leaves the identity and the grant row in place, so the record
+of who could reach what survives. A user who already exists in the
+organization is granted access and keeps the password they already have.
+Group roles and memberships are rows in `role` and `role_membership`
+under both strategies. Each of these writes a row to `admin_audit`.
+
+Two steps are left to the operator once `authStrategy` is `identity`
+everywhere: revoke `CREATEROLE` from the service account, and stop
+relying on `Role.isLogin`, which is deprecated.
+
 ## Installed packages
 
 Module code loads from packages installed on the server when they are
