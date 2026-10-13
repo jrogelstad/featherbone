@@ -19,6 +19,8 @@
 
 **Progress 2026-10-09:** Tier 0 items 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3, 1.7 and 1.8 are fixed (all merged except 0.4, which is pushed). Also merged: tenant plan A.2, a test reporter fix, ribbon component tests and a button label fix (see `featherbone-fix-branches.md`). Todo counts in the table below are as of the suite's creation and are not recalculated.
 
+**Progress 2026-10-13:** everything pushed through 2026-10-11 is merged (PRs #164-#177, #191-#194): 0.1, 0.4, 0.13, 0.16, 0.17, 1.2, 1.3, 1.7, 1.8, 2.6, 3.1, 3.3 and the 6.1 handler, plus tenant plan A.1-A.5 and B.1-B.3, the install fix for a brand new database, the `clean-numeric-bounds` script and test-helper fixes. Last verified run on John's machine (master at PR #194): API 262 pass / 0 fail, unit 306 pass. Pushed and **not yet merged**: tenant plan B.4/B.5 (`feat/b4-b5-identity-writes`), the manager admin API (`feat/manager-admin-api`) and the Users screen (`feat/manager-admin-ui`), stacked in that order. They finish what 0.1 and 1.1 started for the identity path: under `authStrategy: identity` users are identities, not Postgres roles. 1.1 stays open until the cutover is run (B.6) and `CREATEROLE` is withdrawn from the framework role. Still open from this tier: 0.10, 0.11 (could not reproduce), 0.12, 0.14, 0.15.
+
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
 
 ## Tier 0: Regression suite (done)
