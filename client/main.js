@@ -524,15 +524,29 @@ const home = {
             };
         });
 
-        menu.selected("home");
+        // The route can load before sign-in finishes (a #!/home in the
+        // address bar), when start() has not built the menu yet.
+        if (menu) {
+            menu.selected("home");
+        }
     },
     oncreate: function () {
-        document.getElementById("fb-title").text = "Featherbone";
+        let title = document.getElementById("fb-title");
+
+        if (title) {
+            title.text = "Featherbone";
+        }
     },
     onupdate: function () {
-        menu.selected("home");
+        if (menu) {
+            menu.selected("home");
+        }
     },
     view: function () {
+        if (!menu) {
+            return [];
+        }
+
         let toolbarClass = "fb-toolbar";
         let homeGroups = homeRibbonGroups();
 
