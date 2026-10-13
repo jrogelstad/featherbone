@@ -220,7 +220,7 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
     - *Done: `fix/1.3-no-body-logging`, 2026-10-08. All request-payload logs in `server.js` go through `loggable()` (tenant → db name, credential-like keys masked). Rotate the superuser password if the template-database route was ever used.*
     - Where: `server.js` `postify` (~375–392).
     - Fix: log route name and user only, or redact known secret fields as `doPostUserAccount` already does. Rotate the superuser password if this was ever used.
-- [ ] **1.4 Remove drop-on-failure from `createDatabase`.** **[→ tenant-management-plan D.2]** If `CREATE DATABASE` fails because the name exists, the catch fires an un-awaited `DROP DATABASE IF EXISTS`.
+- [x] **1.4 Remove drop-on-failure from `createDatabase`.** *Done 2026-10-13 on `fix/d2-database-api` (tenant plan D.2): a name already taken is refused and never dropped, the rollback drops only a database the call created, the name is normalized before `pg_database` is checked, and `conn2` is guarded in the `finally`.* If `CREATE DATABASE` fails because the name exists, the catch fires an un-awaited `DROP DATABASE IF EXISTS`.
     - Where: `server/datasource.js` ~332–400; duplicate check in Admin Console `triggers-tenant.js` runs before name normalization.
     - Fix: only drop a database this call created; check `pg_database` after normalizing the name; guard `conn2` in `finally`.
 - [ ] **1.5 Close the Zip2Tax path traversal.** The file path comes from the client's `filename`, is read, then deleted.
@@ -350,14 +350,14 @@ At default settings, about 8 tenants on one Node server can exhaust Postgres's 1
 
 - [ ] **5.1 Size and close tenant pools.** **[→ tenant-management-plan E.4]** Each tenant gets a 10-connection pool (the `pgMaxConnections` setting is ignored), one held permanently for LISTEN; each sign-in opens 2 more pools; each SupplyChain `f.datasource.lock` takes 2 extra connections.
     - Fix: honor `pgMaxConnections`, lower the per-tenant max, set `idleTimeoutMillis`, end pools for idle tenants, and run PgBouncer in front. Fix the SSL config the code comment flags.
-- [ ] **5.2 Fix the tenant registry leaks.** **[→ tenant-management-plan D.3]**
+- [x] **5.2 Fix the tenant registry leaks.** *Done 2026-10-13 on `fix/d3-tenant-registry` (tenant plan D.3), with the last two bullets already covered: `cleanupProcesses` walks every instance, and routes mount once.*
     - `deleteDatabase` calls `tenants.splice(idx, 0)`, which removes nothing (`server/datasource.js:438`).
     - `loadTenants()` only ever adds; deleted tenants keep their pool, listener and `pools[db]` entry.
     - `cleanupProcesses()` uses `tenants[0]` in its loop, so only the first tenant is cleaned after a restart (`datasource.js:524`).
     - Route re-registration appends duplicate Express handlers on every Route change.
 - [ ] **5.3 Make provisioning atomic and resumable.** **[→ tenant-management-plan D.1]** `CREATE DATABASE`, writes to the new databases, and emails all run inside the admin transaction; a late failure leaves orphan databases and a notice that can't be reprocessed.
     - Fix: a provisioning state table (requested, db created, configured, emailed) with idempotent steps; create and drop databases in `onCommit`, not in AFTER triggers.
-- [ ] **5.4 Make template creation safe** **[→ tenant-management-plan D.2]** (`createTemplateDatabase`).
+- [x] **5.4 Make template creation safe** *Done 2026-10-13 on `fix/d2-database-api` (tenant plan D.2): built under a working name and swapped, `ALTER DATABASE … IS_TEMPLATE`, a busy source refused rather than disconnected, and `port: conf.pgPort || 80` gone.* (`createTemplateDatabase`).
     - Create the new template under a temporary name, then swap, instead of dropping first.
     - Use `ALTER DATABASE … IS_TEMPLATE` rather than updating `pg_database`.
     - Don't end the source tenant's pool mid-session; fix `port: conf.pgPort || 80`; guard unknown source databases.
