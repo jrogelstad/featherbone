@@ -37,6 +37,8 @@
     const {Config} = require("./server/config");
     const config = new Config();
     const {Tools} = require("./server/services/tools");
+    const {Admin} = require("./server/services/admin");
+    const admin = new Admin();
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
@@ -74,6 +76,7 @@
     }
 
     const check = [
+        "admin",
         "currency",
         "data",
         "do",
@@ -1845,6 +1848,34 @@
         return false;
     }
 
+    /*
+        Administration of the manager database (ADR-001, tenant plan
+        D.4). The manager is not routable, so these run inside the
+        instance the administrator is signed in to and act on that
+        instance's organization. Who may do what is decided in
+        server/services/admin.js, which answers 401 when the caller
+        holds no tier at all.
+    */
+    function adminPayload(req) {
+        return {
+            data: req.body || {},
+            isSuper: Boolean(req.user && req.user.isSuper),
+            limit: Number(req.query.limit) || undefined,
+            tenant: req.tenant,
+            user: req.user.name
+        };
+    }
+
+    function doAdmin(method) {
+        return async function (req, res) {
+            try {
+                respond.bind(res)(await admin[method](adminPayload(req)));
+            } catch (e) {
+                error.bind(res)(e);
+            }
+        };
+    }
+
     async function doGetSessions(req, res) {
         if (!requireSuper(req, res)) {
             return;
@@ -2953,6 +2984,18 @@
             "/:db/data/object-authorizations",
             doGetObjectAuthorizations
         );
+        dbRouter.get("/:db/admin/overview", doAdmin("overview"));
+        dbRouter.post("/:db/admin/identity", doAdmin("createIdentity"));
+        dbRouter.post(
+            "/:db/admin/identity/password",
+            doAdmin("setPassword")
+        );
+        dbRouter.post("/:db/admin/identity/status", doAdmin("setStatus"));
+        dbRouter.post(
+            "/:db/admin/identity/org-admin",
+            doAdmin("setOrgAdmin")
+        );
+        dbRouter.post("/:db/admin/grant", doAdmin("setGrant"));
         dbRouter.get("/:db/sessions", doGetSessions);
         dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);
