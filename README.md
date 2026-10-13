@@ -113,6 +113,32 @@ Two steps are left to the operator once `authStrategy` is `identity`
 everywhere: revoke `CREATEROLE` from the service account, and stop
 relying on `Role.isLogin`, which is deprecated.
 
+### Administering identities
+
+The manager is not routable, so there is no database to point a browser
+at to see who may sign in to what. The **Users** button in the Home
+tab's Global group opens that screen inside whatever instance you are
+signed in to, and shows that instance's organization: its identities,
+the instances each may reach, when they last signed in, and the recent
+privileged changes. From there you can add a user, set a password,
+disable or release an account, and grant or revoke an instance.
+
+What you may do depends on who you are (ADR-001):
+
+* a **platform administrator** (`identity.is_platform_admin`) may do
+  everything;
+* an **organization administrator** (`identity.is_org_admin`) may manage
+  anyone in their organization and grant any of its instances;
+* a **tenant super user** with neither flag may only act on people who
+  can already reach the instance they are signed in to.
+
+The screen reads under either strategy and says which one is in force,
+so you can see what identity sign-in would do before switching to it.
+It is served from `client/components/admin-page.js`, which the
+unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
+loads; the production bundle `client/clientmin.js` has to be rebuilt
+before the page appears outside debug mode.
+
 ## Installed packages
 
 Module code loads from packages installed on the server when they are
