@@ -139,6 +139,41 @@ unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
 
+### Administering instances
+
+The **Instances** button, next to Users in the same group, is the other
+half of administration: which databases this installation serves and
+which organization they belong to. For each instance it shows the
+database, the connection it is reached through, how many of the
+organization's people may enter it, whether this server has it loaded
+and listening, and whether sign-in is open.
+
+From there an organization administrator can:
+
+* **register** a database that already exists in the cluster, so the
+  server serves it at `/<database>/` and the organization's users can
+  be granted access to it;
+* **attach** an instance that belongs to no organization, as an
+  installation that pre-dates ADR-001 has;
+* **close** an instance to sign-in and open it again. Closing leaves
+  the database alone -- nobody can enter it, everything in it stays --
+  and the instance you are signed in to cannot be closed from inside
+  itself.
+
+Registering does not build a database: `node install.js --instance
+<name>` does that, and it registers the instance as well, so the screen
+is for databases that exist but are not registered here. Dropping a
+database is still the command line's. Provisioning from the screen is
+tenant plan D.1, and so is checking the `"$db"` marker before
+registering, which nothing does yet -- a database registered by mistake
+shows up as loaded but answers nothing.
+
+A tenant super user with no organization flag sees the instance they
+are signed in to and changes nothing: what a database is registered as
+is not one tenant's decision. The page is served from
+`client/components/admin-instances-page.js`, the same unbundled client
+as the Users screen.
+
 ## Installed packages
 
 Module code loads from packages installed on the server when they are

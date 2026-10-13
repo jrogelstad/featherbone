@@ -471,6 +471,20 @@ Tier 5.
   strategy and reports which one is in force, so an administrator can
   see what identity sign-in would do before turning it on. The tenant
   registry, provisioning and template management are still the module's.*
+  *More done 2026-10-13 on `feat/admin-instances`: the registry UI, as
+  a second screen next to Users (`client/components/admin-instances-page.js`,
+  route `/instances`, `GET /:db/admin/instances` and three writes).
+  It lists the organization's instances with their database,
+  connection, user count, whether this server has them loaded and
+  listening, and whether sign-in is open; an organization administrator
+  can register a database that exists, attach an instance that belongs
+  to no organization, and close or open one. An instance write reads
+  the registry again, so a registration is served without a restart.
+  Closing the instance you are signed in to is refused. Still the
+  module's or the command line's: building and dropping databases
+  (D.1), template management, the expired-demo sweep. Nothing checks
+  the `"$db"` marker before registering, so a database registered by
+  mistake shows as loaded and answers nothing -- worth doing with D.1.*
     - Move the generic parts into the framework: tenant registry UI,
       provisioning, template management, expired-demo sweep.
     - Leave only business policy in the module: the WooCommerce webhook and
