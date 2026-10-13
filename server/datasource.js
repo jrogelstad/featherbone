@@ -474,6 +474,93 @@
 
     that.createProcess = createProcess.bind(that);
 
+    /*
+        Give up everything this process holds for an instance: its
+        LISTEN connection and its connection pool. Called when an
+        instance leaves the registry, and before a template build takes
+        its database away. Never throws: the caller is already removing
+        the instance, and a pool that cannot be ended must not stop
+        that (tenant plan D.3).
+    */
+    async function releaseTenant(tenant) {
+        if (tenant.listenerConn) {
+            try {
+                tenant.listenerConn.done();
+            } catch (err) {
+                console.error(
+                    "Could not release the listener connection of " +
+                    tenant.pgDatabase + ": " + (err.message || err)
+                );
+            }
+            delete tenant.listenerConn;
+        }
+
+        try {
+            await db.endPool(tenant);
+        } catch (err) {
+            console.error(
+                "Could not end the connection pool of " +
+                tenant.pgDatabase + ": " + (err.message || err)
+            );
+        }
+    }
+
+    /**
+        The registered instances that are no longer registered, given
+        what the manager now holds. The manager's own entry (id "-1")
+        is not an instance and never leaves.
+
+        Separate from
+        {{#crossLink "Datasource/loadTenants:method"}}{{/crossLink}}
+        so the decision can be tested without a cluster (tenant plan
+        D.3).
+
+        @method registryChanges
+        @param {Array} current Registered instances
+        @param {Array} incoming Instances the manager holds
+        @return {Array} Instances to drop from the registry
+    */
+    that.registryChanges = function (current, incoming) {
+        return current.filter(
+            (tenant) => (
+                tenant.id !== "-1" &&
+                !incoming.some((row) => row.id === tenant.id)
+            )
+        );
+    };
+
+    /**
+        The registry as it stands: one shallow copy per registered
+        instance, so a reader cannot reach the live objects or the
+        connections hanging off them.
+
+        @method registeredTenants
+        @return {Array}
+    */
+    that.registeredTenants = function () {
+        return tenants.map(function (tenant) {
+            return {
+                edition: tenant.edition,
+                id: tenant.id,
+                name: tenant.name,
+                pgDatabase: tenant.pgDatabase,
+                pgService: (
+                    tenant.pgService
+                    ? {
+                        id: tenant.pgService.id,
+                        name: tenant.pgService.name,
+                        pgHost: tenant.pgService.pgHost,
+                        pgPort: tenant.pgService.pgPort,
+                        pgUser: tenant.pgService.pgUser
+                    }
+                    : undefined
+                ),
+                isListening: Boolean(tenant.listenerConn),
+                isPooled: db.hasPool(tenant)
+            };
+        });
+    };
+
     /**
         Create a new tenant database based on a template.
 
@@ -586,10 +673,18 @@
                 );
             }
 
-            // Remove tenant reference
+            /*
+                Take the instance out of the registry and give up what
+                this process holds for it before the drop. The old
+                splice passed a delete count of 0, so it removed
+                nothing: the tenant stayed in the registry with its
+                pool and its LISTEN connection, both pointing at a
+                database that was about to disappear (tenant plan D.3).
+            */
             tenant = tenants.find((t) => t.pgDatabase === dbName);
             if (tenant) {
-                tenants.splice(tenants.indexOf(tenant), 0);
+                tenants.splice(tenants.indexOf(tenant), 1);
+                await releaseTenant(tenant);
             }
             conn1 = await db.connect();
 
@@ -631,10 +726,9 @@
         let conf = await config.read();
         let tenant = tenants.find((t) => t.pgDatabase === dbName);
 
-        // End all connections to the source database
-        tenant.listenerConn.done();
-        delete tenant.listenerConn;
-        await db.endPool(tenant);
+        // End all connections to the source database. A database
+        // with no listener or no pool is not an error here.
+        await releaseTenant(tenant);
 
         const client = new Client({
             database: config.managerDatabase(conf),
@@ -2746,15 +2840,41 @@
                     conn = await db.connect(tenant);
                     conn.done();
                 } catch (ignore) {
+                    /*
+                        Registered either way: the registry says what
+                        the manager holds, not what answered just now,
+                        and a database that is down must come back
+                        without a restart. The old message said
+                        "Skipping" while registering it anyway.
+                    */
                     console.error(
                         "Could not connect to " +
                         tenant.pgDatabase +
-                        ". Skipping."
+                        ". Registered, but requests to it will fail " +
+                        "until it answers."
                     );
                 }
 
                 tenants.push(tenant);
             }
+        }
+
+        /*
+            Instances the manager no longer holds leave the registry,
+            and this process gives up their pool and LISTEN connection.
+            loadTenants runs again whenever a Tenant row changes, so
+            this is where a deleted or unregistered instance actually
+            goes away; before, the registry only ever grew (tenant plan
+            D.3).
+        */
+        let dropped = that.registryChanges(tenants, pTenants);
+        let d = 0;
+
+        while (d < dropped.length) {
+            tenant = dropped[d];
+            d += 1;
+            tenants.splice(tenants.indexOf(tenant), 1);
+            await releaseTenant(tenant);
         }
 
         /*
