@@ -1594,6 +1594,14 @@
             throw new Error("Unknown file type " + suffix);
         }
 
+        // In debug mode the client is served as unbundled source that
+        // changes with every pull. With no cache headers the browser
+        // may keep running an old copy, so make it ask each time (a
+        // revalidation, not a full download, once the file is unchanged).
+        if (debug) {
+            mimetype["Cache-Control"] = "no-cache";
+        }
+
         fs.readFile(url + file, function (err, resp) {
             if (err) {
                 console.log(err);
@@ -1617,7 +1625,11 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.writeHeader(200, (
+                debug
+                ? {"Cache-Control": "no-cache", "Content-Type": "text/html"}
+                : {"Content-Type": "text/html"}
+            ));
             res.write(resp);
             res.end();
         });
