@@ -319,6 +319,172 @@
         };
 
         /**
+            One organization by primary key, as the administration
+            screens show it.
+
+            @method organization
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @return {Promise} Row or undefined
+        */
+        that.organization = async function (client, organizationPk) {
+            let resp = await client.query(
+                (
+                    "SELECT id, name, is_active, authentication, " +
+                    "  is_two_factor_required " +
+                    "FROM organization WHERE _pk = $1 AND NOT is_deleted"
+                ),
+                [organizationPk]
+            );
+
+            return resp.rows[0];
+        };
+
+        /**
+            Every identity in an organization, each with the instances
+            it may reach. One query per list rather than one per
+            identity, because this is what the administration screen
+            reads on every visit.
+
+            @method identities
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @return {Promise} Array of rows, grants under "grants"
+        */
+        that.identities = async function (client, organizationPk) {
+            let resp = await client.query(
+                (
+                    "SELECT i.id, i.username, i.full_name, i.email, " +
+                    "  i.status, i.failed_attempts, i.locked_until, " +
+                    "  i.last_signed_in, i.is_platform_admin, " +
+                    "  i.is_org_admin, " +
+                    "  COALESCE(g.grants, '[]'::json) AS grants " +
+                    "FROM identity i " +
+                    "LEFT JOIN (" +
+                    "  SELECT ag._identity_identity_pk AS pk, " +
+                    "    json_agg(json_build_object(" +
+                    "      'instance', t.id, 'name', t.name, " +
+                    "      'isActive', ag.is_active) " +
+                    "      ORDER BY t.name) AS grants " +
+                    "  FROM access_grant ag " +
+                    "  JOIN tenant t ON t._pk = ag._tenant_tenant_pk " +
+                    "  WHERE NOT ag.is_deleted AND NOT t.is_deleted " +
+                    "  GROUP BY ag._identity_identity_pk" +
+                    ") g ON g.pk = i._pk " +
+                    "WHERE i._organization_organization_pk = $1 " +
+                    "  AND NOT i.is_deleted " +
+                    "ORDER BY lower(i.username)"
+                ),
+                [organizationPk]
+            );
+
+            return resp.rows;
+        };
+
+        /**
+            One identity of an organization by its public id.
+
+            @method identityById
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @param {String} id
+            @return {Promise} Row or undefined
+        */
+        that.identityById = async function (client, organizationPk, id) {
+            let resp = await client.query(
+                (
+                    "SELECT _pk, id, username, full_name, email, status, " +
+                    "  is_platform_admin, is_org_admin " +
+                    "FROM identity " +
+                    "WHERE _organization_organization_pk = $1 " +
+                    "  AND id = $2 AND NOT is_deleted"
+                ),
+                [organizationPk, id]
+            );
+
+            return resp.rows[0];
+        };
+
+        /**
+            The instances belonging to an organization.
+
+            @method instances
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @return {Promise} Array of rows
+        */
+        that.instances = async function (client, organizationPk) {
+            let resp = await client.query(
+                (
+                    "SELECT _pk, id, name, pg_database, is_active " +
+                    "FROM tenant " +
+                    "WHERE _organization_organization_pk = $1 " +
+                    "  AND NOT is_deleted ORDER BY lower(name)"
+                ),
+                [organizationPk]
+            );
+
+            return resp.rows;
+        };
+
+        /**
+            Make an identity an organization administrator, or stop it
+            being one. The platform flag is deliberately not settable
+            here: Featherbone's own administrators are not something an
+            organization grants itself (ADR-001).
+
+            @method setOrgAdmin
+            @param {Client} client Manager client
+            @param {Number} identityPk
+            @param {Boolean} isOrgAdmin
+            @param {String} [by] Who to record as the author
+            @return {Promise}
+        */
+        that.setOrgAdmin = async function (client, identityPk, isOrgAdmin, by) {
+            await client.query(
+                (
+                    "UPDATE identity SET is_org_admin = $2, " +
+                    "updated = now(), updated_by = $3 WHERE _pk = $1"
+                ),
+                [identityPk, isOrgAdmin === true, by || "system"]
+            );
+        };
+
+        /**
+            The most recent privileged changes affecting an
+            organization, newest first.
+
+            @method auditTrail
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @param {Number} [limit] Default 100, capped at 500
+            @return {Promise} Array of rows
+        */
+        that.auditTrail = async function (client, organizationPk, limit) {
+            let max = Math.min(Math.max(limit || 100, 1), 500);
+            let resp = await client.query(
+                (
+                    "SELECT a.id, a.action, a.occurred, a.detail, " +
+                    "  a.updated_by AS author, " +
+                    "  actor.username AS actor, " +
+                    "  target.username AS target " +
+                    "FROM admin_audit a " +
+                    "LEFT JOIN identity actor " +
+                    "  ON actor._pk = a._actor_identity_pk " +
+                    "LEFT JOIN identity target " +
+                    "  ON target._pk = a._target_identity_identity_pk " +
+                    "WHERE NOT a.is_deleted AND (" +
+                    "  a._on_behalf_of_organization_pk = $1 " +
+                    "  OR target._organization_organization_pk = $1" +
+                    ") ORDER BY a.occurred DESC, a._pk DESC LIMIT " + max
+                ),
+                [organizationPk]
+            );
+
+            return resp.rows;
+        };
+
+        /**
             Record a privileged change. Anything that alters who can get
             in, or what they can get into, leaves a row here
             (ADR-001 A.4).

@@ -428,7 +428,18 @@ Tier 5.
       part of this.
     - Done when: creating and deleting a tenant returns the process to its
       starting pool and listener count.
-- [ ] **D.4 Redraw the Admin Console seam.** (M)
+- [ ] **D.4 Redraw the Admin Console seam.** (M) *Partly done
+  2026-10-12: identity administration is in the framework.
+  `server/services/admin.js` serves `/:db/admin/...` from inside an
+  instance -- the manager is not routable, so there is no database to
+  point a browser at -- and acts on that instance's organization only.
+  The three tiers of ADR-001 decide what a caller may do: platform
+  (`identity.is_platform_admin`), organization
+  (`identity.is_org_admin`), and instance (a tenant super user, limited
+  to the instance they are signed in to). It reads under either
+  strategy and reports which one is in force, so an administrator can
+  see what identity sign-in would do before turning it on. The tenant
+  registry, provisioning and template management are still the module's.*
     - Move the generic parts into the framework: tenant registry UI,
       provisioning, template management, expired-demo sweep.
     - Leave only business policy in the module: the WooCommerce webhook and
