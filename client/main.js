@@ -445,6 +445,20 @@ function homeRibbonGroups() {
                 ? goGlobalSettings
                 : undefined
             )
+        }, {
+            label: "Users",
+            icon: "manage_accounts",
+            title: (
+                "Who may sign in, and to which instances. The manager " +
+                "holds these records and is not routable, so they are " +
+                "administered from here."
+            ),
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? () => m.route.set("/admin")
+                : undefined
+            )
         }]
     }];
 }
@@ -510,15 +524,29 @@ const home = {
             };
         });
 
-        menu.selected("home");
+        // The route can load before sign-in finishes (a #!/home in the
+        // address bar), when start() has not built the menu yet.
+        if (menu) {
+            menu.selected("home");
+        }
     },
     oncreate: function () {
-        document.getElementById("fb-title").text = "Featherbone";
+        let title = document.getElementById("fb-title");
+
+        if (title) {
+            title.text = "Featherbone";
+        }
     },
     onupdate: function () {
-        menu.selected("home");
+        if (menu) {
+            menu.selected("home");
+        }
     },
     view: function () {
+        if (!menu) {
+            return [];
+        }
+
         let toolbarClass = "fb-toolbar";
         let homeGroups = homeRibbonGroups();
 
@@ -569,6 +597,7 @@ let routes = {
     "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
+    "/admin": components.adminPage,
     "/sign-in": components.signInPage,
     "/change-password": components.changePasswordPage,
     "/check-email": components.checkEmailPage,
