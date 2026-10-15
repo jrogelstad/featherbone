@@ -4,15 +4,48 @@ Started 2026-10-07. The design this implements is `adr-001-identity-and-tenancy.
 When this plan is done, work returns to `featherbone-improvement-plan.md`,
 whose Tier 1 is gated by it. Section 7 lists what that plan loses to this one.
 
-> **Proposed direction change, 2026-10-10 — not settled.** Multi-instance
-> would become the *only* supported shape: every installation gets an instance
-> manager database plus one or more application instances, because even a
-> single-company customer wants production, test and demo. It retires part of
-> A.1, replaces A.5's backfill and makes D.4 mandatory. **Read section 9
-> before starting A.3.**
+> **Settled and built, 2026-10-11.** The direction change proposed on
+> 2026-10-10 — multi-instance as the *only* supported shape, an instance
+> manager database plus one or more application instances — is the shape the
+> code now has (`feat/one-mode`, section 9). It retired part of A.1, replaced
+> A.5's backfill and made D.4 mandatory, all of which is reflected below.
 
 Sizes are rough relative weights, not estimates: **S** a sitting, **M** a few
 days, **L** a week or more of focused work.
+
+## Where this stands — 2026-10-15
+
+Every item carries its own state: `[x]` done with a *Done …* note naming the
+branch and date, `[~]` part done, `[ ]` not started. The tally:
+
+| Tier | Done | Part done | Open |
+| --- | --- | --- | --- |
+| A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
+| B Identity cutover | B.1, B.2, B.3, B.4, B.5 | — | B.6 |
+| C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
+| D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
+| E Multi-node readiness | — | — | E.1–E.5 |
+| F Verification | — | — | F.1–F.4 |
+
+**What that means in practice.** Identity sign-in exists and works behind
+`authStrategy: identity` — passwords verified in Node, `access_grant` as the
+entry boundary, no Postgres login roles, user administration and the registry
+both on screen (Users and Instances). What is *not* done is proving it on a
+real cluster and being able to get back: **B.6** (one migration command, a
+dry run, a documented rollback per phase) and **F.1** (the two-organization
+isolation test, which is the "done when" of improvement-plan item 1.1).
+Until those two, the cutover is built but not demonstrated, and
+improvement-plan Tier 1 stays gated.
+
+**Next three, in order:** B.6, F.1, then the rest of A.4 (the `is_super`
+rename, and appointing the first organization administrator, which today needs
+SQL — nothing in the UI or the backfill sets `is_org_admin`).
+
+**Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
+a database from the Instances screen, and the `"$db"` marker check when
+registering one; D.4's remainder is template management, the expired-demo
+sweep and leaving only commerce in the module, which has had no home since the
+manager stopped being routable; D.5 is a decision, not code.
 
 ## How to use this plan
 
@@ -187,6 +220,12 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       transferring rights.
     - Rename `user_account.is_super` in docs and UI to **tenant super user**
       so it stops reading as a platform role. No behaviour change.
+    - *Found 2026-10-15: nothing appoints the first organization
+      administrator. The Users screen lets one promote another, and the
+      Instances screen needs one, but `migrate-identities.js` creates every
+      identity with both flags false, so the first `is_org_admin` can only be
+      set in SQL. Give the backfill an `--org-admin <username>` flag, audited
+      like the rest.*
     - Done when: the break-glass path in requirement 3 — suspend a departed
       organization administrator, appoint a replacement — is doable in the UI
       by a platform administrator, and leaves an audit trail.
