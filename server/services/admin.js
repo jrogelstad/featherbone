@@ -608,6 +608,346 @@
             });
         };
 
+        /*
+            Instance administration (tenant plan D.4). The same three
+            tiers decide what a caller may do; an instance-tier super
+            user sees the one instance they are signed in to and
+            changes nothing, because what a database is registered as
+            is not theirs to decide.
+        */
+        function requireOrgWide(ctx, what) {
+            if (ctx.tier !== "platform" && ctx.tier !== "organization") {
+                throw forbidden(
+                    "Only an organization administrator may " + what
+                );
+            }
+        }
+
+        function instanceOut(row, registry, current) {
+            let served = registry || [];
+            let live = served.find(
+                (entry) => entry.pgDatabase === row.pg_database
+            );
+
+            return {
+                database: row.pg_database,
+                expiration: row.expiration,
+                id: row.id,
+                isActive: row.is_active,
+                isCurrent: row.id === current,
+                isDemo: row.is_demo,
+                /*
+                    Whether this process is serving the instance right
+                    now, which is not the same as being registered: a
+                    database that was registered a moment ago, or one
+                    that cannot be reached, is registered and not
+                    served.
+                */
+                isListening: Boolean(live && live.isListening),
+                isServed: Boolean(live),
+                name: row.name,
+                service: (
+                    row.service_id
+                    ? {
+                        host: row.pg_host,
+                        id: row.service_id,
+                        name: row.service_name,
+                        port: row.pg_port,
+                        user: row.pg_user
+                    }
+                    : undefined
+                ),
+                users: row.users
+            };
+        }
+
+        /**
+            What the instances screen shows: the organization's
+            instances, what this process is serving, the databases in
+            the cluster nothing is registered for, the connections
+            available to register through, instances that belong to no
+            organization, and the recent changes to any of it.
+
+            @method instanceOverview
+            @param {Object} payload
+            @return {Promise}
+        */
+        that.instanceOverview = async function (obj) {
+            let conf = await config.read();
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let organization = await manager.organization(
+                    mclient,
+                    ctx.organizationPk
+                );
+                let rows = await manager.instanceDetail(
+                    mclient,
+                    ctx.organizationPk
+                );
+                let orgWide = (
+                    ctx.tier === "platform" || ctx.tier === "organization"
+                );
+                let current = obj.tenant.id;
+                let instances = rows.map(
+                    (row) => instanceOut(row, obj.registry, current)
+                );
+                let audit = [];
+                let databases = [];
+                let orphans = [];
+                let services = [];
+
+                if (orgWide) {
+                    let trail = await manager.systemAudit(
+                        mclient,
+                        obj.limit
+                    );
+                    let unattached = await manager.orphanInstances(mclient);
+                    let connections = await manager.services(mclient);
+
+                    let unregistered = await manager.unregisteredDatabases(
+                        mclient
+                    );
+
+                    /*
+                        The manager is not an instance and must never
+                        be offered as one.
+                    */
+                    databases = unregistered.filter(
+                        (name) => name !== config.managerDatabase(conf)
+                    );
+                    audit = trail.map(function (row) {
+                        return {
+                            action: row.action,
+                            author: row.author,
+                            detail: row.detail,
+                            id: row.id,
+                            occurred: row.occurred
+                        };
+                    });
+                    orphans = unattached.map(function (row) {
+                        return {
+                            database: row.pg_database,
+                            id: row.id,
+                            isActive: row.is_active,
+                            name: row.name
+                        };
+                    });
+                    services = connections.map(function (row) {
+                        return {
+                            host: row.pg_host,
+                            id: row.id,
+                            name: row.name,
+                            port: row.pg_port,
+                            user: row.pg_user
+                        };
+                    });
+                } else {
+                    instances = instances.filter((row) => row.isCurrent);
+                }
+
+                return {
+                    actor: (
+                        ctx.actor
+                        ? ctx.actor.username
+                        : obj.user
+                    ),
+                    audit,
+                    authStrategy: config.authStrategy(conf),
+                    databases,
+                    instance: current,
+                    instances,
+                    /*
+                        The manager is never routable, so it is named
+                        here rather than listed as something to open.
+                    */
+                    manager: {database: config.managerDatabase(conf)},
+                    organization: {
+                        id: organization.id,
+                        name: organization.name
+                    },
+                    orphans,
+                    services,
+                    tier: ctx.tier
+                };
+            });
+        };
+
+        /**
+            Register a database that already exists as an instance of
+            this organization. The database is not touched: it must
+            already be an instance, which `node install.js --instance`
+            makes it.
+
+            @method registerInstance
+            @param {Object} payload
+            @return {Promise}
+        */
+        that.registerInstance = async function (obj) {
+            let data = obj.data || {};
+            let name = String(data.name || "").trim();
+            let database = String(data.database || "").trim().toLowerCase();
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let available;
+                let services;
+                let service;
+                let tenantPk;
+
+                requireOrgWide(ctx, "register an instance");
+
+                if (!name) {
+                    throw invalid("A name is required");
+                }
+
+                if (!database) {
+                    throw invalid("A database is required");
+                }
+
+                available = await manager.unregisteredDatabases(mclient);
+
+                if (available.indexOf(database) === -1) {
+                    throw invalid(
+                        "\"" + database + "\" is not a database in this " +
+                        "cluster that nothing is registered for"
+                    );
+                }
+
+                services = await manager.services(mclient);
+                service = services.find(
+                    (row) => row.id === data.service
+                );
+
+                if (!service) {
+                    throw invalid("Name the connection to reach it through");
+                }
+
+                tenantPk = await manager.addInstance(mclient, {
+                    by: obj.user,
+                    database,
+                    name,
+                    organizationPk: ctx.organizationPk,
+                    servicePk: service._pk
+                });
+                await manager.audit(mclient, {
+                    action: "instance.registered",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: name + " (" + database + ")",
+                    organizationPk: ctx.organizationPk
+                });
+
+                return {id: tenantPk};
+            });
+        };
+
+        /**
+            Attach an instance that belongs to no organization, as an
+            installation that pre-dates ADR-001 has.
+
+            @method attachInstance
+            @param {Object} payload
+            @return {Promise}
+        */
+        that.attachInstance = async function (obj) {
+            let data = obj.data || {};
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let orphans;
+                let target;
+
+                requireOrgWide(ctx, "attach an instance");
+                orphans = await manager.orphanInstances(mclient);
+                target = orphans.find((row) => row.id === data.id);
+
+                if (!target) {
+                    throw notFound(
+                        "No instance without an organization has that id"
+                    );
+                }
+
+                await manager.attachInstance(
+                    mclient,
+                    target._pk,
+                    ctx.organizationPk,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: "instance.attached",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: target.name + " (" + target.pg_database + ")",
+                    organizationPk: ctx.organizationPk
+                });
+
+                return true;
+            });
+        };
+
+        /**
+            Open an instance for sign-in, or close it. Closing leaves
+            the database alone: nobody can enter it, and everything in
+            it is still there.
+
+            @method setInstanceActive
+            @param {Object} payload
+            @return {Promise}
+        */
+        that.setInstanceActive = async function (obj) {
+            let data = obj.data || {};
+            let isActive = data.isActive === true;
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let target;
+
+                requireOrgWide(ctx, "open or close an instance");
+                target = await manager.instanceById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such instance in this organization");
+                }
+
+                if (
+                    !isActive &&
+                    obj.tenant &&
+                    target.id === obj.tenant.id
+                ) {
+                    throw invalid(
+                        "This is the instance you are signed in to. " +
+                        "Close it from another one, or nobody can open " +
+                        "it again from inside it."
+                    );
+                }
+
+                await manager.setInstanceActive(
+                    mclient,
+                    target._pk,
+                    isActive,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: (
+                        isActive
+                        ? "instance.opened"
+                        : "instance.closed"
+                    ),
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: target.name + " (" + target.pg_database + ")",
+                    organizationPk: ctx.organizationPk
+                });
+
+                return true;
+            });
+        };
+
         return that;
     };
 
