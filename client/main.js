@@ -459,6 +459,20 @@ function homeRibbonGroups() {
                 ? () => m.route.set("/admin")
                 : undefined
             )
+        }, {
+            label: "Instances",
+            icon: "storage",
+            title: (
+                "Which databases this installation serves, and which " +
+                "organization they belong to. The other half of " +
+                "Administration, next to Users."
+            ),
+            disabled: !isAdmin,
+            onclick: (
+                isAdmin
+                ? () => m.route.set("/instances")
+                : undefined
+            )
         }]
     }];
 }
@@ -598,6 +612,7 @@ let routes = {
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
     "/admin": components.adminPage,
+    "/instances": components.adminInstancesPage,
     "/sign-in": components.signInPage,
     "/change-password": components.changePasswordPage,
     "/check-email": components.checkEmailPage,
