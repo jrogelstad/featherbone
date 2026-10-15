@@ -21,7 +21,7 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | Tier | Done | Part done | Open |
 | --- | --- | --- | --- |
 | A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
-| B Identity cutover | B.1, B.2, B.3, B.4, B.5 | — | B.6 |
+| B Identity cutover | B.1, B.2, B.3, B.4, B.5 | — | B.6, B.7 |
 | C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
 | D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
 | E Multi-node readiness | — | — | E.1–E.5 |
@@ -395,6 +395,24 @@ purpose.
           whose local profile was rolled back is refused at
           `deserializeUser`. A sweep for identities with no grant
           belongs with B.6.
+- [ ] **B.7 Provision the local profile when access is granted.** (S)
+    *Found 2026-10-15, in use.* `user_account` is the local profile (B.5) and
+    `deserializeUser` requires a row in **every** instance the person reaches:
+    without one, `server/database.js` rejects with "User account <name> not
+    found", which is what a person sees when they switch to an instance they
+    were granted but never had an account in. Nothing creates it. B.5 built
+    the inside-out direction — creating a user in an instance creates the
+    identity — and the outside-in direction was never specified: granting an
+    instance from the Users screen, the backfill, or `--instance` registering
+    a database whose people already exist elsewhere.
+    - Create the profile wherever a grant is created, or create it on first
+      sign-in from the identity (name, contact, `is_active`), and decide which
+      roles it joins — `everyone` at least, nothing else by default.
+    - Until then the manual step is a `user_account` row plus an `everyone`
+      membership in that database, or creating the user through the normal
+      user screen from inside it.
+    - Done when: granting someone an instance is enough for them to sign in to
+      it, with no SQL and no second screen.
 - [ ] **B.6 Migration tooling and rollback.** (M)
     - One command to migrate a cluster: backfill organizations, identities,
       grants and verifiers; report anything ambiguous rather than guessing.
