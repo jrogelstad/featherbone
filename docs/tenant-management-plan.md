@@ -408,7 +408,26 @@ Tier 5.
       two nodes must not provision the same tenant twice.
     - Done when: killing the process at any step leaves a resumable record, and
       re-running completes without orphaning a database.
-- [ ] **D.2 A guarded database create, clone and delete API.** (M)
+- [x] **D.2 A guarded database create, clone and delete API.** (M) *Done
+  2026-10-13 on `fix/d2-database-api`. Every name goes through
+  `datasource.databaseName`, which folds it the way Postgres folds an
+  unquoted identifier and refuses anything that is not a plain name, so
+  it can be compared with `pg_database` before use; the cluster's own
+  databases and the manager are refused whatever the caller asks.
+  `createDatabase` refuses a name already taken and rolls back only a
+  database the call created, and reads the new database's module list
+  from the new database (it passed the whole result array to
+  `db.connect`, which carries no `pgDatabase`, so the list came from
+  the default connection). `createTemplateDatabase` builds under a
+  working name and swaps, keeping the old template until the new one is
+  in place, marks templates with `ALTER DATABASE`, refuses a source
+  another session holds instead of taking it away, and no longer sends
+  port 80. The check is inside the three functions rather than in a new
+  service, so the Admin Console's calls keep working: a platform
+  administrator under `authStrategy` identity, a super user of the
+  calling database otherwise, with every call audited. Verified against
+  a live cluster (duplicate name, rollback, refusals, busy source,
+  completed build, failed build).*
     - One framework entry point with the platform-administrator check inside
       it, so module code cannot reach the raw primitives.
     - Fix drop-on-failure in `createDatabase` (`server/datasource.js` ~332–400):
@@ -420,7 +439,19 @@ Tier 5.
       **Absorbs 5.4.**
     - Done when: a duplicate tenant name cannot destroy an existing database,
       and a failed template build leaves the old template intact.
-- [ ] **D.3 Fix the tenant registry.** (M)
+- [x] **D.3 Fix the tenant registry.** (M) *Done 2026-10-13 on
+  `fix/d3-tenant-registry`. The splice passed a delete count of 0, so
+  nothing was removed; `loadTenants` only ever added. An instance
+  leaving the registry now gives up its pool and its LISTEN
+  connection, in both paths, and `registryChanges` (unit-tested) is the
+  decision of what leaves. `endPool` no longer builds a pool just to
+  tear it down, and `registeredTenants` reports the registry without
+  handing out the connections hanging off it. The other two bullets of
+  5.2 were already fixed: `cleanupProcesses` walks every instance
+  through `eachTenant`, and routes mount once through `mountedRoutes`
+  (ADR-002). Verified in-process: registering an instance and then
+  removing its Tenant row returns the registry, the pool and the
+  listener to their starting state.*
     - `deleteDatabase` calls `tenants.splice(idx, 0)`, which removes nothing
       (`datasource.js` ~438). `loadTenants()` only ever adds. Deleted tenants
       keep their pool, their listener connection and their `pools[db]` entry.

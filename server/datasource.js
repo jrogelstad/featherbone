@@ -36,6 +36,7 @@
     const {
         NavigationCategories
     } = require("./services/navigation-categories");
+    const {Manager} = require("./services/manager");
     const {Profile} = require("./services/profile");
     const {Packager} = require("./services/packager");
     const {Routes} = require("./services/routes");
@@ -61,6 +62,7 @@
     const feathers = new Feathers();
     const importer = new Importer();
     const installer = new Installer();
+    const manager = new Manager();
     const navigationCategories = new NavigationCategories();
     const packager = new Packager();
     const profile = new Profile();
@@ -483,6 +485,10 @@
         that (tenant plan D.3).
     */
     async function releaseTenant(tenant) {
+        if (!tenant) {
+            return;
+        }
+
         if (tenant.listenerConn) {
             try {
                 tenant.listenerConn.done();
@@ -561,69 +567,307 @@
         });
     };
 
+    /*
+        Creating, cloning and dropping a database is the one place the
+        framework hands out CREATE DATABASE, so the rules live here and
+        module code cannot get round them (tenant plan D.2).
+    */
+    const DB_NAME = (/^[a-z_][a-z0-9_$]{0,62}$/);
+
     /**
-        Create a new tenant database based on a template.
+        A database name this framework will act on, folded to lower
+        case the way Postgres folds an unquoted identifier, or
+        `undefined` when the name is not a plain one. A name that comes
+        back can be compared with `pg_database` before it is used and
+        cannot smuggle anything into a statement.
+
+        @method databaseName
+        @param {String} name
+        @return {String} The normalized name, or undefined
+    */
+    that.databaseName = function (name) {
+        let given = (
+            (name === undefined || name === null)
+            ? ""
+            : String(name)
+        );
+        let normalized = given.trim().toLowerCase();
+
+        return (
+            DB_NAME.test(normalized)
+            ? normalized
+            : undefined
+        );
+    };
+
+    function badNameMessage(name) {
+        return (
+            "\"" + name + "\" is not a database name this framework " +
+            "will act on: a letter or underscore, then letters, " +
+            "digits, underscores or dollar signs"
+        );
+    }
+
+    /*
+        The cluster's own databases and the manager are refused
+        whatever the caller asks: dropping the manager would take the
+        installation's registry, identities and sessions with it.
+    */
+    function isReserved(name, conf) {
+        let reserved = ["postgres", "template0", "template1"];
+
+        if (conf) {
+            reserved.push(config.managerDatabase(conf));
+        }
+
+        return reserved.indexOf(name) !== -1;
+    }
+
+    function reservedMessage(name) {
+        return (
+            "\"" + name + "\" is not an application database and " +
+            "cannot be created or dropped from here"
+        );
+    }
+
+    /*
+        The normalized name of a database this framework may create
+        over or drop, or a message saying why it may not. Saves every
+        caller writing the same two checks.
+    */
+    function writableName(name, conf) {
+        let normalized = that.databaseName(name);
+
+        if (!normalized) {
+            return {message: badNameMessage(name)};
+        }
+
+        if (isReserved(normalized, conf)) {
+            return {message: reservedMessage(normalized)};
+        }
+
+        return {name: normalized};
+    }
+
+    /*
+        Record what was done to the cluster in the manager's audit
+        trail, next to the identity administration (ADR-001). Best
+        effort: a trail that cannot be written must not undo a database
+        that already exists.
+    */
+    async function auditDatabase(action, user, detail) {
+        try {
+            await manager.run(function (mclient) {
+                return manager.audit(mclient, {
+                    action,
+                    by: user || "system",
+                    detail
+                });
+            });
+        } catch (err) {
+            console.error(
+                "Could not record " + action + " in the audit trail: " +
+                (err.message || err)
+            );
+        }
+    }
+
+    /*
+        Who may create, clone and drop a database, and who to record
+        for it.
+
+        Under `authStrategy` "identity" this is a platform
+        administrator: ADR-001 puts the cluster in Featherbone's own
+        hands rather than a tenant's. Under the default "role" strategy
+        there are no identities to ask, so the authority stays where it
+        has always been, a super user of the database the request came
+        from, and the check is the one these functions already made.
+
+        Resolves to the caller's name, or to a denial to reject with.
+        The check is inside these functions, so module code cannot
+        reach CREATE DATABASE without passing it.
+    */
+    async function databaseActor(pClient, verb) {
+        let conf = await config.read();
+        let user = (
+            (pClient && typeof pClient.currentUser === "function")
+            ? pClient.currentUser()
+            : undefined
+        );
+        let isSuper;
+
+        if (conf.authStrategy === "identity") {
+            let tenant = tenants.find(
+                (t) => t.pgDatabase === (pClient && pClient.database)
+            );
+            let allowed = await manager.run(async function (mclient) {
+                let instance = await manager.instance(
+                    mclient,
+                    tenant
+                ).catch(() => undefined);
+                let actor = (
+                    instance
+                    ? await manager.identity(
+                        mclient,
+                        instance.organizationPk,
+                        user || ""
+                    )
+                    : undefined
+                );
+
+                return Boolean(actor && actor.is_platform_admin);
+            });
+
+            return (
+                allowed
+                ? {user}
+                : {
+                    message: (
+                        "Only a platform administrator may " + verb +
+                        " databases"
+                    )
+                }
+            );
+        }
+
+        /*
+            Asked of the database the request came from, which is where
+            a super user's row lives. createDatabase used to ask the
+            default connection, so it only recognized a super user who
+            also had an account in the manager.
+        */
+        isSuper = await tools.isSuperUser({
+            client: pClient,
+            user
+        }).catch(() => false);
+
+        return (
+            isSuper
+            ? {user}
+            : {
+                message: (
+                    "User must be a super user to " + verb + " databases"
+                )
+            }
+        );
+    }
+
+    /**
+        Create a new application database from a template and bring the
+        instance registered for it up to date.
+
+        Refuses a name that is already taken, and drops only a database
+        this call created: the rollback used to drop whatever name it
+        was given, so creating over an existing name destroyed it
+        (improvement plan 1.4, tenant plan D.2).
 
         @method createDatabase
-        @param {Object} client Postgres client
+        @param {Object} client Postgres client of the calling database
         @param {String} database Target database name
-        @param {String} template Template Database name
+        @param {String} template Template database name
         @return {Object} Promise
     */
     that.createDatabase = async function (pClient, dbName, template) {
+        let conf;
+        let name;
+        let source;
+        let target;
+        let actor;
+        let user;
+        let conn1;
+        let conn2;
+        let instances;
+        let mods;
+        let created = false;
+
         if (!template) {
             return Promise.reject(
                 "Template argument is required to create database"
             );
         }
-        let sql = "CREATE DATABASE %I TEMPLATE %I;";
-        let conn1 = await db.connect();
-        let conn2;
-        let tenant;
-        let mods;
-        let isSuper;
 
-        sql = sql.format([dbName, template]);
+        conf = await config.read();
+        target = writableName(dbName, conf);
+        source = that.databaseName(template);
+
+        if (target.message) {
+            return Promise.reject(target.message);
+        }
+
+        if (!source) {
+            return Promise.reject(badNameMessage(template));
+        }
+
+        name = target.name;
+        actor = await databaseActor(pClient, "create");
+
+        if (actor.message) {
+            return Promise.reject(actor.message);
+        }
+
+        user = actor.user;
+        conn1 = await db.connect();
 
         try {
-            isSuper = await tools.isSuperUser({
-                client: conn1.client,
-                user: pClient.currentUser()
-            });
+            let taken = await conn1.client.query(
+                "SELECT 1 FROM pg_database WHERE datname = $1",
+                [name]
+            );
 
-            if (!isSuper) {
-                return Promise.reject(
-                    "User must be a super user to create databases"
+            if (taken.rows.length) {
+                /*
+                    Never dropped by the rollback below: "created" is
+                    still false, so nothing here made it (improvement
+                    plan 1.4).
+                */
+                throw new Error(
+                    "Database \"" + name + "\" already exists"
                 );
             }
 
-            // Create the datbase
-            await conn1.client.query(sql);
+            let create = "CREATE DATABASE %I TEMPLATE %I;";
 
-            // Need to update tenant with modules in new db
-            tenant = await that.request({
+            await conn1.client.query(create.format([name, source]));
+            created = true;
+
+            // Bring the instance's module list up to date from the
+            // database that was just built
+            instances = await that.request({
                 client: pClient,
                 method: "GET",
                 name: "Tenant",
                 filter: {criteria: [{
                     property: "pgDatabase",
-                    value: dbName
+                    value: name
                 }]}
             }, true);
 
-            conn2 = await db.connect(tenant);
+            if (!instances.length) {
+                throw new Error(
+                    "No instance is registered for database \"" +
+                    name + "\""
+                );
+            }
+
+            /*
+                The new database, not the default connection: this used
+                to pass the whole result array, which carries no
+                pgDatabase, so the module list was read from whatever
+                database the default connection pointed at.
+            */
+            conn2 = await db.connect(instances[0]);
 
             mods = await that.request({
                 client: conn2.client,
                 method: "GET",
                 name: "Module",
                 properties: ["name", "version"],
-                user: pClient.currentUser()
+                user
             }, true);
 
             await that.request({
                 client: pClient,
-                id: tenant[0].id,
+                id: instances[0].id,
                 method: "PATCH",
                 name: "Tenant",
                 data: [{
@@ -631,48 +875,79 @@
                     path: "/modules",
                     value: mods
                 }],
-                user: pClient.currentUser()
+                user
             }, true);
         } catch (err) {
-            sql = "DROP DATABASE IF EXISTS %I";
-            sql = sql.format([dbName]);
-            conn1.client.query(sql);
-            return Promise.reject(err);
+            if (created) {
+                let undo = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
+
+                try {
+                    await conn1.client.query(undo.format([name]));
+                } catch (dropErr) {
+                    console.error(
+                        "Could not drop \"" + name + "\" after a failed " +
+                        "create, so it is left behind: " +
+                        (dropErr.message || dropErr)
+                    );
+                }
+            }
+
+            /*
+                Rethrown, not returned as a rejected promise: a
+                rejected promise returned from a try is nobody's yet
+                while the finally runs, and Node reports it as an
+                unhandled rejection.
+            */
+            throw err;
         } finally {
             conn1.done();
-            conn2.done();
+            if (conn2) {
+                conn2.done();
+            }
         }
 
+        await auditDatabase(
+            "database.created",
+            user,
+            name + " from template " + source
+        );
     };
 
     /**
-        Delete a tenant database.
+        Delete an application database, taking its instance out of the
+        registry first.
+
+        The cluster's own databases and the manager are refused: the
+        manager holds the registry, the identities and the sessions.
 
         @method deleteDatabase
-        @param {Object} client Postgres client
+        @param {Object} client Postgres client of the calling database
         @param {String} database Target database name
         @return {Object} Promise
     */
     that.deleteDatabase = async function (pClient, dbName) {
-        let sql = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
+        let conf = await config.read();
+        let target = writableName(dbName, conf);
+        let name;
+        let user;
+        let actor;
         let conn1;
         let tenant;
-        let isSuper;
 
-        sql = sql.format([dbName]);
+        if (target.message) {
+            return Promise.reject(target.message);
+        }
+
+        name = target.name;
+        actor = await databaseActor(pClient, "drop");
+
+        if (actor.message) {
+            return Promise.reject(actor.message);
+        }
+
+        user = actor.user;
 
         try {
-            isSuper = await tools.isSuperUser({
-                client: pClient,
-                user: pClient.currentUser()
-            });
-
-            if (!isSuper) {
-                return Promise.reject(
-                    "User must be a super user to drop databases"
-                );
-            }
-
             /*
                 Take the instance out of the registry and give up what
                 this process holds for it before the drop. The old
@@ -681,27 +956,35 @@
                 pool and its LISTEN connection, both pointing at a
                 database that was about to disappear (tenant plan D.3).
             */
-            tenant = tenants.find((t) => t.pgDatabase === dbName);
+            tenant = tenants.find((t) => t.pgDatabase === name);
             if (tenant) {
                 tenants.splice(tenants.indexOf(tenant), 1);
                 await releaseTenant(tenant);
             }
             conn1 = await db.connect();
 
-            // Delete the datbase
-            await conn1.client.query(sql);
-        } catch (err) {
-            return Promise.reject(err);
+            let drop = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
+
+            await conn1.client.query(drop.format([name]));
         } finally {
             if (conn1) {
                 conn1.done();
             }
         }
+
+        await auditDatabase("database.dropped", user, name);
     };
 
     /**
-        Create template databasefrom existing. No connections must
-        exist on source database.
+        Build a template database from an application database.
+
+        The new copy is built under a working name and only swapped in
+        once it is complete, so a build that fails leaves the template
+        that was already there (tenant plan D.2). `CREATE DATABASE ...
+        TEMPLATE` needs the source to have no other sessions, so this
+        gives up the pool and the LISTEN connection this process holds
+        and then refuses if anyone else is still connected, rather than
+        taking a working database away from whoever is using it.
 
         @method createTemplateDatabase
         @param {String} superuser Postgres super user name
@@ -716,44 +999,158 @@
         dbName,
         template
     ) {
-        let sql1 = "DROP DATABASE IF EXISTS %I";
-        let sql2 = "CREATE DATABASE %I TEMPLATE %I;";
-        let sql3 = (
-            "UPDATE pg_database " +
-            "  SET datistemplate = $2 " +
-            "WHERE datname = $1;"
+        const sqlDrop = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
+        const sqlCopy = "CREATE DATABASE %I TEMPLATE %I;";
+        const sqlRename = "ALTER DATABASE %I RENAME TO %I;";
+        const sqlMark = "ALTER DATABASE %I WITH IS_TEMPLATE %s;";
+        const sqlBusy = (
+            "SELECT count(*)::int AS n FROM pg_stat_activity " +
+            "WHERE datname = $1 AND pid <> pg_backend_pid()"
         );
+        const sqlExists = "SELECT 1 FROM pg_database WHERE datname = $1";
         let conf = await config.read();
-        let tenant = tenants.find((t) => t.pgDatabase === dbName);
+        let source = that.databaseName(dbName);
+        let wanted = writableName(template, conf);
+        let target;
+        let stem;
+        let building;
+        let previous;
+        let tenant;
+        let swapped = false;
+        let client;
+        let busy;
 
-        // End all connections to the source database. A database
-        // with no listener or no pool is not an error here.
-        await releaseTenant(tenant);
+        async function exists(name) {
+            let resp = await client.query(sqlExists, [name]);
 
-        const client = new Client({
+            return resp.rows.length > 0;
+        }
+
+        function drop(name) {
+            return client.query(sqlDrop.format([name]));
+        }
+
+        function mark(name, isTemplate) {
+            return client.query(sqlMark.format([name, isTemplate]));
+        }
+
+        function rename(from, to) {
+            return client.query(sqlRename.format([from, to]));
+        }
+
+        if (!source) {
+            return Promise.reject(badNameMessage(dbName));
+        }
+
+        if (wanted.message) {
+            return Promise.reject(wanted.message);
+        }
+
+        target = wanted.name;
+
+        if (source === target) {
+            return Promise.reject(
+                "A database cannot be its own template"
+            );
+        }
+
+        stem = target.slice(0, 52);
+        building = stem + "_building";
+        previous = stem + "_previous";
+        tenant = tenants.find((t) => t.pgDatabase === source);
+
+        client = new Client({
             database: config.managerDatabase(conf),
             host: conf.pgHost,
             password: superpwd,
-            port: conf.pgPort || 80,
+            port: conf.pgPort,
             user: superuser
         });
 
-        sql1 = sql1.format([template]);
-        sql2 = sql2.format([template, dbName]);
+        // Let go of the source: a template copy needs it quiet
+        await releaseTenant(tenant);
 
         try {
             await client.connect();
-            await client.query(sql3, [template, false]);
-            await client.query(sql1);
-            await client.query(sql2);
-            await client.query(sql3, [template, true]);
+
+            busy = await client.query(sqlBusy, [source]);
+
+            if (busy.rows[0].n) {
+                // Nothing is built yet, so the undo below finds
+                // nothing to put back
+                throw new Error(
+                    "\"" + source + "\" has " + busy.rows[0].n +
+                    " other session(s). A template copy needs the " +
+                    "database to itself, so no template was built."
+                );
+            }
+
+            // Anything left from a build that did not finish
+            await drop(building);
+            await client.query(sqlCopy.format([building, source]));
+
+            /*
+                Swap, keeping the old template until the new one is in
+                place. The old code dropped the template first and
+                wrote datistemplate in pg_database by hand, so a build
+                that failed left no template at all.
+            */
+            let had = await exists(target);
+
+            if (had) {
+                await mark(target, "false");
+                await drop(previous);
+                await rename(target, previous);
+            }
+
+            await rename(building, target);
+            swapped = true;
+            await mark(target, "true");
+            await drop(previous);
         } catch (err) {
-            return Promise.reject(err);
+            if (!swapped) {
+                try {
+                    // Put the old template back, clear the attempt
+                    await drop(building);
+
+                    let gone = !(await exists(target));
+                    let kept = await exists(previous);
+
+                    if (gone && kept) {
+                        await rename(previous, target);
+                        await mark(target, "true");
+                    }
+                } catch (undoErr) {
+                    console.error(
+                        "Could not undo the template build of \"" +
+                        target + "\". The copy being built is \"" +
+                        building + "\" and the template that was there " +
+                        "is \"" + previous + "\": " +
+                        (undoErr.message || undoErr)
+                    );
+                }
+            }
+
+            /*
+                Rethrown, not returned as a rejected promise: a
+                rejected promise returned from a try whose finally
+                awaits is nobody's while the finally runs, and Node
+                reports it as an unhandled rejection.
+            */
+            throw err;
         } finally {
-            client.end();
-            // Resume listening to events on tenant db
-            that.listen(tenant);
+            await client.end();
+            // Resume listening to events on the source database
+            if (tenant) {
+                that.listen(tenant);
+            }
         }
+
+        await auditDatabase(
+            "database.templated",
+            superuser,
+            target + " from " + source
+        );
     };
 
     // Run an action against every registered tenant. A tenant that can't be
