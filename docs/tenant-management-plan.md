@@ -25,21 +25,22 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
 | D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
 | E Multi-node readiness | — | — | E.1–E.5 |
-| F Verification | — | — | F.1–F.4 |
+| F Verification | F.1 | F.2 | F.3, F.4 |
 
 **What that means in practice.** Identity sign-in exists and works behind
 `authStrategy: identity` — passwords verified in Node, `access_grant` as the
 entry boundary, no Postgres login roles, user administration and the registry
-both on screen (Users and Instances). What is *not* done is proving it on a
-real cluster and being able to get back: **B.6** (one migration command, a
-dry run, a documented rollback per phase) and **F.1** (the two-organization
-isolation test, which is the "done when" of improvement-plan item 1.1).
-Until those two, the cutover is built but not demonstrated, and
-improvement-plan Tier 1 stays gated.
+both on screen (Users and Instances). Isolation between organizations is
+demonstrated rather than asserted, with a mutation check (**F.1**, the
+"done when" of improvement-plan item 1.1). What is *not* done is proving the
+migration on a real cluster and being able to get back: **B.6** — one
+migration command, a dry run, and a documented rollback per phase. Until
+that, improvement-plan Tier 1 stays gated on the cutover being reversible,
+not on whether it works.
 
-**Next three, in order:** B.6, F.1, then the rest of A.4 (the `is_super`
-rename, and appointing the first organization administrator, which today needs
-SQL — nothing in the UI or the backfill sets `is_org_admin`).
+**Next three, in order:** B.6, then the rest of A.4 (the `is_super` rename,
+and appointing the first organization administrator, which today needs SQL —
+nothing in the UI or the backfill sets `is_org_admin`), then D.1.
 
 **Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
 a database from the Instances screen, and the `"$db"` marker check when
@@ -591,14 +592,28 @@ The isolation claims in the audit were traced in code but never proven by
 running them. These are the tests that close that out. All need a writable
 scratch cluster, not `demo`.
 
-- [ ] **F.1 Two-organization isolation test.** (M)
-    - Create a user in organization B with an organization A username; confirm
-      B cannot set A's password, cannot sign in to A's databases, and gains no
-      authorization in them. This is the test item 1.1 always needed.
-- [ ] **F.2 Consultant test.** (S)
-    - One person with identities in two organizations. Confirm separate
-      credentials, that each organization's administrator sees and controls
-      only their own, and that revoking one leaves the other working.
+- [x] **F.1 Two-organization isolation test.** (M) *Done 2026-10-15 on
+  `feat/f1-isolation-test`: `test/api/isolation.test.js`, 14 tests against a
+  server running `authStrategy: identity`. A second organization is seeded
+  carrying the same two usernames as the harness's own, with different
+  passwords and no grant to anything. It proves the other organization's
+  password does not open this instance, that its administrator is refused
+  outright, that a name existing only there is refused, and that a refused
+  sign-in leaves no session; then that an organization administrator's every
+  write -- password, status, grant, org-admin -- answers 404 against an
+  identity over there, and that the hash over there is untouched afterwards.
+  **Checked by mutation:** dropping the organization from the sign-in lookup
+  (`server/database.js`) fails the sign-in tests, and dropping it from
+  `manager.identity` fails all seven administration tests, so the suite is not
+  passing vacuously. This is the test item 1.1 always needed.*
+- [~] **F.2 Consultant test.** (S) *Mostly done 2026-10-15 in the same file:
+  one username with an identity in each organization, separate credentials
+  proven both ways, an organization administrator seeing and controlling only
+  their own, and disabling the identity over there leaving this one signing
+  in. Not covered: the mirror image. The seeded second organization has no
+  instance of its own -- the harness builds two databases and both belong to
+  the first -- so "each organization's administrator sees only their own" is
+  proven from one side. Finishing it means a third database in the harness.*
 - [ ] **F.3 Multi-node test.** (M)
     - Two Node processes against the same databases. Confirm locks and
       subscriptions survive a restart of either, each cron job fires once, a
