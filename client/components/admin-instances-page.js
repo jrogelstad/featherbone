@@ -363,9 +363,21 @@ adminInstancesPage.component = {
             ]);
         }
 
+        /*
+            fb-button-disabled restores the pointer events Pure takes
+            away from a disabled .pure-button. Without it the browser
+            never hovers the button, so the title saying why it is
+            disabled is never seen.
+        */
         function action(label, title, disabled, onclick) {
             return m("button", {
-                class: "pure-button fb-admin-action",
+                class: (
+                    "pure-button fb-admin-action" + (
+                        disabled
+                        ? " fb-button-disabled"
+                        : ""
+                    )
+                ),
                 disabled,
                 onclick,
                 title
@@ -415,7 +427,13 @@ adminInstancesPage.component = {
                     viewModel: vm.buttonDone()
                 }),
                 m("button", {
-                    class: "pure-button fb-toolbar-button",
+                    class: (
+                        "pure-button fb-toolbar-button" + (
+                            orgWide
+                            ? ""
+                            : " fb-button-disabled"
+                        )
+                    ),
                     disabled: !orgWide,
                     onclick: vm.doRegister,
                     title: (
