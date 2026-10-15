@@ -1597,6 +1597,14 @@
             throw new Error("Unknown file type " + suffix);
         }
 
+        // In debug mode the client is served as unbundled source that
+        // changes with every pull. With no cache headers the browser
+        // may keep running an old copy, so make it ask each time (a
+        // revalidation, not a full download, once the file is unchanged).
+        if (debug) {
+            mimetype["Cache-Control"] = "no-cache";
+        }
+
         fs.readFile(url + file, function (err, resp) {
             if (err) {
                 console.log(err);
@@ -1620,7 +1628,11 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.writeHeader(200, (
+                debug
+                ? {"Cache-Control": "no-cache", "Content-Type": "text/html"}
+                : {"Content-Type": "text/html"}
+            ));
             res.write(resp);
             res.end();
         });
@@ -1861,6 +1873,12 @@
             data: req.body || {},
             isSuper: Boolean(req.user && req.user.isSuper),
             limit: Number(req.query.limit) || undefined,
+            /*
+                What this process is serving, so the instances screen
+                can tell a registered instance from one that is
+                actually up (tenant plan D.3's registry accessor).
+            */
+            registry: datasource.registeredTenants(),
             tenant: req.tenant,
             user: req.user.name
         };
@@ -1870,6 +1888,26 @@
         return async function (req, res) {
             try {
                 respond.bind(res)(await admin[method](adminPayload(req)));
+            } catch (e) {
+                error.bind(res)(e);
+            }
+        };
+    }
+
+    /*
+        An instance write goes straight to the manager's registry
+        table, which the Tenant feather's own change events do not
+        cover, so the registry is read again here. Without it a
+        newly registered instance would not be served until the next
+        restart.
+    */
+    function doAdminInstance(method) {
+        return async function (req, res) {
+            try {
+                let resp = await admin[method](adminPayload(req));
+
+                await refreshTenants();
+                respond.bind(res)(resp);
             } catch (e) {
                 error.bind(res)(e);
             }
@@ -2415,6 +2453,16 @@
         });
     }
 
+    /*
+        Read the registry again and listen to whatever it now holds.
+        Both the Tenant change subscription and the instance
+        administration routes come through here.
+    */
+    async function refreshTenants() {
+        tenants = await datasource.loadTenants();
+        await listenToTenants();
+    }
+
     async function listenToTenants() {
         let tenant;
         let n = 0;
@@ -2439,10 +2487,7 @@
         let eKey = f.createId();
 
         // Reregister routes if something changes
-        eventSessions[eKey] = async function () {
-            tenants = await datasource.loadTenants();
-            await listenToTenants();
-        };
+        eventSessions[eKey] = refreshTenants;
 
         await datasource.request({
             name: "Tenant",
@@ -2996,6 +3041,19 @@
             doAdmin("setOrgAdmin")
         );
         dbRouter.post("/:db/admin/grant", doAdmin("setGrant"));
+        dbRouter.get("/:db/admin/instances", doAdmin("instanceOverview"));
+        dbRouter.post(
+            "/:db/admin/instance",
+            doAdminInstance("registerInstance")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/organization",
+            doAdminInstance("attachInstance")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/status",
+            doAdminInstance("setInstanceActive")
+        );
         dbRouter.get("/:db/sessions", doGetSessions);
         dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);

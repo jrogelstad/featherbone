@@ -428,6 +428,246 @@
         };
 
         /**
+            The organization's instances with what an administrator
+            needs to see: the service they connect through, whether
+            they are open for sign-in, and how many identities may
+            reach them.
+
+            @method instanceDetail
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @return {Promise} Array of rows
+        */
+        that.instanceDetail = async function (client, organizationPk) {
+            let resp = await client.query(
+                (
+                    "SELECT t._pk, t.id, t.name, t.pg_database, " +
+                    "  t.is_active, t.is_demo, t.expiration, " +
+                    "  s.id AS service_id, s.name AS service_name, " +
+                    "  s.pg_host, s.pg_port, s.pg_user, " +
+                    "  (SELECT count(*) FROM access_grant g " +
+                    "    WHERE g._tenant_tenant_pk = t._pk " +
+                    "      AND g.is_active AND NOT g.is_deleted" +
+                    "  )::int AS users " +
+                    "FROM tenant t " +
+                    "LEFT OUTER JOIN tenant_service s " +
+                    "  ON (t._pg_service_tenant_service_pk = s._pk) " +
+                    "WHERE t._organization_organization_pk = $1 " +
+                    "  AND NOT t.is_deleted ORDER BY lower(t.name)"
+                ),
+                [organizationPk]
+            );
+
+            return resp.rows;
+        };
+
+        /**
+            One of the organization's instances, by id.
+
+            @method instanceById
+            @param {Client} client Manager client
+            @param {Number} organizationPk
+            @param {String} id
+            @return {Promise} Row or undefined
+        */
+        that.instanceById = async function (client, organizationPk, id) {
+            let resp = await client.query(
+                (
+                    "SELECT _pk, id, name, pg_database, is_active " +
+                    "FROM tenant " +
+                    "WHERE id = $2 AND NOT is_deleted " +
+                    "  AND _organization_organization_pk = $1"
+                ),
+                [organizationPk, id]
+            );
+
+            return resp.rows[0];
+        };
+
+        /**
+            Instances registered in this manager that belong to no
+            organization. An installation that pre-dates ADR-001 has
+            them, and they can be attached without touching their
+            database.
+
+            @method orphanInstances
+            @param {Client} client Manager client
+            @return {Promise} Array of rows
+        */
+        that.orphanInstances = async function (client) {
+            const sql = (
+                "SELECT _pk, id, name, pg_database, is_active " +
+                "FROM tenant " +
+                "WHERE _organization_organization_pk IS NULL " +
+                "  AND NOT is_deleted ORDER BY lower(name)"
+            );
+            let resp = await client.query(sql);
+
+            return resp.rows;
+        };
+
+        /**
+            The connections instances are reached through.
+
+            @method services
+            @param {Client} client Manager client
+            @return {Promise} Array of rows
+        */
+        that.services = async function (client) {
+            const sql = (
+                "SELECT _pk, id, name, pg_host, pg_port, pg_user " +
+                "FROM tenant_service WHERE NOT is_deleted " +
+                "ORDER BY lower(name)"
+            );
+            let resp = await client.query(sql);
+
+            return resp.rows;
+        };
+
+        /**
+            Databases in the cluster that no instance is registered
+            for, so an administrator can see what there is to register.
+            Postgres's own databases are left out.
+
+            @method unregisteredDatabases
+            @param {Client} client Manager client
+            @return {Promise} Array of names
+        */
+        that.unregisteredDatabases = async function (client) {
+            const sql = (
+                "SELECT datname FROM pg_database " +
+                "WHERE NOT datistemplate AND datallowconn " +
+                "  AND datname <> 'postgres' " +
+                "  AND datname NOT IN (" +
+                "    SELECT pg_database FROM tenant " +
+                "    WHERE pg_database IS NOT NULL AND NOT is_deleted" +
+                "  ) ORDER BY datname"
+            );
+            let resp = await client.query(sql);
+
+            return resp.rows.map((row) => row.datname);
+        };
+
+        /**
+            Register a database as an instance of an organization.
+
+            @method addInstance
+            @param {Client} client Manager client
+            @param {Object} data
+            @param {String} data.name
+            @param {String} data.database
+            @param {Number} data.organizationPk
+            @param {Number} data.servicePk
+            @param {String} [data.by]
+            @return {Promise} The new row's primary key
+        */
+        that.addInstance = async function (client, data) {
+            let resp = await client.query(
+                (
+                    "INSERT INTO tenant (" + DOC_COLS + "," +
+                    "name,pg_database,is_active," +
+                    "_pg_service_tenant_service_pk," +
+                    "_organization_organization_pk) " +
+                    "VALUES (" + DOC_VALS + ",$3,$4,true,$5,$6) " +
+                    "RETURNING _pk"
+                ),
+                [
+                    f.createId(),
+                    data.by || "system",
+                    data.name,
+                    data.database,
+                    data.servicePk,
+                    data.organizationPk
+                ]
+            );
+
+            return resp.rows[0]._pk;
+        };
+
+        /**
+            Attach an instance that belongs to no organization.
+
+            @method attachInstance
+            @param {Client} client Manager client
+            @param {Number} tenantPk
+            @param {Number} organizationPk
+            @param {String} [by]
+            @return {Promise}
+        */
+        that.attachInstance = async function (
+            client,
+            tenantPk,
+            organizationPk,
+            by
+        ) {
+            await client.query(
+                (
+                    "UPDATE tenant " +
+                    "SET _organization_organization_pk = $2, " +
+                    "  updated = now(), updated_by = $3 " +
+                    "WHERE _pk = $1 " +
+                    "  AND _organization_organization_pk IS NULL"
+                ),
+                [tenantPk, organizationPk, by || "system"]
+            );
+        };
+
+        /**
+            Open an instance for sign-in, or close it. The database is
+            left alone either way: this is the registry's own switch.
+
+            @method setInstanceActive
+            @param {Client} client Manager client
+            @param {Number} tenantPk
+            @param {Boolean} isActive
+            @param {String} [by]
+            @return {Promise}
+        */
+        that.setInstanceActive = async function (
+            client,
+            tenantPk,
+            isActive,
+            by
+        ) {
+            await client.query(
+                (
+                    "UPDATE tenant SET is_active = $2, " +
+                    "  updated = now(), updated_by = $3 WHERE _pk = $1"
+                ),
+                [tenantPk, isActive === true, by || "system"]
+            );
+        };
+
+        /**
+            The most recent changes to the cluster and the registry:
+            what was created, cloned, dropped, registered or closed.
+            These are not tied to one organization, so they are read on
+            their own rather than through
+            {{#crossLink "Manager/auditTrail:method"}}{{/crossLink}}.
+
+            @method systemAudit
+            @param {Client} client Manager client
+            @param {Number} [limit] Default 50, capped at 500
+            @return {Promise} Array of rows
+        */
+        that.systemAudit = async function (client, limit) {
+            let max = Math.min(Math.max(limit || 50, 1), 500);
+            let resp = await client.query(
+                (
+                    "SELECT id, action, occurred, detail, " +
+                    "  updated_by AS author " +
+                    "FROM admin_audit " +
+                    "WHERE action LIKE 'database.%' " +
+                    "   OR action LIKE 'instance.%' " +
+                    "ORDER BY occurred DESC LIMIT $1"
+                ),
+                [max]
+            );
+
+            return resp.rows;
+        };
+
+        /**
             Make an identity an organization administrator, or stop it
             being one. The platform flag is deliberately not settable
             here: Featherbone's own administrators are not something an
