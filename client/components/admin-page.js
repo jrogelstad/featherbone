@@ -499,11 +499,18 @@ adminPage.component = {
 
             function add(label, title, onclick) {
                 buttons.push(m("button", {
+                    /*
+                        fb-button-disabled restores pointer events,
+                        which Pure takes away from a disabled
+                        .pure-button: without it the browser never
+                        hovers the button and the reason below is
+                        never seen.
+                    */
                     class: (
                         "pure-button fb-admin-action" + (
                             (orgWide || mine)
                             ? ""
-                            : " pure-button-disabled"
+                            : " fb-button-disabled"
                         )
                     ),
                     disabled: !(orgWide || mine),
