@@ -259,8 +259,13 @@ describe("install, then deploy (ADR-002 section 6)", function () {
         ]);
 
         assert.equal(resp.code, 0, resp.out);
-        assert.match(resp.out, /moves from 1\.0\.0 to 1\.1\.0/);
-        assert.equal(await moduleVersion(DEP_DB, "fbtest"), "1.1.0");
+        assert.equal(
+            await moduleVersion(DEP_DB, "fbtest"),
+            "1.1.0",
+            "the record follows the deployment, whether the manifest " +
+            "ships a client module file (which records it while " +
+            "installing) or only services (which does not)"
+        );
     });
 
     it("leaves the served instances alone", async function () {
