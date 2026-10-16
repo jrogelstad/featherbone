@@ -73,6 +73,34 @@ repositories' to change:**
 6. **Whether an expired demo should eventually be dropped**, not just
    closed: the sweep closes and audits, dropping stays a human action.
 
+**Added 2026-10-16 -- not built, and not previously on this list (John's
+find):** platform administration has no front door.
+
+7. **G.1 The instance picker.** A URL with no database in it fails today.
+   The plan says (sign-in section of section 9) that with no database in
+   the URL the user signs in once against the manager, is shown the
+   instances their grants reach, and selecting one redirects there. This
+   is what makes E.3's session question a constraint rather than an open
+   choice: sessions stay in the manager. Needs a manager-served sign-in
+   page and a list-my-instances route; nothing else in the plan builds it.
+8. **G.2 Organizations on screen.** Creating an organization, naming its
+   first administrator, deactivating it, and seeing all of them is
+   command-line only (`install.js --instance <n> --organization "<name>"`,
+   which also makes the service account its administrator). The Users
+   screen's organization picker is break-glass only. A platform page
+   (organization list with create, rename, deactivate, appoint first
+   administrator) in the row-action pattern.
+9. **G.3 The fleet across organizations.** The Instances screen shows the
+   signed-in organization's instances. A platform administrator has no
+   view of every instance with its owner, state and version. Depends on
+   G.2's page; reuses the fleet view's data.
+10. **G.4 Signing in to the manager itself.** Whether a platform
+    administrator signs in at the manager (no instance) and administers
+    from there, instead of borrowing an instance's session. The picker
+    (G.1) is the natural place: a platform administrator who picks "the
+    platform" lands on G.2/G.3. The manager is deliberately not routable
+    today (section 9), so this is a decision before it is work.
+
 **ADR-002's own remainder moved the same way, 2026-10-16.** The
 packages-on-disk work is implemented (that ADR's section 10 is its
 tally): Install and Deploy are separate acts, the maintenance state
