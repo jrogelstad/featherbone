@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2024  Featherbone LLC
+    Copyright (C) 2027  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -620,6 +620,17 @@ button:disabled .fb-ipicon,
 
 .fb-button-disabled {
     pointer-events: auto !important;
+}
+
+/* Any disabled button carrying a title keeps its pointer events, so a
+   disabled button always says why it is disabled. Pure's own
+   .pure-button[disabled] rule sets pointer-events: none, which stops
+   the browser hovering it and showing the title; two attribute
+   selectors outweigh it without !important. Without this, every
+   caller has to remember fb-button-disabled above, and the Instances
+   screen's Register button is what happens when one does not. */
+.pure-button[disabled][title] {
+    pointer-events: auto;
 }
 
 .fb-button-checkbox {

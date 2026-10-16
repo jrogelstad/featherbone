@@ -84,6 +84,9 @@ async function createSuperUser(tag) {
             "  $2, $1, now(), $2, now(), $2)"
         ), [tag + Date.now().toString(36), name]);
     });
+
+    // The identity that signs in as them (ADR-001), granted this instance
+    await db.ensureIdentity(name, settings.password, settings.testDb);
     return name;
 }
 

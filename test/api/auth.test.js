@@ -32,29 +32,37 @@ describe("authentication", function () {
 
     it("rejects a wrong password with 401 and counts the attempt",
             async function () {
-        let before = await db.query(
-            "SELECT sign_in_attempts FROM user_account WHERE name = $1",
-            [settings.adminUser]
-        );
+        // The counter lives on the identity, in the manager (ADR-001
+        // B.2), not on the instance's user_account any more
+        function attempts() {
+            return db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "SELECT failed_attempts FROM identity " +
+                        "WHERE lower(username) = lower($1) " +
+                        "  AND NOT is_deleted"
+                    ),
+                    [settings.adminUser]
+                )
+            );
+        }
+
+        let before = await attempts();
         let resp = await new Session().signIn(undefined, "not-the-password");
 
         assert.equal(resp.status, 401);
-        let after = await db.query(
-            "SELECT sign_in_attempts FROM user_account WHERE name = $1",
-            [settings.adminUser]
-        );
+
+        let after = await attempts();
+
         assert.equal(
-            after.rows[0].sign_in_attempts,
-            before.rows[0].sign_in_attempts + 1
+            after.rows[0].failed_attempts,
+            before.rows[0].failed_attempts + 1
         );
 
-        // A good sign-in afterwards still works and resets nothing we
-        // depend on for the rest of the suite
+        // A good sign-in afterwards still works, and resets the counter
         assert.equal((await new Session().signIn()).status, 200);
-        await db.query(
-            "UPDATE user_account SET sign_in_attempts = 0 WHERE name = $1",
-            [settings.adminUser]
-        );
+        assert.equal((await attempts()).rows[0].failed_attempts, 0);
     });
 
     it("rejects an unknown user", async function () {

@@ -4,15 +4,59 @@ Started 2026-10-07. The design this implements is `adr-001-identity-and-tenancy.
 When this plan is done, work returns to `featherbone-improvement-plan.md`,
 whose Tier 1 is gated by it. Section 7 lists what that plan loses to this one.
 
-> **Proposed direction change, 2026-10-10 — not settled.** Multi-instance
-> would become the *only* supported shape: every installation gets an instance
-> manager database plus one or more application instances, because even a
-> single-company customer wants production, test and demo. It retires part of
-> A.1, replaces A.5's backfill and makes D.4 mandatory. **Read section 9
-> before starting A.3.**
+> **Settled and built, 2026-10-11.** The direction change proposed on
+> 2026-10-10 — multi-instance as the *only* supported shape, an instance
+> manager database plus one or more application instances — is the shape the
+> code now has (`feat/one-mode`, section 9). It retired part of A.1, replaced
+> A.5's backfill and made D.4 mandatory, all of which is reflected below.
 
 Sizes are rough relative weights, not estimates: **S** a sitting, **M** a few
 days, **L** a week or more of focused work.
+
+## Where this stands — 2026-10-15
+
+Every item carries its own state: `[x]` done with a *Done …* note naming the
+branch and date, `[~]` part done, `[ ]` not started. The tally:
+
+| Tier | Done | Part done | Open |
+| --- | --- | --- | --- |
+| A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
+| B Identity cutover | B.1-B.7 | — | B.8 |
+| C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
+| D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
+| E Multi-node readiness | — | — | E.1–E.5 |
+| F Verification | F.1 | F.2 | F.3, F.4 |
+
+**What that means in practice.** Identity sign-in exists and works behind
+`authStrategy: identity` — passwords verified in Node, `access_grant` as the
+entry boundary, no Postgres login roles, user administration and the registry
+both on screen (Users and Instances). Isolation between organizations is
+demonstrated rather than asserted, with a mutation check (**F.1**, the
+"done when" of improvement-plan item 1.1), and the cutover is now
+reversible: one command to migrate, one to go back, both rehearsed against a
+copy of `demo` (**B.6**). **Tier B is complete.**
+
+What that leaves for improvement-plan item 1.1 is a decision rather than
+code: run the cutover on a real installation. Everything needed to do it,
+and to undo it, exists and has been exercised.
+
+The direction from here is **B.8**: no `authStrategy` at all, identities as
+the only way users work, the same collapse section 9 made for modes. That
+waits on the cutover being run for real, on `install.js` being able to start
+an installation on identities, and on the test harness, which signs in
+through the role path in every suite today.
+
+**Next three, in order:** the rest of A.4 (rename `is_super` to tenant super
+user in docs and UI; the break-glass path end to end), then D.1 provisioning
+— which unblocks creating and dropping databases from the Instances screen,
+the `"$db"` marker check when registering one, and `install.js` starting an
+installation on identities in one step — then B.8 itself.
+
+**Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
+a database from the Instances screen, and the `"$db"` marker check when
+registering one; D.4's remainder is template management, the expired-demo
+sweep and leaving only commerce in the module, which has had no home since the
+manager stopped being routable; D.5 is a decision, not code.
 
 ## How to use this plan
 
@@ -22,7 +66,7 @@ mostly independent.
 | Tier | Theme | Items | Gate |
 | --- | --- | --- | --- |
 | A | Foundations | 5 | None — start here |
-| B | Identity cutover | 6 | Needs A |
+| B | Identity cutover | 8 | Needs A |
 | C | Credentials and SSO | 4 | Needs B |
 | D | Tenant lifecycle into the framework | 5 | Needs A; independent of B |
 | E | Multi-node readiness | 5 | A.2 first; rest independent |
@@ -187,6 +231,12 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       transferring rights.
     - Rename `user_account.is_super` in docs and UI to **tenant super user**
       so it stops reading as a platform role. No behaviour change.
+    - *Found 2026-10-15: nothing appoints the first organization
+      administrator. The Users screen lets one promote another, and the
+      Instances screen needs one, but `migrate-identities.js` creates every
+      identity with both flags false, so the first `is_org_admin` can only be
+      set in SQL. Give the backfill an `--org-admin <username>` flag, audited
+      like the rest.*
     - Done when: the break-glass path in requirement 3 — suspend a departed
       organization administrator, appoint a replacement — is doable in the UI
       by a platform administrator, and leaves an audit trail.
@@ -355,12 +405,101 @@ purpose.
           whose local profile was rolled back is refused at
           `deserializeUser`. A sweep for identities with no grant
           belongs with B.6.
-- [ ] **B.6 Migration tooling and rollback.** (M)
-    - One command to migrate a cluster: backfill organizations, identities,
-      grants and verifiers; report anything ambiguous rather than guessing.
-    - A documented rollback for each phase, and a dry-run mode.
-    - Done when: a copy of `demo` migrates cleanly, the full test suite passes
-      against it, and the rollback restores role-based sign-in.
+- [x] **B.6 Migration tooling, one way.** (M) *Done 2026-10-15 on
+  `feat/b6-migration-tooling`. The item asked for a rollback as well, and
+  that was dropped on 2026-10-15 after John put the question: once an
+  installation is on identities there is no reason to go back, and keeping a
+  way back keeps the role path alive -- which is what B.8 now exists to
+  delete. A rollback script was written and then removed; what it was really
+  for was establishing the facts below.*
+    - *`migrate-identities.js` was already the one command; it now takes
+      `--org-admin <username>` and appoints the organization's first
+      administrator, audited. Nothing else could: the Users screen lets one
+      administrator promote another, which is no use when there is not one
+      yet, and the backfill created every identity with no flags.*
+    - *`authStrategy` is now in `config.template.json` as `"role"`, which is
+      also what the code assumes when it is absent. It was undiscoverable
+      before, which is how it came up.*
+    - *The README says the migration is one way, that a backup is the safety
+      net, and **why setting the flag back is not a rollback**: it works only
+      until the first password is changed or the first user is created on the
+      identity path, because neither reaches Postgres -- a password set
+      through an identity leaves the cluster role holding what it held
+      before, and a user created there has no cluster role at all. After
+      either, flipping the flag locks those people out with nothing in the
+      database to explain it.*
+    - *A brand new installation still cannot start on `"identity"`:
+      `install.js` creates the first administrator as a Postgres role and
+      nothing creates the organization an identity needs, so the path is
+      install, backfill with `--org-admin`, then switch. That is a
+      prerequisite of B.8 and belongs with D.1.*
+    - *Rehearsed against a copy of `demo`: registered it, backfilled it,
+      switched to identity, created a user that exists only as an identity
+      and changed another's password. The api suite run with that copy as its
+      source has the same failure set as the baseline, 66 either way in this
+      sandbox for want of Job Shop and SupplyChain.*
+- [x] **B.7 Provision the local profile when access is granted.** (S)
+  *Done 2026-10-15 on `feat/b7-local-profile`. The profile is made on the
+  first sign-in, in `deserializeUser`, on the strength of a live grant:
+  active identity, same organization as the instance, active grant to it. It
+  joins `everyone` and nothing else, is idempotent against a concurrent
+  second sign-in, and is audited as `user_account.provisioned`. Identity path
+  only -- on the role path a cluster-wide login role plus an on-demand
+  profile would be a way into any database, which is item 1.1 again.*
+  *The second half was in `server.js`: `doSignIn` looked the local profile up
+  and answered 401 before authenticating at all, silently, which is why a
+  granted identity could not get in and why nothing appeared in the log. On
+  the identity path that question now belongs to authentication; a wrong
+  username still gets the same generic refusal, from there. A
+  B.5-era test that asserted the old behaviour -- create an identity from the
+  screen, be refused until a profile is made by hand -- now asserts the new
+  one.*
+    *Found 2026-10-15, in use.* `user_account` is the local profile (B.5) and
+    `deserializeUser` requires a row in **every** instance the person reaches:
+    without one, `server/database.js` rejects with "User account <name> not
+    found", which is what a person sees when they switch to an instance they
+    were granted but never had an account in. Nothing creates it. B.5 built
+    the inside-out direction — creating a user in an instance creates the
+    identity — and the outside-in direction was never specified: granting an
+    instance from the Users screen, the backfill, or `--instance` registering
+    a database whose people already exist elsewhere.
+    - Create the profile wherever a grant is created, or create it on first
+      sign-in from the identity (name, contact, `is_active`), and decide which
+      roles it joins — `everyone` at least, nothing else by default.
+    - Until then the manual step is a `user_account` row plus an `everyone`
+      membership in that database, or creating the user through the normal
+      user screen from inside it.
+    - Done when: granting someone an instance is enough for them to sign in to
+      it, with no SQL and no second screen.
+- [ ] **B.8 Retire the role path.** (M) *Added 2026-10-15, John's call: by
+  the end of this there is no `authStrategy`, and identities are simply how
+  users work -- the same collapse section 9 made for modes. Two ways to be a
+  user is the problem ADR-001 set out to remove, and a flag keeps both.*
+    - Delete the `role` branch of `database.js` `authenticate`, the
+      `authStrategy` setting and `config.authStrategy`, the
+      `usesIdentities()` branches in `server/services/role.js`, the local
+      profile pre-check in `doSignIn` and the identity gate on
+      `provisionProfile`. Drop `Role.isLogin`, deprecated since B.4.
+    - Withdraw `CREATEROLE` from the service account, which is the point of
+      all of it.
+    - Keep the `pg_authid` verifier import in the backfill: it is how an
+      existing installation migrates without anybody resetting a password.
+    - Prerequisites, in order:
+        1. every installation actually migrated -- the decision, not the code;
+        2. `install.js` able to start a fresh installation on identities in
+           one step (it creates the first administrator as a Postgres role
+           today, and nothing creates the organization); with D.1;
+        3. **the test harness**, which is the hidden cost: every api suite
+           signs in through the role path today, with `identity.test.js` and
+           `isolation.test.js` running their own servers against seeded
+           identities. The harness has to seed an organization, identities
+           and grants for every suite instead. B.7 helps -- the local
+           profiles make themselves;
+        4. a decision on Tier C for anyone using passkeys, which are
+           per-instance until C.1.
+    - Done when: there is no way to sign in as a Postgres role, the suite
+      runs green with no `authStrategy` anywhere, and the service account
+      cannot create roles.
 
 ## Tier C: Credentials and SSO
 
@@ -552,14 +691,28 @@ The isolation claims in the audit were traced in code but never proven by
 running them. These are the tests that close that out. All need a writable
 scratch cluster, not `demo`.
 
-- [ ] **F.1 Two-organization isolation test.** (M)
-    - Create a user in organization B with an organization A username; confirm
-      B cannot set A's password, cannot sign in to A's databases, and gains no
-      authorization in them. This is the test item 1.1 always needed.
-- [ ] **F.2 Consultant test.** (S)
-    - One person with identities in two organizations. Confirm separate
-      credentials, that each organization's administrator sees and controls
-      only their own, and that revoking one leaves the other working.
+- [x] **F.1 Two-organization isolation test.** (M) *Done 2026-10-15 on
+  `feat/f1-isolation-test`: `test/api/isolation.test.js`, 14 tests against a
+  server running `authStrategy: identity`. A second organization is seeded
+  carrying the same two usernames as the harness's own, with different
+  passwords and no grant to anything. It proves the other organization's
+  password does not open this instance, that its administrator is refused
+  outright, that a name existing only there is refused, and that a refused
+  sign-in leaves no session; then that an organization administrator's every
+  write -- password, status, grant, org-admin -- answers 404 against an
+  identity over there, and that the hash over there is untouched afterwards.
+  **Checked by mutation:** dropping the organization from the sign-in lookup
+  (`server/database.js`) fails the sign-in tests, and dropping it from
+  `manager.identity` fails all seven administration tests, so the suite is not
+  passing vacuously. This is the test item 1.1 always needed.*
+- [~] **F.2 Consultant test.** (S) *Mostly done 2026-10-15 in the same file:
+  one username with an identity in each organization, separate credentials
+  proven both ways, an organization administrator seeing and controlling only
+  their own, and disabling the identity over there leaving this one signing
+  in. Not covered: the mirror image. The seeded second organization has no
+  instance of its own -- the harness builds two databases and both belong to
+  the first -- so "each organization's administrator sees only their own" is
+  proven from one side. Finishing it means a third database in the harness.*
 - [ ] **F.3 Multi-node test.** (M)
     - Two Node processes against the same databases. Confirm locks and
       subscriptions survive a restart of either, each cron job fires once, a

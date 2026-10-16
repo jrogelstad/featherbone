@@ -88,6 +88,9 @@ Sign-in has two strategies, chosen by `authStrategy` in `config.json`
   person is one password across their test and production instances,
   and no Postgres login role is involved.
 
+`authStrategy` is in `server/config.template.json` as `"role"`, which is
+also what the code assumes when the setting is absent.
+
 To move an existing installation, run `node scripts/migrate-identities.js`
 (a dry run; add `--apply` to write). It creates the organization, attaches
 registered instances, and makes an identity per existing user with an
@@ -104,7 +107,18 @@ was created in and grants that instance; setting a password writes the
 identity's hash, so it changes once for every instance the person can
 reach; deactivating or deleting the account deactivates that instance's
 grant and leaves the identity and the grant row in place, so the record
-of who could reach what survives. A user who already exists in the
+of who could reach what survives.
+
+**A grant is enough to get in.** Each instance keeps a local
+`user_account` row -- the profile that holds preferences and the contact
+link -- and somebody granted an instance they have never opened has
+none. It is made for them the first time they sign in, on the strength
+of the grant: active identity, same organization as the instance, active
+grant to it. The profile joins `everyone` and nothing else, and the
+making of it is audited as `user_account.provisioned`. Nothing is
+created for a failed sign-in, and nothing is created on the `role` path,
+where a cluster-wide login role plus an on-demand profile would be a way
+into any database. A user who already exists in the
 organization is granted access and keeps the password they already have.
 Group roles and memberships are rows in `role` and `role_membership`
 under both strategies. Each of these writes a row to `admin_audit`.
@@ -112,6 +126,48 @@ under both strategies. Each of these writes a row to `admin_audit`.
 Two steps are left to the operator once `authStrategy` is `identity`
 everywhere: revoke `CREATEROLE` from the service account, and stop
 relying on `Role.isLogin`, which is deprecated.
+
+### Starting a new installation on identities
+
+A brand new installation cannot begin on `"identity"`: `node install.js`
+creates the first administrator as a Postgres role and a local account,
+and nothing creates the organization an identity needs, so sign-in would
+refuse with "Instance … is not assigned to an organization". The path is
+to install, then migrate immediately:
+
+```bash
+node install.js --manager
+node install.js --instance <name>
+node scripts/migrate-identities.js --apply     --username postgres --password <pw>     --organization "<your organization>" --org-admin admin
+# then set "authStrategy": "identity" and restart
+```
+
+The backfill creates the organization, makes the installer's
+administrator an identity with the password it already has, grants it the
+instance and -- with `--org-admin` -- appoints it the organization's
+first administrator. Nothing else does that: the Users screen lets one
+administrator promote another, which is no use when there is not one yet.
+
+### The migration is one way
+
+Set `authStrategy` to `identity` when the backfill is done, and that is
+the direction of travel: the role path is on its way out (tenant plan
+B.8), so there is no supported way back and no tooling for one. The
+safety net before a cutover is a backup:
+
+```bash
+pg_dump <each instance> > <name>-before-cutover.sql
+pg_dump <the manager>   > manager-before-cutover.sql
+```
+
+**Setting the flag back to `"role"` is not a rollback**, and it is worth
+being precise about why. It works only until the first password is
+changed or the first user is created on the identity path, because
+neither reaches Postgres: a password set through an identity leaves the
+cluster role holding whatever it held before, and a user created on the
+identity path has no cluster role at all. Flip the flag after either has
+happened and those people are locked out with nothing in the database to
+explain it. Restore the backup instead.
 
 ### Administering identities
 

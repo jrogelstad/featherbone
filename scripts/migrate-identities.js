@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2025  Featherbone LLC
+    Copyright (C) 2027  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -41,11 +41,17 @@
     missing, so it is also the registration step when a new instance is
     attached by hand.
 
+    Pass --org-admin <username> to make that person the
+    organization's first administrator. Nothing else does: the Users
+    screen lets one administrator promote another, and every identity
+    here is created with no flags, so without it the first
+    administrator is a SQL statement.
+
     Usage:
         node scripts/migrate-identities.js                     # dry run
         node scripts/migrate-identities.js --apply \
             --username postgres --password <pw> \
-            --organization "Acme"
+            --organization "Acme" --org-admin jsmith
 */
 (function () {
     "use strict";
@@ -77,6 +83,7 @@
     let argv = process.argv;
     let apply = argv.indexOf("--apply") !== -1;
     let orgName = "Default";
+    let orgAdmin;
     let superuser;
     let superpwd;
 
@@ -88,6 +95,9 @@
     }
     if (argv.indexOf("--password") !== -1) {
         superpwd = argv[argv.indexOf("--password") + 1];
+    }
+    if (argv.indexOf("--org-admin") !== -1) {
+        orgAdmin = argv[argv.indexOf("--org-admin") + 1];
     }
 
     function say(msg) {
@@ -354,6 +364,63 @@
                             "Backfill: access to " + tenant.name
                         ]);
                     }
+                }
+            }
+        }
+
+        /*
+            The first organization administrator. Nothing else appoints
+            one: the Users screen lets an administrator promote somebody
+            else, and the backfill above creates every identity with no
+            flags, so without this the first one is a SQL statement
+            (tenant plan A.4, B.6).
+        */
+        if (orgAdmin) {
+            resp = await manager.query(
+                (
+                    "SELECT _pk, username, is_org_admin FROM identity " +
+                    "WHERE _organization_organization_pk = $1 " +
+                    "  AND lower(username) = lower($2) " +
+                    "  AND NOT is_deleted"
+                ),
+                [orgPk, orgAdmin]
+            );
+
+            if (!resp.rows.length) {
+                say(
+                    "No identity \"" + orgAdmin + "\" in \"" + orgName +
+                    "\" to make an organization administrator" + (
+                        apply
+                        ? ""
+                        : " -- it would be created by this run, so pass" +
+                          " --org-admin again with --apply"
+                    )
+                );
+            } else if (resp.rows[0].is_org_admin) {
+                say(
+                    "\"" + resp.rows[0].username + "\" already " +
+                    "administers \"" + orgName + "\""
+                );
+            } else {
+                say(
+                    "Make \"" + resp.rows[0].username + "\" an " +
+                    "organization administrator of \"" + orgName + "\""
+                );
+
+                if (apply) {
+                    await manager.query(
+                        (
+                            "UPDATE identity SET is_org_admin = true, " +
+                            "updated = now(), updated_by = 'migrate' " +
+                            "WHERE _pk = $1"
+                        ),
+                        [resp.rows[0]._pk]
+                    );
+                    audits.push([
+                        "identity.org_admin_granted",
+                        resp.rows[0]._pk,
+                        "Appointed by the migration"
+                    ]);
                 }
             }
         }
