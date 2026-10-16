@@ -14,6 +14,9 @@ const {Client} = require("pg");
 const {execFileSync} = require("child_process");
 const format = require("pg-format");
 const settings = require("./env");
+const {Identities} = require("../../server/services/identities");
+
+const identities = new Identities();
 
 function connection(database) {
     return {
@@ -71,7 +74,15 @@ const FIXTURE = {
     tenantId: "fbttenant001",
     tenant2Id: "fbttenant002",
     moduleId: "fbtmodule001",
-    routeId: "fbtroute0001"
+    routeId: "fbtroute0001",
+    /*
+        The organization both test instances belong to. Sign-in is by
+        identity (ADR-001), so every test user is an identity in it
+        with a grant to the instance it signs in to; the Postgres login
+        role is kept only while the role path still exists (B.8).
+    */
+    organizationId: "fbtorg000001",
+    organizationName: "FBTest"
 };
 
 const DOC_COLS = (
@@ -155,6 +166,122 @@ async function registerInstances() {
 
         await addTenant(FIXTURE.tenantId, settings.testDb);
         await addTenant(FIXTURE.tenant2Id, settings.testDb2);
+
+        // The organization, and both instances in it
+        await client.query("DELETE FROM access_grant");
+        await client.query("DELETE FROM identity");
+        await client.query("DELETE FROM organization");
+        await client.query((
+            "INSERT INTO organization (" + DOC_COLS + ",name,is_active," +
+            "authentication,is_two_factor_required) VALUES (" + DOC_VALS +
+            ",$2,true,'password',false)"
+        ), [FIXTURE.organizationId, FIXTURE.organizationName]);
+        await client.query((
+            "UPDATE tenant SET _organization_organization_pk = " +
+            "  (SELECT _pk FROM organization WHERE id = $1)"
+        ), [FIXTURE.organizationId]);
+    });
+}
+
+/*
+    Make `name` an identity in the test organization, with a grant to
+    `database`, creating or updating as needed. Idempotent, so a suite
+    may call it for a user the harness already made. `opts.hash`
+    stores a verifier as given (the migration path imports pg_authid
+    verifiers); otherwise the password is hashed the application's
+    way. Resolves to the identity's primary key.
+*/
+async function ensureIdentity(name, password, database, opts) {
+    opts = opts || {};
+
+    return await withClient(settings.managerDb, async function (client) {
+        let org = await client.query(
+            "SELECT _pk FROM organization WHERE id = $1",
+            [FIXTURE.organizationId]
+        );
+        let orgPk = org.rows[0]._pk;
+        let hash = opts.hash || identities.hashPassword(password);
+        let found = await client.query(
+            (
+                "SELECT _pk FROM identity " +
+                "WHERE _organization_organization_pk = $1 " +
+                "  AND lower(username) = lower($2) AND NOT is_deleted"
+            ),
+            [orgPk, name]
+        );
+        let pk;
+
+        if (found.rows.length) {
+            pk = found.rows[0]._pk;
+            await client.query(
+                (
+                    "UPDATE identity SET password_hash = $2, " +
+                    "  status = 'active', failed_attempts = 0, " +
+                    "  locked_until = null, " +
+                    "  is_org_admin = $3, is_platform_admin = $4, " +
+                    "  updated = now(), updated_by = 'fbtest' " +
+                    "WHERE _pk = $1"
+                ),
+                [
+                    pk,
+                    hash,
+                    Boolean(opts.isOrgAdmin),
+                    Boolean(opts.isPlatformAdmin)
+                ]
+            );
+        } else {
+            let made = await client.query((
+                "INSERT INTO identity (" + DOC_COLS +
+                ",_organization_organization_pk,username,full_name," +
+                "email,password_hash,status,is_platform_admin," +
+                "is_org_admin,failed_attempts) VALUES (" + DOC_VALS +
+                ",$2,$3,$3,'',$4,'active',$5,$6,0) RETURNING _pk"
+            ), [
+                opts.id || ("fbti" + Date.now().toString(36) + (
+                    Math.random().toString(36).slice(2, 6)
+                )),
+                orgPk,
+                name,
+                hash,
+                Boolean(opts.isPlatformAdmin),
+                Boolean(opts.isOrgAdmin)
+            ]);
+            pk = made.rows[0]._pk;
+        }
+
+        if (database) {
+            let grant = await client.query(
+                (
+                    "SELECT g._pk FROM access_grant g " +
+                    "JOIN tenant t ON g._tenant_tenant_pk = t._pk " +
+                    "WHERE g._identity_identity_pk = $1 " +
+                    "  AND t.pg_database = $2 AND NOT g.is_deleted"
+                ),
+                [pk, database]
+            );
+
+            if (grant.rows.length) {
+                await client.query(
+                    "UPDATE access_grant SET is_active = true WHERE _pk = $1",
+                    [grant.rows[0]._pk]
+                );
+            } else {
+                await client.query((
+                    "INSERT INTO access_grant (" + DOC_COLS +
+                    ",_identity_identity_pk,_tenant_tenant_pk,is_active," +
+                    "granted) SELECT " + DOC_VALS +
+                    ",$2,_pk,true,now() FROM tenant WHERE pg_database = $3"
+                ), [
+                    opts.grantId || ("fbtg" + Date.now().toString(36) + (
+                        Math.random().toString(36).slice(2, 6)
+                    )),
+                    pk,
+                    database
+                ]);
+            }
+        }
+
+        return pk;
     });
 }
 
@@ -283,6 +410,11 @@ async function createUser(client, name, password, isSuper) {
         "VALUES ($1, $2, $3, true, true, false, 0, false, false, " +
         "  $2, $1, now(), $2, now(), $2)"
     ), [id, name, Boolean(isSuper)]);
+
+    // And the identity that signs in as them
+    let here = await client.query("SELECT current_database() AS db");
+
+    await ensureIdentity(name, password, here.rows[0].db);
     return id;
 }
 
@@ -341,4 +473,13 @@ async function query(sql, params) {
     return withClient(settings.testDb, (client) => client.query(sql, params));
 }
 
-module.exports = {bootstrap, clone, createUser, drop, query, withClient};
+module.exports = {
+    FIXTURE,
+    bootstrap,
+    clone,
+    createUser,
+    drop,
+    ensureIdentity,
+    query,
+    withClient
+};
