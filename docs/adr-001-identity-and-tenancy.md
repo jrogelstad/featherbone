@@ -1,6 +1,7 @@
 # ADR 001 — Identity, tenancy and the tenant management database
 
-Status: **proposed**, revised 2026-10-07 (rev 2). Author: John Rogelstad with Claude.
+Status: **accepted and implemented**, rev 3 (2026-10-16); rev 2 was 2026-10-07.
+Author: John Rogelstad with Claude.
 Supersedes the framing of plan item 1.1. The work it implies is sequenced in
 `tenant-management-plan.md`. Read with `featherbone-improvement-plan.md` and
 `featherbone-review-phase2.md`.
@@ -10,6 +11,34 @@ and a rule restricting when an administrator could reset a password. John's
 feedback established a two-tier administration model, which dissolves that
 problem instead of managing it. Identity is now **scoped to an organization**
 (§4), and the reset rule is gone. §3 and §5 are new.
+
+**Revision note (rev 3).** The design below was built, so it is now a record
+rather than a proposal. The reasoning is unchanged; what changed is that the
+rest of the ADR can be read against the code. The section that follows lists
+where the build differs from the text, and §1's account of the old design is
+labelled as history. Two things the text assumed were settled differently
+along the way: the control plane became **one mode** (a manager database plus
+instances, no `serverRole`, no `both`) and the open questions in §9 are
+answered. The sequencing and the per-item record live in
+`tenant-management-plan.md`, whose status block is the tally.
+
+## As built, 2026-10-16
+
+| ADR says | The code does |
+| --- | --- |
+| "Tenant management database", "control plane" | The **manager database** (`managerDatabase`, default `db_manager`). It is never routable; every application database is an **instance** registered in it. The vocabulary in this ADR keeps "tenant" and "control plane"; read them as instance and manager. The `Tenant` feather keeps its name (the Admin Console module is another repository). |
+| `identity`, `organization`, `access_grant`, `admin_audit` | Core feathers in the manager. Username is unique per organization (partial unique index on `(organization, lower(username))`), one grant per identity and instance. |
+| `identity_credential` (passkeys, TOTP) | The bare manager table `"$identity_credential"`, plus `"$identity_challenge"` for ceremony challenges (single use, two minutes). Bare tables are made on first use, so no reinstall. No generic data route serves them. **TOTP is not built.** |
+| `identity_federation` (SSO) | **Not built.** Plan items C.3 and C.4, waiting on a decision about an identity provider. |
+| Sign-in flow, §4 steps 1-8 | As written, in `server/database.js` `authenticateIdentity`: database, instance, organization, identity, scrypt verification in Node, an active `access_grant`, and a closed or inactive instance is refused. The organization's `isTwoFactorRequired` decides the second factor; the `twoFactorAuth` setting remains an installation-wide override. Lock after the fourth failure, audited. No connection is opened as the user. |
+| Platform, organization and tenant tiers (§3) | `identity.is_platform_admin`, `identity.is_org_admin`, and `user_account.is_super` (labelled "Tenant Super User"). A platform administrator acts on another organization by naming it on the admin routes; every such action writes `admin_audit` with the organization acted on. |
+| Postgres login roles deprecated | **Gone.** No role is created for any user, the service account needs no `CREATEROLE`, and `authStrategy` no longer exists. `Role.isLogin` stays only as the flag that tells a user account from a group role inside an instance. |
+| Recursive CTE replaces `pg_has_role()` | `tools.memberNames()`, shared by every call site. `everyone` is implicit for every active user account. |
+| `user_account` becomes the local profile | Made on first sign-in on the strength of a live grant (B.7), audited. |
+| Provisioning (§6) | A resumable state machine in `"$provision"`: requested, created, configured, seeded, active; each step claimed with `FOR UPDATE SKIP LOCKED` and committed on its own. Create, resume, drop, template and the expired-demo sweep are on the Instances screen, platform administrators only. |
+| Migration (§7) | `scripts/migrate-identities.js`, dry run by default, `--apply` to write, **one way** (John's decision, 2026-10-15: a rollback keeps the role path alive). Imports SCRAM-SHA-256 and md5 verifiers and re-hashes to scrypt on first sign-in; copies passkeys. Rehearsed against a copy of `demo`. |
+| Sessions (§5) | `resave: false`, rolling kept. Sessions stay in the manager. |
+
 
 ## 1. Context
 
@@ -33,7 +62,7 @@ problem instead of managing it. Identity is now **scoped to an organization**
 8. Eventually **several Node servers against the same databases.** Not
    near-term, but the design must not preclude it.
 
-### What is actually implemented
+### What was implemented (as found 2026-10-07; retired by plan item B.8)
 
 Identity is the Postgres cluster's role namespace. A `UserAccount` is a
 Postgres `LOGIN` role; sign-in opens a connection to the tenant database as
@@ -230,19 +259,20 @@ their semantics do not change.
 Confirmed design constraints:
 
 - **Exactly one per installation.** It is the authority for organizations,
-  identities, grants and the tenant registry. Two would mean two answers to
+  identities, grants and the instance registry. Two would mean two answers to
   "who is this".
-- **It may share a Postgres server with tenant databases, or have its own.**
-  Nothing in the design assumes co-location.
-- **It may be served by the same Node process as tenants, or a dedicated
-  one.** The framework should boot in a declared role: control plane, tenant
-  server, or both.
-- **It is part of the framework, not an installable package.** Today the
-  concept exists but is implicit: it is whatever `config.pgDatabase` names,
-  reached by requests that pass `tenant: false` and act as `systemUser`
-  (`server.js` ~293 and throughout). Make that explicit with its own
-  configuration block and its own bootstrap, so a tenant database can never
-  be mistaken for it.
+- **It may share a Postgres server with instance databases, or have its own.**
+  Nothing in the design assumes co-location. (Multiple *clusters* are out of
+  scope; the registry's service row already describes the connection if a
+  deployment ever needs one.)
+- **One mode, as built.** The rev 2 text proposed booting in a declared role
+  (control plane, tenant server or both). That was superseded on 2026-10-10:
+  a server always serves instances against one manager, which it never
+  serves as an application. There is no `serverRole`.
+- **It is part of the framework, not an installable package.** It has its
+  own configuration (`managerDatabase`), its own bootstrap (`install.js
+  --manager`) and a `"$db"` marker recording its kind and schema version, so
+  an instance can never be mistaken for it.
 - **It stores credentials only when Featherbone is the authority.** Password
   hashes, passkeys and TOTP secrets when the organization uses local
   authentication; only issuer and subject bindings when an external provider
@@ -274,8 +304,16 @@ Options:
   expiry, with a revocation list. Removes the per-request read entirely, at
   the cost of revocation complexity.
 
-Recommendation: do (a) now regardless, and decide between (b) and (c) during
-the rework. (b) is the smaller change and gives the better failure mode:
+**Where this landed (2026-10-16): (a) is done** (`resave: false`; rolling
+stays and slides the expiry with the store's cheap touch). **(b) and (c) are
+still open, and one thing narrows the choice:** the instance picker and the
+single sign-in against the manager mean a user has no instance to read a
+session from before choosing one, and per-instance sessions would end the
+cross-instance sign-out the README advertises. It is a decision for John, not
+code; see the plan's status block, item 4.
+
+Recommendation (as written): do (a) now regardless, and decide between (b)
+and (c) during the rework. (b) is the smaller change and gives the better failure mode:
 **degrade to "no new sign-ins" rather than "everything down".**
 
 ## 6. Where tenancy should live
@@ -329,6 +367,9 @@ Two constraints found while testing:
 
 ## 8. What this absorbs from the improvement plan
 
+All of these are done or moved as of 2026-10-16; the plan's section 7 has the
+disposition and the item that carries each one.
+
 | Plan item | Effect |
 | --- | --- |
 | 1.1 tenant user isolation | Solved by the model. |
@@ -341,16 +382,29 @@ Two constraints found while testing:
 
 ## 9. Open questions
 
-- **Highly-available topology for the control plane** — replication, or a
-  managed instance.
-- **Session strategy** — option (b) or (c) in §5.
-- **Password hashing** — `node:crypto` `scrypt` keeps the dependency count at
-  zero; argon2id needs a dependency. Decide deliberately.
-- **`everyone`** needs a per-tenant equivalent once it is no longer a cluster
-  role. Probably an implicit group every granted identity belongs to.
-- **Service accounts and API tokens** are not modelled today. If they are
-  coming, they belong next to `identity`.
-- **Organization-scoped usernames and email collisions** — two organizations
-  may each have `alice@consult.com`. Email-based flows (magic link, password
-  reset) must therefore be scoped by organization, and a reset link must name
-  the organization it applies to.
+Answered:
+
+- **Password hashing** — `node:crypto` `scrypt`, zero dependencies
+  (`server/services/identities.js`). Imported SCRAM-SHA-256 and md5 verifiers
+  are re-hashed to scrypt on first sign-in.
+- **`everyone`** — an implicit group every active user account in an instance
+  belongs to (`tools.memberNames`); no cluster role.
+- **Organization-scoped usernames and email collisions** — email flows land
+  on one instance's URL and the instance names its organization, so a magic
+  link is scoped by construction; the unique index is per organization.
+- **Service accounts** — the installer makes the service account an
+  identity in its organization with a grant to the instance. API tokens are
+  still not modelled.
+- **Multiple Postgres clusters (requirement 6)** — out of scope, settled
+  2026-10-10; revisit only if a deployment needs one.
+
+Still open:
+
+- **Session strategy** — (b) per-instance sessions or (c) a stateless cookie,
+  against the cross-instance sign-out trade (§5).
+- **Highly-available topology for the manager** — replication or a managed
+  instance. An operations choice.
+- **SSO (requirement 7)** — `identity_federation`, per-organization OIDC and
+  just-in-time provisioning (plan C.3, C.4) need an identity provider and a
+  dependency decision.
+- **API tokens**, next to `identity`, if they are coming.

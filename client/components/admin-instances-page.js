@@ -220,6 +220,21 @@ adminInstancesPage.viewModel = function () {
     };
 
     /**
+        Put an instance into maintenance, or take it out again. A
+        deployment is not run under live traffic (ADR-002 question 7),
+        so the state is thrown here when one is done by hand.
+        @method doMaintenance
+        @param {Object} instance
+        @param {Boolean} isMaintenance
+    */
+    vm.doMaintenance = function (instance, isMaintenance) {
+        request("POST", "/admin/instance/maintenance", {
+            id: instance.id,
+            isMaintenance
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
         @method doCreate
     */
     vm.doCreate = function () {
@@ -608,6 +623,20 @@ adminInstancesPage.component = {
                 ]);
             }
 
+            if (instance.isMaintenance) {
+                return m("span", {
+                    class: "fb-admin-status fb-admin-status-locked",
+                    title: (
+                        "Down for a deployment: it answers nothing but " +
+                        "its sign-in and these screens, and only a " +
+                        "platform administrator can sign in"
+                    )
+                }, [
+                    f.icon("build", "fb-admin-status-icon"),
+                    "maintenance"
+                ]);
+            }
+
             return m("span", {
                 class: (
                     "fb-admin-status fb-admin-status-" + (
@@ -689,6 +718,34 @@ adminInstancesPage.component = {
                     "Let people sign in to this instance again",
                     false,
                     () => vm.doStatus(instance, true)
+                ));
+            }
+
+            if (instance.isMaintenance) {
+                list.push(action(
+                    "End maintenance",
+                    (
+                        platform
+                        ? "Let the instance answer requests again"
+                        : "Only a platform administrator may do this"
+                    ),
+                    !platform,
+                    () => vm.doMaintenance(instance, false)
+                ));
+            } else {
+                list.push(action(
+                    "Maintenance",
+                    (
+                        platform
+                        ? (
+                            "Hold the instance for a deployment: it " +
+                            "answers 503 with an explanation, and only " +
+                            "a platform administrator can sign in"
+                        )
+                        : "Only a platform administrator may do this"
+                    ),
+                    !platform,
+                    () => vm.doMaintenance(instance, true)
                 ));
             }
 

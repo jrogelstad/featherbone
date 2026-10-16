@@ -548,6 +548,7 @@
             return {
                 edition: tenant.edition,
                 id: tenant.id,
+                isMaintenance: tenant.isMaintenance === true,
                 name: tenant.name,
                 pgDatabase: tenant.pgDatabase,
                 pgService: (
@@ -3272,6 +3273,12 @@
             properties: ["id", "name", "pgService", "pgDatabase", "edition"],
             user: conf.pgUser
         }, true);
+        /*
+            Maintenance is read on its own (ADR-002 question 7) rather
+            than as a Tenant property, so the registry still loads
+            against a manager that has not been upgraded for it.
+        */
+        let maintenance = await manager.maintenanceFlags(conn.client);
         let tenant;
         let n = 0;
         let svc;
@@ -3282,6 +3289,21 @@
             tenant = pTenants[n];
             n += 1;
             found = tenants.find((t) => t.id === tenant.id);
+
+            /*
+                An instance already in the registry keeps its live
+                objects -- its pool and its LISTEN connection hang off
+                this one -- but the fields the manager owns are read
+                again, because loadTenants runs on every Tenant change
+                and those changes have to reach the process. Before,
+                only new rows were looked at, so flipping a flag in
+                the manager changed nothing until a restart.
+            */
+            if (found) {
+                found.name = tenant.name;
+                found.edition = tenant.edition;
+                found.isMaintenance = maintenance[tenant.id] === true;
+            }
 
             if (!found) {
                 svc = tservices.find((s) => s.id === tenant.pgService.id);
@@ -3307,6 +3329,7 @@
                     );
                 }
 
+                tenant.isMaintenance = maintenance[tenant.id] === true;
                 tenants.push(tenant);
             }
         }

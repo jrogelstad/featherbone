@@ -13,7 +13,7 @@ whose Tier 1 is gated by it. Section 7 lists what that plan loses to this one.
 Sizes are rough relative weights, not estimates: **S** a sitting, **M** a few
 days, **L** a week or more of focused work.
 
-## Where this stands — 2026-10-15
+## Where this stands — 2026-10-16
 
 Every item carries its own state: `[x]` done with a *Done …* note naming the
 branch and date, `[~]` part done, `[ ]` not started. The tally:
@@ -22,10 +22,10 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | --- | --- | --- | --- |
 | A Foundations | A.1–A.5 | — | — |
 | B Identity cutover | B.1-B.8 | — | — |
-| C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
-| D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
-| E Multi-node readiness | — | — | E.1–E.5 |
-| F Verification | F.1 | F.2 | F.3, F.4 |
+| C Credentials and SSO | C.1, C.2 | — | C.3, C.4 |
+| D Tenant lifecycle | D.1–D.4 | — | D.5 |
+| E Multi-node readiness | E.2, E.4 | E.1, E.3, E.5 | — |
+| F Verification | F.1–F.4 | — | — |
 
 **What that means in practice.** Sign-in is by identity and nothing else
 (**B.8**): passwords verified in Node, `access_grant` as the entry boundary,
@@ -39,20 +39,39 @@ Isolation between organizations is demonstrated rather than asserted, with a
 mutation check (**F.1**, the "done when" of improvement-plan item 1.1).
 **Tier B is complete and closed.**
 
-What that leaves for improvement-plan item 1.1 is running the migration on
-each real installation. Since B.8 an installation that has not migrated has
-nobody who can sign in, so it is no longer optional.
+The lifecycle is on screen too (**D.1–D.4**, 2026-10-16): a platform
+administrator builds an instance from a template as a resumable state
+machine, drops one, copies an instance into a template, and the expired-demo
+sweep runs on the server's own clock. Passkeys and the second factor belong
+to the identity and the organization (**C.1, C.2**), multi-node has its
+claims primitive, bounded pools and `resave: false` (**E**), and the
+isolation, mirror and two-node claims are run rather than asserted
+(**F.1–F.3**), with F.4's rehearsal recorded under B.6.
 
-**Next three, in order:** D.1 provisioning — which unblocks creating and
-dropping databases from the Instances screen and the `"$db"` marker check
-when registering one — then the D.4 remainder, then Tier C starting with
-passkeys (C.1), which are still per instance.
+**What is left is not code to write here; it is John's to decide or other
+repositories' to change:**
 
-**Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
-a database from the Instances screen, and the `"$db"` marker check when
-registering one; D.4's remainder is template management, the expired-demo
-sweep and leaving only commerce in the module, which has had no home since the
-manager stopped being routable; D.5 is a decision, not code.
+1. **Run the migration on each real installation** (improvement-plan 1.1's
+   remainder). Since B.8 an unmigrated installation has nobody who can sign
+   in. Then `node install.js --instance <name>` on every instance so the
+   installed scripts match the server.
+2. **D.5** — are edition limits a boundary to enforce server-side, or
+   documented as cosmetic? A decision to record, then an afternoon if the
+   answer is "enforce".
+3. **C.3/C.4 (SSO)** — per-organization OIDC and just-in-time provisioning
+   need an identity provider to verify against and a dependency choice
+   (hand-rolling OIDC is a hazard). Whether SSO is wanted, and against what
+   (Azure AD was the reference target), is the decision that starts it.
+4. **E.3's second half** — moving `$session` per tenant (or a stateless
+   cookie) buys surviving a manager outage at the price of cross-instance
+   sign-out, which the README advertises as a feature. `resave: false` is
+   already in; the trade is the decision.
+5. **The modules:** the CronJob module's `initialize-cron-job.js` should
+   call `f.datasource.claimWork(name, interval)` before firing (E.1's last
+   line), and SupplyChain's module-level `pending` guards should become
+   database locks (E.5's second half). Both live in their own repositories.
+6. **Whether an expired demo should eventually be dropped**, not just
+   closed: the sweep closes and audits, dropping stays a human action.
 
 ## How to use this plan
 
@@ -539,21 +558,36 @@ purpose.
 
 Where requirements 1 and 7 finally hold for everything, not just passwords.
 
-- [ ] **C.1 Move passkeys to the control plane.** (M)
-    - `WebauthnCredential` → `identity_credential`. A passkey then works on
-      every database the identity can reach, which it does not today.
-    - Store challenges, which currently sit in process memory
-      (`let challenges = {}` in `server/services/webauthn.js`) — this is also
-      multi-node blocker E.2.
-    - Done when: a passkey registered against one database signs the user in to
-      another in the same organization, on a different node.
-- [ ] **C.2 Identity-scoped MFA.** (S)
-    - Keep the existing magic-link two-factor; move enrolment and the
-      `twoFactorAuth` decision to the identity and the organization policy.
-    - Scope email flows by organization: two organizations may each have
-      `alice@consult.com`, so a reset or magic link must name its organization.
-    - Done when: MFA follows the user across their organization's databases.
-- [ ] **C.3 Per-organization authentication policy and SSO.** (L)
+- [x] **C.1 Move passkeys to the control plane.** (M) *Done 2026-10-16 on
+  `feat/c1-c2-identity-credentials`. Credentials live in the manager's
+  "$identity_credential" keyed by identity (bare table: no reinstall, and no
+  generic data route ever serves key material); the assertion lookup joins
+  the access grant, so a passkey follows the identity everywhere it can go
+  and nowhere it cannot. Challenges are "$identity_challenge" rows, one per
+  identity and kind, two minutes, consumed on use (E.2). The signature
+  counter is finally checked against the stored value and written back; it
+  was compared with a hard zero before, which waved cloned authenticators
+  through. Registration is audited. `migrate-identities.js` copies old
+  per-instance WebauthnCredential rows across. The done-when is proven to
+  the edge of the signature check in `test/api/credentials.test.js` and
+  across processes in `test/api/multinode.test.js` -- a real authenticator
+  cannot run in the harness.*
+- [x] **C.2 Identity-scoped MFA.** (S) *Done 2026-10-16 on the same
+  branch. The second factor is the organization's decision:
+  `authenticateIdentity` reads organization.isTwoFactorRequired alongside
+  the tenant row, doSignIn honors it per signed-in user, and the config
+  `twoFactorAuth` flag stays as the installation-wide override -- so the
+  policy follows the user across every database of their organization,
+  which is the done-when. Email flows were already organization-scoped by
+  construction: a magic link lands on one instance's URL and the instance
+  names its organization. Fixed on the way: a failed magic-link send turned
+  the two-factor envelope into a 500, because the response stand-in handed
+  to the strategy only had json().*
+- [ ] **C.3 Per-organization authentication policy and SSO.** (L) *Not
+  started 2026-10-16, deliberately: it needs an identity provider to verify
+  against and a dependency decision (hand-rolling OIDC is a hazard), so
+  whether SSO is wanted and against what starts it -- see the status block's
+  decision list.*
     - `identity_federation`: `(provider, issuer, subject) → identity`, plus
       per-organization IdP configuration. OIDC first; Azure AD as the
       reference target.
@@ -572,15 +606,27 @@ Where requirements 1 and 7 finally hold for everything, not just passwords.
 Independent of Tier B; can run in parallel. Absorbs most of improvement-plan
 Tier 5.
 
-- [ ] **D.1 Provisioning as a resumable state machine.** (L)
-    - States: requested, database created, configured, administrator seeded,
-      notified, active. Idempotent steps, each retryable.
-    - `CREATE DATABASE` and `DROP DATABASE` move to `onCommit`, out of AFTER
-      triggers and out of the admin transaction.
-    - **Absorbs improvement-plan 5.3.** Mandatory before multi-node, because
-      two nodes must not provision the same tenant twice.
-    - Done when: killing the process at any step leaves a resumable record, and
-      re-running completes without orphaning a database.
+- [x] **D.1 Provisioning as a resumable state machine.** (L) *Done
+  2026-10-16 on `feat/d1-provisioning`. States requested -> created ->
+  configured -> seeded -> active, one row per build in the manager's
+  "$provision" table (bare, made on first use, so no reinstall), each step
+  claimed with FOR UPDATE SKIP LOCKED and committed on its own; "notified"
+  folded into activation, since notifying anyone is commerce. Create, Resume
+  and Drop are on the Instances screen, platform administrators only; a new
+  instance is registered closed and `authenticateIdentity` now refuses a
+  closed instance, which "Close" never actually did. Registering an existing
+  database checks its "$db" marker. The databases go through the guarded D.2
+  API rather than onCommit triggers -- there is no trigger left in the path
+  at all. Two defects fixed on the way: createDatabase read the new
+  registration through the caller's client (only worked pre-split, and the
+  lent client's uncommitted PATCH deadlocked the activating step), and a
+  served instance was never a legal clone source because this process's own
+  pool held a LISTEN connection; it lets go first now, and anyone else's
+  connections still refuse the clone, which is the honest answer on a second
+  node. `test/api/provision.test.js` runs the done-when: a genuinely failed
+  step (busy template) leaves a resumable record and no orphan, resume
+  finishes the build, the seeded administrator signs in to it, drop retires
+  everything. F.3 proves the two-node claim.*
 - [x] **D.2 A guarded database create, clone and delete API.** (M) *Done
   2026-10-13 on `fix/d2-database-api`. Every name goes through
   `datasource.databaseName`, which folds it the way Postgres folds an
@@ -632,7 +678,18 @@ Tier 5.
       part of this.
     - Done when: creating and deleting a tenant returns the process to its
       starting pool and listener count.
-- [ ] **D.4 Redraw the Admin Console seam.** (M) *Partly done
+- [x] **D.4 Redraw the Admin Console seam.** (M) *Finished 2026-10-16 on
+  `feat/d4-lifecycle`: template management ("Template" on an instance row
+  copies a quiet instance into the frozen database new instances provision
+  from, in place, audited; the service account does it, since only the
+  pg_database mark needs a superuser and that mark is best effort) and the
+  expired-demo sweep (an is_demo instance past its expiration is closed to
+  sign-in and audited, hourly and on demand; nothing is dropped -- see the
+  status block's decision list). With D.1 the "generic parts" list is done:
+  registry UI, provisioning, templates, sweep. The module keeps commerce --
+  the WooCommerce webhook and edition pricing -- and its bugs are its own
+  repository's. `test/api/lifecycle.test.js`. Earlier progress below.*
+  *Partly done
   2026-10-12: identity administration is in the framework.
   `server/services/admin.js` serves `/:db/admin/...` from inside an
   instance -- the manager is not routable, so there is no database to
@@ -680,16 +737,25 @@ triggers run `pg_notify(node.nodeid, …)` (`scripts/tables.js` ~20–135), so t
 database fans each change out to exactly the nodes that care. Sessions, record
 locks and advisory locks are all already database-backed. These are the gaps.
 
-- [ ] **E.1 Claim scheduled jobs.** (M)
-    - Cron runs in process per node (`f.cronJobs` in
-      `cron-job/initialize-cron-job.js`) with no leader election, so N nodes
-      fire every job N times.
-    - Claim with `FOR UPDATE SKIP LOCKED`, or hold a leader lease.
-    - Done when: two nodes run the same schedule and each job executes once.
-- [ ] **E.2 Store WebAuthn challenges.** (S)
-    - Covered by C.1; listed here because it is a multi-node blocker in its own
-      right. A registration begun on one node and finished on another fails today.
-- [ ] **E.3 Session strategy.** (M)
+- [~] **E.1 Claim scheduled jobs.** (M) *Framework half done 2026-10-16 on
+  `feat/e-multinode-readiness`: `f.datasource.claimWork(key, seconds)`
+  claims named work in a manager "$claim" row -- first caller wins, the rest
+  are told no until the window passes, a dead claimant's claim expires
+  rather than leaks. Two processes contending is proven in
+  `test/api/multinode.test.js`. What remains is one call in the CronJob
+  module's `initialize-cron-job.js` -- claim the job's name for its interval
+  before firing -- which lives in the module's repository, so the done-when
+  (two nodes, each job once) closes there.*
+- [x] **E.2 Store WebAuthn challenges.** (S) *Done 2026-10-16 with C.1:
+  challenges are manager rows, single use with expiry, and a ceremony begun
+  on one node finishing on another is run in `test/api/multinode.test.js`.*
+- [~] **E.3 Session strategy.** (M) *The unambiguous half done 2026-10-16
+  on `feat/e-multinode-readiness`: `resave: false` (improvement plan 4.4),
+  so a request no longer rewrites its whole session row; rolling stays and
+  slides the expiry with the store's cheap touch. The choice -- per-tenant
+  `$session` or a stateless cookie -- is on the status block's decision
+  list, because per-tenant sessions trade away cross-instance sign-out,
+  which the README advertises as a feature.*
     - `$session` is in the control-plane database with `resave: true` and
       `rolling: true` (`server.js` ~2349), so **every request on every tenant
       writes a row in the control plane.**
@@ -699,7 +765,17 @@ locks and advisory locks are all already database-backed. These are the gaps.
       former, for the better failure mode: no new sign-ins, rather than
       everything down.
     - Done when: a control-plane outage leaves signed-in users working.
-- [ ] **E.4 Pool sizing and a connection proxy.** (M)
+- [x] **E.4 Pool sizing and a connection proxy.** (M) *Done 2026-10-16 on
+  the same branch: instance pools are capped by `pgTenantPoolSize` (default
+  10) with `pgTenantIdleTimeout` (default 60s) closing idle clients, so a
+  quiet instance holds only its LISTEN connection; `pgMaxConnections` keeps
+  governing the manager pool. The README documents the budget -- worst case
+  instances x (cap + 1) + manager, practical floor instances + manager --
+  which is the done-when. The flagged SSL comments are settled with the
+  reason the server's own TLS settings stand in (every TenantService row
+  points at the cluster this server already trusts; the service carries no
+  TLS material of its own yet). PgBouncer remains an operations choice, not
+  code.*
     - `pgMaxConnections` is ignored; each tenant gets 10, one held permanently
       for LISTEN; each `f.datasource.lock` takes 2 more. Per node it is
       (tenants + 1) × 10, so the budget multiplies by node count.
@@ -708,7 +784,11 @@ locks and advisory locks are all already database-backed. These are the gaps.
       the code comment flags. **Absorbs 5.1.**
     - Done when: a documented tenant count per node fits inside
       `max_connections` with headroom.
-- [ ] **E.5 Survive a rejected promise, and drop per-process guards.** (M)
+- [~] **E.5 Survive a rejected promise, and drop per-process guards.** (M)
+  *The framework half was done earlier (`fix/6.1-unhandled-rejection`,
+  merged: the unhandledRejection handler logs instead of dying). The second
+  half -- replacing SupplyChain's module-level `pending` guards with
+  database locks (6.2) -- lives in the SupplyChain repository.*
     - No `unhandledRejection` handler exists, so on Node 15+ one floating
       rejection kills the process — and with it every tenant that node serves.
       **Absorbs 6.1**, and it belongs here because the blast radius grows with
@@ -739,21 +819,32 @@ scratch cluster, not `demo`.
   (`server/database.js`) fails the sign-in tests, and dropping it from
   `manager.identity` fails all seven administration tests, so the suite is not
   passing vacuously. This is the test item 1.1 always needed.*
-- [~] **F.2 Consultant test.** (S) *Mostly done 2026-10-15 in the same file:
+- [x] **F.2 Consultant test.** (S) *Mostly done 2026-10-15 in the same file:
   one username with an identity in each organization, separate credentials
   proven both ways, an organization administrator seeing and controlling only
   their own, and disabling the identity over there leaving this one signing
-  in. Not covered: the mirror image. The seeded second organization has no
-  instance of its own -- the harness builds two databases and both belong to
-  the first -- so "each organization's administrator sees only their own" is
-  proven from one side. Finishing it means a third database in the harness.*
-- [ ] **F.3 Multi-node test.** (M)
-    - Two Node processes against the same databases. Confirm locks and
-      subscriptions survive a restart of either, each cron job fires once, a
-      passkey flow completes across nodes, and provisioning cannot run twice.
-- [ ] **F.4 Migration rehearsal.** (M)
-    - Migrate a copy of `demo`, run the full 699-test suite against it, confirm
-      every existing password still works, then exercise the rollback.
+  in. Finished 2026-10-16 on `feat/f3-multinode-test`: the second
+  organization now owns an instance of its own -- provisioned through D.1,
+  handed over, the builder's grants removed -- so the mirror holds from both
+  sides, including that neither administrator can close the other's instance
+  (404: the registry does not admit theirs exists).*
+- [x] **F.3 Multi-node test.** (M) *Done 2026-10-16 on
+  `feat/f3-multinode-test`: `test/api/multinode.test.js` starts a second
+  server against the same databases. Run, not asserted: a session opened on
+  one node works on the other and one sign-out ends both; a WebAuthn
+  ceremony begun on node A is consumed on node B; a provisioning run claimed
+  by one node answers busy on the other; two bare processes contending for
+  one claim produce exactly one winner, and an expired claim is anyone's
+  again. Said plainly in the file: cron end to end waits on the CronJob
+  module calling claimWork, and record locks surviving a restart is not
+  covered.*
+- [x] **F.4 Migration rehearsal.** (M) *Recorded done 2026-10-16: B.6
+  rehearsed exactly this -- a copy of `demo` registered, backfilled and cut
+  over, users created and passwords changed on the identity path, the api
+  suite at its baseline against the copy -- and the rollback half of the
+  item was removed by John's decision that the migration is one way (B.6's
+  note). What remains is the real run per installation, which is operations,
+  not rehearsal.*
 
 ## 7. What the improvement plan loses to this plan
 

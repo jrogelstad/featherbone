@@ -3035,6 +3035,7 @@
       "expiration": "timestamp with time zone",
       "is_active": "boolean",
       "is_demo": "boolean",
+      "is_maintenance": "boolean",
       "modules": "json",
       "name": "text",
       "pg_database": "text"
