@@ -6,6 +6,10 @@
             "type": "service",
             "name": "fbtest-service",
             "path": "service.js"
+        },
+        {
+            "type": "module",
+            "path": "client.js"
         }
     ]
 }

@@ -2628,6 +2628,51 @@
             }
         }
 
+        /*
+            A module's client script comes from the installed package
+            when the server holds one (ADR-002 section 2). The browser
+            compiles `Module.script`, which is source code in a table
+            that anyone with write access can change, so the same rule
+            that governs server services governs the client half: a
+            file on disk changes only by deployment access, and a
+            module with no package on this server still answers from
+            its row.
+
+            Internal callers see the rows as they are -- they pass
+            isSuperUser, and some of them write what they read back.
+        */
+        function fromPackage(resp) {
+            let rows;
+
+            if (isSuperUser || obj.name !== "Module" || !resp) {
+                return resp;
+            }
+
+            rows = (
+                Array.isArray(resp)
+                ? resp
+                : [resp]
+            );
+            rows.forEach(function (row) {
+                let src;
+
+                if (!row || !row.name || !row.version) {
+                    return;
+                }
+                if (row.script === undefined) {
+                    return;
+                }
+
+                src = packages.clientSource(row.name, row.version);
+
+                if (src) {
+                    row.script = src.script;
+                }
+            });
+
+            return resp;
+        }
+
         async function doQuery() {
             // console.log("QUERY->", obj.name, obj.method);
             obj.client = theClient;
@@ -2881,7 +2926,7 @@
             // If alter data, process it
             if (catalog[obj.name]) {
                 if (obj.method === "GET") {
-                    resp2 = await doQuery();
+                    resp2 = fromPackage(await doQuery());
                     if (!theClient.wrapped()) {
                         theClient.currentUser(undefined);
                     }
