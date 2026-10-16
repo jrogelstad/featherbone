@@ -21,7 +21,7 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | Tier | Done | Part done | Open |
 | --- | --- | --- | --- |
 | A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
-| B Identity cutover | B.1, B.2, B.3, B.4, B.5 | — | B.6, B.7 |
+| B Identity cutover | B.1-B.5, B.7 | — | B.6 |
 | C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
 | D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
 | E Multi-node readiness | — | — | E.1–E.5 |
@@ -395,7 +395,22 @@ purpose.
           whose local profile was rolled back is refused at
           `deserializeUser`. A sweep for identities with no grant
           belongs with B.6.
-- [ ] **B.7 Provision the local profile when access is granted.** (S)
+- [x] **B.7 Provision the local profile when access is granted.** (S)
+  *Done 2026-10-15 on `feat/b7-local-profile`. The profile is made on the
+  first sign-in, in `deserializeUser`, on the strength of a live grant:
+  active identity, same organization as the instance, active grant to it. It
+  joins `everyone` and nothing else, is idempotent against a concurrent
+  second sign-in, and is audited as `user_account.provisioned`. Identity path
+  only -- on the role path a cluster-wide login role plus an on-demand
+  profile would be a way into any database, which is item 1.1 again.*
+  *The second half was in `server.js`: `doSignIn` looked the local profile up
+  and answered 401 before authenticating at all, silently, which is why a
+  granted identity could not get in and why nothing appeared in the log. On
+  the identity path that question now belongs to authentication; a wrong
+  username still gets the same generic refusal, from there. A
+  B.5-era test that asserted the old behaviour -- create an identity from the
+  screen, be refused until a profile is made by hand -- now asserts the new
+  one.*
     *Found 2026-10-15, in use.* `user_account` is the local profile (B.5) and
     `deserializeUser` requires a row in **every** instance the person reaches:
     without one, `server/database.js` rejects with "User account <name> not
