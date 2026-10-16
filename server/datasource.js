@@ -580,6 +580,14 @@
             return;
         }
 
+        // A listen still opening its connection finishes first, or it
+        // would land a connection on a pool that is about to end
+        if (tenant.listenPending) {
+            await tenant.listenPending.catch(function () {
+                return;
+            });
+        }
+
         if (tenant.listenerConn) {
             try {
                 tenant.listenerConn.done();
@@ -1441,7 +1449,12 @@
             await client.end();
             // Resume listening to events on the source database
             if (tenant) {
-                that.listen(tenant);
+                that.listen(tenant).catch(function (err) {
+                    console.error(
+                        "Could not resume listening to " + source +
+                        ": " + (err.message || err)
+                    );
+                });
             }
         }
 
@@ -1835,8 +1848,20 @@
         @param {Function} [callback]
         @return {Promise}
     */
-    that.listen = async function (tenant, callback) {
-        try {
+    that.listen = function (tenant, callback) {
+        /*
+            One listen at a time per instance. Two overlapping calls
+            would each see no connection, open one apiece, and the
+            second would wait for the node's advisory lock on the
+            database the first already holds -- this process waiting
+            on itself, with a pooled connection checked out for good.
+            The second caller joins the first instead.
+        */
+        if (tenant.listenPending) {
+            return tenant.listenPending;
+        }
+
+        let pending = (async function () {
             let resp = tenant.listenerConn;
 
             if (!resp) {
@@ -1848,10 +1873,7 @@
             }
 
             if (!tenant.listenerCallback) {
-                return Promise.reject(
-                    "Callback must be passed on " +
-                    "first listen of tenant"
-                );
+                throw "Callback must be passed on first listen of tenant";
             }
 
             await events.listen(
@@ -1859,9 +1881,17 @@
                 db.nodeId,
                 tenant.listenerCallback
             );
-        } catch (err) {
-            return Promise.reject(err);
-        }
+        }());
+        let clear = function () {
+            if (tenant.listenPending === pending) {
+                delete tenant.listenPending;
+            }
+        };
+
+        tenant.listenPending = pending;
+        pending.then(clear, clear);
+
+        return pending;
     };
 
     /**
