@@ -175,6 +175,14 @@ What you may do depends on who you are (ADR-001):
 * a **tenant super user** with neither flag may only act on people who
   can already reach the instance they are signed in to.
 
+Sign-in is organization-scoped, so a platform administrator is never
+signed in to another organization's instance. For the emergency that
+rule would otherwise block -- an organization whose only administrator
+has left -- the Users screen offers platform administrators an
+organization picker: pick the organization, suspend the departed
+administrator, appoint the replacement. Every change is audited against
+the organization acted on.
+
 It is served from `client/components/admin-page.js`, which the
 unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt

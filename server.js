@@ -1866,6 +1866,13 @@
                 can tell a registered instance from one that is
                 actually up (tenant plan D.3's registry accessor).
             */
+            /*
+                The organization to act on, for a platform
+                administrator's break-glass reach (tenant plan A.4).
+                Reads carry it in the query string, writes in the body;
+                admin.js refuses it for everyone else.
+            */
+            organization: req.query.organization || undefined,
             registry: datasource.registeredTenants(),
             tenant: req.tenant,
             user: req.user.name

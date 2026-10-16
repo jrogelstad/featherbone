@@ -20,7 +20,7 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 
 | Tier | Done | Part done | Open |
 | --- | --- | --- | --- |
-| A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
+| A Foundations | A.1–A.5 | — | — |
 | B Identity cutover | B.1-B.8 | — | — |
 | C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
 | D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
@@ -43,11 +43,10 @@ What that leaves for improvement-plan item 1.1 is running the migration on
 each real installation. Since B.8 an installation that has not migrated has
 nobody who can sign in, so it is no longer optional.
 
-**Next three, in order:** the rest of A.4 (rename `is_super` to tenant super
-user in docs and UI; the break-glass path end to end), then D.1 provisioning
-— which unblocks creating and dropping databases from the Instances screen
-and the `"$db"` marker check when registering one — then Tier C's decision
-on passkeys (C.1), which are still per instance.
+**Next three, in order:** D.1 provisioning — which unblocks creating and
+dropping databases from the Instances screen and the `"$db"` marker check
+when registering one — then the D.4 remainder, then Tier C starting with
+passkeys (C.1), which are still per instance.
 
 **Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
 a database from the Instances screen, and the `"$db"` marker check when
@@ -214,11 +213,23 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       workbooks for the administration UI.
     - Done when: an organization, an identity and a grant can be created
       through the framework with no module installed.
-- [~] **A.4 Administration model.** (M) *Partly done 2026-10-11 on
+- [x] **A.4 Administration model.** (M) *Partly done 2026-10-11 on
   `feat/identity-cutover`: `admin_audit` is written by everything that
-  changes privileged state so far -- the backfill's creations and grants,
-  and the automatic lock after failed sign-ins. The break-glass UI and the
-  is_super rename wait on the admin console (D.1/D.2).*
+  changes privileged state -- the backfill's creations and grants, and the
+  automatic lock after failed sign-ins. Finished 2026-10-15 on
+  `feat/a4-admin-model`: the break-glass reach and the rename. Sign-in is
+  organization-scoped, so a platform administrator can never be signed in
+  to another organization's instance; the admin routes now let them name
+  the organization to act on (`?organization=` on reads, `organization` in
+  the body on writes), everything downstream keys on it, audit rows record
+  the organization acted on, and anyone else naming another organization
+  is refused. The Users screen gets an organization picker only a platform
+  administrator sees. Proven end to end in `identity.test.js`
+  ("break-glass"): suspend the departed administrator, appoint the
+  replacement, read the trail, and the refusals. The User Account form
+  labels `isSuper` "Tenant Super User" and the feather description says
+  what it is (and stops misspelling "administrator"); README and ADR
+  already used the name.*
     - Implement the three tiers in ADR §3: platform administrator,
       organization administrator, tenant roles.
     - A platform administrator is an identity with a flag — not a Postgres
