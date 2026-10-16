@@ -1078,15 +1078,16 @@ f.datasource.registerFunction(
 
 /*
   Role
+
+  Users are identities in the manager database with a grant on this
+  instance (ADR-001); group roles are rows here, and membership is the
+  role_membership rows (tenant plan B.3), so nothing below mirrors
+  either onto the cluster. The server functions keep their old names.
 */
 function updateRole(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
-        let n = 0;
-        let oldRec = obj.oldRec;
-        let newRec = obj.newRec;
-        let requests = [];
         let superPayload = {
             method: "GET",
             name: "isSuperUser",
@@ -1097,7 +1098,7 @@ function updateRole(obj) {
             throw new Error("Name cannot be changed");
         }
 
-        function handleMembership(userIsSuper) {
+        function handleSuper(userIsSuper) {
             if (obj.oldRec.isSuper !== obj.newRec.isSuper && !userIsSuper) {
                 throw new Error(
                     "You must have super user privileges to alter" +
@@ -1105,72 +1106,10 @@ function updateRole(obj) {
                 );
             }
 
-            // compare old and new membership, where different grant or revoke
-            if (oldRec.membership.length < newRec.membership.length) {
-                oldRec.membership.length = newRec.membership.length;
-            }
-
-            // Revoke changed roles
-            while (n < oldRec.membership.length) {
-                if (
-                    newRec.membership[n] === undefined ||
-                    newRec.membership[n] === null || (
-                        oldRec.membership[n] !== undefined &&
-                        oldRec.membership[n] !== null &&
-                        oldRec.membership[n].role !== newRec.membership[n].role
-                    )
-                ) {
-                    requests.push(
-                        f.datasource.request(
-                            {
-                                method: "POST",
-                                name: "revokeMembership",
-                                data: {
-                                    fromRole: oldRec.membership[n].role,
-                                    toRole: oldRec.name
-                                },
-                                client: obj.client
-                            },
-                            true
-                        )
-                    );
-                }
-                n += 1;
-            }
-
-            // Grant changed roles
-            n = 0;
-            while (n < oldRec.membership.length) {
-                if (
-                    oldRec.membership[n] === undefined ||
-                    oldRec.membership[n] === null || (
-                        newRec.membership[n] !== undefined &&
-                        newRec.membership[n] !== null &&
-                        oldRec.membership[n].role !== newRec.membership[n].role
-                    )
-                ) {
-                    requests.push(
-                        f.datasource.request(
-                            {
-                                method: "POST",
-                                name: "grantMembership",
-                                data: {
-                                    fromRole: newRec.membership[n].role,
-                                    toRole: oldRec.name
-                                },
-                                client: obj.client
-                            },
-                            true
-                        )
-                    );
-                }
-                n += 1;
-            }
-
-            Promise.all(requests).then(resolve).catch(reject);
+            resolve();
         }
 
-        f.datasource.request(superPayload).then(handleMembership).catch(reject);
+        f.datasource.request(superPayload).then(handleSuper).catch(reject);
     });
 }
 
@@ -1178,14 +1117,11 @@ function createRole(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
-        let requests = [];
-        let membership = obj.newRec.membership || [];
         let re = new RegExp(" ", "g");
         let options = obj.roleOptions || {
             name: obj.newRec.name.toLowerCase().replace(re, "_"),
             isLogin: obj.newRec.isLogin,
-            password: obj.newRec.password,
-            isInherits: false
+            password: obj.newRec.password
         };
         let superPayload = {
             method: "GET",
@@ -1212,33 +1148,10 @@ function createRole(obj) {
             });
         }
 
-        function doGrant() {
-            membership.forEach(function (item) {
-                let mpayload = {
-                    method: "POST",
-                    name: "grantMembership",
-                    client: obj.client,
-                    data: {
-                        fromRole: item.role,
-                        toRole: obj.newRec.name
-                    }
-                };
-
-                requests.push(
-                    f.datasource.request(
-                        mpayload,
-                        true
-                    )
-                );
-            });
-
-            Promise.all(requests).then(resolve).catch(reject);
-        }
-
         f.datasource.request(
             superPayload,
             true
-        ).then(doCreateRole).then(doGrant).catch(reject);
+        ).then(doCreateRole).then(resolve).catch(reject);
     });
 }
 
@@ -1346,25 +1259,44 @@ function updateUserAccount(obj) {
                 ));
             }
 
-            if (obj.newRec.isSuper !== obj.oldRec.isSuper) {
-                requests.push(f.datasource.request(
-                    {
-                        method: "POST",
-                        name: "changeRoleCreateDb",
-                        client: obj.client,
-                        data: {
-                            name: obj.newRec.name.toLowerCase(),
-                            isLogin: obj.newRec.isSuper
-                        }
-                    },
-                    true
-                ));
-            }
-
             Promise.all(requests).then(resolve).catch(reject);
         }
 
-        f.datasource.config().then(callback).catch(reject);
+        /*
+            This runs before the update is authorized, and the password
+            and grant writes above are not undone when the update is
+            then refused: an unauthorized PATCH used to change the
+            password anyway. Ask first.
+        */
+        function authorized() {
+            if (
+                !pswd &&
+                obj.newRec.isActive === obj.oldRec.isActive
+            ) {
+                return Promise.resolve(true);
+            }
+
+            return f.datasource.request({
+                method: "GET",
+                name: "isAuthorized",
+                client: obj.client,
+                data: {
+                    action: "canUpdate",
+                    id: obj.newRec.id
+                }
+            }, true);
+        }
+
+        authorized().then(function (ok) {
+            if (!ok) {
+                reject(
+                    "Not authorized to update \"" + obj.newRec.name + "\""
+                );
+                return;
+            }
+
+            return f.datasource.config().then(callback);
+        }).catch(reject);
     });
 }
 
@@ -1373,22 +1305,9 @@ async function createUserAccount(obj) {
         return Promise.reject("Contact is required.");
     }
 
-    let sql = "SELECT rolname FROM pg_roles WHERE NOT rolcanlogin";
-    let roles = await obj.client.query(sql);
-    let role;
-    let name = obj.newRec.name.toLowerCase();
-
+    // A user account is the login kind of role; createRole (server) refuses
+    // a name a group role already holds
     obj.newRec.isLogin = true;
-
-    while (roles.rows.length) {
-        role = roles.rows.shift();
-        if (role.rolname === name) {
-            throw (
-                `Name ${name} is already a reserved role name ` +
-                `and cannot be used`
-            );
-        }
-    }
     let cntct = await f.datasource.request({
         client: obj.client,
         id: obj.newRec.contact.id,
@@ -1423,9 +1342,7 @@ async function createUserAccount(obj) {
     obj.roleOptions = {
         name: obj.newRec.name.toLowerCase(),
         isLogin: obj.newRec.isActive !== false,
-        isSuper: obj.newRec.isSuper,
-        password: obj.newRec.password || f.createId(),
-        isInherits: false
+        password: obj.newRec.password || f.createId()
     };
     obj.newRec.password = "";
 }

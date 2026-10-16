@@ -1,5 +1,4 @@
 {
-    "authStrategy": "role",
     "cipher": "",
     "clientPort": 80,
     "debug": true,

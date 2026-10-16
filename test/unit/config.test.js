@@ -110,36 +110,3 @@ describe("config modes", function () {
         assert.deepEqual(config.modes().sort(), ["dev", "prod", "test"]);
     });
 });
-
-/*
-    How sign-in verifies a password (ADR-001 Tier B): today's login-role
-    path by default, the identity table in the manager when the cutover
-    is switched on. The flag makes the cutover reversible until B.4.
-*/
-describe("config auth strategy", function () {
-    const config = new Config();
-
-    it("defaults to the role path", function () {
-        assert.equal(config.authStrategy({}), "role");
-        assert.equal(config.authStrategy(undefined), "role");
-        assert.equal(config.authStrategy({authStrategy: ""}), "role");
-    });
-
-    it("accepts the identity strategy", function () {
-        assert.equal(
-            config.authStrategy({authStrategy: "identity"}),
-            "identity"
-        );
-        assert.equal(
-            config.authStrategy({authStrategy: " role "}),
-            "role"
-        );
-    });
-
-    it("refuses a typo rather than falling back silently", function () {
-        assert.throws(
-            () => config.authStrategy({authStrategy: "identty"}),
-            /Unknown authStrategy/
-        );
-    });
-});

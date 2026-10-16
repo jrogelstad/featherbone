@@ -19,7 +19,10 @@
 /*
     Identity backfill (ADR-001 A.5, tooling for B.6).
 
-    Builds the manager's identity records from what already exists:
+    Sign-in is by identity and nothing else (B.8), so an installation
+    that predates identities has nobody who can sign in until this has
+    run. Builds the manager's identity records from what already
+    exists:
 
     - One organization (named with --organization, default "Default"),
       created if absent.
@@ -39,7 +42,8 @@
     A dry run is the default and writes nothing. Pass --apply to write.
     Run it again any time: it reports what exists and only adds what is
     missing, so it is also the registration step when a new instance is
-    attached by hand.
+    attached by hand. A fresh `node install.js --instance` needs none
+    of this: it makes the organization and the first identity itself.
 
     Pass --org-admin <username> to make that person the
     organization's first administrator. Nothing else does: the Users
@@ -443,7 +447,7 @@
         await manager.end();
         say("Done." + (
             apply
-            ? ""
+            ? " Restart the server; sign-in is by identity."
             : " Nothing was written; pass --apply to write."
         ));
     }

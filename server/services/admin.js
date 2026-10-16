@@ -198,11 +198,6 @@
             who the caller is, what they may do, the organization, its
             instances, its identities and the recent audit trail.
 
-            `authStrategy` rides along so the screen can say plainly
-            whether what it shows is deciding sign-in yet: under "role"
-            these records are real and editable, but the password the
-            cluster holds is still the one being checked.
-
             @method overview
             @param {Object} payload
             @param {Object} payload.tenant Instance of the request
@@ -211,8 +206,6 @@
             @return {Promise}
         */
         that.overview = async function (obj) {
-            let conf = await config.read();
-
             return await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
                 let organization = await manager.organization(
@@ -249,7 +242,6 @@
                             target: row.target
                         };
                     }),
-                    authStrategy: config.authStrategy(conf),
                     identities: identities.map(identityOut),
                     instance: obj.tenant.id,
                     instances: instances.map(function (row) {
@@ -753,7 +745,6 @@
                         : obj.user
                     ),
                     audit,
-                    authStrategy: config.authStrategy(conf),
                     databases,
                     instance: current,
                     instances,
