@@ -610,7 +610,7 @@
                     "name,pg_database,is_active," +
                     "_pg_service_tenant_service_pk," +
                     "_organization_organization_pk) " +
-                    "VALUES (" + DOC_VALS + ",$3,$4,true,$5,$6) " +
+                    "VALUES (" + DOC_VALS + ",$3,$4,$5,$6,$7) " +
                     "RETURNING _pk"
                 ),
                 [
@@ -618,6 +618,8 @@
                     data.by || "system",
                     data.name,
                     data.database,
+                    // False while provisioning builds it (D.1)
+                    data.isActive !== false,
                     data.servicePk,
                     data.organizationPk
                 ]
