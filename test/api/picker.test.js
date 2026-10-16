@@ -32,6 +32,14 @@ const identities = new Identities();
 const ROOT = settings.baseUrl.replace("/" + settings.testDb, "");
 const TWIN_ORG = "FBPickerTwin";
 const TWIN_PW = "Fbtest-Twin-Org-3!";
+/*
+    This file's own identities. The grants are the subject, and the
+    harness users carry whatever grants the other api files gave them,
+    so these two are made here: SOLO is granted the first instance and
+    nothing else, and TWIN exists in two organizations.
+*/
+const SOLO = "fbt_picker_solo";
+const TWIN = "fbt_picker_twin";
 
 const DOC_COLS = (
     "_pk,id,created,created_by,updated,updated_by,is_deleted," +
@@ -77,7 +85,7 @@ async function seedTwin() {
                 "SELECT _pk FROM identity WHERE username = $1 " +
                 "  AND _organization_organization_pk = $2"
             ),
-            [settings.adminUser, orgPk]
+            [TWIN, orgPk]
         );
 
         if (!found.rows.length) {
@@ -90,7 +98,7 @@ async function seedTwin() {
                 ",$1,$2,$2,'',$3,'active',false,false,0)"
             ), [
                 orgPk,
-                settings.adminUser,
+                TWIN,
                 identities.hashPassword(TWIN_PW)
             ]);
         }
@@ -132,22 +140,16 @@ function grantState(username, database, isActive) {
 
 describe("the instance picker (G.1)", function () {
     before(async function () {
-        /*
-            The second instance is granted to the administrator by the
-            harness, and the basic user only to the first, which is the
-            difference the list has to show.
-        */
-        await db.ensureIdentity(
-            settings.adminUser,
-            settings.password,
-            settings.testDb2
-        );
+        // Granted the first instance and nothing else
+        await db.ensureIdentity(SOLO, settings.password, settings.testDb);
+        // The same name in two organizations, granted nothing here
+        await db.ensureIdentity(TWIN, settings.password);
         await seedTwin();
     });
 
     after(async function () {
         await unseedTwin();
-        await grantState(settings.basicUser, settings.testDb, true);
+        await grantState(SOLO, settings.testDb, true);
     });
 
     it("answers at a URL with no database in it", async function () {
@@ -168,7 +170,7 @@ describe("the instance picker (G.1)", function () {
 
     it("refuses a wrong password", async function () {
         let resp = await new Session(ROOT).signIn(
-            settings.basicUser,
+            SOLO,
             "not-the-password"
         );
 
@@ -178,23 +180,17 @@ describe("the instance picker (G.1)", function () {
     it("signs in against the manager with no instance in play",
             async function () {
         let picker = new Session(ROOT);
-        let resp = await picker.signIn(
-            settings.basicUser,
-            settings.password
-        );
+        let resp = await picker.signIn(SOLO, settings.password);
 
         assert.equal(resp.status, 200, JSON.stringify(resp.body));
-        assert.equal(resp.body.username, settings.basicUser);
+        assert.equal(resp.body.username, SOLO);
         assert.equal(resp.body.organization.name, "FBTest");
         assert.equal(resp.body.isPlatformAdmin, false);
     });
 
     it("asks which organization when the user name is in two",
             async function () {
-        let resp = await new Session(ROOT).signIn(
-            settings.adminUser,
-            settings.password
-        );
+        let resp = await new Session(ROOT).signIn(TWIN, settings.password);
 
         assert.equal(resp.status, 409, JSON.stringify(resp.body));
         assert.equal(resp.body.code, "organization-required");
@@ -206,7 +202,7 @@ describe("the instance picker (G.1)", function () {
 
     it("takes the organization when it is named", async function () {
         let resp = await new Session(ROOT).signIn(
-            settings.adminUser,
+            TWIN,
             settings.password,
             "FBTest"
         );
@@ -217,12 +213,12 @@ describe("the instance picker (G.1)", function () {
 
     it("tells the two apart by their own passwords", async function () {
         let wrong = await new Session(ROOT).signIn(
-            settings.adminUser,
+            TWIN,
             TWIN_PW,
             "FBTest"
         );
         let right = await new Session(ROOT).signIn(
-            settings.adminUser,
+            TWIN,
             TWIN_PW,
             TWIN_ORG
         );
@@ -234,26 +230,28 @@ describe("the instance picker (G.1)", function () {
 
     it("lists the instances the grants reach, and no others",
             async function () {
-        let picker = new Session(ROOT);
+        let solo = new Session(ROOT);
 
-        await picker.signIn(settings.adminUser, settings.password, "FBTest");
+        await solo.signIn(SOLO, settings.password);
 
-        let mine = await picker.get("/my/instances");
-        let names = mine.instances.map((i) => i.database).sort();
-
-        assert.deepEqual(names, [settings.testDb, settings.testDb2].sort());
-        assert.equal(mine.identity.username, settings.adminUser);
-
-        let basic = new Session(ROOT);
-
-        await basic.signIn(settings.basicUser, settings.password);
-
-        let theirs = await basic.get("/my/instances");
+        let mine = await solo.get("/my/instances");
 
         assert.deepEqual(
-            theirs.instances.map((i) => i.database),
+            mine.instances.map((i) => i.database),
             [settings.testDb],
-            "the basic user is granted one of the two"
+            "granted the first instance and not the second"
+        );
+        assert.equal(mine.identity.username, SOLO);
+
+        let admin = new Session(ROOT);
+
+        await admin.signIn(settings.adminUser, settings.password, "FBTest");
+
+        let theirs = await admin.get("/my/instances");
+
+        assert.ok(
+            theirs.instances.some((i) => i.database === settings.testDb),
+            "the harness administrator reaches the first instance"
         );
     });
 
@@ -261,7 +259,7 @@ describe("the instance picker (G.1)", function () {
             async function () {
         let twin = new Session(ROOT);
 
-        await twin.signIn(settings.adminUser, TWIN_PW, TWIN_ORG);
+        await twin.signIn(TWIN, TWIN_PW, TWIN_ORG);
 
         let mine = await twin.get("/my/instances");
 
@@ -271,7 +269,7 @@ describe("the instance picker (G.1)", function () {
     it("enters an instance it is granted", async function () {
         let picker = new Session(ROOT);
 
-        await picker.signIn(settings.basicUser, settings.password);
+        await picker.signIn(SOLO, settings.password);
 
         let resp = await picker.raw(
             "GET",
@@ -284,7 +282,7 @@ describe("the instance picker (G.1)", function () {
     it("refuses one it is not, and keeps the session", async function () {
         let picker = new Session(ROOT);
 
-        await picker.signIn(settings.basicUser, settings.password);
+        await picker.signIn(SOLO, settings.password);
 
         let resp = await picker.raw(
             "GET",
@@ -298,14 +296,14 @@ describe("the instance picker (G.1)", function () {
         // that instance, so it stands
         let mine = await picker.get("/my/instances");
 
-        assert.equal(mine.identity.username, settings.basicUser);
+        assert.equal(mine.identity.username, SOLO);
     });
 
     it("closes the door when the grant is revoked after sign-in",
             async function () {
         let picker = new Session(ROOT);
 
-        await picker.signIn(settings.basicUser, settings.password);
+        await picker.signIn(SOLO, settings.password);
 
         let open = await picker.raw(
             "GET",
@@ -314,7 +312,7 @@ describe("the instance picker (G.1)", function () {
 
         assert.equal(open.status, 200, "in while the grant is live");
 
-        await grantState(settings.basicUser, settings.testDb, false);
+        await grantState(SOLO, settings.testDb, false);
 
         /*
             Admission is recorded on the session, so the instance it
@@ -323,7 +321,7 @@ describe("the instance picker (G.1)", function () {
         */
         let other = new Session(ROOT);
 
-        await other.signIn(settings.basicUser, settings.password);
+        await other.signIn(SOLO, settings.password);
 
         let shut = await other.raw(
             "GET",
@@ -332,6 +330,6 @@ describe("the instance picker (G.1)", function () {
 
         assert.equal(shut.status, 403, JSON.stringify(shut.body));
 
-        await grantState(settings.basicUser, settings.testDb, true);
+        await grantState(SOLO, settings.testDb, true);
     });
 });
