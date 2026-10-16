@@ -73,6 +73,17 @@ repositories' to change:**
 6. **Whether an expired demo should eventually be dropped**, not just
    closed: the sweep closes and audits, dropping stays a human action.
 
+**ADR-002's own remainder moved the same way, 2026-10-16.** The
+packages-on-disk work is implemented (that ADR's section 10 is its
+tally): Install and Deploy are separate acts, the maintenance state
+exists, the fleet view says which instance is behind, both halves of
+"source code in a table" come from packages, `ModuleNpm` is retired and
+module-less service rows are reported. What is left there is also
+John's: whether to retire the Admin Console's combined zip install in
+favour of Install then Deploy, whether a fleet upgrade should be one
+action, and whether customers get extension by package and spare user
+columns -- which improvement item 0.14 gates.
+
 ## How to use this plan
 
 Tiers A–F are ordered by dependency, not by value. Within a tier, items are

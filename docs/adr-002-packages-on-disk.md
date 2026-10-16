@@ -328,19 +328,71 @@ customers, for the reasons in section 7.
   `"$db"` marker (schema 2: `manager` and `instance`) and Install targets
   stand.
 
+**Built 2026-10-16**, one branch each, stacked in the order below:
+
+* **Question 7, the maintenance state** (`feat/adr002-maintenance-state`).
+  The registry row carries `isMaintenance`; a held instance answers 503
+  with an explanation for everything but its own pages, sign-in and the
+  administration routes, and only a platform administrator may sign in to
+  it. Both ends audited. Read through a column probe, so a manager that
+  has not been upgraded reports nothing held rather than failing.
+* **Sections 6 and 2, Install apart from Deploy**
+  (`feat/adr002-install-deploy`). `node install.js --package <dir|tarball>`
+  registers a package on this server and touches no database, installing
+  the package's own libraries inside its own version directory;
+  `--packages` lists what is installed; `--deploy <module>[@version]
+  --instance <db>` holds the instance, applies the manifest, records the
+  version in that database's `module` row and lets the instance go.
+  `--manager` deploys the manager, which has no row to hold. A failed
+  deployment leaves the instance held deliberately.
+* **The fleet view** (`feat/adr002-fleet-view`). The Instances screen says
+  what each instance carries, read from the instance itself, and how many
+  of its modules are behind a package the server holds; "Deploy" on a row
+  is the same act as the command line's, platform administrators only,
+  audited at both ends.
+* **Section 2, the client half** (`feat/adr002-client-from-disk`). A
+  module's client script is served from its installed package when the
+  server holds one, so the browser compiles a file that changes only by
+  deployment access rather than a table row anyone with write access can
+  change. A module with no package still answers from its row.
+* **Question 1, `ModuleNpm` retired** (`feat/adr002-retire-module-npm`).
+* **Question 6, module-less `Script` rows** (`feat/adr002-orphan-scripts`).
+
 **Not built:**
 
-* Install/Deploy separation in the UI, and the fleet view (which instance is
-  on which version, upgrade the ones behind).
-* Client module scripts served from disk; they are still `Module.script`
-  rows compiled in the browser.
-* Manager Deploy via the CLI, and dropping the now-redundant module-less
-  `Script` rows.
-* D.5 (editions as a boundary) is enforceable on this foundation but not
-  decided.
-* Improvement items 2.6, 3.3 and 0.14 still gate offering extension by
-  inheritance or user columns to customers (section 7).
+* **C.3/C.4-style UI for Install**: uploading a package through the
+  Admin Console still goes through the old combined zip install, which
+  installs *and* deploys in one action. The separated path exists
+  (command line plus the screen's Deploy); retiring the combined one is
+  a decision, not code.
+* **Fleet upgrade as one action.** Upgrading many instances is a rolling
+  outage; the screen says how many are behind and leaves the order to a
+  person. Whether to automate it is open.
+* **Section 7's two tiers for customer extension** -- a package that
+  inherits a feather, and spare user columns with per-database aliases.
+  Improvement item 0.14 (column-level authorization) still gates the
+  second; 2.6 and 3.3 are merged.
+* **D.5** (editions as a boundary) is enforceable on this foundation but
+  undecided.
+* **The Develop workbook's feather authorization editing** (section 6).
+  Authorizations stay per database, so they need an editor once feather
+  editing leaves the UI -- and feather editing has not left the UI yet,
+  so nothing is lost today.
 
 **Known open:** the catalog-routes golden gained `/fbtest/version ->
 fbtestVersion`; confirm it on a full install with SupplyChain and Job Shop,
-which the sandbox lacks.
+which the sandbox lacks. The fixture package also gained a client file
+and a declared library at 1.1.0, so the module and workbook goldens are
+worth a look on that install too.
+
+**Found while implementing, not fixed:** adding a feather property in
+the *middle* of its property list gives the new column the displaced
+property's type. A feather's properties are stored as a positional
+child array, so an inserted property lands on the row that was there
+and inherits whatever it does not set -- a boolean inserted before
+`Tenant.expiration` (a `string:dateTime`) was created `timestamp with
+time zone` and the install died on "invalid input syntax for type
+timestamp with time zone: false". Appending at the end is the
+workaround and is what this work did. The fix belongs in the Feather
+child-array merge, which should match on name rather than position; it
+is recorded in `featherbone-fix-branches.md`.
