@@ -1006,20 +1006,25 @@
         let modules = (instance.modules || {}).modules;
 
         if (!modules || !modules.length) {
-            return {behind: 0, text: "—"};
+            return {adrift: 0, behind: 0, fromRows: 0, text: "—"};
         }
 
-        let behind = modules.filter(function (one) {
-            let held = vm.installed.filter((p) => p.name === one.name);
-
-            return held.some((p) => p.version !== one.version && p.isNewest);
-        }).length;
-
         return {
-            behind,
-            text: modules.map(
-                (one) => one.name + " " + one.version
-            ).join(", ")
+            /*
+                Named a version this server does not hold, so the
+                instance runs the code in its own tables and nothing
+                says so (ADR-002 section 2).
+            */
+            adrift: modules.filter((one) => one.isVersionMissing).length,
+            behind: modules.filter((one) => one.isBehind).length,
+            fromRows: modules.filter((one) => !one.isOnDisk).length,
+            text: modules.map(function (one) {
+                return one.name + " " + one.version + " (" + (
+                    one.isOnDisk
+                    ? "disk"
+                    : "rows"
+                ) + ")";
+            }).join(", ")
         };
     }
 
@@ -1042,16 +1047,42 @@
             m("td", {class: "fb-admin-col-status"}, state(instance)),
             m("td", {
                 class: (
-                    what.behind
+                    what.behind || what.adrift
                     ? undefined
                     : "fb-admin-muted"
                 ),
                 title: what.text
-            }, (
-                what.behind
-                ? what.behind + " behind"
-                : what.text
-            )),
+            }, [
+                (
+                    what.adrift
+                    ? m("span", {
+                        style: {color: "var(--fb-danger)"},
+                        title: (
+                            what.adrift + " module(s) name a version " +
+                            "this server does not hold, so this " +
+                            "instance runs the code in its own tables"
+                        )
+                    }, what.adrift + " adrift ")
+                    : undefined
+                ),
+                (
+                    what.behind
+                    ? what.behind + " behind"
+                    : undefined
+                ),
+                (
+                    !what.behind && !what.adrift
+                    ? what.text
+                    : undefined
+                ),
+                (
+                    what.fromRows && !what.adrift
+                    ? m("span", {
+                        class: "fb-admin-muted"
+                    }, " " + what.fromRows + " from rows")
+                    : undefined
+                )
+            ]),
             m("td", instance.users)
         ]);
     }

@@ -75,6 +75,7 @@ function setVersion(database, version) {
 describe("a module served from its package (ADR-002)", function () {
     let admin;
     let was;
+    let auditMark;
 
     before(async function () {
         await flags(settings.adminUser, {
@@ -90,6 +91,23 @@ describe("a module served from its package (ADR-002)", function () {
 
         assert.equal(resp.status, 200, JSON.stringify(resp.body));
         was = (await moduleRow(settings.testDb)).version;
+
+        /*
+            The deployment below writes its own audit rows, and
+            fleet.test.js counts the rows for the same package and
+            version. Mark where this file starts so it can take back
+            only what it added.
+        */
+        auditMark = await db.withClient(
+            settings.managerDb,
+            async function (client) {
+                let resp = await client.query(
+                    "SELECT coalesce(max(_pk), 0) AS mark FROM admin_audit"
+                );
+
+                return resp.rows[0].mark;
+            }
+        );
     });
 
     after(async function () {
@@ -105,6 +123,13 @@ describe("a module served from its package (ADR-002)", function () {
             );
         });
         await setVersion(settings.testDb, was);
+        await db.withClient(settings.managerDb, (client) => client.query(
+            (
+                "DELETE FROM admin_audit WHERE _pk > $1 " +
+                "  AND detail LIKE 'fbtest%'"
+            ),
+            [auditMark]
+        ));
         await flags(settings.adminUser, {});
     });
 

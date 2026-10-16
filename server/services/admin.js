@@ -753,6 +753,26 @@
                     : 0
                 ),
                 database: row.pg_database,
+                /*
+                    How many of this instance's modules run from the
+                    database's own rows rather than from a package
+                    (ADR-002 section 2), and how many of those do so
+                    because this server does not hold the version the
+                    instance carries -- which is drift rather than a
+                    module that was never packaged.
+                */
+                adrift: (
+                    carried
+                    ? carried.modules.filter(
+                        (mod) => mod.isVersionMissing
+                    ).length
+                    : 0
+                ),
+                fromRows: (
+                    carried
+                    ? carried.modules.filter((mod) => !mod.isOnDisk).length
+                    : 0
+                ),
                 modules: (
                     carried
                     ? carried.modules
