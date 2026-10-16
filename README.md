@@ -256,6 +256,26 @@ unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
 
+### Expired demos
+
+A demo instance (`isDemo` with an `expiration`) is closed by the sweep
+once its expiration passes: sign-ins stop, the data stays, and the
+close is audited. The server runs the sweep when the registry loads and
+every hour after, and the Instances screen can run it early.
+
+It is **dropped** once it has been expired for `demoGraceDays`, a month
+by default. Closing is immediate and reversible because somebody may
+yet ask for the instance back -- moving the expiration forward is how
+they get it, since reopening one whose expiration is still in the past
+only has it closed again on the next pass. Dropping is neither
+immediate nor reversible, which is why it waits. The database and its
+data go; the registry row stays, marked deleted, so what was there and
+when it went outlives the instance. Set `demoGraceDays` to `0` in
+`config.json` and an expired demo is only ever closed. A `config.json`
+written before this setting existed has no such key, which reads the
+same as zero: an installation being upgraded drops nothing until
+somebody adds the key deliberately.
+
 ### Connection budget
 
 Each instance the server loads gets **one** connection pool for the

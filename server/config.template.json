@@ -16,6 +16,7 @@
     "mode": "prod",
     "passwordLength": 0,
     "pgCryptoKey": "",
+    "demoGraceDays": 30,
     "managerDatabase": "db_manager",
     "pgHost": "127.0.0.1",
     "pgMaxConnections": 10,
