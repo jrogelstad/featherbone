@@ -61,6 +61,10 @@ adminInstancesPage.viewModel = function () {
         confirm: f.prop(""),
         instance: f.prop()
     };
+    let tpl = {
+        name: f.prop(""),
+        source: f.prop("")
+    };
 
     function request(method, path, body) {
         return m.request({
@@ -116,6 +120,11 @@ adminInstancesPage.viewModel = function () {
         @return {ViewModels.Dialog}
     */
     vm.dropDialog = f.prop();
+    /**
+        @method templateDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.templateDialog = f.prop();
     /**
         @method buttonDone
         @return {ViewModels.Button}
@@ -250,6 +259,17 @@ adminInstancesPage.viewModel = function () {
         }).then(vm.refresh).catch(fail);
     };
 
+    /**
+        Build or rebuild the template copy of an instance.
+        @method doTemplate
+        @param {Object} instance
+    */
+    vm.doTemplate = function (instance) {
+        tpl.source(instance.database);
+        tpl.name(instance.database.slice(0, 52) + "_template");
+        vm.templateDialog().show();
+    };
+
     // ..........................................................
     // PRIVATE
     //
@@ -351,6 +371,9 @@ adminInstancesPage.viewModel = function () {
         let templates = data.templates || [];
         let instances = data.instances || [];
         let sources = templates.concat(
+            (data.databases || []).filter(
+                (name) => templates.indexOf(name) === -1
+            ),
             instances.map((row) => row.database).filter(
                 (name) => templates.indexOf(name) === -1
             )
@@ -443,6 +466,37 @@ adminInstancesPage.viewModel = function () {
                     value: dropEntry.confirm()
                 })
             ])
+        ]);
+    };
+
+    vm.templateDialog(f.createViewModel("Dialog", {
+        icon: "content_copy",
+        onOk: function () {
+            request("POST", "/admin/template", {
+                name: tpl.name(),
+                source: tpl.source()
+            }).then(vm.refresh).catch(fail);
+        },
+        title: "Build a template"
+    }));
+    vm.templateDialog().content = function () {
+        return m("div", [
+            m("div", {class: "pure-form"}, [
+                m("label", {for: "fbTplName"}, "Template name: "),
+                m("input", {
+                    id: "fbTplName",
+                    oninput: (e) => tpl.name(e.target.value),
+                    value: tpl.name()
+                })
+            ]),
+            m("div", {class: "fb-admin-note"}, (
+                "Copies \"" + tpl.source() + "\" into a frozen " +
+                "database new instances are provisioned from, " +
+                "replacing any template of that name in place. The " +
+                "source must be quiet while it is copied: this server " +
+                "lets go of its own connections, anyone else's make " +
+                "the copy refuse."
+            ))
         ]);
     };
 
@@ -639,6 +693,20 @@ adminInstancesPage.component = {
             }
 
             list.push(action(
+                "Template",
+                (
+                    platform
+                    ? (
+                        "Copy this instance into the template new " +
+                        "instances are built from"
+                    )
+                    : "Only a platform administrator may build a template"
+                ),
+                !platform,
+                () => vm.doTemplate(instance)
+            ));
+
+            list.push(action(
                 "Drop",
                 (
                     !platform
@@ -730,6 +798,7 @@ adminInstancesPage.component = {
             m(f.getComponent("Dialog"), {viewModel: vm.registerDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.createDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.dropDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.templateDialog()}),
             (
                 vm.isLoading()
                 ? m("div", {class: "fb-admin-note"}, "Reading the registry…")
@@ -791,6 +860,25 @@ adminInstancesPage.component = {
                                     ? m("span", {
                                         class: "fb-admin-tag"
                                     }, "demo")
+                                    : undefined
+                                ),
+                                (
+                                    (
+                                        instance.isDemo &&
+                                        instance.expiration &&
+                                        new Date(
+                                            instance.expiration
+                                        ) < new Date()
+                                    )
+                                    ? m("span", {
+                                        class: "fb-admin-tag",
+                                        title: (
+                                            "Expired " + new Date(
+                                                instance.expiration
+                                            ).toLocaleString() +
+                                            "; the sweep closes it"
+                                        )
+                                    }, "expired")
                                     : undefined
                                 )
                             ]),

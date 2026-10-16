@@ -1632,6 +1632,141 @@
             });
         };
 
+        /**
+            Build or rebuild a template database from a registered
+            instance (tenant plan D.4): the frozen copy new instances
+            are provisioned from. Platform administrators only. The
+            source must be quiet; the service account lets go of its
+            own connections and anyone else's refuse the copy.
+
+            @method buildTemplate
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.source Instance database
+            @param {String} payload.data.name Template database name
+            @return {Promise} {marked, template}
+        */
+        that.buildTemplate = async function (obj) {
+            let data = obj.data || {};
+            let source = String(data.source || "").trim().toLowerCase();
+            let name = String(data.name || "").trim().toLowerCase();
+
+            if (!source) {
+                throw invalid("Name the database to copy");
+            }
+            if (!name) {
+                name = source.slice(0, 52) + "_template";
+            }
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "build a template");
+
+                let registered = await mclient.query(
+                    (
+                        "SELECT 1 FROM tenant " +
+                        "WHERE pg_database = $1 AND NOT is_deleted"
+                    ),
+                    [source]
+                );
+
+                if (!registered.rows.length) {
+                    throw invalid(
+                        "\"" + source + "\" is not a registered " +
+                        "instance, so there is nothing known to copy"
+                    );
+                }
+
+                let resp = await datasource.createTemplateDatabase(
+                    undefined,
+                    undefined,
+                    source,
+                    name
+                );
+
+                await manager.audit(mclient, {
+                    action: "template.built",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: resp.template + " from " + source + (
+                        resp.marked
+                        ? ""
+                        : (
+                            " (not marked as a template in " +
+                            "pg_database: that needs a superuser; " +
+                            "it provisions all the same)"
+                        )
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+
+                return resp;
+            });
+        };
+
+        /**
+            Close demo instances whose time is up (tenant plan D.4):
+            is_demo with an expiration in the past stops accepting
+            sign-ins, audited as instance.demo_expired. Nothing is
+            dropped -- the data outlives the demo until somebody drops
+            the instance deliberately. Runs from the server's timer and
+            from its route; idempotent either way.
+
+            @method sweepDemos
+            @return {Promise} Names of the instances closed
+        */
+        that.sweepDemos = async function () {
+            return await manager.run(async function (mclient) {
+                let resp = await mclient.query(
+                    (
+                        "UPDATE tenant SET is_active = false, " +
+                        "  updated = now(), updated_by = 'system' " +
+                        "WHERE is_demo AND is_active AND NOT is_deleted " +
+                        "  AND expiration IS NOT NULL " +
+                        "  AND expiration < now() " +
+                        "RETURNING name, pg_database, " +
+                        "  _organization_organization_pk AS org_pk"
+                    )
+                );
+                let n = 0;
+
+                while (n < resp.rows.length) {
+                    await manager.audit(mclient, {
+                        action: "instance.demo_expired",
+                        by: "system",
+                        detail: (
+                            resp.rows[n].name + " (" +
+                            resp.rows[n].pg_database + ")"
+                        ),
+                        organizationPk: resp.rows[n].org_pk
+                    });
+                    n += 1;
+                }
+
+                return resp.rows.map((row) => row.name);
+            });
+        };
+
+        /**
+            The sweep behind a route: anyone org-wide may run it early
+            rather than wait for the server's hour. The timer calls
+            `sweepDemos` directly.
+
+            @method sweepDemosGuarded
+            @param {Object} payload
+            @return {Promise} Names of the instances closed
+        */
+        that.sweepDemosGuarded = async function (obj) {
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requireOrgWide(ctx, "sweep expired demos");
+            });
+
+            return await that.sweepDemos();
+        };
+
         return that;
     };
 
