@@ -2110,12 +2110,21 @@
                     );
                 }
 
+                /*
+                    The callback as the provider sent it, rebuilt on
+                    the redirect URI that was registered with them
+                    rather than on the host header. A callback with no
+                    query string at all is not one of theirs.
+                */
+                let query = String(req.originalUrl || "").split("?")[1];
+
+                if (!query) {
+                    throw new Error("That sign-in did not come back");
+                }
+
                 let said = await oidc.finish(
                     provider,
-                    (
-                        ssoRedirectUri(req) + "?" +
-                        req.originalUrl.split("?")[1]
-                    ),
+                    ssoRedirectUri(req) + "?" + query,
                     pending
                 );
                 let who = await federation.resolve(mclient, {
