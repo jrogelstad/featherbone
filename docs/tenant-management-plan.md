@@ -4,15 +4,49 @@ Started 2026-10-07. The design this implements is `adr-001-identity-and-tenancy.
 When this plan is done, work returns to `featherbone-improvement-plan.md`,
 whose Tier 1 is gated by it. Section 7 lists what that plan loses to this one.
 
-> **Proposed direction change, 2026-10-10 — not settled.** Multi-instance
-> would become the *only* supported shape: every installation gets an instance
-> manager database plus one or more application instances, because even a
-> single-company customer wants production, test and demo. It retires part of
-> A.1, replaces A.5's backfill and makes D.4 mandatory. **Read section 9
-> before starting A.3.**
+> **Settled and built, 2026-10-11.** The direction change proposed on
+> 2026-10-10 — multi-instance as the *only* supported shape, an instance
+> manager database plus one or more application instances — is the shape the
+> code now has (`feat/one-mode`, section 9). It retired part of A.1, replaced
+> A.5's backfill and made D.4 mandatory, all of which is reflected below.
 
 Sizes are rough relative weights, not estimates: **S** a sitting, **M** a few
 days, **L** a week or more of focused work.
+
+## Where this stands — 2026-10-15
+
+Every item carries its own state: `[x]` done with a *Done …* note naming the
+branch and date, `[~]` part done, `[ ]` not started. The tally:
+
+| Tier | Done | Part done | Open |
+| --- | --- | --- | --- |
+| A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
+| B Identity cutover | B.1, B.2, B.3, B.4, B.5 | — | B.6, B.7 |
+| C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
+| D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
+| E Multi-node readiness | — | — | E.1–E.5 |
+| F Verification | F.1 | F.2 | F.3, F.4 |
+
+**What that means in practice.** Identity sign-in exists and works behind
+`authStrategy: identity` — passwords verified in Node, `access_grant` as the
+entry boundary, no Postgres login roles, user administration and the registry
+both on screen (Users and Instances). Isolation between organizations is
+demonstrated rather than asserted, with a mutation check (**F.1**, the
+"done when" of improvement-plan item 1.1). What is *not* done is proving the
+migration on a real cluster and being able to get back: **B.6** — one
+migration command, a dry run, and a documented rollback per phase. Until
+that, improvement-plan Tier 1 stays gated on the cutover being reversible,
+not on whether it works.
+
+**Next three, in order:** B.6, then the rest of A.4 (the `is_super` rename,
+and appointing the first organization administrator, which today needs SQL —
+nothing in the UI or the backfill sets `is_org_admin`), then D.1.
+
+**Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
+a database from the Instances screen, and the `"$db"` marker check when
+registering one; D.4's remainder is template management, the expired-demo
+sweep and leaving only commerce in the module, which has had no home since the
+manager stopped being routable; D.5 is a decision, not code.
 
 ## How to use this plan
 
@@ -187,6 +221,12 @@ No user-visible behaviour change. Everything downstream depends on A.1 and A.3.
       transferring rights.
     - Rename `user_account.is_super` in docs and UI to **tenant super user**
       so it stops reading as a platform role. No behaviour change.
+    - *Found 2026-10-15: nothing appoints the first organization
+      administrator. The Users screen lets one promote another, and the
+      Instances screen needs one, but `migrate-identities.js` creates every
+      identity with both flags false, so the first `is_org_admin` can only be
+      set in SQL. Give the backfill an `--org-admin <username>` flag, audited
+      like the rest.*
     - Done when: the break-glass path in requirement 3 — suspend a departed
       organization administrator, appoint a replacement — is doable in the UI
       by a platform administrator, and leaves an audit trail.
@@ -355,6 +395,24 @@ purpose.
           whose local profile was rolled back is refused at
           `deserializeUser`. A sweep for identities with no grant
           belongs with B.6.
+- [ ] **B.7 Provision the local profile when access is granted.** (S)
+    *Found 2026-10-15, in use.* `user_account` is the local profile (B.5) and
+    `deserializeUser` requires a row in **every** instance the person reaches:
+    without one, `server/database.js` rejects with "User account <name> not
+    found", which is what a person sees when they switch to an instance they
+    were granted but never had an account in. Nothing creates it. B.5 built
+    the inside-out direction — creating a user in an instance creates the
+    identity — and the outside-in direction was never specified: granting an
+    instance from the Users screen, the backfill, or `--instance` registering
+    a database whose people already exist elsewhere.
+    - Create the profile wherever a grant is created, or create it on first
+      sign-in from the identity (name, contact, `is_active`), and decide which
+      roles it joins — `everyone` at least, nothing else by default.
+    - Until then the manual step is a `user_account` row plus an `everyone`
+      membership in that database, or creating the user through the normal
+      user screen from inside it.
+    - Done when: granting someone an instance is enough for them to sign in to
+      it, with no SQL and no second screen.
 - [ ] **B.6 Migration tooling and rollback.** (M)
     - One command to migrate a cluster: backfill organizations, identities,
       grants and verifiers; report anything ambiguous rather than guessing.
@@ -552,14 +610,28 @@ The isolation claims in the audit were traced in code but never proven by
 running them. These are the tests that close that out. All need a writable
 scratch cluster, not `demo`.
 
-- [ ] **F.1 Two-organization isolation test.** (M)
-    - Create a user in organization B with an organization A username; confirm
-      B cannot set A's password, cannot sign in to A's databases, and gains no
-      authorization in them. This is the test item 1.1 always needed.
-- [ ] **F.2 Consultant test.** (S)
-    - One person with identities in two organizations. Confirm separate
-      credentials, that each organization's administrator sees and controls
-      only their own, and that revoking one leaves the other working.
+- [x] **F.1 Two-organization isolation test.** (M) *Done 2026-10-15 on
+  `feat/f1-isolation-test`: `test/api/isolation.test.js`, 14 tests against a
+  server running `authStrategy: identity`. A second organization is seeded
+  carrying the same two usernames as the harness's own, with different
+  passwords and no grant to anything. It proves the other organization's
+  password does not open this instance, that its administrator is refused
+  outright, that a name existing only there is refused, and that a refused
+  sign-in leaves no session; then that an organization administrator's every
+  write -- password, status, grant, org-admin -- answers 404 against an
+  identity over there, and that the hash over there is untouched afterwards.
+  **Checked by mutation:** dropping the organization from the sign-in lookup
+  (`server/database.js`) fails the sign-in tests, and dropping it from
+  `manager.identity` fails all seven administration tests, so the suite is not
+  passing vacuously. This is the test item 1.1 always needed.*
+- [~] **F.2 Consultant test.** (S) *Mostly done 2026-10-15 in the same file:
+  one username with an identity in each organization, separate credentials
+  proven both ways, an organization administrator seeing and controlling only
+  their own, and disabling the identity over there leaving this one signing
+  in. Not covered: the mirror image. The seeded second organization has no
+  instance of its own -- the harness builds two databases and both belong to
+  the first -- so "each organization's administrator sees only their own" is
+  proven from one side. Finishing it means a third database in the harness.*
 - [ ] **F.3 Multi-node test.** (M)
     - Two Node processes against the same databases. Confirm locks and
       subscriptions survive a restart of either, each cron job fires once, a
