@@ -684,6 +684,7 @@
                 isActive: row.is_active,
                 isCurrent: row.id === current,
                 isDemo: row.is_demo,
+                isMaintenance: row.is_maintenance === true,
                 /*
                     Whether this process is serving the instance right
                     now, which is not the same as being registered: a
@@ -1132,6 +1133,66 @@
                 );
             }
         }
+
+        /**
+            Put an instance into maintenance, or take it out again. A
+            schema change is not attempted under live traffic (ADR-002
+            question 7), so Deploy brackets itself with this; it is
+            also the switch a platform administrator throws by hand
+            when something went wrong halfway.
+
+            While an instance is in maintenance it answers 503 with an
+            explanation for everything but its own sign-in and the
+            administration routes, and only a platform administrator
+            can sign in to it.
+
+            @method setInstanceMaintenance
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Instance
+            @param {Boolean} payload.data.isMaintenance
+            @return {Promise}
+        */
+        that.setInstanceMaintenance = async function (obj) {
+            let data = obj.data || {};
+            let isMaintenance = data.isMaintenance === true;
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let target;
+
+                requirePlatform(ctx, "put an instance into maintenance");
+                target = await manager.instanceById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such instance in this organization");
+                }
+
+                await manager.setInstanceMaintenance(
+                    mclient,
+                    target._pk,
+                    isMaintenance,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: (
+                        isMaintenance
+                        ? "instance.maintenance_began"
+                        : "instance.maintenance_ended"
+                    ),
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: target.name + " (" + target.pg_database + ")",
+                    organizationPk: ctx.organizationPk
+                });
+
+                return true;
+            });
+        };
 
         /*
             A client on the calling instance for the guarded database

@@ -227,7 +227,8 @@
                 resp = await client.query(
                     (
                         "SELECT _pk, password_hash, status, " +
-                        "  failed_attempts, locked_until " +
+                        "  failed_attempts, locked_until, " +
+                        "  is_platform_admin " +
                         "FROM identity " +
                         "WHERE _organization_organization_pk = $1 " +
                         "  AND lower(username) = lower($2) " +
@@ -345,6 +346,25 @@
                 if (!resp.rows.length) {
                     throw new Error(
                         "No access to instance " + req.tenant.name
+                    );
+                }
+
+                /*
+                    A deployment is running, so the schema underneath
+                    is moving (ADR-002 question 7). Everyone is kept
+                    out except a platform administrator, who has to be
+                    able to get in: on an installation with one
+                    instance the screen that clears maintenance is
+                    served from that instance.
+                */
+                if (
+                    req.tenant.isMaintenance === true &&
+                    row.is_platform_admin !== true
+                ) {
+                    throw new Error(
+                        "Down for maintenance. Instance " +
+                        req.tenant.name +
+                        " is being deployed to and will be back."
                     );
                 }
 
