@@ -611,19 +611,6 @@ adminPage.component = {
             m(f.getComponent("Dialog"), {viewModel: vm.passwordDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.grantDialog()}),
             (
-                data.authStrategy === "role"
-                ? m("div", {class: "fb-admin-banner"}, [
-                    f.icon("info", "fb-admin-status-icon"),
-                    (
-                        "Sign-in is still checking passwords against " +
-                        "Postgres roles. These records are real and are " +
-                        "what identity sign-in will use; they do not " +
-                        "decide sign-in until authStrategy is identity."
-                    )
-                ])
-                : undefined
-            ),
-            (
                 vm.isLoading()
                 ? m("div", {class: "fb-admin-note"}, "Reading the registry…")
                 : undefined

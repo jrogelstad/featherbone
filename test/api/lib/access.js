@@ -3,15 +3,15 @@
     security tests (test/api/users, authorization, settings, workbooks,
     security).
 
-    Users are created in SQL (Postgres login role + user_account row)
-    because POST /data/user-account is currently broken (see
-    users.test.js). Postgres roles are cluster-wide, so every helper that
-    creates one records it and dropAll() removes them.
+    Users are created in SQL (an identity in the manager with a grant
+    on the test instance, plus the local user_account row). No Postgres
+    role is involved (ADR-001 B.8); dropAll() still drops any role a
+    test may have made by name, and roleInfo() is the oracle that none
+    was.
 */
 /*jslint node*/
 "use strict";
 
-const {Client} = require("pg");
 const format = require("pg-format");
 const settings = require("../../harness/env");
 const db = require("../../harness/db");
@@ -30,38 +30,6 @@ function uniq(prefix) {
 function track(name) {
     created.add(name);
     return name;
-}
-
-// Try a direct Postgres login with the given credentials
-async function pgLogin(user, password) {
-    const client = new Client({
-        database: settings.testDb,
-        host: settings.pgHost,
-        password,
-        port: settings.pgPort,
-        user
-    });
-    try {
-        await client.connect();
-        await client.end();
-        return true;
-    } catch (ignore) {
-        return false;
-    }
-}
-
-async function sqlRole(name, password, opts) {
-    opts = opts || {};
-    track(name);
-    await db.query(format(
-        "CREATE ROLE %I " + (
-            opts.login === false
-            ? "NOLOGIN"
-            : "LOGIN"
-        ) + " PASSWORD %L",
-        name,
-        password
-    ));
 }
 
 /*
@@ -115,8 +83,7 @@ async function createUser(admin, opts) {
     );
     let id = uniq("fbtu");
 
-    await sqlRole(name, password);
-    await db.query(format("GRANT everyone TO %I", name));
+    track(name);
     let row = await db.query((
         "INSERT INTO user_account (" +
         "  id, name, is_super, is_active, is_login, change_password, " +
@@ -347,11 +314,9 @@ module.exports = {
     deleteFeather,
     dropAll,
     featherName,
-    pgLogin,
     poll,
     rawTimeout,
     roleInfo,
-    sqlRole,
     canSignIn,
     identity,
     grant,

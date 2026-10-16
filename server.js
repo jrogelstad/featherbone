@@ -97,8 +97,6 @@
     let loglevel;
     let consolelog;
     let debug;
-    // "role" or "identity" (ADR-001); read once at boot, like debug
-    let authStrategy = "role";
 
     argv.forEach(function (arg) {
         switch (arg) {
@@ -410,7 +408,6 @@
 
             // Other config
             debug = Boolean(resp.debug);
-            authStrategy = config.authStrategy(resp);
 
             // Default 1 day.
             sessionTimeout = resp.sessionTimeout || 86400000;
@@ -1746,7 +1743,6 @@
 
     async function doSignIn(req, res) {
         let message;
-        let rows;
         req.flash = function (ignore, msg) {
             logger.verbose(msg);
             message = msg;
@@ -1806,34 +1802,13 @@
                 });
             }
         }
-        rows = await datasource.request({
-            filter: {criteria: [{
-                property: "name",
-                value: req.body.username
-            }]},
-            method: "GET",
-            name: "UserAccount",
-            tenant: req.tenant,
-            user: req.body.username
-        }, true);
-
-        if (!rows.length && authStrategy !== "identity") {
-            res.statusCode = 401;
-            // Same answer as a wrong password: don't reveal which users or
-            // databases exist
-            message = "Invalid sign in credentials.";
-            next(true);
-            return;
-        }
-
         /*
-            On the identity path a missing local profile is not an
-            answer: the identity and its grant live in the manager, and
-            somebody granted an instance they have never opened has no
-            profile in it yet. Authentication decides, and the profile
-            is made once the grant is proven (tenant plan B.7,
-            server/database.js). A wrong username still gets the same
-            generic refusal, from there instead of here.
+            A missing local profile is not an answer: the identity and
+            its grant live in the manager, and somebody granted an
+            instance they have never opened has no profile in it yet.
+            Authentication decides, and the profile is made once the
+            grant is proven (tenant plan B.7, server/database.js). A
+            wrong username gets the same generic refusal from there.
         */
         authenticateLocal(req, res, next);
     }

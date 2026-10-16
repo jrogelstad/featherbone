@@ -382,10 +382,10 @@ async function ensureRole(client, name, password) {
     ));
 }
 
-// Create a Featherbone user account plus its Postgres login role in SQL
-// (the API needs a signed-in user to create users, and POST
-// /data/user-account is currently broken; see api/users.test.js).
-// Returns the account id.
+// Create a Featherbone user account in SQL, with the identity that
+// signs in as it. The two harness users also get a Postgres login role:
+// not for sign-in (ADR-001 B.8) but so identity.test.js can copy a
+// pg_authid verifier the way the migration does. Returns the account id.
 async function createUser(client, name, password, isSuper) {
     await ensureRole(client, name, password);
 
