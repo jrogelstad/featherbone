@@ -2902,7 +2902,14 @@
                 tableName: "$session"
             }),
             secret: thesecret,
-            resave: true,
+            /*
+                Never rewrite an unchanged session (tenant plan E.3,
+                improvement plan 4.4): every request on every tenant
+                used to write a full session row in the manager.
+                rolling still slides the expiry, which the store does
+                with a cheap touch instead of a rewrite.
+            */
+            resave: false,
             rolling: true,
             saveUninitialized: false,
             cookie: {

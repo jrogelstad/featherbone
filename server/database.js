@@ -117,9 +117,20 @@
                         max: resp.pgMaxConnections || 10,
                         password: resp.pgPassword,
                         port: resp.pgPort,
-                        ssl: sslConfig(resp), // This doesn't look right
+                        // The manager is on this server's own cluster,
+                        // so the server's TLS settings are the right
+                        // ones here.
+                        ssl: sslConfig(resp),
                         user: resp.pgUser
-                    }
+                    },
+                    /*
+                        What each instance's pool may grow to, and how
+                        long an idle client lives (tenant plan E.4).
+                        pgMaxConnections governs the manager pool
+                        above, as it always has.
+                    */
+                    tenantIdleTimeout: resp.pgTenantIdleTimeout || 60000,
+                    tenantPoolSize: resp.pgTenantPoolSize || 10
                 };
                 resolve(resp);
             });
@@ -463,9 +474,29 @@
                         pool = new Pool({
                             database: tenant.pgDatabase,
                             host: tenant.pgService.pgHost,
+                            /*
+                                Idle clients go away on their own, so an
+                                instance nobody is using holds only its
+                                LISTEN connection. With the cap this
+                                bounds a node at
+                                (instances x (1 + cap)) + manager
+                                connections; see the README's sizing
+                                note (tenant plan E.4).
+                            */
+                            idleTimeoutMillis: (
+                                cache.tenantIdleTimeout
+                            ),
+                            max: cache.tenantPoolSize,
                             password: tenant.pgService.pgPassword,
                             port: tenant.pgService.pgPort,
-                            ssl: sslConfig(cache), // Doesn't look right
+                            /*
+                                The server's own TLS settings stand in
+                                for the service's: every TenantService
+                                row today points at the cluster this
+                                server already trusts, and the service
+                                carries no TLS material of its own yet.
+                            */
+                            ssl: sslConfig(cache),
                             user: tenant.pgService.pgUser
                         });
                     } else {

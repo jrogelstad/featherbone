@@ -1166,6 +1166,54 @@
         return {marked, template: target};
     };
 
+    /**
+        Claim a piece of named work for a window of time, so the same
+        work runs once however many nodes are running (tenant plan E.1).
+        First caller in wins and the rest are told no until the window
+        passes; a claim is a row in the manager, so it survives the
+        claimant dying and expires on its own rather than leaking.
+
+        The scheduler calls this before firing a job -- claim the job's
+        name for its interval, run it on a win, stay quiet on a loss.
+
+        @method claimWork
+        @param {String} key What is being claimed, e.g. a cron job name
+        @param {Number} [seconds] How long the claim holds. Default 60.
+        @return {Promise} Boolean, whether the caller holds the claim
+    */
+    that.claimWork = async function (key, seconds) {
+        let window = Math.max(1, Math.floor(seconds || 60));
+        let conn = await db.connect();
+
+        try {
+            await conn.client.query(
+                "CREATE TABLE IF NOT EXISTS \"$claim\" (" +
+                "  key text PRIMARY KEY," +
+                "  claimed_by text NOT NULL DEFAULT ''," +
+                "  until timestamp with time zone NOT NULL" +
+                ")"
+            );
+
+            let resp = await conn.client.query(
+                (
+                    "INSERT INTO \"$claim\" (key, claimed_by, until) " +
+                    "VALUES ($1, $2, now() + ($3 || ' seconds')" +
+                    "::interval) " +
+                    "ON CONFLICT (key) DO UPDATE SET " +
+                    "  claimed_by = $2, " +
+                    "  until = now() + ($3 || ' seconds')::interval " +
+                    "WHERE \"$claim\".until < now() " +
+                    "RETURNING key"
+                ),
+                [key, db.nodeId || "", String(window)]
+            );
+
+            return resp.rows.length > 0;
+        } finally {
+            conn.done();
+        }
+    };
+
     // Run an action against every registered tenant. A tenant that can't be
     // reached is reported and skipped so one bad tenant can't block startup.
     async function eachTenant(action) {

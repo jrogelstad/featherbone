@@ -19,6 +19,8 @@
     "managerDatabase": "db_manager",
     "pgHost": "127.0.0.1",
     "pgMaxConnections": 10,
+    "pgTenantPoolSize": 10,
+    "pgTenantIdleTimeout": 60000,
     "pgPort": 5432,
     "pgUser": "admin",
     "pgPassword": "password",
