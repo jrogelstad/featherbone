@@ -236,6 +236,7 @@
                 (
                     "SELECT fed._pk AS federation_pk, i._pk, i.username, " +
                     "  i.status, i.is_platform_admin, i.is_org_admin, " +
+                    "  i.full_name, i.email, " +
                     "  i._organization_organization_pk AS org " +
                     "FROM identity_federation fed " +
                     "JOIN identity i ON i._pk = fed._identity_identity_pk " +
