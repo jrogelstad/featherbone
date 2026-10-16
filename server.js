@@ -38,6 +38,7 @@
     const config = new Config();
     const {Tools} = require("./server/services/tools");
     const {Admin} = require("./server/services/admin");
+    const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
@@ -2511,9 +2512,22 @@
         Both the Tenant change subscription and the instance
         administration routes come through here.
     */
-    async function refreshTenants() {
+    /*
+        One at a time. Registering an instance reads the registry twice
+        at once -- in the route that registered it and in the change
+        event that registering raised -- and two overlapping reads both
+        find the new instance missing: both add it, and both listen to
+        it. The second listener asks for the advisory lock this process
+        already holds for the first and waits for itself for good, which
+        is also the request that was refreshing.
+    */
+    const refreshOneAtATime = serialize(async function () {
         tenants = await datasource.loadTenants();
         await listenToTenants();
+    });
+
+    function refreshTenants() {
+        return refreshOneAtATime();
     }
 
     async function listenToTenants() {
