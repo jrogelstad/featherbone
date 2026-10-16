@@ -327,6 +327,48 @@
             @param {Number} organizationPk
             @return {Promise} Row or undefined
         */
+        /**
+            One organization by its id, for the break-glass path: a
+            platform administrator naming the organization to act on
+            (tenant plan A.4).
+
+            @method organizationById
+            @param {Client} client Manager client
+            @param {String} id Organization id
+            @return {Promise} Row with _pk, or undefined
+        */
+        that.organizationById = async function (client, id) {
+            let resp = await client.query(
+                (
+                    "SELECT _pk, id, name, is_active " +
+                    "FROM organization WHERE id = $1 AND NOT is_deleted"
+                ),
+                [id]
+            );
+
+            return resp.rows[0];
+        };
+
+        /**
+            Every organization, for the platform administrator's
+            picker. Nobody else is offered the list.
+
+            @method organizations
+            @param {Client} client Manager client
+            @return {Promise} Array of rows
+        */
+        that.organizations = async function (client) {
+            let resp = await client.query(
+                (
+                    "SELECT id, name, is_active " +
+                    "FROM organization WHERE NOT is_deleted " +
+                    "ORDER BY name"
+                )
+            );
+
+            return resp.rows;
+        };
+
         that.organization = async function (client, organizationPk) {
             let resp = await client.query(
                 (

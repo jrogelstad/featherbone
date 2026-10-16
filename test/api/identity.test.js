@@ -561,6 +561,305 @@ describe("identity sign-in", function () {
     });
 
     /*
+        The break-glass path (ADR-001 requirement 3, tenant plan A.4).
+        Sign-in is organization-scoped, so a platform administrator can
+        never be signed in to another organization's instance; instead
+        the admin routes let them name the organization to act on. The
+        canonical emergency: an organization's only administrator has
+        left, so somebody must suspend them and appoint a replacement,
+        and both actions must land in the audit trail against that
+        organization.
+    */
+    describe("break-glass: reaching another organization (A.4)",
+            function () {
+        const ORG = "FBGlass";
+        const ORG_ID = "fbtglass0001";
+        const DEPARTED = "fbt_departed";
+        const REPLACEMENT = "fbt_replacement";
+        let admin;
+        let ids = {};
+
+        function flags(username, data) {
+            return db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "UPDATE identity SET is_org_admin = $2, " +
+                        "is_platform_admin = $3 WHERE username = $1"
+                    ),
+                    [
+                        username,
+                        data.isOrgAdmin === true,
+                        data.isPlatformAdmin === true
+                    ]
+                )
+            );
+        }
+
+        async function seed() {
+            await db.withClient(settings.managerDb, async function (client) {
+                let resp = await client.query(
+                    (
+                        "SELECT _pk FROM organization " +
+                        "WHERE id = $1 AND NOT is_deleted"
+                    ),
+                    [ORG_ID]
+                );
+                let orgPk;
+
+                if (resp.rows.length) {
+                    orgPk = resp.rows[0]._pk;
+                } else {
+                    resp = await client.query(
+                        (
+                            "INSERT INTO organization (_pk, id, created, " +
+                            "created_by, updated, updated_by, is_deleted, " +
+                            "owner, etag, name, is_active, authentication, " +
+                            "is_two_factor_required) VALUES (" +
+                            "nextval('object__pk_seq'), $1, now(), $2, " +
+                            "now(), $2, false, $2, $1, $3, true, " +
+                            "'password', false) RETURNING _pk"
+                        ),
+                        [ORG_ID, "harness", ORG]
+                    );
+                    orgPk = resp.rows[0]._pk;
+                }
+
+                async function identity(username, isOrgAdmin, suffix) {
+                    let found = await client.query(
+                        (
+                            "SELECT _pk, id FROM identity " +
+                            "WHERE _organization_organization_pk = $1 " +
+                            "  AND username = $2 AND NOT is_deleted"
+                        ),
+                        [orgPk, username]
+                    );
+
+                    if (!found.rows.length) {
+                        found = await client.query(
+                            (
+                                "INSERT INTO identity (_pk, id, created, " +
+                                "created_by, updated, updated_by, " +
+                                "is_deleted, owner, etag, " +
+                                "_organization_organization_pk, username, " +
+                                "full_name, email, password_hash, status, " +
+                                "is_platform_admin, is_org_admin, " +
+                                "failed_attempts) VALUES (" +
+                                "nextval('object__pk_seq'), $1, now(), " +
+                                "$2, now(), $2, false, $2, $1, $3, $4, " +
+                                "$4, '', '', 'active', false, $5, 0) " +
+                                "RETURNING _pk, id"
+                            ),
+                            [
+                                "fbtglass000" + suffix,
+                                "harness",
+                                orgPk,
+                                username,
+                                isOrgAdmin
+                            ]
+                        );
+                    } else {
+                        await client.query(
+                            (
+                                "UPDATE identity SET status = 'active', " +
+                                "is_org_admin = $2 WHERE _pk = $1"
+                            ),
+                            [found.rows[0]._pk, isOrgAdmin]
+                        );
+                    }
+
+                    return found.rows[0];
+                }
+
+                ids.orgPk = orgPk;
+                ids.departed = await identity(DEPARTED, true, "2");
+                ids.replacement = await identity(REPLACEMENT, false, "3");
+            });
+        }
+
+        async function unseed() {
+            await db.withClient(settings.managerDb, async function (client) {
+                await client.query(
+                    (
+                        "DELETE FROM admin_audit " +
+                        "WHERE _on_behalf_of_organization_pk = $1"
+                    ),
+                    [ids.orgPk]
+                );
+                await client.query(
+                    (
+                        "DELETE FROM identity " +
+                        "WHERE _organization_organization_pk = $1"
+                    ),
+                    [ids.orgPk]
+                );
+                await client.query(
+                    "DELETE FROM organization WHERE _pk = $1",
+                    [ids.orgPk]
+                );
+            });
+        }
+
+        before(async function () {
+            await seed();
+            await flags(settings.adminUser, {isPlatformAdmin: true});
+            admin = new Session(base);
+            let resp = await admin.signIn(
+                settings.adminUser,
+                settings.password
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        });
+
+        after(async function () {
+            await flags(settings.adminUser, {});
+            await unseed();
+        });
+
+        it("offers a platform administrator every organization",
+                async function () {
+            let resp = await admin.get("/admin/overview");
+
+            assert.ok(Array.isArray(resp.organizations));
+            assert.ok(
+                resp.organizations.some((row) => row.name === ORG),
+                "the stricken organization is on the list"
+            );
+        });
+
+        it("shows the named organization's identities", async function () {
+            let resp = await admin.get(
+                "/admin/overview?organization=" + ORG_ID
+            );
+
+            assert.equal(resp.organization.name, ORG);
+            assert.ok(
+                resp.identities.some(
+                    (row) => row.username === DEPARTED && row.isOrgAdmin
+                ),
+                "the departed administrator is visible"
+            );
+        });
+
+        it("suspends the departed administrator and appoints the " +
+                "replacement", async function () {
+            let resp = await admin.raw(
+                "POST",
+                "/admin/identity/status",
+                {
+                    id: ids.departed.id,
+                    organization: ORG_ID,
+                    status: "disabled"
+                }
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            resp = await admin.raw(
+                "POST",
+                "/admin/identity/org-admin",
+                {
+                    id: ids.replacement.id,
+                    isOrgAdmin: true,
+                    organization: ORG_ID
+                }
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let rows = await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let r = await client.query(
+                        (
+                            "SELECT username, status, is_org_admin " +
+                            "FROM identity " +
+                            "WHERE _organization_organization_pk = $1 " +
+                            "ORDER BY username"
+                        ),
+                        [ids.orgPk]
+                    );
+                    return r.rows;
+                }
+            );
+            let departed = rows.find((r) => r.username === DEPARTED);
+            let replacement = rows.find((r) => r.username === REPLACEMENT);
+
+            assert.equal(departed.status, "disabled");
+            assert.equal(replacement.is_org_admin, true);
+        });
+
+        it("leaves the trail against the organization acted on",
+                async function () {
+            let rows = await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let r = await client.query(
+                        (
+                            "SELECT action FROM admin_audit " +
+                            "WHERE _on_behalf_of_organization_pk = $1 " +
+                            "ORDER BY occurred"
+                        ),
+                        [ids.orgPk]
+                    );
+                    return r.rows.map((row) => row.action);
+                }
+            );
+
+            assert.ok(rows.includes("identity.disabled"));
+            assert.ok(rows.includes("identity.org_admin_granted"));
+        });
+
+        it("refuses the reach to an organization administrator",
+                async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            try {
+                let resp = await admin.raw(
+                    "GET",
+                    "/admin/overview?organization=" + ORG_ID
+                );
+                assert.equal(resp.status, 401);
+                assert.match(resp.body, /platform administrator/);
+
+                resp = await admin.raw(
+                    "POST",
+                    "/admin/identity/status",
+                    {
+                        id: ids.departed.id,
+                        organization: ORG_ID,
+                        status: "active"
+                    }
+                );
+                assert.equal(resp.status, 401);
+            } finally {
+                await flags(settings.adminUser, {isPlatformAdmin: true});
+            }
+        });
+
+        it("answers 404 for an organization that does not exist",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/overview?organization=nosuchorg001"
+            );
+
+            assert.equal(resp.status, 404);
+        });
+
+        it("keeps an organization administrator's own list bare",
+                async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            try {
+                let resp = await admin.get("/admin/overview");
+
+                assert.equal(resp.organizations, undefined);
+            } finally {
+                await flags(settings.adminUser, {isPlatformAdmin: true});
+            }
+        });
+    });
+
+    /*
         B.4 and B.5: creating users, setting passwords and revoking
         access write identities, grants and the local profile. Nothing
         in here may create or alter a Postgres role, which is what the
