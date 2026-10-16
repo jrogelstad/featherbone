@@ -25,29 +25,22 @@
     const {Database} = require("../database");
     const {Config} = require("../config");
     const {Manager} = require("./manager");
-    const {Client} = require("pg");
     const config = new Config();
     const db = new Database();
     const manager = new Manager();
 
     /*
-        Which store answers for users (tenant plan B.4).
+        Users live in the manager database (ADR-001): a user is an
+        identity in the instance's organization plus an access grant
+        on the instance, and nothing here touches the cluster's roles.
+        The triggers in scripts/services.js call these by their old
+        names; the names stayed, the bodies write identities and
+        grants.
 
-        Under "role" every user is a Postgres login role on the cluster,
-        and these functions are thin wrappers over CREATE ROLE, ALTER
-        ROLE and GRANT. Under "identity" the user lives in the manager
-        database and nothing here touches the cluster's roles: the same
-        calls write identities, grants and the local profile instead, so
-        the triggers in scripts/services.js need no knowledge of which
-        strategy is in force.
-
-        Group roles are rows in "role" and "role_membership" under both
-        strategies. B.3 resolves membership from those rows, so the
-        GRANTs that used to mirror them are not needed under "identity".
+        Group roles are rows in "role" and "role_membership" and
+        membership is resolved from those rows (B.3), so no cluster
+        GRANT mirrors them.
     */
-    async function usesIdentities() {
-        return config.authStrategy(await config.read()) === "identity";
-    }
 
     /*
         The identity this call is about, with the instance and
@@ -158,103 +151,39 @@
                 access grant, not a property of the identity: the same
                 person may be active in one instance and not in another.
             */
-            if (await usesIdentities()) {
-                return await manager.run(async function (mclient) {
-                    let ctx = await identityFor(
-                        obj.client,
-                        obj.data.name,
-                        mclient
-                    );
+            return await manager.run(async function (mclient) {
+                let ctx = await identityFor(
+                    obj.client,
+                    obj.data.name,
+                    mclient
+                );
 
-                    if (!ctx) {
-                        return true;
-                    }
-
-                    await manager.setGrant(mclient, {
-                        by: obj.client.currentUser(),
-                        identityPk: ctx.identityPk,
-                        isActive: obj.data.isLogin === true,
-                        tenantPk: ctx.tenantPk
-                    });
-                    await manager.audit(mclient, {
-                        action: (
-                            obj.data.isLogin === true
-                            ? "grant.activated"
-                            : "grant.deactivated"
-                        ),
-                        by: obj.client.currentUser(),
-                        detail: (
-                            "Instance " + obj.client.tenant().name
-                        ),
-                        organizationPk: ctx.organizationPk,
-                        targetIdentityPk: ctx.identityPk
-                    });
-
+                if (!ctx) {
                     return true;
+                }
+
+                await manager.setGrant(mclient, {
+                    by: obj.client.currentUser(),
+                    identityPk: ctx.identityPk,
+                    isActive: obj.data.isLogin === true,
+                    tenantPk: ctx.tenantPk
                 });
-            }
-
-            return await new Promise(function (resolve, reject) {
-                let name = obj.data.name;
-                let sql = "ALTER ROLE %I " + (
-                    obj.data.isLogin === true
-                    ? "LOGIN"
-                    : "NOLOGIN"
-                ) + ";";
-                let client = obj.client;
-
-                sql = sql.format([name]);
-                client.query(sql, function (err) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    // Send back result
-                    resolve(true);
+                await manager.audit(mclient, {
+                    action: (
+                        obj.data.isLogin === true
+                        ? "grant.activated"
+                        : "grant.deactivated"
+                    ),
+                    by: obj.client.currentUser(),
+                    detail: (
+                        "Instance " + obj.client.tenant().name
+                    ),
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: ctx.identityPk
                 });
+
+                return true;
             });
-        };
-
-        /**
-            Featherbone super users can create databases. Otherwise
-            not.
-
-            @method changeRoleCreateDb
-            @param {Object} Payload
-            @param {Client} [payload.client]
-            @param {Object} [payload.data] Data
-            @param {String} [payload.data.name] Role name
-            @param {Boolean} [payload.data.isSuper] Is Super
-            @return {Promise}
-        */
-        that.changeRoleCreateDb = async function (obj) {
-            /*
-                CREATEDB is a privilege of a Postgres role, and under
-                "identity" users have none. Creating databases is the
-                platform administrator's to do (ADR-001), and the tenant
-                super user is user_account.is_super inside its own
-                instance, so there is nothing to change here.
-            */
-            if (await usesIdentities()) {
-                return true;
-            }
-
-            let name = obj.data.name;
-            let sql = "ALTER ROLE %I " + (
-                obj.data.isLogin === true
-                ? "CREATEDB"
-                : "NOCREATEDB"
-            ) + ";";
-
-            sql = sql.format([name]);
-
-            try {
-                await obj.client.query(sql);
-                return true;
-            } catch (err) {
-                return Promise.reject(err);
-            }
         };
 
         /**
@@ -271,7 +200,6 @@
             try {
                 let name = obj.data.name;
                 let pwd = obj.data.password || "";
-                let sql = "ALTER ROLE %I PASSWORD %L;";
                 let client = obj.client;
                 let conf = await config.read();
                 let plen = conf.passwordLength || 0;
@@ -283,38 +211,33 @@
                     );
                 }
 
-                if (config.authStrategy(conf) === "identity") {
-                    /*
-                        The password belongs to the identity, so it
-                        changes once for every instance the person can
-                        reach. The hash never leaves manager.js.
-                    */
-                    await manager.run(async function (mclient) {
-                        let ctx = await identityFor(client, name, mclient);
+                /*
+                    The password belongs to the identity, so it
+                    changes once for every instance the person can
+                    reach. The hash never leaves manager.js.
+                */
+                await manager.run(async function (mclient) {
+                    let ctx = await identityFor(client, name, mclient);
 
-                        if (!ctx) {
-                            throw new Error(
-                                "No user account " + name + " found"
-                            );
-                        }
-
-                        await manager.setPassword(
-                            mclient,
-                            ctx.identityPk,
-                            pwd,
-                            client.currentUser()
+                    if (!ctx) {
+                        throw new Error(
+                            "No user account " + name + " found"
                         );
-                        await manager.audit(mclient, {
-                            action: "identity.password_set",
-                            by: client.currentUser(),
-                            organizationPk: ctx.organizationPk,
-                            targetIdentityPk: ctx.identityPk
-                        });
+                    }
+
+                    await manager.setPassword(
+                        mclient,
+                        ctx.identityPk,
+                        pwd,
+                        client.currentUser()
+                    );
+                    await manager.audit(mclient, {
+                        action: "identity.password_set",
+                        by: client.currentUser(),
+                        organizationPk: ctx.organizationPk,
+                        targetIdentityPk: ctx.identityPk
                     });
-                } else {
-                    sql = sql.format([name, pwd]);
-                    await client.query(sql);
-                }
+                });
 
                 await client.query((
                     "UPDATE user_account SET " +
@@ -337,28 +260,21 @@
             @param {String} payload.data.name Role name
             @param {String} payload.data.password Password
             @param {Boolean} [payload.data.isLogin] Default false
-            @param {Boolean} [payload.data.isSuper] Default false
-            @param {Boolean} [payload.data.isInherit] Default false
             @return {Promise}
         */
         that.createRole = async function (obj) {
             let name = obj.data.name;
             let pwd = obj.data.password;
-            let sql = (
-                "SELECT * FROM pg_catalog.pg_roles " +
-                "WHERE rolname = $1;"
-            );
 
-            if (await usesIdentities()) {
-                /*
-                    A group role is a row in "role" and needs nothing
-                    here (B.3 resolves membership from those rows). A
-                    user becomes an identity in this instance's
-                    organization, with a grant to this instance.
-                */
-                if (obj.data.isLogin !== true) {
-                    return;
-                }
+            /*
+                A group role is a row in "role" and needs nothing
+                here (B.3 resolves membership from those rows). A
+                user becomes an identity in this instance's
+                organization, with a grant to this instance.
+            */
+            if (obj.data.isLogin !== true) {
+                return;
+            }
 
                 let claimed = await obj.client.query(
                     (
@@ -378,157 +294,62 @@
                     };
                 }
 
-                return await manager.run(async function (mclient) {
-                    let instance = await manager.instance(
-                        mclient,
-                        obj.client.tenant()
-                    );
-                    let by = obj.client.currentUser();
-                    let actor = await manager.identity(
-                        mclient,
-                        instance.organizationPk,
-                        by || ""
-                    );
-                    let added = await manager.addIdentity(mclient, {
-                        by,
-                        email: obj.data.email,
-                        fullName: obj.data.fullName,
-                        organizationPk: instance.organizationPk,
-                        password: pwd,
-                        username: name
-                    });
-
-                    await manager.setGrant(mclient, {
-                        by,
-                        grantedByPk: (
-                            actor
-                            ? actor._pk
-                            : null
-                        ),
-                        identityPk: added.identityPk,
-                        isActive: true,
-                        tenantPk: instance.tenantPk
-                    });
-                    await manager.audit(mclient, {
-                        action: (
-                            added.created
-                            ? "identity.created"
-                            : "grant.added"
-                        ),
-                        actorPk: (
-                            actor
-                            ? actor._pk
-                            : null
-                        ),
-                        by,
-                        detail: (
-                            added.created
-                            ? "Instance " + obj.client.tenant().name
-                            : (
-                                "Existing identity granted instance " +
-                                obj.client.tenant().name +
-                                "; password unchanged"
-                            )
-                        ),
-                        organizationPk: instance.organizationPk,
-                        targetIdentityPk: added.identityPk
-                    });
+            return await manager.run(async function (mclient) {
+                let instance = await manager.instance(
+                    mclient,
+                    obj.client.tenant()
+                );
+                let by = obj.client.currentUser();
+                let actor = await manager.identity(
+                    mclient,
+                    instance.organizationPk,
+                    by || ""
+                );
+                let added = await manager.addIdentity(mclient, {
+                    by,
+                    email: obj.data.email,
+                    fullName: obj.data.fullName,
+                    organizationPk: instance.organizationPk,
+                    password: pwd,
+                    username: name
                 });
-            }
 
-            sql = (
-                "SELECT * FROM pg_catalog.pg_roles " +
-                "WHERE rolname = $1;"
-            );
-            let client = obj.client;
-            let resp;
-
-            try {
-                resp = await client.query(sql, [name]);
-                if (!resp.rows.length) {
-                    sql = "CREATE ROLE %I " + (
-                        obj.data.isLogin === true
-                        ? "LOGIN"
-                        : "NOLOGIN"
-                    ) + (
-                        obj.data.isSuper === true
-                        ? " CREATEDB"
-                        : " NOCREATEDB"
-                    ) + (
-                        obj.data.isInherit !== false
-                        ? " INHERIT "
-                        : " NOINHERIT "
-                    ) + " PASSWORD %L;";
-
-                    sql = sql.format([name, pwd]);
-                    await client.query(sql);
-                } else {
-                    /*
-                        The role already exists on the cluster -- possibly
-                        another database's user (plan 1.1). Adopting it
-                        used to ALTER its login, password and createdb
-                        unconditionally, so any administrator could take
-                        over any user on the cluster, and creating a group
-                        over a login role set it NOLOGIN with a blank
-                        password. Adoption is now allowed only when the
-                        caller proves the password: the test-and-production
-                        case (the same person, the same password, a second
-                        database) still works, a takeover does not.
-                    */
-                    let existing = resp.rows[0];
-
-                    if (existing.rolcanlogin) {
-                        if (obj.data.isLogin !== true) {
-                            throw {
-                                statusCode: 409,
-                                message: (
-                                    "Name " + name + " is already in " +
-                                    "use by a user and cannot be used"
-                                )
-                            };
-                        }
-
-                        let conf = await config.read();
-                        let probe = new Client({
-                            database: client.database || conf.pgDatabase,
-                            host: conf.pgHost,
-                            port: conf.pgPort,
-                            user: name,
-                            password: pwd
-                        });
-
-                        try {
-                            await probe.connect();
-                        } catch (ignore) {
-                            throw {
-                                statusCode: 409,
-                                message: (
-                                    "User name " + name + " is already " +
-                                    "in use"
-                                )
-                            };
-                        } finally {
-                            probe.end().catch(function () {
-                                return;
-                            });
-                        }
-                    } else if (obj.data.isLogin === true) {
-                        throw {
-                            statusCode: 409,
-                            message: (
-                                "Name " + name + " is already a " +
-                                "reserved role name and cannot be used"
-                            )
-                        };
-                    }
-
-                    await that.changeRoleLogin(obj);
-                    await that.changeRolePassword(obj);
-                    await that.changeRoleCreateDb(obj);
-                }
-            } catch (err) {
-                return Promise.reject(err);
-            }
+                await manager.setGrant(mclient, {
+                    by,
+                    grantedByPk: (
+                        actor
+                        ? actor._pk
+                        : null
+                    ),
+                    identityPk: added.identityPk,
+                    isActive: true,
+                    tenantPk: instance.tenantPk
+                });
+                await manager.audit(mclient, {
+                    action: (
+                        added.created
+                        ? "identity.created"
+                        : "grant.added"
+                    ),
+                    actorPk: (
+                        actor
+                        ? actor._pk
+                        : null
+                    ),
+                    by,
+                    detail: (
+                        added.created
+                        ? "Instance " + obj.client.tenant().name
+                        : (
+                            "Existing identity granted instance " +
+                            obj.client.tenant().name +
+                            "; password unchanged"
+                        )
+                    ),
+                    organizationPk: instance.organizationPk,
+                    targetIdentityPk: added.identityPk
+                });
+            });
         };
 
         /**
@@ -541,122 +362,46 @@
             @return {Promise}
         */
         that.dropRole = async function (obj) {
-            if (await usesIdentities()) {
-                /*
-                    Deleting a user in one instance revokes its access
-                    there. The identity itself and the grant row stay,
-                    so the record of who could reach what survives
-                    (B.5), and the same person keeps any other instance.
-                */
-                await obj.client.query(
-                    "DELETE FROM \"$auth\" WHERE role=$1;",
-                    [obj.data.name]
+            /*
+                Deleting a user in one instance revokes its access
+                there. The identity itself and the grant row stay,
+                so the record of who could reach what survives
+                (B.5), and the same person keeps any other instance.
+            */
+            await obj.client.query(
+                "DELETE FROM \"$auth\" WHERE role=$1;",
+                [obj.data.name]
+            );
+
+            return await manager.run(async function (mclient) {
+                let ctx = await identityFor(
+                    obj.client,
+                    obj.data.name,
+                    mclient
                 );
 
-                return await manager.run(async function (mclient) {
-                    let ctx = await identityFor(
-                        obj.client,
-                        obj.data.name,
-                        mclient
-                    );
-
-                    if (!ctx) {
-                        return true;
-                    }
-
-                    await manager.setGrant(mclient, {
-                        by: obj.client.currentUser(),
-                        identityPk: ctx.identityPk,
-                        isActive: false,
-                        tenantPk: ctx.tenantPk
-                    });
-                    await manager.audit(mclient, {
-                        action: "grant.revoked",
-                        by: obj.client.currentUser(),
-                        detail: (
-                            "User deleted in instance " +
-                            obj.client.tenant().name
-                        ),
-                        organizationPk: ctx.organizationPk,
-                        targetIdentityPk: ctx.identityPk
-                    });
-
+                if (!ctx) {
                     return true;
-                });
-            }
-
-            return await new Promise(function (resolve, reject) {
-                let name = obj.data.name;
-                let sql = "DROP ROLE %I;";
-                let client = obj.client;
-
-                function callback() {
-                    client.query(
-                        "DELETE FROM \"$auth\" WHERE role=$1;",
-                        [name]
-                    ).then(resolve).catch(reject);
                 }
 
-                sql = sql.format([name]);
-                client.query(sql).then(callback).catch(reject);
-            });
-        };
+                await manager.setGrant(mclient, {
+                    by: obj.client.currentUser(),
+                    identityPk: ctx.identityPk,
+                    isActive: false,
+                    tenantPk: ctx.tenantPk
+                });
+                await manager.audit(mclient, {
+                    action: "grant.revoked",
+                    by: obj.client.currentUser(),
+                    detail: (
+                        "User deleted in instance " +
+                        obj.client.tenant().name
+                    ),
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: ctx.identityPk
+                });
 
-        /**
-            Grant one user or role privileges to another role.
-            @method grantMembership
-            @param {Object} payload
-            @param {Client} payload.client
-            @param {Object} payload.data
-            @param {String} payload.data.fromRole
-            @param {Boolean} payload.data.toRole
-            @return {Promise}
-        */
-        that.grantMembership = async function (obj) {
-            /*
-                Membership is the "role_membership" rows the caller has
-                already written; the cluster GRANT only ever mirrored
-                them, and B.3 reads the rows directly.
-            */
-            if (await usesIdentities()) {
                 return true;
-            }
-
-            return await new Promise(function (resolve, reject) {
-                let sql = "GRANT %I TO %I;";
-                let client = obj.client;
-
-                sql = sql.format([obj.data.fromRole, obj.data.toRole]);
-                client.query(sql).then(resolve).catch(reject);
-            });
-        };
-
-        /**
-            Revoke one user or role privileges from another role.
-            @method revokeMembership
-            @param {Object} payload
-            @param {Client} payload.client
-            @param {Object} payload.data
-            @param {String} payload.data.fromRole
-            @param {Boolean} payload.data.toRole
-            @return {Promise}
-        */
-        that.revokeMembership = async function (obj) {
-            /*
-                Membership is the "role_membership" rows the caller has
-                already written; the cluster GRANT only ever mirrored
-                them, and B.3 reads the rows directly.
-            */
-            if (await usesIdentities()) {
-                return true;
-            }
-
-            return await new Promise(function (resolve, reject) {
-                let sql = "REVOKE %I FROM %I;";
-                let client = obj.client;
-
-                sql = sql.format([obj.data.fromRole, obj.data.toRole]);
-                client.query(sql).then(resolve).catch(reject);
             });
         };
 

@@ -674,79 +674,47 @@
 
     /*
         Who may create, clone and drop a database, and who to record
-        for it.
-
-        Under `authStrategy` "identity" this is a platform
-        administrator: ADR-001 puts the cluster in Featherbone's own
-        hands rather than a tenant's. Under the default "role" strategy
-        there are no identities to ask, so the authority stays where it
-        has always been, a super user of the database the request came
-        from, and the check is the one these functions already made.
+        for it: a platform administrator. ADR-001 puts the cluster in
+        Featherbone's own hands rather than a tenant's.
 
         Resolves to the caller's name, or to a denial to reject with.
         The check is inside these functions, so module code cannot
         reach CREATE DATABASE without passing it.
     */
     async function databaseActor(pClient, verb) {
-        let conf = await config.read();
         let user = (
             (pClient && typeof pClient.currentUser === "function")
             ? pClient.currentUser()
             : undefined
         );
-        let isSuper;
-
-        if (conf.authStrategy === "identity") {
-            let tenant = tenants.find(
-                (t) => t.pgDatabase === (pClient && pClient.database)
-            );
-            let allowed = await manager.run(async function (mclient) {
-                let instance = await manager.instance(
+        let tenant = tenants.find(
+            (t) => t.pgDatabase === (pClient && pClient.database)
+        );
+        let allowed = await manager.run(async function (mclient) {
+            let instance = await manager.instance(
+                mclient,
+                tenant
+            ).catch(() => undefined);
+            let actor = (
+                instance
+                ? await manager.identity(
                     mclient,
-                    tenant
-                ).catch(() => undefined);
-                let actor = (
-                    instance
-                    ? await manager.identity(
-                        mclient,
-                        instance.organizationPk,
-                        user || ""
-                    )
-                    : undefined
-                );
-
-                return Boolean(actor && actor.is_platform_admin);
-            });
-
-            return (
-                allowed
-                ? {user}
-                : {
-                    message: (
-                        "Only a platform administrator may " + verb +
-                        " databases"
-                    )
-                }
+                    instance.organizationPk,
+                    user || ""
+                )
+                : undefined
             );
-        }
 
-        /*
-            Asked of the database the request came from, which is where
-            a super user's row lives. createDatabase used to ask the
-            default connection, so it only recognized a super user who
-            also had an account in the manager.
-        */
-        isSuper = await tools.isSuperUser({
-            client: pClient,
-            user
-        }).catch(() => false);
+            return Boolean(actor && actor.is_platform_admin);
+        });
 
         return (
-            isSuper
+            allowed
             ? {user}
             : {
                 message: (
-                    "User must be a super user to " + verb + " databases"
+                    "Only a platform administrator may " + verb +
+                    " databases"
                 )
             }
         );
@@ -2829,17 +2797,11 @@
           {{/crossLink}}
           * {{#crossLink "Services.Role/changeRoleLogin:method"}}
           {{/crossLink}}
-          * {{#crossLink "Services.Role/changeRoleCreateDb:method"}}
-          {{/crossLink}}
           * {{#crossLink "Services.Role/changeRolePassword:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/createRole:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/dropRole:method"}}
-          {{/crossLink}}
-          * {{#crossLink "Services.Role/grantMembership:method"}}
-          {{/crossLink}}
-          * {{#crossLink "Services.Role/revokeMembership:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Feathers/saveAuthorization:method"}}
           {{/crossLink}}
@@ -3380,19 +3342,12 @@
     that.registerFunction("POST", "changeRoleLogin", role.changeRoleLogin);
     that.registerFunction(
         "POST",
-        "changeRoleCreateDb",
-        role.changeRoleCreateDb
-    );
-    that.registerFunction(
-        "POST",
         "changeRolePassword",
         role.changeRolePassword
     );
     that.registerFunction("POST", "createRole", role.createRole);
     that.registerFunction("POST", "doAggregate", crud.doAggregate);
     that.registerFunction("POST", "dropRole", role.dropRole);
-    that.registerFunction("POST", "grantMembership", role.grantMembership);
-    that.registerFunction("POST", "revokeMembership", role.revokeMembership);
     that.registerFunction(
         "POST",
         "saveAuthorization",

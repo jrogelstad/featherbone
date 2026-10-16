@@ -21,36 +21,33 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | Tier | Done | Part done | Open |
 | --- | --- | --- | --- |
 | A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
-| B Identity cutover | B.1-B.7 | — | B.8 |
+| B Identity cutover | B.1-B.8 | — | — |
 | C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
 | D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
 | E Multi-node readiness | — | — | E.1–E.5 |
 | F Verification | F.1 | F.2 | F.3, F.4 |
 
-**What that means in practice.** Identity sign-in exists and works behind
-`authStrategy: identity` — passwords verified in Node, `access_grant` as the
-entry boundary, no Postgres login roles, user administration and the registry
-both on screen (Users and Instances). Isolation between organizations is
-demonstrated rather than asserted, with a mutation check (**F.1**, the
-"done when" of improvement-plan item 1.1), and the cutover is now
-reversible: one command to migrate, one to go back, both rehearsed against a
-copy of `demo` (**B.6**). **Tier B is complete.**
+**What that means in practice.** Sign-in is by identity and nothing else
+(**B.8**): passwords verified in Node, `access_grant` as the entry boundary,
+no Postgres login roles anywhere, no `authStrategy` to set, and user
+administration and the registry both on screen (Users and Instances).
+`install.js --instance` starts a fresh installation on identities in one
+step — it creates the organization, the first identity, its grant and its
+administrator flags — and `migrate-identities.js` brings an older
+installation across, one way, rehearsed against a copy of `demo` (**B.6**).
+Isolation between organizations is demonstrated rather than asserted, with a
+mutation check (**F.1**, the "done when" of improvement-plan item 1.1).
+**Tier B is complete and closed.**
 
-What that leaves for improvement-plan item 1.1 is a decision rather than
-code: run the cutover on a real installation. Everything needed to do it,
-and to undo it, exists and has been exercised.
-
-The direction from here is **B.8**: no `authStrategy` at all, identities as
-the only way users work, the same collapse section 9 made for modes. That
-waits on the cutover being run for real, on `install.js` being able to start
-an installation on identities, and on the test harness, which signs in
-through the role path in every suite today.
+What that leaves for improvement-plan item 1.1 is running the migration on
+each real installation. Since B.8 an installation that has not migrated has
+nobody who can sign in, so it is no longer optional.
 
 **Next three, in order:** the rest of A.4 (rename `is_super` to tenant super
 user in docs and UI; the break-glass path end to end), then D.1 provisioning
-— which unblocks creating and dropping databases from the Instances screen,
-the `"$db"` marker check when registering one, and `install.js` starting an
-installation on identities in one step — then B.8 itself.
+— which unblocks creating and dropping databases from the Instances screen
+and the `"$db"` marker check when registering one — then Tier C's decision
+on passkeys (C.1), which are still per instance.
 
 **Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
 a database from the Instances screen, and the `"$db"` marker check when
@@ -428,11 +425,10 @@ purpose.
       before, and a user created there has no cluster role at all. After
       either, flipping the flag locks those people out with nothing in the
       database to explain it.*
-    - *A brand new installation still cannot start on `"identity"`:
-      `install.js` creates the first administrator as a Postgres role and
-      nothing creates the organization an identity needs, so the path is
-      install, backfill with `--org-admin`, then switch. That is a
-      prerequisite of B.8 and belongs with D.1.*
+    - *A brand new installation could not start on `"identity"` at the
+      time: `install.js` created the first administrator as a Postgres
+      role and nothing created the organization. B.8 fixed that the same
+      day.*
     - *Rehearsed against a copy of `demo`: registered it, backfilled it,
       switched to identity, created a user that exists only as an identity
       and changed another's password. The api suite run with that copy as its
@@ -471,35 +467,62 @@ purpose.
       user screen from inside it.
     - Done when: granting someone an instance is enough for them to sign in to
       it, with no SQL and no second screen.
-- [ ] **B.8 Retire the role path.** (M) *Added 2026-10-15, John's call: by
+- [x] **B.8 Retire the role path.** (M) *Added 2026-10-15, John's call: by
   the end of this there is no `authStrategy`, and identities are simply how
   users work -- the same collapse section 9 made for modes. Two ways to be a
-  user is the problem ADR-001 set out to remove, and a flag keeps both.*
-    - Delete the `role` branch of `database.js` `authenticate`, the
-      `authStrategy` setting and `config.authStrategy`, the
-      `usesIdentities()` branches in `server/services/role.js`, the local
-      profile pre-check in `doSignIn` and the identity gate on
-      `provisionProfile`. Drop `Role.isLogin`, deprecated since B.4.
-    - Withdraw `CREATEROLE` from the service account, which is the point of
-      all of it.
-    - Keep the `pg_authid` verifier import in the backfill: it is how an
-      existing installation migrates without anybody resetting a password.
-    - Prerequisites, in order:
-        1. every installation actually migrated -- the decision, not the code;
-        2. `install.js` able to start a fresh installation on identities in
-           one step (it creates the first administrator as a Postgres role
-           today, and nothing creates the organization); with D.1;
-        3. **the test harness**, which is the hidden cost: every api suite
-           signs in through the role path today, with `identity.test.js` and
-           `isolation.test.js` running their own servers against seeded
-           identities. The harness has to seed an organization, identities
-           and grants for every suite instead. B.7 helps -- the local
-           profiles make themselves;
-        4. a decision on Tier C for anyone using passkeys, which are
-           per-instance until C.1.
+  user is the problem ADR-001 set out to remove, and a flag keeps both. Done
+  2026-10-15 on `feat/harness-identities` (prerequisite 3) and
+  `feat/b8-retire-role-path`.*
+    - *Deleted: the `role` branch of `database.js` `authenticate` (it is
+      `authenticateIdentity`, full stop), the `authStrategy` setting,
+      `config.authStrategy` and its unit test, the template key, every
+      `usesIdentities()` branch in `server/services/role.js` along with
+      `changeRoleCreateDb`, `grantMembership` and `revokeMembership` (no-ops
+      once membership is rows), the matching calls in the Role and
+      UserAccount triggers, the local profile pre-check in `doSignIn`, the
+      identity gate on `provisionProfile`, the role branch of
+      `databaseActor`, and the strategy banner on the Users screen. The
+      server functions the triggers call keep their old names
+      (`createRole`, `dropRole`, `changeRoleLogin`, `changeRolePassword`);
+      the bodies write identities and grants.*
+    - *`Role.isLogin` stays. It was slated to go, but it is the one thing
+      that tells a user account from a group role inside an instance, and
+      the triggers and the Users screen read it as such. It no longer has
+      anything to do with Postgres; the name is the only legacy.*
+    - *`install.js` is identity-native: no `CREATEROLE`, no `pg_authid`
+      grant for the service account; `--instance` finds or creates the
+      organization (`--organization`, default "Default", or whichever one
+      the instance already belongs to), attaches the instance, makes the
+      service account an identity with the password in config.json, grants
+      it the instance, appoints it organization administrator and -- when it
+      is the first identity on the platform -- platform administrator.
+      Idempotent; re-running on `demo` changed nothing. Unknown flags are
+      now fatal: `--my_database` used to reinstall the manager silently.*
+    - *Installations carry `scripts/services.js` as the installed
+      core-services script, so an existing instance needs `node install.js
+      --instance <name>` after this lands or its user triggers still call
+      `grantMembership`. Found the hard way: the harness clones `demo`.*
+    - *The harness no longer makes Postgres roles for test users
+      (`access.createUser`, `data-api.createSuperUser`); only the two
+      bootstrap users keep one, so `identity.test.js` can copy a `pg_authid`
+      verifier the way the migration does. `identity.test.js` and
+      `isolation.test.js` run against the harness server instead of
+      spawning their own.*
+    - *One real defect surfaced by the oracle change: `cannot set another
+      user's password` passed before because it checked the cluster role,
+      which the identity path never touched. The UserAccount before-trigger
+      wrote the new password before `crud` refused the update, so an
+      unauthorized PATCH changed the password anyway. It now asks
+      `isAuthorized` first.*
+    - *Kept, as the item said: the `pg_authid` verifier import in the
+      backfill.*
+    - *Not done here: prerequisite 4, the passkey decision, is Tier C's
+      first item and does not block this; prerequisite 1 is John's to run
+      per installation.*
     - Done when: there is no way to sign in as a Postgres role, the suite
       runs green with no `authStrategy` anywhere, and the service account
-      cannot create roles.
+      cannot create roles. *All three hold: api suite at the 66 baseline,
+      `grep authStrategy` finds nothing outside this document and the ADR.*
 
 ## Tier C: Credentials and SSO
 
@@ -563,8 +586,8 @@ Tier 5.
   another session holds instead of taking it away, and no longer sends
   port 80. The check is inside the three functions rather than in a new
   service, so the Admin Console's calls keep working: a platform
-  administrator under `authStrategy` identity, a super user of the
-  calling database otherwise, with every call audited. Verified against
+  administrator (since B.8 the only answer; before it a super user of the
+  calling database on the role path), with every call audited. Verified against
   a live cluster (duplicate name, rollback, refusals, busy source,
   completed build, failed build).*
     - One framework entry point with the platform-administrator check inside
@@ -692,8 +715,8 @@ running them. These are the tests that close that out. All need a writable
 scratch cluster, not `demo`.
 
 - [x] **F.1 Two-organization isolation test.** (M) *Done 2026-10-15 on
-  `feat/f1-isolation-test`: `test/api/isolation.test.js`, 14 tests against a
-  server running `authStrategy: identity`. A second organization is seeded
+  `feat/f1-isolation-test`: `test/api/isolation.test.js`, 14 tests (since
+  B.8 against the harness server). A second organization is seeded
   carrying the same two usernames as the harness's own, with different
   passwords and no grant to anything. It proves the other organization's
   password does not open this instance, that its administrator is refused
