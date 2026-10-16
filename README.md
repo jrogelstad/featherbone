@@ -303,6 +303,20 @@ to the code deployed into the database, so existing installations work
 unchanged until they are repackaged. `modulesDir` in `config.json`
 moves the directory.
 
+A service row belonging to **no module** is not loaded and is not
+carried forward (ADR-002 question 6): such a row is source code in a
+table, executed by the server, outside any module and so outside any
+package. Loading only ever walked the modules, so these were never
+executed; nothing said so, and the code sat there looking live. Each
+database is now told once, by name, when its services load. Nothing is
+deleted -- dropping someone's code is their decision:
+
+```sql
+SELECT name, module FROM data_service
+WHERE NOT is_deleted
+  AND module NOT IN (SELECT name FROM module WHERE NOT is_deleted);
+```
+
 ### Install, and Deploy
 
 These are two acts, and `install.js` does them separately.
