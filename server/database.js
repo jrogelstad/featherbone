@@ -88,6 +88,29 @@
     }
 
 
+    /*
+        One connection pool per database, for the whole process.
+
+        A dozen services each do `new Database()` (crud, settings,
+        workbooks, admin, manager, installer and the rest), and the
+        pools used to live inside that call -- so one database could
+        have a dozen pools, each up to `pgTenantPoolSize`, and the
+        connection budget in the README was wrong by the number of
+        services.
+
+        Worse, it made "give up this database" impossible: releasing a
+        tenant before a template copy or a drop (tenant plan D.3) ended
+        only the pool belonging to whichever service asked, and
+        everyone else's idle connections kept the database busy until
+        their idle timeout. A template build after a deployment would
+        then refuse, because the deployment had read the instance
+        through a different service's pool.
+
+        Keyed by database name, which is what `getPool` already used,
+        so sharing them changes nothing about how one is found.
+    */
+    const pools = {};
+
     /**
         Class for managing database connectivity functions.
         @class Database
@@ -95,7 +118,6 @@
     */
     exports.Database = function () {
         let cache;
-        let pools = {};
         let that = {};
 
         /*
