@@ -1,14 +1,18 @@
 /*
-    User accounts and roles: creating accounts and roles, sign-in profile,
-    password changes (/do/change-password/, /do/change-role-password/,
-    admin reset through PATCH), /do/change-user-info/, account lockout,
-    deactivation, role membership, and who may see or change accounts.
+    User accounts and roles on the identity path (ADR-001): creating
+    accounts, the sign-in profile, password changes
+    (/do/change-password/, /do/change-role-password/, admin reset
+    through PATCH), /do/change-user-info/, lockout, deactivation, role
+    membership, and who may see or change accounts.
     (server.js doPostUserAccount/doPatchUserAccount/doChangePassword...,
     server/services/role.js, scripts/services.js Role/UserAccount triggers,
-    server/database.js authenticate)
+    server/database.js authenticateIdentity)
 
-    Postgres roles are cluster-wide: every role created here is dropped in
-    after().
+    No Postgres login role is made for anybody here (B.4): a user is an
+    identity in the manager with a grant to this instance, and the
+    local user_account row is the profile (B.5). The oracle for "this
+    password works" is therefore a sign-in over HTTP, and counters and
+    locks are read from the identity.
 */
 /*jslint node*/
 "use strict";
@@ -20,15 +24,16 @@ const db = require("../harness/db");
 const {Session, signedIn} = require("../harness/http");
 const access = require("./lib/access");
 
+// Group membership is rows in role_membership, resolved by
+// tools.memberNames (B.3); Postgres knows nothing of it
 async function memberships(name) {
     let resp = await db.query(
-        "SELECT r.rolname FROM pg_auth_members m " +
-        "JOIN pg_roles r ON r.oid = m.roleid " +
-        "JOIN pg_roles u ON u.oid = m.member " +
-        "WHERE u.rolname = $1 ORDER BY 1",
+        "SELECT rm.role FROM role_membership rm " +
+        "JOIN role r ON rm._parent_role_pk = r._pk " +
+        "WHERE r.name = $1 AND NOT rm.is_deleted ORDER BY 1",
         [name]
     );
-    return resp.rows.map((row) => row.rolname);
+    return resp.rows.map((row) => row.role);
 }
 
 describe("user accounts", function () {
@@ -42,9 +47,6 @@ describe("user accounts", function () {
         await access.dropAll();
     });
 
-    // Plan 0.1: the reserved-name loop ran past the end of pg_roles and
-    // threw, so every create failed with 500 (fixed on master in
-    // 4254cf11; promoted from todo once the suite could prove it)
     it("creates a user account through POST /data/user-account",
             async function () {
         let name = access.track(access.uniq("fbt_new"));
@@ -57,18 +59,25 @@ describe("user accounts", function () {
         });
 
         assert.equal(resp.status, 200, JSON.stringify(resp.body));
-        let role = await access.roleInfo(name);
-        assert.equal(role.rolcanlogin, true);
-        assert.equal(role.rolcreatedb, false);
+
+        // An identity with a grant, and no cluster role at all (B.4)
+        let ident = await access.identity(name);
+
+        assert.ok(ident, "identity made in the organization");
+        assert.equal(ident.status, "active");
+        assert.equal((await access.grant(name)).is_active, true);
+        assert.equal(await access.roleInfo(name), undefined, "no pg role");
+
         assert.deepEqual(await memberships(name), ["everyone"]);
-        assert.equal(await access.pgLogin(name, "Created-Pw-1"), true);
+        assert.equal(await access.canSignIn(name, "Created-Pw-1"), true);
         // Password never stored in the table
         assert.equal((await access.account(name)).password, "");
-        let s = new Session();
-        assert.equal((await s.signIn(name, "Created-Pw-1")).status, 200);
     });
 
-    it("rejects a user account named after a NOLOGIN role", async function () {
+    // Plan 0.1: the reserved-name loop ran past the end of pg_roles and
+    // threw, so every create failed with 500 (fixed on master in
+    // 4254cf11). Now: a group role's name is not a user's to take.
+    it("rejects a user account named after a group role", async function () {
         let emp = await access.createContact(admin, access.uniq("fbt_c"));
         let resp = await admin.raw("POST", "/data/user-account", {
             name: "everyone",
@@ -77,16 +86,27 @@ describe("user accounts", function () {
         });
 
         assert.ok(resp.status >= 400, "status " + resp.status);
-        assert.match(String(resp.body), /reserved role name/);
-        assert.equal((await access.roleInfo("everyone")).rolcanlogin, false);
+        assert.match(
+            String(resp.body),
+            /reserved role name|already a role name/
+        );
+        assert.equal(await access.identity("everyone"), undefined);
     });
 
-    // Plan 1.1: tenants share one cluster, so an account name that
-    // matches another tenant's login role must not take that role over.
-    it("does not reset the password of an existing login role when " +
+    /*
+        Plan 1.1, as it reads on the identity path: within one
+        organization the same username is the same person (B.5), so
+        creating an account for a name that already has an identity
+        grants the instance and leaves the password they already have
+        alone. Another organization's same-named identity is out of
+        reach altogether -- test/api/isolation.test.js.
+    */
+    it("does not reset the password of an existing identity when " +
             "creating a user account with its name", async function () {
-        let name = access.uniq("fbt_tenant");
-        await access.sqlRole(name, "Other-Tenant-Pw1");
+        let name = access.track(access.uniq("fbt_tenant"));
+
+        await db.ensureIdentity(name, "Other-Instance-Pw1");
+
         let emp = await access.createContact(admin, name);
         let resp = await admin.raw("POST", "/data/user-account", {
             name,
@@ -95,12 +115,9 @@ describe("user accounts", function () {
             membership: [{role: "everyone"}]
         });
 
-        assert.ok(
-            resp.status >= 400,
-            "creating an account over an existing login role should fail"
-        );
-        assert.equal(await access.pgLogin(name, "Other-Tenant-Pw1"), true);
-        assert.equal(await access.pgLogin(name, "Hijacked-Pw-2"), false);
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal(await access.canSignIn(name, "Other-Instance-Pw1"), true);
+        assert.equal(await access.canSignIn(name, "Hijacked-Pw-2"), false);
     });
 
     it("signs in a user and returns the profile", async function () {
@@ -119,9 +136,10 @@ describe("user accounts", function () {
         assert.equal(resp.body.lastName, u.name);
         assert.equal(resp.body.mode, "prod");
 
-        let row = await access.account(u.name);
-        assert.ok(row.last_sign_in, "last_sign_in recorded");
-        assert.equal(row.sign_in_attempts, 0);
+        let ident = await access.identity(u.name);
+
+        assert.ok(ident.last_signed_in, "last sign-in recorded");
+        assert.equal(ident.failed_attempts, 0);
     });
 
     describe("changing passwords", function () {
@@ -144,7 +162,7 @@ describe("user accounts", function () {
             assert.ok(resp.status >= 400);
             assert.match(String(resp.body), /can not be blank/);
 
-            assert.equal(await access.pgLogin(u.name, u.password), true);
+            assert.equal(await access.canSignIn(u.name, u.password), true);
         });
 
         it("rejects a wrong old password and counts it as a failed " +
@@ -157,18 +175,18 @@ describe("user accounts", function () {
             });
 
             assert.ok(resp.status >= 400, "status " + resp.status);
-            assert.equal(await access.pgLogin(u.name, u.password), true);
-            assert.equal(await access.pgLogin(u.name, "Never-Set-1"), false);
-            assert.equal((await access.account(u.name)).sign_in_attempts, 1);
+            // Read the counter before probing passwords: each probe
+            // that fails counts too
+            assert.equal(
+                (await access.identity(u.name)).failed_attempts,
+                1
+            );
+            assert.equal(await access.canSignIn(u.name, "Never-Set-1"), false);
+            assert.equal(await access.canSignIn(u.name, u.password), true);
         });
 
         it("answers a wrong old password with a client error and no " +
-                "database error text", {
-            todo: (
-                "defect: 500 with the raw Postgres message " +
-                "'password authentication failed for user ...'"
-            )
-        }, async function () {
+                "database error text", async function () {
             let u = await access.createUser(admin);
             let s = await signedIn(u.name, u.password);
             let resp = await s.raw("POST", "/do/change-password/", {
@@ -197,8 +215,8 @@ describe("user accounts", function () {
 
             assert.equal(resp.status, 200);
             assert.equal(resp.body, true);
-            assert.equal(await access.pgLogin(u.name, u.password), false);
-            assert.equal(await access.pgLogin(u.name, "Changed-Pw-2"), true);
+            assert.equal(await access.canSignIn(u.name, u.password), false);
+            assert.equal(await access.canSignIn(u.name, "Changed-Pw-2"), true);
             assert.equal((await access.account(u.name)).change_password, false);
 
             // Session stays valid
@@ -228,16 +246,12 @@ describe("user accounts", function () {
             });
 
             assert.equal(resp.status, 200);
-            assert.equal(await access.pgLogin(u.name, u.password), false);
-            assert.equal(await access.pgLogin(u.name, "Role-Pw-4"), true);
+            assert.equal(await access.canSignIn(u.name, u.password), false);
+            assert.equal(await access.canSignIn(u.name, "Role-Pw-4"), true);
             assert.equal((await access.account(u.name)).change_password, false);
 
             resp = await s.raw("POST", "/data/contacts", {filter: {limit: 1}});
             assert.equal(resp.status, 401);
-            assert.equal(
-                (await new Session().signIn(u.name, "Role-Pw-4")).status,
-                200
-            );
         });
 
         it("forces a password change after an admin sets the password " +
@@ -259,8 +273,7 @@ describe("user accounts", function () {
                 resp.body.find((op) => op.path === "/changePassword"),
                 {op: "replace", path: "/changePassword", value: true}
             );
-            assert.equal(await access.pgLogin(u.name, u.password), false);
-            assert.equal(await access.pgLogin(u.name, "Admin-Set-5"), true);
+            assert.equal(await access.canSignIn(u.name, u.password), false);
 
             let s = new Session();
             resp = await s.signIn(u.name, "Admin-Set-5");
@@ -316,25 +329,24 @@ describe("user accounts", function () {
         assert.match(bodies[2], /One more attempt before account is locked/);
         assert.match(bodies[3], /Too many sign in attempts\. Account is locked/);
 
-        let row = await access.account(u.name);
-        assert.equal(row.sign_in_attempts, 4);
-        assert.equal(row.is_locked, true);
+        let ident = await access.identity(u.name);
+        assert.equal(ident.failed_attempts, 4);
+        assert.equal(ident.status, "locked");
 
         // The right password no longer helps
         resp = await new Session().signIn(u.name, u.password);
         assert.equal(resp.status, 401);
         assert.match(String(resp.body), /User account is locked/);
 
-        // Unlocking resets the counter
-        resp = await admin.raw(
-            "PATCH",
-            "/data/user-account/" + u.id,
-            [{op: "replace", path: "/isLocked", value: false}]
-        );
-        assert.equal(resp.status, 200);
-        row = await access.account(u.name);
-        assert.equal(row.is_locked, false);
-        assert.equal(row.sign_in_attempts, 0);
+        // The lock is on the identity, so the Users screen releases it
+        resp = await admin.raw("POST", "/admin/identity/status", {
+            id: ident.id,
+            status: "active"
+        });
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        ident = await access.identity(u.name);
+        assert.equal(ident.status, "active");
+        assert.equal(ident.failed_attempts, 0);
         assert.equal((await new Session().signIn(u.name, u.password)).status, 200);
     });
 
@@ -342,13 +354,13 @@ describe("user accounts", function () {
             async function () {
         let u = await access.createUser(admin);
         await new Session().signIn(u.name, "wrong-password");
-        assert.equal((await access.account(u.name)).sign_in_attempts, 1);
+        assert.equal((await access.identity(u.name)).failed_attempts, 1);
 
         assert.equal((await new Session().signIn(u.name, u.password)).status, 200);
-        assert.equal((await access.account(u.name)).sign_in_attempts, 0);
+        assert.equal((await access.identity(u.name)).failed_attempts, 0);
     });
 
-    it("deactivating a user removes the login and blocks sign-in",
+    it("deactivating a user revokes the grant and blocks sign-in",
             async function () {
         let u = await access.createUser(admin);
         let resp = await admin.raw(
@@ -358,7 +370,7 @@ describe("user accounts", function () {
         );
 
         assert.equal(resp.status, 200);
-        assert.equal((await access.roleInfo(u.name)).rolcanlogin, false);
+        assert.equal((await access.grant(u.name)).is_active, false);
         resp = await new Session().signIn(u.name, u.password);
         assert.equal(resp.status, 401);
         // Same answer as any other failed sign in (plan 0.3)
@@ -370,7 +382,7 @@ describe("user accounts", function () {
             [{op: "replace", path: "/isActive", value: true}]
         );
         assert.equal(resp.status, 200);
-        assert.equal((await access.roleInfo(u.name)).rolcanlogin, true);
+        assert.equal((await access.grant(u.name)).is_active, true);
         assert.equal((await new Session().signIn(u.name, u.password)).status, 200);
     });
 
@@ -521,32 +533,17 @@ describe("roles", function () {
         await access.dropAll();
     });
 
-    it("POST /data/role creates a NOLOGIN Postgres role", async function () {
+    it("POST /data/role creates a role row and no Postgres role",
+            async function () {
         let name = access.track(access.uniq("fbt_role"));
         let role = await admin.create("Role", {name, membership: []});
 
         assert.equal(role.name, name);
-        assert.deepEqual(await access.roleInfo(name), {
-            rolname: name,
-            rolcanlogin: false,
-            rolcreatedb: false,
-            rolsuper: false
-        });
+        assert.equal(await access.roleInfo(name), undefined, "no pg role");
     });
 
-    it("derives the Postgres role name lower case with underscores",
+    it("grants and revokes membership through UserAccount.membership",
             async function () {
-        let tail = access.uniq("x").slice(2);
-        let name = "Fbt Mixed " + tail;
-        let pgName = access.track("fbt_mixed_" + tail);
-        let role = await admin.create("Role", {name, membership: []});
-
-        assert.equal(role.name, name);
-        assert.ok(await access.roleInfo(pgName), "role " + pgName);
-    });
-
-    it("grants and revokes Postgres membership through " +
-            "UserAccount.membership", async function () {
         let clerk = access.track(access.uniq("fbt_clerk"));
         let u = await access.createUser(admin);
         await admin.create("Role", {name: clerk, membership: []});
@@ -570,26 +567,17 @@ describe("roles", function () {
         assert.deepEqual(await memberships(u.name), ["everyone"]);
     });
 
-    it("DELETE /data/role drops the Postgres role", async function () {
+    it("DELETE /data/role removes the role", async function () {
         let name = access.track(access.uniq("fbt_gone"));
         let role = await admin.create("Role", {name, membership: []});
 
         await admin.remove("Role", role.id);
+
+        let resp = await db.query(
+            "SELECT 1 FROM role WHERE name = $1 AND NOT is_deleted",
+            [name]
+        );
+        assert.equal(resp.rows.length, 0);
         assert.equal(await access.roleInfo(name), undefined);
-    });
-
-    it("leaves an existing login role alone when a Role of the same " +
-            "name is created", {
-        todo: (
-            "plan 1.1: createRole (role.js:230) makes the existing login " +
-            "role NOLOGIN and blanks its password"
-        )
-    }, async function () {
-        let name = access.uniq("fbt_tenant");
-        await access.sqlRole(name, "Other-Tenant-Pw1");
-        await admin.raw("POST", "/data/role", {name, membership: []});
-
-        assert.equal((await access.roleInfo(name)).rolcanlogin, true);
-        assert.equal(await access.pgLogin(name, "Other-Tenant-Pw1"), true);
     });
 });

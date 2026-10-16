@@ -27,19 +27,13 @@ const identities = new Identities();
 const PORT = settings.port + 2;
 const GENERIC = "Invalid sign in credentials.";
 
-const DOC_COLS = (
-    "_pk,id,created,created_by,updated,updated_by,is_deleted," +
-    "owner,etag"
-);
-
-function docVals(id) {
-    return (
-        "nextval('object__pk_seq'),'" + id + "',now(),'fbtest',now()," +
-        "'fbtest',false,'fbtest','" + id + "'"
-    );
-}
-
 async function seed() {
+    /*
+        The harness already made the organization, the admin and basic
+        identities and their grants (test/harness/db.js). This adds what
+        these tests need on top, through the same idempotent helper.
+    */
+
     // The verifier Postgres holds for the basic harness user; reading
     // pg_authid needs the superuser the harness already requires
     let verifier;
@@ -52,108 +46,49 @@ async function seed() {
     });
     assert.ok(verifier, "pg_authid verifier for " + settings.basicUser);
 
-    await db.withClient(settings.managerDb, async function (client) {
-        let resp = await client.query((
-            "INSERT INTO organization (" + DOC_COLS + ",name,is_active," +
-            "authentication,is_two_factor_required) VALUES (" +
-            docVals("fbtorg000001") +
-            ",'FBTest',true,'password',false) RETURNING _pk"
-        ));
-        let orgPk = resp.rows[0]._pk;
+    // The imported Postgres verifier (migration path): replaces the
+    // application hash the harness gave this identity
+    await db.ensureIdentity(settings.basicUser, settings.password, settings.testDb, {
+        hash: verifier
+    });
 
-        await client.query(
-            "UPDATE tenant SET _organization_organization_pk = $1",
-            [orgPk]
-        );
+    /*
+        The admin identity also reaches the second instance, so the
+        B.5 tests can prove that creating a user who already exists
+        in the organization grants access without touching the
+        password they already have.
+    */
+    await db.ensureIdentity(settings.adminUser, settings.password, settings.testDb2);
 
-        async function identity(id, name, hash) {
-            let r = await client.query((
-                "INSERT INTO identity (" + DOC_COLS +
-                ",_organization_organization_pk,username,full_name," +
-                "email,password_hash,status,is_platform_admin," +
-                "is_org_admin,failed_attempts) VALUES (" + docVals(id) +
-                ",$1,$2,$2,'',$3,'active',false,false,0) RETURNING _pk"
-            ), [orgPk, name, hash]);
-            return r.rows[0]._pk;
-        }
+    // A granted identity for the lock test: failures must never
+    // disturb the identities above
+    await db.ensureIdentity("fbt_lockme", settings.password, settings.testDb, {
+        id: "fbtident0003"
+    });
 
-        async function grant(id, identityPk) {
-            await client.query((
-                "INSERT INTO access_grant (" + DOC_COLS +
-                ",_identity_identity_pk,_tenant_tenant_pk,is_active," +
-                "granted) SELECT " + docVals(id) +
-                ",$1,_pk,true,now() FROM tenant WHERE pg_database = $2"
-            ), [identityPk, settings.testDb]);
-        }
+    // Correct password, but no grant to the instance
+    await db.ensureIdentity("fbt_nogrant", settings.password, undefined, {
+        id: "fbtident0004"
+    });
 
-        // The application's own hash
-        let adminPk = await identity(
-            "fbtident0001",
-            settings.adminUser,
-            identities.hashPassword(settings.password)
-        );
-        await grant("fbtgrant0001", adminPk);
+    // The clean case: an identity with no Postgres login role at
+    // all, which is what every user looks like after B.4
+    await db.ensureIdentity("fbt_norole", settings.password, settings.testDb, {
+        id: "fbtident0005"
+    });
 
-        /*
-            The admin identity also reaches the second instance, so the
-            B.5 tests can prove that creating a user who already exists
-            in the organization grants access without touching the
-            password they already have.
-        */
-        await client.query((
-            "INSERT INTO access_grant (" + DOC_COLS +
-            ",_identity_identity_pk,_tenant_tenant_pk,is_active," +
-            "granted) SELECT " + docVals("fbtgrant0011") +
-            ",$1,_pk,true,now() FROM tenant WHERE pg_database = $2"
-        ), [adminPk, settings.testDb2]);
+    /*
+        Granted the instance, with no local profile at all: what
+        somebody looks like the moment they are granted an
+        instance they have never opened (B.7).
+    */
+    await db.ensureIdentity("fbt_noprofile", settings.password, settings.testDb, {
+        id: "fbtident0006"
+    });
 
-        // The imported Postgres verifier (migration path)
-        let basicPk = await identity("fbtident0002", settings.basicUser, verifier);
-        await grant("fbtgrant0002", basicPk);
-
-        // A granted identity for the lock test: failures must never
-        // disturb the identities above
-        let lockPk = await identity(
-            "fbtident0003",
-            "fbt_lockme",
-            identities.hashPassword(settings.password)
-        );
-        await grant("fbtgrant0003", lockPk);
-
-        // Correct password, but no grant to the instance
-        await identity(
-            "fbtident0004",
-            "fbt_nogrant",
-            identities.hashPassword(settings.password)
-        );
-
-        /*
-            Granted the instance, with no local profile at all: what
-            somebody looks like the moment they are granted an
-            instance they have never opened (B.7).
-        */
-        let freshPk = await identity(
-            "fbtident0006",
-            "fbt_noprofile",
-            identities.hashPassword(settings.password)
-        );
-        await grant("fbtgrant0006", freshPk);
-
-        // Neither granted nor profiled: nothing may be made for them
-        await identity(
-            "fbtident0007",
-            "fbt_ungranted",
-            identities.hashPassword(settings.password)
-        );
-
-        // The clean case: an identity with no Postgres login role at
-        // all, which is what every user looks like after B.4
-        let norolePk = await identity(
-            "fbtident0005",
-            "fbt_norole",
-            identities.hashPassword(settings.password)
-        );
-        await grant("fbtgrant0005", norolePk);
+    // Neither granted nor profiled: nothing may be made for them
+    await db.ensureIdentity("fbt_ungranted", settings.password, undefined, {
+        id: "fbtident0007"
     });
 
     /*
@@ -163,6 +98,10 @@ async function seed() {
     */
     await db.withClient(settings.testDb, async function (client) {
         async function profile(name) {
+            await client.query(
+                "DELETE FROM user_account WHERE name = $1",
+                [name]
+            );
             await client.query(
                 (
                     "INSERT INTO user_account (id, name, is_super, " +
@@ -671,24 +610,25 @@ describe("identity sign-in (authStrategy identity)", function () {
             assert.equal(resp.status, 401);
         });
 
-        it("serves the same screen while sign-in still uses roles",
+        it("serves the same screen from the harness server too",
                 async function () {
             /*
-                The administration screen is readable before the
-                cutover, which is the point: an administrator can see
-                what identity sign-in would do before turning it on.
-                This talks to the harness server, which runs the
-                default "role" strategy against the same databases.
+                Both servers in this run sign in by identity against
+                the same databases, so the harness server shows the
+                same organization. (This used to prove the screen was
+                readable before the cutover, when the harness server
+                still used Postgres roles; that path is on its way out,
+                tenant plan B.8.)
             */
-            let roleAdmin = new Session();
-            let resp = await roleAdmin.signIn(
+            let other = new Session();
+            let resp = await other.signIn(
                 settings.adminUser,
                 settings.password
             );
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
 
-            let overview = await roleAdmin.get("/admin/overview");
-            assert.equal(overview.authStrategy, "role");
+            let overview = await other.get("/admin/overview");
+            assert.equal(overview.authStrategy, "identity");
             assert.equal(overview.organization.name, "FBTest");
             assert.ok(overview.identities.length > 0);
         });
