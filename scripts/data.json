@@ -1242,6 +1242,7 @@
             },
             {
                 "attr": "isSuper",
+                "label": "Tenant Super User",
                 "unit": 0,
                 "grid": 0
             },

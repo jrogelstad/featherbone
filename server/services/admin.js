@@ -109,9 +109,41 @@
                 throw forbidden("Not authorized to administer identities");
             }
 
+            /*
+                The break-glass path (ADR-001 requirement 3, tenant plan
+                A.4). Sign-in is organization-scoped, so a platform
+                administrator can never be signed in to another
+                organization's instance; instead they may name the
+                organization to act on. Everything downstream keys on
+                ctx.organizationPk, so the whole screen and every write
+                follows, and the audit rows record the organization
+                acted on.
+            */
+            let organizationPk = instance.organizationPk;
+            let reach = obj.organization || (obj.data || {}).organization;
+
+            if (reach) {
+                let other = await manager.organizationById(mclient, reach);
+
+                if (!other) {
+                    throw notFound("No such organization");
+                }
+
+                if (other._pk !== organizationPk) {
+                    if (tier !== "platform") {
+                        throw forbidden(
+                            "Only a platform administrator may " +
+                            "administer another organization"
+                        );
+                    }
+                    organizationPk = other._pk;
+                }
+            }
+
             return {
                 actor,
-                organizationPk: instance.organizationPk,
+                homeOrganizationPk: instance.organizationPk,
+                organizationPk,
                 tenantPk: instance.tenantPk,
                 tier
             };
@@ -261,6 +293,26 @@
                         ),
                         name: organization.name
                     },
+                    /*
+                        Every organization, so a platform administrator
+                        can reach one that has lost its administrator
+                        (the break-glass picker). Only for them: what
+                        other organizations exist is not an
+                        organization administrator's to see.
+                    */
+                    organizations: (
+                        ctx.tier === "platform"
+                        ? (await manager.organizations(mclient)).map(
+                            function (row) {
+                                return {
+                                    id: row.id,
+                                    isActive: row.is_active,
+                                    name: row.name
+                                };
+                            }
+                        )
+                        : undefined
+                    ),
                     tier: ctx.tier
                 };
             });

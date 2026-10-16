@@ -68,10 +68,27 @@ adminPage.viewModel = function () {
     };
 
     function request(method, path, body) {
+        /*
+            The break-glass reach (tenant plan A.4): when a platform
+            administrator has picked another organization, every read
+            and write names it. The server refuses it from anyone
+            else.
+        */
+        let reach = vm.reachOrganization();
+        let url = pathname + path;
+
+        if (reach) {
+            if (body) {
+                body.organization = reach;
+            } else {
+                url += "?organization=" + encodeURIComponent(reach);
+            }
+        }
+
         return m.request({
             body,
             method,
-            url: pathname + path
+            url
         });
     }
 
@@ -88,6 +105,13 @@ adminPage.viewModel = function () {
         @return {Object}
     */
     vm.overview = f.prop();
+    /**
+        The organization a platform administrator is acting on, by id.
+        Empty means their own. Only they see the picker that sets it.
+        @method reachOrganization
+        @return {String}
+    */
+    vm.reachOrganization = f.prop("");
     /**
         @method isLoading
         @return {Boolean}
@@ -610,6 +634,43 @@ adminPage.component = {
             m(f.getComponent("Dialog"), {viewModel: vm.addUserDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.passwordDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.grantDialog()}),
+            (
+                (
+                    data.organizations &&
+                    data.organizations.length > 1
+                )
+                ? m("div", {class: "fb-admin-note"}, [
+                    m("label", {
+                        for: "fb-admin-reach",
+                        title: (
+                            "Act on another organization. Platform " +
+                            "administrators only; every change is " +
+                            "audited against that organization."
+                        )
+                    }, "Organization: "),
+                    m("select", {
+                        id: "fb-admin-reach",
+                        onchange: function (e) {
+                            vm.reachOrganization(e.target.value);
+                            vm.isLoading(true);
+                            vm.refresh();
+                        },
+                        value: (
+                            vm.reachOrganization() || data.organization.id
+                        )
+                    }, data.organizations.map(function (org) {
+                        return m("option", {
+                            key: org.id,
+                            value: org.id
+                        }, org.name + (
+                            org.isActive
+                            ? ""
+                            : " (inactive)"
+                        ));
+                    }))
+                ])
+                : undefined
+            ),
             (
                 vm.isLoading()
                 ? m("div", {class: "fb-admin-note"}, "Reading the registry…")
