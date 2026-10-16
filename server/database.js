@@ -154,6 +154,7 @@
                 "'system',false,'system',$1"
             );
             let obj;
+            let orgTwoFactor;
 
             if (!req || !req.tenant || req.tenant.id === "-1") {
                 throw new Error("Sign in requires an instance");
@@ -164,9 +165,13 @@
                 let client = obj.client;
                 let resp = await client.query(
                     (
-                        "SELECT _pk, is_active, " +
-                        "  _organization_organization_pk AS org " +
-                        "FROM tenant WHERE id = $1 AND NOT is_deleted"
+                        "SELECT t._pk, t.is_active, " +
+                        "  t._organization_organization_pk AS org, " +
+                        "  o.is_two_factor_required " +
+                        "FROM tenant t " +
+                        "LEFT JOIN organization o " +
+                        "  ON o._pk = t._organization_organization_pk " +
+                        "WHERE t.id = $1 AND NOT t.is_deleted"
                     ),
                     [req.tenant.id]
                 );
@@ -199,6 +204,14 @@
                         " is closed to sign-in"
                     );
                 }
+
+                /*
+                    Whether this organization requires a second factor
+                    (tenant plan C.2): rides to doSignIn on the resolved
+                    user, so the policy is the organization's rather
+                    than one global switch.
+                */
+                orgTwoFactor = resp.rows[0].is_two_factor_required;
 
                 resp = await client.query(
                     (
@@ -339,7 +352,10 @@
 
             // The local profile: preferences, contact and the stable
             // key history points at. Still required (B.5).
-            return await that.deserializeUser(req, username);
+            let user = await that.deserializeUser(req, username);
+
+            user.isTwoFactorRequired = orgTwoFactor === true;
+            return user;
         }
 
         // ..........................................................
