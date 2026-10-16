@@ -210,7 +210,16 @@ half of administration: which databases this installation serves and
 which organization they belong to. For each instance it shows the
 database, the connection it is reached through, how many of the
 organization's people may enter it, whether this server has it loaded
-and listening, and whether sign-in is open.
+and listening, how many modules it carries and how many of those are
+behind a package installed on the server, and whether sign-in is open.
+
+The module count is the **fleet view**: the versions are read from each
+instance itself rather than from the registry's cached copy, an
+instance that cannot be asked says "unknown" rather than "none", and
+hovering lists each module with its version and the newer one the
+server holds. Upgrading a fleet is a rolling outage -- one instance
+held at a time -- so the screen says how many are behind and leaves
+the order to you.
 
 From there an organization administrator can:
 
@@ -240,6 +249,11 @@ tenant's -- can also:
   anyone else's make the copy refuse;
 * **drop** an instance: the database and its registration, audited,
   never the one you are signed in to;
+* **deploy** a package this server holds into an instance ("Deploy" on
+  the row): it holds the instance, applies the package, records the
+  version in that instance's `module` row and lets it go. The same act
+  as the command line's, audited at both ends, and a failed one leaves
+  the instance held;
 * **hold** an instance for a deployment ("Maintenance" on the row).
   Schema changes are not run under live traffic (ADR-002 question 7),
   so Deploy brackets itself with this state and it can also be thrown
