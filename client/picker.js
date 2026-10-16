@@ -55,10 +55,12 @@
         note: "",
         organizations: [],
         picked: {},
+        providers: [],
         ready: false,
         selection: undefined,
         services: [],
         templates: [],
+        wantSso: false,
         view: (
             window.location.pathname.startsWith("/platform")
             ? "platform"
@@ -166,6 +168,7 @@
             vm.services = data.services;
             vm.templates = data.templates;
             vm.installed = data.installed || [];
+            vm.providers = data.providers || [];
             vm.ready = true;
         }).catch(function (err) {
             /*
@@ -252,6 +255,30 @@
             if (data.code === "organization-required") {
                 vm.needOrganization = true;
             }
+            m.redraw();
+        });
+    }
+
+    /*
+        Single sign-on (ADR-001 C.3). The organization is named first:
+        which identity provider to send the browser to is the
+        organization's to say, and the server will not list them to
+        somebody who has not signed in.
+    */
+    function sso() {
+        if (vm.isBusy) {
+            return;
+        }
+        vm.isBusy = true;
+        vm.error = "";
+
+        request("POST", "/auth/sso/start", {
+            organization: fieldValue("sso-organization")
+        }).then(function (data) {
+            window.location.assign(data.url);
+        }).catch(function (err) {
+            vm.isBusy = false;
+            vm.error = reason(err);
             m.redraw();
         });
     }
@@ -418,7 +445,36 @@
                     },
                     style: {width: "215px"}
                 }, "Sign in")
-            ])
+            ]),
+            (
+                vm.wantSso
+                ? [
+                    field("sso-organization", "Organization", "text", sso),
+                    m("div", {class: "pure-control-group fb-sign-in"}, [
+                        m("label", {class: "fb-sign-in-label"}, ""),
+                        m("button", {
+                            class: "pure-button fb-input",
+                            disabled: vm.isBusy,
+                            onclick: function () {
+                                sso();
+                                return false;
+                            },
+                            style: {width: "215px"}
+                        }, "Continue")
+                    ])
+                ]
+                : m("div", {class: "pure-control-group fb-sign-in"}, [
+                    m("label", {class: "fb-sign-in-label"}, ""),
+                    m("a", {
+                        class: "fb-click-text",
+                        onclick: function () {
+                            vm.wantSso = true;
+                            vm.error = "";
+                        },
+                        style: {width: "215px"}
+                    }, "Sign in with single sign-on")
+                ])
+            )
         ]);
     }
 
@@ -586,6 +642,21 @@
                     vm.menu = undefined;
                 }
             ),
+            provider: entry(
+                "provider",
+                "Single sign-on",
+                (
+                    none
+                    ? "Select an organization"
+                    : "How " + organization.name + " signs in through an " +
+                        "identity provider"
+                ),
+                none,
+                function () {
+                    vm.form = {kind: "provider"};
+                    vm.menu = undefined;
+                }
+            ),
             instance: entry(
                 "instance",
                 "New instance",
@@ -688,6 +759,25 @@
                 }, "Administrator appointed");
                 return;
             }
+            if (kind === "provider") {
+                send("/platform/organization/provider", {
+                    adminGroup: fieldValue("admin-group"),
+                    clientId: fieldValue("client-id"),
+                    clientSecret: fieldValue("client-secret"),
+                    defaultInstances: fieldValue("default-instances").split(
+                        ","
+                    ).map((one) => one.trim()).filter(Boolean),
+                    isJustInTime: (
+                        document.getElementById("just-in-time").checked
+                    ),
+                    issuer: fieldValue("issuer"),
+                    kind: fieldValue("provider-kind"),
+                    name: fieldValue("provider-name"),
+                    organization: organization.id,
+                    usernameClaim: fieldValue("username-claim")
+                }, "Identity provider saved");
+                return;
+            }
             send("/platform/instance/provision", {
                 database: fieldValue("database"),
                 name: fieldValue("instance-name"),
@@ -701,7 +791,8 @@
             administrator: "Appoint an administrator of " + organization.name,
             edit: "Edit " + organization.name,
             instance: "Build an instance for " + organization.name,
-            organization: "New organization"
+            organization: "New organization",
+            provider: "How " + organization.name + " signs in"
         };
 
         let fields = [];
@@ -743,6 +834,79 @@
                     "who reaches which of its instances. They are " +
                     "granted no instance here."
                 ))
+            ];
+        } else if (kind === "provider") {
+            let have = vm.providers.find(
+                (one) => one.organizationId === organization.id
+            ) || {};
+
+            fields = [
+                m("div", {class: "fb-admin-note"}, (
+                    "The organization signs in through this provider " +
+                    "when its sign-in is set to single sign-on, or " +
+                    "either. Register " + (
+                        window.location.origin + "/auth/sso/callback"
+                    ) + " as the redirect URI with the provider."
+                )),
+                field("provider-name", "Called", "text", submit, (
+                    have.name || "Microsoft"
+                )),
+                selector("provider-kind", "Provider", [
+                    {
+                        label: "Microsoft Entra ID (Azure AD)",
+                        value: "azure-ad"
+                    },
+                    {label: "Any OpenID Connect provider", value: "oidc"}
+                ], have.kind || "azure-ad"),
+                field("issuer", "Issuer", "text", submit, have.issuer || (
+                    "https://login.microsoftonline.com/<directory>/v2.0"
+                )),
+                field("client-id", "Client id", "text", submit, (
+                    have.clientId || ""
+                )),
+                field("client-secret", (
+                    have.hasSecret
+                    ? "New secret"
+                    : "Client secret"
+                ), "password", submit),
+                field("username-claim", "User name claim", "text", submit, (
+                    have.usernameClaim || "preferred_username"
+                )),
+                field("admin-group", "Administrator group", "text", submit, (
+                    have.adminGroup || ""
+                )),
+                m("div", {class: "pure-control-group fb-sign-in"}, [
+                    m("label", {
+                        class: "fb-sign-in-label",
+                        for: "just-in-time"
+                    }, "Make accounts"),
+                    m("input", {
+                        checked: have.isJustInTime === true,
+                        id: "just-in-time",
+                        type: "checkbox"
+                    })
+                ]),
+                field(
+                    "default-instances",
+                    "Granting",
+                    "text",
+                    submit,
+                    (have.defaultInstances || []).join(", ")
+                ),
+                m("div", {class: "fb-admin-note"}, (
+                    "A made account is granted the databases named " +
+                    "above, separated by commas, and nothing else. " +
+                    "Leave it empty and it reaches nothing until " +
+                    "somebody grants it."
+                )),
+                (
+                    have.hasSecret
+                    ? m("div", {class: "fb-admin-note"}, (
+                        "A secret is stored. Leave the field empty to " +
+                        "keep it."
+                    ))
+                    : undefined
+                )
             ];
         } else {
             fields = [
@@ -820,7 +984,19 @@
                     )
                 }, "none")
             )),
-            m("td", {class: "fb-admin-muted"}, organization.authentication)
+            m("td", {class: "fb-admin-muted"}, (
+                organization.authentication + (
+                    vm.providers.some(
+                        (one) => one.organizationId === organization.id
+                    )
+                    ? ""
+                    : (
+                        organization.authentication === "password"
+                        ? ""
+                        : " (no provider)"
+                    )
+                )
+            ))
         ]);
     }
 
@@ -981,6 +1157,7 @@
                 toolbarButton(actions.organization),
                 toolbarButton(actions.edit),
                 toolbarButton(actions.administrator),
+                toolbarButton(actions.provider),
                 toolbarButton(actions.instance),
                 toolbarButton(actions.status),
                 toolbarButton({
@@ -1002,6 +1179,7 @@
             contextMenu([
                 actions.edit,
                 actions.administrator,
+                actions.provider,
                 actions.instance,
                 actions.status
             ]),

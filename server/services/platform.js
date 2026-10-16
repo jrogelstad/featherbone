@@ -31,8 +31,11 @@
 (function (exports) {
     "use strict";
 
+    const {Config} = require("../config");
     const {Manager} = require("./manager");
     const f = require("../../common/core");
+
+    const config = new Config();
     const manager = new Manager();
 
     /**
@@ -718,6 +721,186 @@
             );
 
             return {created: made.created, username};
+        };
+
+        /**
+            The identity providers configured on this installation,
+            without their secrets: the console shows which
+            organizations sign in through one, and never shows a
+            secret back (ADR-001 C.3).
+
+            @method providers
+            @param {Client} client Manager client
+            @return {Promise} Array
+        */
+        that.providers = async function (client) {
+            let resp = await client.query(
+                (
+                    "SELECT p.id, p.name, p.kind, p.issuer, " +
+                    "  p.client_id, p.is_active, p.is_just_in_time, " +
+                    "  p.default_instances, p.username_claim, " +
+                    "  p.admin_group, " +
+                    "  (p.client_secret IS NOT NULL AND " +
+                    "   p.client_secret <> '') AS has_secret, " +
+                    "  o.id AS organization_id " +
+                    "FROM identity_provider p " +
+                    "JOIN organization o " +
+                    "  ON o._pk = p._organization_organization_pk " +
+                    "WHERE NOT p.is_deleted"
+                )
+            ).catch(function () {
+                /*
+                    A manager that has not been through
+                    `node install.js --manager` since C.3 has no such
+                    table. Nothing configured is the honest answer.
+                */
+                return {rows: []};
+            });
+
+            return resp.rows.map(function (row) {
+                return {
+                    adminGroup: row.admin_group || "",
+                    clientId: row.client_id,
+                    defaultInstances: row.default_instances || [],
+                    hasSecret: row.has_secret === true,
+                    id: row.id,
+                    isActive: row.is_active === true,
+                    isJustInTime: row.is_just_in_time === true,
+                    issuer: row.issuer,
+                    kind: row.kind,
+                    name: row.name,
+                    organizationId: row.organization_id,
+                    usernameClaim: row.username_claim
+                };
+            });
+        };
+
+        /**
+            Create or replace an organization's identity provider. The
+            secret is encrypted with the installation's key, the way
+            the service account's password is, and is never read back
+            out to a screen.
+
+            Leaving the secret empty on a provider that has one keeps
+            the one it has, so the form can be saved without retyping
+            it.
+
+            @method saveProvider
+            @param {Client} client Manager client
+            @param {Object} data
+            @return {Promise} The provider, without its secret
+        */
+        that.saveProvider = async function (client, data) {
+            let conf = await config.read();
+            let organization = await manager.organizationById(
+                client,
+                (data || {}).organization
+            );
+
+            if (!organization) {
+                throw invalid("No such organization");
+            }
+
+            let issuer = String(data.issuer || "").trim();
+            let clientId = String(data.clientId || "").trim();
+            let kind = data.kind || "azure-ad";
+
+            if (!issuer || !clientId) {
+                throw invalid(
+                    "An issuer and a client id are required"
+                );
+            }
+            if (["azure-ad", "oidc"].indexOf(kind) === -1) {
+                throw invalid("Kind must be azure-ad or oidc");
+            }
+            try {
+                let url = new URL(issuer);
+
+                if (url.protocol !== "https:") {
+                    throw invalid("The issuer must be an https address");
+                }
+            } catch (ignore) {
+                throw invalid("The issuer must be a URL");
+            }
+
+            let found = await client.query(
+                (
+                    "SELECT _pk, client_secret FROM identity_provider " +
+                    "WHERE _organization_organization_pk = $1 " +
+                    "  AND NOT is_deleted"
+                ),
+                [organization._pk]
+            );
+            let secret = String(data.clientSecret || "");
+            let instances = (
+                Array.isArray(data.defaultInstances)
+                ? data.defaultInstances
+                : []
+            );
+            let shared = [
+                data.name || "Microsoft",
+                kind,
+                issuer,
+                clientId,
+                data.isActive !== false,
+                data.isJustInTime === true,
+                JSON.stringify(instances),
+                data.usernameClaim || "preferred_username",
+                data.adminGroup || "",
+                data.by || "system"
+            ];
+
+            if (found.rows.length) {
+                await client.query(
+                    (
+                        "UPDATE identity_provider SET name = $2, " +
+                        "  kind = $3, issuer = $4, client_id = $5, " +
+                        "  is_active = $6, is_just_in_time = $7, " +
+                        "  default_instances = $8, username_claim = $9, " +
+                        "  admin_group = $10, updated_by = $11, " +
+                        "  updated = now()" + (
+                            secret
+                            ? ", client_secret = " +
+                                "pgp_sym_encrypt($12, $13)::text"
+                            : ""
+                        ) + " WHERE _pk = $1"
+                    ),
+                    [found.rows[0]._pk].concat(shared).concat(
+                        secret
+                        ? [secret, conf.pgCryptoKey]
+                        : []
+                    )
+                );
+            } else {
+                if (!secret) {
+                    throw invalid("A client secret is required");
+                }
+                await client.query(
+                    (
+                        "INSERT INTO identity_provider (_pk,id,created," +
+                        "created_by,updated,updated_by,is_deleted,owner," +
+                        "etag,_organization_organization_pk,name,kind," +
+                        "issuer,client_id,is_active,is_just_in_time," +
+                        "default_instances,username_claim,admin_group," +
+                        "client_secret) VALUES (" +
+                        "nextval('object__pk_seq'),$1,now(),$11,now()," +
+                        "$11,false,$11,$1,$12,$2,$3,$4,$5,$6,$7,$8,$9," +
+                        "$10,pgp_sym_encrypt($13, $14)::text)"
+                    ),
+                    [f.createId()].concat(shared).concat([
+                        organization._pk,
+                        secret,
+                        conf.pgCryptoKey
+                    ])
+                );
+            }
+
+            return {
+                issuer,
+                kind,
+                name: shared[0],
+                organization: organization.id
+            };
         };
 
         return that;

@@ -41,7 +41,13 @@
     const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
     const {Platform} = require("./server/services/platform");
+    const {Federation} = require("./server/services/federation");
+    const {Manager} = require("./server/services/manager");
+    const {Oidc} = require("./server/services/oidc");
     const platform = new Platform();
+    const federation = new Federation();
+    const manager = new Manager();
+    const oidc = new Oidc();
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
@@ -164,6 +170,7 @@
     let googleOauth2ClientId;
     let googleOauth2ClientSecret;
     let googleOauth2CallbackUrl;
+    let ssoCallbackUrl;
     let splashUrl;
     let splashTitle;
     let webhookSecret;
@@ -441,6 +448,7 @@
             googleOauth2ClientId = resp.googleOauth2ClientId;
             googleOauth2ClientSecret = resp.googleOauth2ClientSecret;
             googleOauth2CallbackUrl = resp.googleOauth2CallbackUrl;
+            ssoCallbackUrl = resp.ssoCallbackUrl;
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -474,7 +482,13 @@
             the point: the alternative is a generic refusal while
             everything looks fine.
         */
-        "Down for maintenance"
+        "Down for maintenance",
+        /*
+            An organization that has moved to single sign-on (ADR-001
+            C.3). Also not about the account, and also a refusal that
+            is useless unless it says what to do instead.
+        */
+        "Sign in with single sign-on."
     ];
 
     function signInMessage(err) {
@@ -1925,24 +1939,42 @@
             return;
         }
 
-        function answer() {
+        startIdentitySession(req, identity, function (err) {
+            if (err) {
+                error.bind(res)(err);
+                return;
+            }
+            res.json(identity);
+        });
+    }
+
+    /*
+        Put a signed-in identity on the session (tenant plan G.1).
+
+        An organization that requires a second factor gets no passport
+        session from a password sign-in here: the factor is sent by an
+        instance's own mail service, which the manager has none of. The
+        identity still rides on the session, so the picker can list the
+        instances; without a passport user, opening one lands on that
+        instance's own sign-in, which asks for the factor. Nothing is
+        admitted on a half-proved identity.
+
+        A sign-in through an identity provider is different: the
+        provider applied its own policy, multi-factor included, before
+        it vouched for anyone (ADR-001 C.3). `factorDone` says so.
+    */
+    function startIdentitySession(req, identity, done) {
+        function answer(err) {
+            if (err) {
+                done(err);
+                return;
+            }
             req.session.identity = identity;
             delete req.session.database;
-            req.session.save(function () {
-                res.json(identity);
-            });
+            req.session.save(() => done());
         }
 
-        /*
-            An organization that requires a second factor gets no
-            passport session here: the factor is sent by an instance's
-            own mail service, which the manager has none of. The
-            identity still rides on the session, so the picker can list
-            the instances; without a passport user, opening one lands
-            on that instance's own sign-in, which asks for the factor.
-            Nothing is admitted on a half-proved identity.
-        */
-        if (identity.isTwoFactorRequired) {
+        if (identity.isTwoFactorRequired && !identity.factorDone) {
             answer();
             return;
         }
@@ -1953,13 +1985,186 @@
             The identity rides on the session beside it: it is what the
             picker knows before an instance is chosen.
         */
-        req.login({name: identity.username}, function (err) {
-            if (err) {
-                error.bind(res)(err);
+        req.login({name: identity.username}, answer);
+    }
+
+    /*
+        Single sign-on (ADR-001 C.3). The organization is named first,
+        because its provider is what decides where the browser goes;
+        the protocol itself is server/services/oidc.js, and who the
+        subject turns out to be is server/services/federation.js.
+    */
+    function ssoRedirectUri(req) {
+        /*
+            Configured rather than derived where it can be: the
+            provider matches the redirect against what was registered
+            with it, and a host header is the client's to set.
+        */
+        return (
+            ssoCallbackUrl ||
+            req.protocol + "://" + req.get("host") + "/auth/sso/callback"
+        );
+    }
+
+    async function withProvider(organizationName) {
+        return await platform.run(async function (mclient) {
+            let resp = await mclient.query(
+                (
+                    "SELECT _pk, id, name FROM organization " +
+                    "WHERE lower(name) = lower($1) " +
+                    "  AND is_active AND NOT is_deleted"
+                ),
+                [String(organizationName || "").trim()]
+            );
+
+            if (!resp.rows.length) {
+                return {};
+            }
+
+            return {
+                organization: resp.rows[0],
+                provider: await federation.providerFor(
+                    mclient,
+                    resp.rows[0]._pk
+                )
+            };
+        });
+    }
+
+    async function doSsoStart(req, res) {
+        try {
+            let found = await withProvider((req.body || {}).organization);
+
+            if (!found.provider) {
+                /*
+                    The same answer whether the organization is not
+                    there or has no provider: which organizations exist
+                    is not a question an unauthenticated caller gets
+                    answered (G.1).
+                */
+                res.status(404).json({
+                    message: (
+                        "That organization does not sign in through an " +
+                        "identity provider here."
+                    )
+                });
                 return;
             }
-            answer();
-        });
+
+            let begun = await oidc.begin(
+                found.provider,
+                ssoRedirectUri(req)
+            );
+
+            req.session.sso = {
+                nonce: begun.nonce,
+                organization: found.organization.id,
+                state: begun.state,
+                verifier: begun.verifier
+            };
+            req.session.save(function () {
+                res.json({url: begun.url});
+            });
+        } catch (err) {
+            logger.error("/auth/sso/start: " + (err.message || err));
+            error.bind(res)(err);
+        }
+    }
+
+    async function doSsoCallback(req, res) {
+        let pending = (
+            req.session
+            ? req.session.sso
+            : undefined
+        );
+
+        function refuse(message) {
+            res.redirect("/#denied=" + encodeURIComponent(message));
+        }
+
+        if (!pending) {
+            refuse("There is no sign-in waiting. Start again.");
+            return;
+        }
+        delete req.session.sso;
+
+        try {
+            let identity = await platform.run(async function (mclient) {
+                let organization = await manager.organizationById(
+                    mclient,
+                    pending.organization
+                );
+
+                if (!organization) {
+                    throw new Error("That organization is gone");
+                }
+
+                let provider = await federation.providerFor(
+                    mclient,
+                    organization._pk
+                );
+
+                if (!provider) {
+                    throw new Error(
+                        "That organization has no identity provider"
+                    );
+                }
+
+                let said = await oidc.finish(
+                    provider,
+                    (
+                        ssoRedirectUri(req) + "?" +
+                        req.originalUrl.split("?")[1]
+                    ),
+                    pending
+                );
+                let who = await federation.resolve(mclient, {
+                    claims: said.claims,
+                    organizationPk: organization._pk,
+                    provider,
+                    subject: said.subject
+                });
+                let full = await manager.organization(
+                    mclient,
+                    organization._pk
+                );
+
+                return {
+                    email: who.identity.email || "",
+                    /*
+                        The provider applied its own policy before it
+                        vouched for them, so the factor is done.
+                    */
+                    factorDone: true,
+                    fullName: (
+                        who.identity.full_name || who.identity.username
+                    ),
+                    isOrgAdmin: who.identity.is_org_admin === true,
+                    isPlatformAdmin: (
+                        who.identity.is_platform_admin === true
+                    ),
+                    isTwoFactorRequired: (
+                        full.is_two_factor_required === true
+                    ),
+                    organization: {
+                        id: organization.id,
+                        name: organization.name
+                    },
+                    username: who.identity.username
+                };
+            });
+
+            startIdentitySession(req, identity, function (err) {
+                if (err) {
+                    refuse(err.message || String(err));
+                    return;
+                }
+                res.redirect("/");
+            });
+        } catch (err) {
+            logger.error("/auth/sso/callback: " + (err.message || err));
+            refuse(err.message || String(err));
+        }
     }
 
     async function doMyInstances(req, res) {
@@ -2829,6 +3034,7 @@
         element of "/my/instances" would be read as a database.
     */
     const platformPaths = [
+        "/auth/sso",
         "/my/",
         "/platform",
         "/sign-in",
@@ -3483,6 +3689,8 @@
         app.post("/sign-in", doPickerSignIn);
         app.post("/sign-out", doSignOut);
         app.get("/my/instances", doMyInstances);
+        app.post("/auth/sso/start", doSsoStart);
+        app.get("/auth/sso/callback", doSsoCallback);
 
         /*
             The platform console, on the same page and the same
@@ -3517,6 +3725,7 @@
                     }),
                     installed: await datasource.installedPackages(),
                     organizations: await platform.organizations(mclient),
+                    providers: await platform.providers(mclient),
                     services: options.services,
                     templates: options.templates
                 };
@@ -3539,6 +3748,18 @@
                 mclient,
                 platformData(obj)
             )
+        ));
+        app.post("/platform/organization/provider", doPlatform(
+            async function (mclient, obj) {
+                let saved = await platform.saveProvider(
+                    mclient,
+                    platformData(obj)
+                );
+
+                // Discovery is cached per issuer and client
+                oidc.forget();
+                return saved;
+            }
         ));
         app.post("/platform/organization/administrator", doPlatform(
             (mclient, obj) => platform.appointAdministrator(
