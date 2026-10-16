@@ -1015,16 +1015,45 @@
         let tenant = tenants.find(
             (t) => t.pgDatabase === (pClient && pClient.database)
         );
+        /*
+            The platform console calls these with no instance of its
+            own (tenant plan G.2), so there is no registry row to read
+            the caller's organization from. It says which organization
+            it signed in to instead, and the authority is still read
+            from the identity rather than taken on trust.
+        */
+        let organizationId = (
+            (pClient && typeof pClient.currentOrganization === "function")
+            ? pClient.currentOrganization()
+            : undefined
+        );
         let allowed = await manager.run(async function (mclient) {
             let instance = await manager.instance(
                 mclient,
                 tenant
             ).catch(() => undefined);
+            let organizationPk;
+
+            if (instance) {
+                organizationPk = instance.organizationPk;
+            } else if (organizationId) {
+                let home = await manager.organizationById(
+                    mclient,
+                    organizationId
+                );
+
+                organizationPk = (
+                    home
+                    ? home._pk
+                    : undefined
+                );
+            }
+
             let actor = (
-                instance
+                organizationPk
                 ? await manager.identity(
                     mclient,
-                    instance.organizationPk,
+                    organizationPk,
                     user || ""
                 )
                 : undefined

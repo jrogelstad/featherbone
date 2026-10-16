@@ -2001,6 +2001,49 @@
         }
     }
 
+    /*
+        The platform console (tenant plan G.2, G.3): organizations and
+        every instance on the installation, for a platform
+        administrator with no instance in play. Who may do what is
+        decided in server/services/platform.js, which reads the
+        identity rather than believing the session about it.
+    */
+    function doPlatform(fn) {
+        return async function (req, res) {
+            let identity = (
+                req.session
+                ? req.session.identity
+                : undefined
+            );
+
+            if (!identity) {
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+
+            try {
+                respond.bind(res)(await platform.run(
+                    async function (mclient) {
+                        let actor = await platform.actor(mclient, identity);
+
+                        return await fn(mclient, {
+                            actor,
+                            by: identity.username,
+                            data: req.body || {},
+                            identity
+                        });
+                    }
+                ));
+            } catch (e) {
+                error.bind(res)(e);
+            }
+        };
+    }
+
+    function platformData(obj) {
+        return Object.assign({}, obj.data, {by: obj.by});
+    }
+
     // Session lists and disconnects are an administrator's tool
     function requireSuper(req, res) {
         if (req.user && req.user.isSuper) {
@@ -2034,7 +2077,22 @@
                 Reads carry it in the query string, writes in the body;
                 admin.js refuses it for everyone else.
             */
-            organization: req.query.organization || undefined,
+            organization: (
+                req.query.organization ||
+                (req.body || {}).organization ||
+                undefined
+            ),
+            /*
+                Who the session says is calling, for a call that names
+                no instance (the platform console, tenant plan G.2).
+                admin.js reads the authority from the identity itself;
+                this only says which identity to read.
+            */
+            identity: (
+                req.session
+                ? req.session.identity
+                : undefined
+            ),
             registry: datasource.registeredTenants(),
             tenant: req.tenant,
             user: req.user.name
@@ -3404,6 +3462,83 @@
         app.post("/sign-in", doPickerSignIn);
         app.post("/sign-out", doSignOut);
         app.get("/my/instances", doMyInstances);
+
+        /*
+            The platform console, on the same page and the same
+            session (tenant plan G.2, G.3). Instance actions are the
+            Instances screen's own, reached with no instance of their
+            own: admin.js takes the organization from the body and
+            refuses it for anyone below platform.
+        */
+        app.get("/platform", doGetPickerFile);
+        app.get("/platform/overview", doPlatform(
+            async function (mclient, obj) {
+                let options = await platform.buildOptions(mclient);
+
+                return {
+                    actor: {
+                        isPlatformAdmin: true,
+                        organization: obj.identity.organization,
+                        username: obj.identity.username
+                    },
+                    fleet: await platform.fleet(mclient),
+                    organizations: await platform.organizations(mclient),
+                    services: options.services,
+                    templates: options.templates
+                };
+            }
+        ));
+        app.post("/platform/organization", doPlatform(
+            (mclient, obj) => platform.addOrganization(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/organization/update", doPlatform(
+            (mclient, obj) => platform.updateOrganization(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/organization/status", doPlatform(
+            (mclient, obj) => platform.setOrganizationActive(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/organization/administrator", doPlatform(
+            (mclient, obj) => platform.appointAdministrator(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/instance", doAdminInstance("registerInstance"));
+        app.post(
+            "/platform/instance/status",
+            doAdminInstance("setInstanceActive")
+        );
+        app.post(
+            "/platform/instance/maintenance",
+            doAdminInstance("setInstanceMaintenance")
+        );
+        app.post(
+            "/platform/instance/provision",
+            doAdminInstance("provisionInstance")
+        );
+        app.post(
+            "/platform/instance/provision/resume",
+            doAdminInstance("provisionResume")
+        );
+        app.post(
+            "/platform/instance/deploy",
+            doAdminInstance("deployPackage")
+        );
+        app.post("/platform/instance/drop", doAdminInstance("dropInstance"));
+        app.post("/platform/template", doAdminInstance("buildTemplate"));
+        app.post(
+            "/platform/instances/sweep",
+            doAdminInstance("sweepDemosGuarded")
+        );
 
         app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
