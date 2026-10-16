@@ -463,7 +463,15 @@
         "Too many sign in attempts.",
         "Invalid sign in credentials. One more attempt",
         "User account is locked",
-        "Maximum allowed sessions"
+        "Maximum allowed sessions",
+        /*
+            A held instance says so (ADR-002 question 7). Unlike the
+            others this is not about the account, and unlike a closed
+            instance it is a state that ends, so telling the person is
+            the point: the alternative is a generic refusal while
+            everything looks fine.
+        */
+        "Down for maintenance"
     ];
 
     function signInMessage(err) {
@@ -2643,6 +2651,35 @@
         }
     }
 
+    /*
+        What an instance in maintenance still answers: its own pages
+        and sign-in, so a platform administrator can get to the
+        Instances screen, and the administration routes that screen
+        calls -- including the one that ends the maintenance.
+    */
+    const MAINTENANCE_PATHS = [
+        "/admin/",
+        "/sign-in",
+        "/sign-out",
+        "/connect",
+        "/webauthn/",
+        "/auth/",
+        "/reset-password",
+        "/modules",
+        "/settings",
+        "/do/getSettings"
+    ];
+
+    function maintenanceOk(req) {
+        let rest = req.path.slice(1);
+
+        rest = rest.slice(rest.indexOf("/"));
+        if (rest === "" || rest === "/") {
+            return true;
+        }
+        return MAINTENANCE_PATHS.some((p) => rest.startsWith(p));
+    }
+
     async function start() {
         // Resolve database
         dbRouter.param("db", function (req, res, next, id) {
@@ -2664,6 +2701,24 @@
             if (tenant) {
                 req.database = id;
                 req.tenant = tenant;
+                /*
+                    An instance in maintenance is having its schema
+                    changed, so it answers nothing but the few things
+                    needed to get it back (ADR-002 question 7): the
+                    sign-in pages and the administration routes, which
+                    is where a platform administrator clears the state.
+                    Before, there was no state at all and a half-built
+                    instance answered as if it were well.
+                */
+                if (tenant.isMaintenance === true && !maintenanceOk(req)) {
+                    res.status(503).json({
+                        message: (
+                            "Instance " + tenant.name +
+                            " is down for maintenance"
+                        )
+                    });
+                    return;
+                }
                 next();
                 return;
             }
@@ -3105,6 +3160,10 @@
         dbRouter.post(
             "/:db/admin/instance/status",
             doAdminInstance("setInstanceActive")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/maintenance",
+            doAdminInstance("setInstanceMaintenance")
         );
         dbRouter.post(
             "/:db/admin/instance/provision",

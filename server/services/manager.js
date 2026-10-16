@@ -455,6 +455,59 @@
             @param {Number} organizationPk
             @return {Promise} Array of rows
         */
+        /*
+            `tenant.is_maintenance` arrives with ADR-002 question 7, so
+            a manager that has not been through `node install.js
+            --manager` yet does not have the column. Probe for it once
+            rather than letting every instance read fail: an older
+            manager simply reports no instance in maintenance, which is
+            what it means.
+        */
+        let hasMaintenance;
+
+        async function maintenanceColumn(client) {
+            if (hasMaintenance === undefined) {
+                let resp = await client.query(
+                    "SELECT 1 FROM information_schema.columns " +
+                    "WHERE table_name = 'tenant' " +
+                    "  AND column_name = 'is_maintenance'"
+                );
+
+                hasMaintenance = resp.rows.length > 0;
+            }
+            return hasMaintenance;
+        }
+
+        /**
+            Which registered instances are in maintenance, by instance
+            id. Read on its own rather than as a Tenant property so the
+            registry loads against a manager of either vintage.
+
+            @method maintenanceFlags
+            @param {Client} client Manager client
+            @return {Promise} {id: Boolean}
+        */
+        that.maintenanceFlags = async function (client) {
+            let ret = {};
+
+            if (!await maintenanceColumn(client)) {
+                return ret;
+            }
+
+            let resp = await client.query(
+                (
+                    "SELECT id, is_maintenance FROM tenant " +
+                    "WHERE NOT is_deleted"
+                )
+            );
+
+            resp.rows.forEach(function (row) {
+                ret[row.id] = row.is_maintenance === true;
+            });
+
+            return ret;
+        };
+
         that.instances = async function (client, organizationPk) {
             let resp = await client.query(
                 (
@@ -481,10 +534,16 @@
             @return {Promise} Array of rows
         */
         that.instanceDetail = async function (client, organizationPk) {
+            let maint = (
+                await maintenanceColumn(client)
+                ? "t.is_maintenance"
+                : "false AS is_maintenance"
+            );
             let resp = await client.query(
                 (
                     "SELECT t._pk, t.id, t.name, t.pg_database, " +
-                    "  t.is_active, t.is_demo, t.expiration, " +
+                    "  t.is_active, t.is_demo, " + maint + ", " +
+                    "  t.expiration, " +
                     "  s.id AS service_id, s.name AS service_name, " +
                     "  s.pg_host, s.pg_port, s.pg_user, " +
                     "  (SELECT count(*) FROM access_grant g " +
@@ -513,9 +572,15 @@
             @return {Promise} Row or undefined
         */
         that.instanceById = async function (client, organizationPk, id) {
+            let maint = (
+                await maintenanceColumn(client)
+                ? "is_maintenance"
+                : "false AS is_maintenance"
+            );
             let resp = await client.query(
                 (
-                    "SELECT _pk, id, name, pg_database, is_active " +
+                    "SELECT _pk, id, name, pg_database, is_active, " +
+                    "  " + maint + " " +
                     "FROM tenant " +
                     "WHERE id = $2 AND NOT is_deleted " +
                     "  AND _organization_organization_pk = $1"
@@ -679,6 +744,42 @@
                     "  updated = now(), updated_by = $3 WHERE _pk = $1"
                 ),
                 [tenantPk, isActive === true, by || "system"]
+            );
+        };
+
+        /**
+            Put an instance into maintenance, or take it out again
+            (ADR-002 question 7). A schema change is not attempted
+            under live traffic, so Deploy sets this before it begins
+            and clears it when it is done; the router and sign-in both
+            read it.
+
+            @method setInstanceMaintenance
+            @param {Client} client Manager client
+            @param {Number} tenantPk
+            @param {Boolean} isMaintenance
+            @param {String} [by]
+            @return {Promise}
+        */
+        that.setInstanceMaintenance = async function (
+            client,
+            tenantPk,
+            isMaintenance,
+            by
+        ) {
+            if (!await maintenanceColumn(client)) {
+                throw new Error(
+                    "This manager database does not carry the " +
+                    "maintenance state yet. Run `node install.js " +
+                    "--manager` to upgrade it."
+                );
+            }
+            await client.query(
+                (
+                    "UPDATE tenant SET is_maintenance = $2, " +
+                    "  updated = now(), updated_by = $3 WHERE _pk = $1"
+                ),
+                [tenantPk, isMaintenance === true, by || "system"]
             );
         };
 

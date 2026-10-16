@@ -239,15 +239,28 @@ tenant's -- can also:
   source must be quiet: this server lets go of its own connections,
   anyone else's make the copy refuse;
 * **drop** an instance: the database and its registration, audited,
-  never the one you are signed in to.
+  never the one you are signed in to;
+* **hold** an instance for a deployment ("Maintenance" on the row).
+  Schema changes are not run under live traffic (ADR-002 question 7),
+  so Deploy brackets itself with this state and it can also be thrown
+  by hand when something stopped halfway. While it is on the instance
+  answers `503` with an explanation -- not the `404` an unservable
+  database used to give -- for everything except its own pages,
+  sign-in and the administration routes, and only a platform
+  administrator can sign in: on an installation with one instance, the
+  screen that ends the maintenance is served from that instance.
+  Beginning and ending are both audited.
+
+The maintenance state is a column on the registry row, so a manager
+database built before it needs `node install.js --manager` once. Until
+that is run the screen reports no instance in maintenance and the
+button says what to do, rather than failing: an upgrade is never
+blocked by it.
 
 Registering does not build a database: `node install.js --instance
 <name>` does that, and it registers the instance as well, so the screen
 is for databases that exist but are not registered here. Dropping a
-database is still the command line's. Provisioning from the screen is
-tenant plan D.1, and so is checking the `"$db"` marker before
-registering, which nothing does yet -- a database registered by mistake
-shows up as loaded but answers nothing.
+database is the screen's now as well as the command line's.
 
 A tenant super user with no organization flag sees the instance they
 are signed in to and changes nothing: what a database is registered as
