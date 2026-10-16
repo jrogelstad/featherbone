@@ -568,6 +568,202 @@
         });
     };
 
+    /**
+        The packages installed on this server, rescanned so one
+        installed a moment ago is seen without a restart (ADR-002
+        section 6). Each carries the newest version the server holds of
+        that module, which is what "behind" is measured against.
+
+        @method installedPackages
+        @return {Promise} [{name, version, newest}]
+    */
+    that.installedPackages = async function () {
+        let conf = await config.read();
+
+        packages.scan(conf.modulesDir);
+
+        return packages.installed().map(function (one) {
+            return {
+                isNewest: packages.newest(one.name) === one.version,
+                name: one.name,
+                newest: packages.newest(one.name),
+                version: one.version
+            };
+        });
+    };
+
+    /**
+        What each registered instance carries: one row per module with
+        the version deployed into it (ADR-002 question 2), read from
+        the instance itself rather than from the registry's cached
+        copy, which only a module install through the UI ever updated.
+
+        An instance that cannot be reached says so instead of being
+        left out, because "I could not ask" and "it has nothing" are
+        different answers.
+
+        @method deployedModules
+        @return {Promise} {database: {modules, error}}
+    */
+    that.deployedModules = async function () {
+        let ret = {};
+        let n = 0;
+        let tenant;
+        let conn;
+
+        while (n < tenants.length) {
+            tenant = tenants[n];
+            n += 1;
+
+            if (tenant.id === "-1") {
+                continue;
+            }
+
+            try {
+                conn = await db.connect(tenant);
+            } catch (err) {
+                ret[tenant.pgDatabase] = {
+                    error: err.message,
+                    modules: []
+                };
+                continue;
+            }
+
+            try {
+                let resp = await conn.client.query(
+                    (
+                        "SELECT name, version FROM module " +
+                        "WHERE NOT is_deleted ORDER BY lower(name)"
+                    )
+                );
+
+                ret[tenant.pgDatabase] = {
+                    modules: resp.rows.map(function (row) {
+                        let newest = packages.newest(row.name);
+
+                        return {
+                            isBehind: Boolean(
+                                newest &&
+                                packages.compareVersions(
+                                    row.version,
+                                    newest
+                                ) < 0
+                            ),
+                            isOnDisk: Boolean(
+                                packages.resolve(row.name, row.version)
+                            ),
+                            name: row.name,
+                            newest,
+                            version: row.version
+                        };
+                    })
+                };
+            } catch (err) {
+                ret[tenant.pgDatabase] = {
+                    error: err.message,
+                    modules: []
+                };
+            } finally {
+                conn.done();
+            }
+        }
+
+        return ret;
+    };
+
+    /**
+        The record a deployment owes the database it changed (ADR-002
+        question 2): one `module` row per module with the version now
+        in it. A manifest carrying a client module file writes this
+        itself; one of services or feathers alone leaves nothing
+        behind, so Deploy writes it either way.
+
+        @method recordDeployed
+        @param {String} database Instance database
+        @param {String} name Module name
+        @param {String} version
+        @param {String} user
+        @return {Promise}
+    */
+    that.recordDeployed = async function (database, name, version, user) {
+        let tenant = tenants.find((t) => t.pgDatabase === database);
+        let modules;
+        let found;
+
+        if (!tenant) {
+            throw new Error(
+                "Instance " + database + " is not registered here"
+            );
+        }
+
+        /*
+            The datasource owns the transaction here, which is why no
+            client is lent to these requests: a lent client leaves the
+            commit to the lender, so a write made on one and then
+            released is rolled back.
+        */
+        modules = await that.request({
+            method: "GET",
+            name: "Module",
+            properties: ["id", "name", "version"],
+            tenant,
+            user
+        }, true);
+        found = modules.find((row) => row.name === name);
+
+        if (found && found.version === version) {
+            return;
+        }
+
+        if (found) {
+            await that.request({
+                data: [{
+                    op: "replace",
+                    path: "/version",
+                    value: version
+                }],
+                id: found.id,
+                method: "PATCH",
+                name: "Module",
+                tenant,
+                user
+            }, true);
+            return;
+        }
+
+        await that.request({
+            data: {
+                name,
+                owner: user,
+                script: "",
+                version
+            },
+            id: Buffer.from(name).toString("base64"),
+            method: "POST",
+            name: "Module",
+            tenant,
+            user
+        }, true);
+    };
+
+    /**
+        The directory an installed package occupies, for Deploy.
+
+        @method packageDir
+        @param {String} name Module name
+        @param {String} version
+        @return {String|undefined}
+    */
+    that.packageDir = function (name, version) {
+        let pkg = packages.resolve(name, version);
+
+        return (
+            pkg
+            ? pkg.dir
+            : undefined
+        );
+    };
+
     /*
         Creating, cloning and dropping a database is the one place the
         framework hands out CREATE DATABASE, so the rules live here and
