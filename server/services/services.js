@@ -19,6 +19,9 @@
 (function (exports) {
     "use strict";
 
+    // Databases already told about their module-less service rows
+    let reported = {};
+
     function getSortedModules(client) {
         return new Promise(function (resolve, reject) {
             let sql = (
@@ -117,6 +120,7 @@
                 let srvc;
                 let mods;
                 let ret = [];
+                let orphans;
 
                 srvc = await obj.client.query(sql);
                 srvc = srvc.rows;
@@ -129,6 +133,35 @@
                         }
                     });
                 });
+
+                /*
+                    A service row belonging to no module is not loaded
+                    and is not carried forward (ADR-002 question 6):
+                    the rows were a loophole -- source code in a table,
+                    executed by the server, outside any module and so
+                    outside any package. They were already never
+                    loaded, because this only ever walked the modules;
+                    nothing said so, so the code sat there looking
+                    live. Said once per database per process.
+                */
+                orphans = srvc.filter(
+                    (srv) => mods.indexOf(srv.module) === -1
+                );
+
+                if (orphans.length && !reported[obj.client.database]) {
+                    reported[obj.client.database] = true;
+                    console.warn(
+                        "\"" + obj.client.database + "\" holds " +
+                        orphans.length + " service row(s) belonging to " +
+                        "no module, which are not loaded and are not " +
+                        "carried forward (ADR-002): " +
+                        orphans.map(function (srv) {
+                            return srv.name + " (" + (
+                                srv.module || "no module"
+                            ) + ")";
+                        }).join(", ")
+                    );
+                }
 
                 return ret;
             } catch (err) {

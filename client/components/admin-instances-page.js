@@ -66,6 +66,15 @@ adminInstancesPage.viewModel = function () {
         source: f.prop("")
     };
 
+    /*
+        What a deployment is about to do: which installed package goes
+        into which instance (ADR-002 section 6).
+    */
+    let dep = {
+        instance: f.prop(),
+        pick: f.prop("")
+    };
+
     function request(method, path, body) {
         return m.request({
             body,
@@ -125,6 +134,11 @@ adminInstancesPage.viewModel = function () {
         @return {ViewModels.Dialog}
     */
     vm.templateDialog = f.prop();
+    /**
+        @method deployDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.deployDialog = f.prop();
     /**
         @method buttonDone
         @return {ViewModels.Button}
@@ -283,6 +297,27 @@ adminInstancesPage.viewModel = function () {
         tpl.source(instance.database);
         tpl.name(instance.database.slice(0, 52) + "_template");
         vm.templateDialog().show();
+    };
+
+    /**
+        Apply an installed package to this instance. The instance is
+        held while it runs and let go afterwards; a deployment that
+        fails leaves it held, because the schema is then in a state
+        nobody has checked (ADR-002 question 7).
+        @method doDeploy
+        @param {Object} instance
+    */
+    vm.doDeploy = function (instance) {
+        let data = vm.overview() || {};
+        let offered = data.packages || [];
+
+        dep.instance(instance);
+        dep.pick(
+            offered.length
+            ? offered[0].name + "@" + offered[0].version
+            : ""
+        );
+        vm.deployDialog().show();
     };
 
     // ..........................................................
@@ -515,6 +550,77 @@ adminInstancesPage.viewModel = function () {
         ]);
     };
 
+    vm.deployDialog(f.createViewModel("Dialog", {
+        icon: "publish",
+        onOk: function () {
+            let instance = dep.instance() || {};
+            let pick = String(dep.pick());
+            let at = pick.lastIndexOf("@");
+
+            request("POST", "/admin/instance/deploy", {
+                id: instance.id,
+                module: pick.slice(0, at),
+                version: pick.slice(at + 1)
+            }).then(vm.refresh).catch(fail);
+        },
+        title: "Deploy a package"
+    }));
+    vm.deployDialog().content = function () {
+        let data = vm.overview() || {};
+        let offered = data.packages || [];
+        let instance = dep.instance() || {};
+        let carried = instance.modules || [];
+
+        vm.deployDialog().okDisabled(!dep.pick());
+
+        if (!offered.length) {
+            return m("div", {class: "fb-admin-note"}, (
+                "This server holds no packages. Install one with " +
+                "`node install.js --package <file>`; nothing is " +
+                "deployed by installing it."
+            ));
+        }
+
+        return m("div", [
+            m("div", {class: "pure-form"}, [
+                m("label", {for: "fbDeployPick"}, "Package: "),
+                m("select", {
+                    id: "fbDeployPick",
+                    onchange: (e) => dep.pick(e.target.value),
+                    value: dep.pick()
+                }, offered.map(function (one) {
+                    let here = carried.find(
+                        (mod) => mod.name === one.name
+                    );
+
+                    return m("option", {
+                        key: one.name + "@" + one.version,
+                        value: one.name + "@" + one.version
+                    }, (
+                        one.name + " " + one.version + (
+                            here && here.version === one.version
+                            ? " (deployed here)"
+                            : ""
+                        ) + (
+                            here && here.version !== one.version
+                            ? " (here: " + here.version + ")"
+                            : ""
+                        )
+                    ));
+                }))
+            ]),
+            m("div", {class: "fb-admin-note"}, (
+                "Applies the package to \"" + instance.database +
+                "\" and records the version there. The instance is " +
+                "held while it runs: it answers 503 with an " +
+                "explanation and only a platform administrator can " +
+                "sign in. A deployment that fails leaves it held, " +
+                "because the schema is then in a state nobody has " +
+                "checked -- end the maintenance once you have."
+            ))
+        ]);
+    };
+
     vm.buttonDone(f.createViewModel("Button", {
         class: "fb-toolbar-button",
         label: "&Done",
@@ -663,6 +769,59 @@ adminInstancesPage.component = {
         }
 
         /*
+            What this instance carries, and whether the server holds a
+            newer package for it (ADR-002: the fleet view). An upgrade
+            across many instances is a rolling outage, which is why
+            this says how many are behind rather than offering to do
+            them all at once.
+        */
+        function modules(instance) {
+            let carried = instance.modules;
+
+            if (!carried) {
+                return m("span", {
+                    class: "fb-admin-muted",
+                    title: instance.modulesError || ""
+                }, "unknown");
+            }
+
+            if (!carried.length) {
+                return m("span", {class: "fb-admin-muted"}, "none");
+            }
+
+            return m("span", {
+                title: carried.map(function (mod) {
+                    return mod.name + " " + mod.version + (
+                        mod.isBehind
+                        ? " (server holds " + mod.newest + ")"
+                        : ""
+                    ) + (
+                        mod.isOnDisk
+                        ? ""
+                        : " -- code from the database"
+                    );
+                }).join("\n")
+            }, [
+                String(carried.length) + (
+                    carried.length === 1
+                    ? " module"
+                    : " modules"
+                ),
+                (
+                    instance.behind
+                    ? m("span", {
+                        class: "fb-admin-tag",
+                        title: (
+                            instance.behind +
+                            " behind the packages on this server"
+                        )
+                    }, instance.behind + " behind")
+                    : undefined
+                )
+            ]);
+        }
+
+        /*
             fb-button-disabled restores the pointer events Pure takes
             away from a disabled .pure-button. Without it the browser
             never hovers the button, so the title saying why it is
@@ -748,6 +907,20 @@ adminInstancesPage.component = {
                     () => vm.doMaintenance(instance, true)
                 ));
             }
+
+            list.push(action(
+                "Deploy",
+                (
+                    platform
+                    ? (
+                        "Apply a package this server holds to this " +
+                        "instance, holding it while that runs"
+                    )
+                    : "Only a platform administrator may deploy"
+                ),
+                !platform,
+                () => vm.doDeploy(instance)
+            ));
 
             list.push(action(
                 "Template",
@@ -854,6 +1027,7 @@ adminInstancesPage.component = {
             m(f.getComponent("Dialog"), {viewModel: vm.errorDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.registerDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.createDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.deployDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.dropDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.templateDialog()}),
             (
@@ -897,6 +1071,7 @@ adminInstancesPage.component = {
                             m("th", {class: "fb-admin-col-name"}, "Connection"),
                             m("th", {class: "fb-admin-col-status"}, "Users"),
                             m("th", {class: "fb-admin-col-grants"}, "Serving"),
+                            m("th", {class: "fb-admin-col-name"}, "Modules"),
                             m("th", {class: "fb-admin-col-status"}, "Sign-in"),
                             m("th", {class: "fb-admin-col-actions"}, "")
                         ])
@@ -957,6 +1132,7 @@ adminInstancesPage.component = {
                             )),
                             m("td", instance.users),
                             m("td", served(instance)),
+                            m("td", modules(instance)),
                             m("td", status(instance)),
                             m("td", {
                                 class: "fb-admin-col-actions"

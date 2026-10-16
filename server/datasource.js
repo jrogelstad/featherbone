@@ -138,6 +138,77 @@
         return false;
     }
 
+    /*
+        `ModuleNpm` rows: libraries declared in a table rather than in
+        the module's own package.json. Deprecated by ADR-002 question
+        1 and read only for a module the server holds no package for.
+        Loaded globally, as they always were, which is the collision
+        the per-package directories exist to end.
+    */
+    let legacyWarned = false;
+
+    async function loadLegacyLibraries(client, rows, onDisk) {
+        let has = await client.query(
+            "SELECT to_regclass('module_npm') IS NOT NULL AS found;"
+        );
+        let resp;
+        let pending = rows.filter(
+            (row) => onDisk[row.name] === undefined
+        ).map((row) => row.name);
+
+        if (!has.rows[0].found || !pending.length) {
+            return;
+        }
+
+        resp = await client.query(
+            (
+                "SELECT m.name AS module, n.package, n.property, " +
+                "  n.export FROM module_npm n " +
+                "JOIN module m ON m._pk = n._module_module_pk " +
+                "WHERE NOT n.is_deleted AND NOT m.is_deleted " +
+                "  AND m.name = ANY($1)"
+            ),
+            [pending]
+        );
+
+        if (!resp.rows.length) {
+            return;
+        }
+
+        if (!legacyWarned) {
+            legacyWarned = true;
+            console.warn(
+                "ModuleNpm rows are deprecated (ADR-002): declare " +
+                "libraries in the module's package.json and install " +
+                "the module as a package. Still loading rows for: " +
+                resp.rows.map((row) => row.module).filter(
+                    (name, i, all) => all.indexOf(name) === i
+                ).join(", ")
+            );
+        }
+
+        resp.rows.forEach(function (row) {
+            let property = (
+                row.property ||
+                row.export ||
+                row.package
+            ).toCamelCase(true);
+
+            try {
+                f[property] = (
+                    row.export
+                    ? require(row.package)[row.export]
+                    : require(row.package)
+                );
+            } catch (err) {
+                console.error(
+                    "Unable to load npm module " + row.package +
+                    " for " + row.module + ": " + err.message
+                );
+            }
+        });
+    }
+
     async function buildRegistry(client) {
         let reg = {
             GET: {},
@@ -183,6 +254,26 @@
                 onDisk[row.name] = row.version;
             }
         });
+
+        /*
+            A module's libraries come from its own package, installed
+            in its own version directory, and are loaded here --
+            before its code runs, and per database, which is where
+            everything else about a database's modules is decided
+            (ADR-002 question 1, which retires `ModuleNpm`).
+
+            The rows are still honored for a module with no package
+            yet, so an installation that has not been repackaged keeps
+            working, and they are read from this database rather than
+            from the manager: the one-mode collapse left that loader
+            pointed at `tenant: false`, so an instance's rows had
+            quietly stopped being loaded at all.
+        */
+        Object.keys(onDisk).forEach(function (name) {
+            packages.loadLibraries(name, onDisk[name], f);
+        });
+
+        await loadLegacyLibraries(client, mods.rows, onDisk);
 
         // A database mid-install has no service rows to load yet
         let hasServices = await client.query(
@@ -566,6 +657,202 @@
                 isPooled: db.hasPool(tenant)
             };
         });
+    };
+
+    /**
+        The packages installed on this server, rescanned so one
+        installed a moment ago is seen without a restart (ADR-002
+        section 6). Each carries the newest version the server holds of
+        that module, which is what "behind" is measured against.
+
+        @method installedPackages
+        @return {Promise} [{name, version, newest}]
+    */
+    that.installedPackages = async function () {
+        let conf = await config.read();
+
+        packages.scan(conf.modulesDir);
+
+        return packages.installed().map(function (one) {
+            return {
+                isNewest: packages.newest(one.name) === one.version,
+                name: one.name,
+                newest: packages.newest(one.name),
+                version: one.version
+            };
+        });
+    };
+
+    /**
+        What each registered instance carries: one row per module with
+        the version deployed into it (ADR-002 question 2), read from
+        the instance itself rather than from the registry's cached
+        copy, which only a module install through the UI ever updated.
+
+        An instance that cannot be reached says so instead of being
+        left out, because "I could not ask" and "it has nothing" are
+        different answers.
+
+        @method deployedModules
+        @return {Promise} {database: {modules, error}}
+    */
+    that.deployedModules = async function () {
+        let ret = {};
+        let n = 0;
+        let tenant;
+        let conn;
+
+        while (n < tenants.length) {
+            tenant = tenants[n];
+            n += 1;
+
+            if (tenant.id === "-1") {
+                continue;
+            }
+
+            try {
+                conn = await db.connect(tenant);
+            } catch (err) {
+                ret[tenant.pgDatabase] = {
+                    error: err.message,
+                    modules: []
+                };
+                continue;
+            }
+
+            try {
+                let resp = await conn.client.query(
+                    (
+                        "SELECT name, version FROM module " +
+                        "WHERE NOT is_deleted ORDER BY lower(name)"
+                    )
+                );
+
+                ret[tenant.pgDatabase] = {
+                    modules: resp.rows.map(function (row) {
+                        let newest = packages.newest(row.name);
+
+                        return {
+                            isBehind: Boolean(
+                                newest &&
+                                packages.compareVersions(
+                                    row.version,
+                                    newest
+                                ) < 0
+                            ),
+                            isOnDisk: Boolean(
+                                packages.resolve(row.name, row.version)
+                            ),
+                            name: row.name,
+                            newest,
+                            version: row.version
+                        };
+                    })
+                };
+            } catch (err) {
+                ret[tenant.pgDatabase] = {
+                    error: err.message,
+                    modules: []
+                };
+            } finally {
+                conn.done();
+            }
+        }
+
+        return ret;
+    };
+
+    /**
+        The record a deployment owes the database it changed (ADR-002
+        question 2): one `module` row per module with the version now
+        in it. A manifest carrying a client module file writes this
+        itself; one of services or feathers alone leaves nothing
+        behind, so Deploy writes it either way.
+
+        @method recordDeployed
+        @param {String} database Instance database
+        @param {String} name Module name
+        @param {String} version
+        @param {String} user
+        @return {Promise}
+    */
+    that.recordDeployed = async function (database, name, version, user) {
+        let tenant = tenants.find((t) => t.pgDatabase === database);
+        let modules;
+        let found;
+
+        if (!tenant) {
+            throw new Error(
+                "Instance " + database + " is not registered here"
+            );
+        }
+
+        /*
+            The datasource owns the transaction here, which is why no
+            client is lent to these requests: a lent client leaves the
+            commit to the lender, so a write made on one and then
+            released is rolled back.
+        */
+        modules = await that.request({
+            method: "GET",
+            name: "Module",
+            properties: ["id", "name", "version"],
+            tenant,
+            user
+        }, true);
+        found = modules.find((row) => row.name === name);
+
+        if (found && found.version === version) {
+            return;
+        }
+
+        if (found) {
+            await that.request({
+                data: [{
+                    op: "replace",
+                    path: "/version",
+                    value: version
+                }],
+                id: found.id,
+                method: "PATCH",
+                name: "Module",
+                tenant,
+                user
+            }, true);
+            return;
+        }
+
+        await that.request({
+            data: {
+                name,
+                owner: user,
+                script: "",
+                version
+            },
+            id: Buffer.from(name).toString("base64"),
+            method: "POST",
+            name: "Module",
+            tenant,
+            user
+        }, true);
+    };
+
+    /**
+        The directory an installed package occupies, for Deploy.
+
+        @method packageDir
+        @param {String} name Module name
+        @param {String} version
+        @return {String|undefined}
+    */
+    that.packageDir = function (name, version) {
+        let pkg = packages.resolve(name, version);
+
+        return (
+            pkg
+            ? pkg.dir
+            : undefined
+        );
     };
 
     /*
@@ -2432,6 +2719,51 @@
             }
         }
 
+        /*
+            A module's client script comes from the installed package
+            when the server holds one (ADR-002 section 2). The browser
+            compiles `Module.script`, which is source code in a table
+            that anyone with write access can change, so the same rule
+            that governs server services governs the client half: a
+            file on disk changes only by deployment access, and a
+            module with no package on this server still answers from
+            its row.
+
+            Internal callers see the rows as they are -- they pass
+            isSuperUser, and some of them write what they read back.
+        */
+        function fromPackage(resp) {
+            let rows;
+
+            if (isSuperUser || obj.name !== "Module" || !resp) {
+                return resp;
+            }
+
+            rows = (
+                Array.isArray(resp)
+                ? resp
+                : [resp]
+            );
+            rows.forEach(function (row) {
+                let src;
+
+                if (!row || !row.name || !row.version) {
+                    return;
+                }
+                if (row.script === undefined) {
+                    return;
+                }
+
+                src = packages.clientSource(row.name, row.version);
+
+                if (src) {
+                    row.script = src.script;
+                }
+            });
+
+            return resp;
+        }
+
         async function doQuery() {
             // console.log("QUERY->", obj.name, obj.method);
             obj.client = theClient;
@@ -2685,7 +3017,7 @@
             // If alter data, process it
             if (catalog[obj.name]) {
                 if (obj.method === "GET") {
-                    resp2 = await doQuery();
+                    resp2 = fromPackage(await doQuery());
                     if (!theClient.wrapped()) {
                         theClient.currentUser(undefined);
                     }
@@ -3177,30 +3509,17 @@
         @method loadModules
         @return {Promise}
     */
-    that.loadNpmModules = async function (pUser, pClient) {
-        let conf = await config.read();
-        let mods = await that.request({
-            method: "GET",
-            name: "Module",
-            user: pUser || conf.pgUser,
-            client: pClient,
-            properties: ["id", "npm"],
-            tenant: false
-        }, true);
-
-        // Instantiate npm packages listed on modules
-        mods.forEach(function (mod) {
-            mod.npm.forEach(function (pkg) {
-                let pname = pkg.property || pkg.export || pkg.package;
-                pname = pname.toCamelCase(true);
-
-                if (pkg.export) {
-                    f[pname] = require(pkg.package)[pkg.export];
-                    return;
-                }
-                f[pname] = require(pkg.package);
-            });
-        });
+    that.loadNpmModules = async function () {
+        /*
+            Libraries are loaded with the database's modules now, in
+            the per-database registry build, from each package's own
+            directory (ADR-002 question 1). This stayed as a no-op
+            because the installer and the boot sequence both call it,
+            and because it used to read `tenant: false` -- the manager
+            -- so on a multi-instance installation it was loading the
+            wrong database's rows anyway.
+        */
+        return;
     };
 
      /**

@@ -63,6 +63,16 @@ describe("packages on disk", function () {
         assert.equal(resp.version, "1.1.0");
         assert.equal(resp.source, "disk");
         assert.equal(resp.database, settings.testDb2);
+        /*
+            And the library this package declares in its own
+            package.json reached its own service, with no ModuleNpm
+            row anywhere (ADR-002 question 1).
+        */
+        assert.equal(
+            resp.library,
+            "function",
+            "the package's declared library is loaded for it"
+        );
     });
 
     it("keeps the two registries isolated under interleaving",
