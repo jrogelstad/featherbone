@@ -15,6 +15,7 @@ const {Client} = require("pg");
 const format = require("pg-format");
 const settings = require("../../harness/env");
 const db = require("../../harness/db");
+const {Session} = require("../../harness/http");
 
 const created = new Set();
 
@@ -132,6 +133,9 @@ async function createUser(admin, opts) {
         settings.adminUser,
         pk.rows[0]._pk
     ]);
+
+    // The identity that signs in as them, granted this instance
+    await db.ensureIdentity(name, password, settings.testDb);
     await db.query((
         "INSERT INTO role_membership (" +
         "  id, _parent_role_pk, role, is_deleted, " +
@@ -140,6 +144,60 @@ async function createUser(admin, opts) {
     ), [id + "m", row.rows[0]._pk, settings.adminUser]);
 
     return {name, password, id, email, contactId: emp.id};
+}
+
+/*
+    Whether `password` opens the instance for `user`, asked the way a
+    person would: over HTTP. The oracle on the identity path, where no
+    Postgres login role exists to try (ADR-001 B.4).
+*/
+async function canSignIn(user, password) {
+    let resp = await new Session().signIn(user, password);
+
+    return resp.status === 200;
+}
+
+// The identity in the test organization, with its counters and status
+async function identity(name) {
+    return await db.withClient(
+        settings.managerDb,
+        async function (client) {
+            let resp = await client.query(
+                (
+                    "SELECT i._pk, i.id, i.username, i.status, " +
+                    "  i.failed_attempts, i.last_signed_in, " +
+                    "  i.password_hash, i.is_org_admin, i.is_platform_admin " +
+                    "FROM identity i " +
+                    "WHERE lower(i.username) = lower($1) " +
+                    "  AND NOT i.is_deleted"
+                ),
+                [name]
+            );
+
+            return resp.rows[0];
+        }
+    );
+}
+
+// The identity's grant to a database (the test one by default)
+async function grant(name, database) {
+    return await db.withClient(
+        settings.managerDb,
+        async function (client) {
+            let resp = await client.query(
+                (
+                    "SELECT g.is_active FROM access_grant g " +
+                    "JOIN identity i ON g._identity_identity_pk = i._pk " +
+                    "JOIN tenant t ON g._tenant_tenant_pk = t._pk " +
+                    "WHERE lower(i.username) = lower($1) " +
+                    "  AND t.pg_database = $2 AND NOT g.is_deleted"
+                ),
+                [name, database || settings.testDb]
+            );
+
+            return resp.rows[0];
+        }
+    );
 }
 
 async function account(name) {
@@ -294,6 +352,9 @@ module.exports = {
     rawTimeout,
     roleInfo,
     sqlRole,
+    canSignIn,
+    identity,
+    grant,
     toSpinal,
     track,
     uniq

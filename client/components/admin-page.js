@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2025  Featherbone LLC
+    Copyright (C) 2027  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -391,8 +391,9 @@ adminPage.viewModel = function () {
                 ))
             ]),
             m("div", {class: "fb-admin-note"}, (
-                grant.username() + " will be able to sign in to it once " +
-                "they have a user account there."
+                grant.username() + " will be able to sign in to it. The " +
+                "account the instance keeps is made for them the first " +
+                "time they do."
             ))
         ]);
     };
@@ -499,11 +500,18 @@ adminPage.component = {
 
             function add(label, title, onclick) {
                 buttons.push(m("button", {
+                    /*
+                        fb-button-disabled restores pointer events,
+                        which Pure takes away from a disabled
+                        .pure-button: without it the browser never
+                        hovers the button and the reason below is
+                        never seen.
+                    */
                     class: (
                         "pure-button fb-admin-action" + (
                             (orgWide || mine)
                             ? ""
-                            : " pure-button-disabled"
+                            : " fb-button-disabled"
                         )
                     ),
                     disabled: !(orgWide || mine),

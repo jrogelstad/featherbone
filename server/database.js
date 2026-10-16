@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2025  Featherbone LLC
+    Copyright (C) 2027  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -668,6 +668,140 @@
             @property phone
             @type String
         */
+        /*
+            Give an identity the local profile the instance needs
+            (tenant plan B.7).
+
+            `user_account` is the profile (B.5) and every instance
+            needs its own row: without one, deserializeUser below
+            refuses with "User account <name> not found", which is
+            what somebody granted an instance from the Users screen,
+            by the backfill, or by registering a database their people
+            already use, runs into the moment they open it.
+
+            The grant is the authorization decision, so a live grant
+            is the only reason needed to write the row. Checked here
+            and not taken on trust: the identity must be active, in
+            this instance's organization, with an active grant to this
+            instance. The row joins "everyone" and nothing else -- a
+            profile created this way carries no authority the
+            organization did not give it.
+
+            Only on the identity path. On the role path a Postgres
+            login role is cluster-wide, so the missing profile is the
+            boundary that keeps one database's users out of another's,
+            and creating one on demand would reopen item 1.1.
+        */
+        async function provisionProfile(req, username) {
+            let mgr = await that.connect();
+            let allowed;
+
+            try {
+                let resp = await mgr.client.query(
+                    (
+                        "SELECT i._pk, i.full_name, i.email " +
+                        "FROM identity i " +
+                        "JOIN access_grant g ON " +
+                        "  g._identity_identity_pk = i._pk " +
+                        "JOIN tenant t ON g._tenant_tenant_pk = t._pk " +
+                        "WHERE t.id = $1 " +
+                        "  AND lower(i.username) = lower($2) " +
+                        "  AND i._organization_organization_pk = " +
+                        "      t._organization_organization_pk " +
+                        "  AND i.status = 'active' AND NOT i.is_deleted " +
+                        "  AND g.is_active AND NOT g.is_deleted " +
+                        "  AND NOT t.is_deleted"
+                    ),
+                    [req.tenant.id, username]
+                );
+
+                allowed = resp.rows[0];
+
+                if (!allowed) {
+                    return false;
+                }
+            } finally {
+                mgr.done();
+            }
+
+            let obj = await that.connect(req.tenant);
+
+            try {
+                /*
+                    Two requests can arrive together on a first sign-in,
+                    and name is a unique natural key since improvement
+                    item 2.6, so the second insert is a no-op rather
+                    than an error.
+                */
+                let made = await obj.client.query(
+                    (
+                        "INSERT INTO user_account (" +
+                        "  _pk, id, created, created_by, updated, " +
+                        "  updated_by, is_deleted, owner, etag, name, " +
+                        "  is_login, is_super, is_active, " +
+                        "  change_password, sign_in_attempts, is_locked" +
+                        ") VALUES (" +
+                        "  nextval('object__pk_seq'), $1, now(), " +
+                        "  'system', now(), 'system', false, $2, $1, $2, " +
+                        "  true, false, true, false, 0, false" +
+                        ") ON CONFLICT DO NOTHING RETURNING _pk"
+                    ),
+                    [f.createId(), username]
+                );
+
+                if (made.rows.length) {
+                    await obj.client.query(
+                        (
+                            "INSERT INTO role_membership (" +
+                            "  _pk, id, created, created_by, updated, " +
+                            "  updated_by, is_deleted, _parent_role_pk, " +
+                            "  role) VALUES (" +
+                            "  nextval('object__pk_seq'), $1, now(), " +
+                            "  'system', now(), 'system', false, $2, " +
+                            "  'everyone')"
+                        ),
+                        [f.createId(), made.rows[0]._pk]
+                    );
+                }
+            } finally {
+                obj.done();
+            }
+
+            // Recorded where the other privileged writes are
+            let audit = await that.connect();
+
+            try {
+                await audit.client.query(
+                    (
+                        "INSERT INTO admin_audit (" +
+                        "  _pk, id, created, created_by, updated, " +
+                        "  updated_by, is_deleted, owner, etag, action, " +
+                        "  occurred, _actor_identity_pk, " +
+                        "  _target_identity_identity_pk, detail" +
+                        ") VALUES (" +
+                        "  nextval('object__pk_seq'), $1, now(), " +
+                        "  'system', now(), 'system', false, 'system', " +
+                        "  $1, 'user_account.provisioned', now(), null, " +
+                        "  $2, $3)"
+                    ),
+                    [
+                        f.createId(),
+                        allowed._pk,
+                        username + " in " + req.tenant.name
+                    ]
+                );
+            } catch (err) {
+                console.error(
+                    "Could not record the profile created for " +
+                    username + ": " + (err.message || err)
+                );
+            } finally {
+                audit.done();
+            }
+
+            return true;
+        }
+
         /**
             Return user data.
             @method deserializeUser
@@ -709,9 +843,41 @@
                 let row;
 
                 if (!resp.rows.length) {
-                    return Promise.reject(new Error(
-                        "User account " + username + " not found."
-                    ));
+                    /*
+                        No profile here yet. On the identity path a
+                        live grant is reason enough to make one
+                        (B.7); otherwise, and when there is no grant,
+                        the answer stands.
+                    */
+                    let conf = await config.read();
+                    let made = false;
+
+                    if (config.authStrategy(conf) === "identity") {
+                        try {
+                            made = await provisionProfile(req, username);
+                        } catch (err) {
+                            /*
+                                Say so: without this the person is told
+                                their account does not exist, which is
+                                true but not the reason.
+                            */
+                            console.error(
+                                "Could not make the local profile for " +
+                                username + " in " + req.tenant.name +
+                                ": " + (err.message || err)
+                            );
+                        }
+                    }
+
+                    if (made) {
+                        resp = await obj.client.query(sql, [username]);
+                    }
+
+                    if (!resp.rows.length) {
+                        return Promise.reject(new Error(
+                            "User account " + username + " not found."
+                        ));
+                    }
                 }
 
                 row = resp.rows[0];

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2025  Featherbone LLC
+    Copyright (C) 2027  Featherbone LLC
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -122,11 +122,23 @@
                     throw new Error("New password can not be blank");
                 }
 
+                /*
+                    A wrong old password is the caller's mistake, not
+                    the server's: answer it as a client error with the
+                    generic sign-in message, never the authenticator's
+                    own words (improvement plan 0.3). Before this it
+                    came back as a 500.
+                */
                 db.authenticate(
                     obj.data.request,
                     obj.data.name,
                     obj.data.oldPassword
-                ).then(callback).catch(reject);
+                ).then(callback).catch(function () {
+                    let err = new Error("Invalid sign in credentials.");
+
+                    err.statusCode = 401;
+                    reject(err);
+                });
             });
         };
 
