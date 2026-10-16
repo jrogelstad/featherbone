@@ -51,6 +51,16 @@ adminInstancesPage.viewModel = function () {
         name: f.prop(""),
         service: f.prop("")
     };
+    let build = {
+        database: f.prop(""),
+        name: f.prop(""),
+        service: f.prop(""),
+        template: f.prop("")
+    };
+    let dropEntry = {
+        confirm: f.prop(""),
+        instance: f.prop()
+    };
 
     function request(method, path, body) {
         return m.request({
@@ -97,6 +107,16 @@ adminInstancesPage.viewModel = function () {
     */
     vm.registerDialog = f.prop();
     /**
+        @method createDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.createDialog = f.prop();
+    /**
+        @method dropDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.dropDialog = f.prop();
+    /**
         @method buttonDone
         @return {ViewModels.Button}
     */
@@ -133,6 +153,19 @@ adminInstancesPage.viewModel = function () {
         let data = vm.overview() || {};
 
         return data.tier === "organization" || data.tier === "platform";
+    };
+
+    /**
+        Whether the caller may build and drop databases, which is a
+        platform administrator's power alone (ADR-001): the cluster is
+        Featherbone's, not a tenant's.
+        @method isPlatform
+        @return {Boolean}
+    */
+    vm.isPlatform = function () {
+        let data = vm.overview() || {};
+
+        return data.tier === "platform";
     };
 
     /**
@@ -174,6 +207,46 @@ adminInstancesPage.viewModel = function () {
         request("POST", "/admin/instance/status", {
             id: instance.id,
             isActive
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
+        @method doCreate
+    */
+    vm.doCreate = function () {
+        let data = vm.overview() || {};
+        let services = data.services || [];
+        let templates = data.templates || [];
+
+        build.name("");
+        build.database("");
+        build.template(templates[0] || "");
+        build.service(
+            services.length
+            ? services[0].id
+            : ""
+        );
+        vm.createDialog().show();
+    };
+
+    /**
+        @method doDrop
+        @param {Object} instance
+    */
+    vm.doDrop = function (instance) {
+        dropEntry.instance(instance);
+        dropEntry.confirm("");
+        vm.dropDialog().show();
+    };
+
+    /**
+        Pick an unfinished build up from the step it stopped at.
+        @method doResume
+        @param {Object} instance
+    */
+    vm.doResume = function (instance) {
+        request("POST", "/admin/instance/provision/resume", {
+            id: instance.id
         }).then(vm.refresh).catch(fail);
     };
 
@@ -251,6 +324,128 @@ adminInstancesPage.viewModel = function () {
         ]);
     };
 
+    vm.createDialog(f.createViewModel("Dialog", {
+        icon: "add_circle",
+        onOk: function () {
+            request("POST", "/admin/instance/provision", {
+                database: build.database(),
+                name: build.name(),
+                service: build.service(),
+                template: build.template()
+            }).then(function (resp) {
+                if (resp && resp.state !== "active") {
+                    fail(new Error(
+                        "Provisioning stopped at \"" + resp.state +
+                        "\": " + (resp.detail || "see the registry") +
+                        ". Resume it from the instance row."
+                    ));
+                }
+                return vm.refresh();
+            }).catch(fail);
+        },
+        title: "Create an instance"
+    }));
+    vm.createDialog().content = function () {
+        let data = vm.overview() || {};
+        let services = data.services || [];
+        let templates = data.templates || [];
+        let instances = data.instances || [];
+        let sources = templates.concat(
+            instances.map((row) => row.database).filter(
+                (name) => templates.indexOf(name) === -1
+            )
+        );
+
+        return m("div", {class: "pure-form pure-form-aligned"}, [
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildName"}, "Name:"),
+                m("input", {
+                    id: "fbBuildName",
+                    oninput: (e) => build.name(e.target.value),
+                    required: true,
+                    value: build.name()
+                })
+            ]),
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildDb"}, "Database:"),
+                m("input", {
+                    id: "fbBuildDb",
+                    oninput: (e) => build.database(e.target.value),
+                    placeholder: "lowercase, letters and underscores",
+                    required: true,
+                    value: build.database()
+                })
+            ]),
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildTpl"}, "Template:"),
+                m("select", {
+                    id: "fbBuildTpl",
+                    onchange: (e) => build.template(e.target.value),
+                    value: build.template()
+                }, sources.map(
+                    (name) => m("option", {value: name}, name)
+                ))
+            ]),
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildSvc"}, "Connection:"),
+                m("select", {
+                    id: "fbBuildSvc",
+                    onchange: (e) => build.service(e.target.value),
+                    value: build.service()
+                }, services.map(
+                    (row) => m("option", {value: row.id}, (
+                        row.name + " (" + row.user + "@" + row.host + ")"
+                    ))
+                ))
+            ]),
+            m("div", {class: "fb-admin-note"}, (
+                "Clones the template into a new database, checks the " +
+                "clone is an instance, grants every organization " +
+                "administrator access, and opens it for sign-in. Each " +
+                "step is recorded, so a build that stops can be " +
+                "resumed from where it left off. A template that is a " +
+                "live instance must be quiet while it is cloned."
+            ))
+        ]);
+    };
+
+    vm.dropDialog(f.createViewModel("Dialog", {
+        icon: "delete",
+        onOk: function () {
+            let instance = dropEntry.instance() || {};
+
+            request("POST", "/admin/instance/drop", {
+                id: instance.id
+            }).then(vm.refresh).catch(fail);
+        },
+        title: "Drop an instance"
+    }));
+    vm.dropDialog().content = function () {
+        let instance = dropEntry.instance() || {};
+
+        vm.dropDialog().okDisabled(
+            dropEntry.confirm() !== instance.database
+        );
+
+        return m("div", [
+            m("div", {class: "fb-admin-note"}, (
+                "This drops the database \"" + instance.database +
+                "\" and removes \"" + instance.name + "\" from the " +
+                "registry. There is no undo short of a backup."
+            )),
+            m("div", {class: "pure-form"}, [
+                m("label", {for: "fbDropConfirm"}, (
+                    "Type the database name to confirm: "
+                )),
+                m("input", {
+                    id: "fbDropConfirm",
+                    oninput: (e) => dropEntry.confirm(e.target.value),
+                    value: dropEntry.confirm()
+                })
+            ])
+        ]);
+    };
+
     vm.buttonDone(f.createViewModel("Button", {
         class: "fb-toolbar-button",
         label: "&Done",
@@ -293,6 +488,8 @@ adminInstancesPage.component = {
         let databases = data.databases || [];
         let audit = data.audit || [];
         let orgWide = vm.isOrgWide();
+        let platform = vm.isPlatform();
+        let provisioning = data.provisioning || {};
 
         /*
             What this server is doing with the instance, which is not
@@ -338,6 +535,25 @@ adminInstancesPage.component = {
         }
 
         function status(instance) {
+            let pending = provisioning[instance.id];
+
+            if (pending) {
+                return m("span", {
+                    class: "fb-admin-status fb-admin-status-locked",
+                    title: (
+                        pending.detail
+                        ? (
+                            "Provisioning stopped at \"" + pending.state +
+                            "\": " + pending.detail
+                        )
+                        : "Being built; stopped at \"" + pending.state + "\""
+                    )
+                }, [
+                    f.icon("schedule", "fb-admin-status-icon"),
+                    pending.state
+                ]);
+            }
+
             return m("span", {
                 class: (
                     "fb-admin-status fb-admin-status-" + (
@@ -385,36 +601,68 @@ adminInstancesPage.component = {
         }
 
         function actions(instance) {
+            let list = [];
+            let pending = provisioning[instance.id];
+
             if (!orgWide) {
-                return [];
+                return list;
             }
 
-            if (instance.isActive) {
-                return [
-                    action(
-                        "Close",
-                        (
-                            instance.isCurrent
-                            ? (
-                                "This is the instance you are signed in " +
-                                "to. Close it from another one."
-                            )
-                            : "Stop anyone signing in to this instance"
-                        ),
-                        instance.isCurrent,
-                        () => vm.doStatus(instance, false)
-                    )
-                ];
-            }
-
-            return [
-                action(
+            if (pending) {
+                list.push(action(
+                    "Resume",
+                    "Pick the build up from where it stopped",
+                    !platform,
+                    () => vm.doResume(instance)
+                ));
+            } else if (instance.isActive) {
+                list.push(action(
+                    "Close",
+                    (
+                        instance.isCurrent
+                        ? (
+                            "This is the instance you are signed in " +
+                            "to. Close it from another one."
+                        )
+                        : "Stop anyone signing in to this instance"
+                    ),
+                    instance.isCurrent,
+                    () => vm.doStatus(instance, false)
+                ));
+            } else {
+                list.push(action(
                     "Open",
                     "Let people sign in to this instance again",
                     false,
                     () => vm.doStatus(instance, true)
-                )
-            ];
+                ));
+            }
+
+            list.push(action(
+                "Drop",
+                (
+                    !platform
+                    ? (
+                        "Only a platform administrator may drop a " +
+                        "database"
+                    )
+                    : (
+                        instance.isCurrent
+                        ? (
+                            "This is the instance you are signed in " +
+                            "to. Drop it from another one."
+                        )
+                        : (
+                            "Drop the database and remove it from " +
+                            "the registry"
+                        )
+                    )
+                ),
+                !platform || instance.isCurrent,
+                () => vm.doDrop(instance)
+            ));
+
+            return list;
         }
 
         return m("div", [
@@ -446,6 +694,25 @@ adminInstancesPage.component = {
                     )
                 }, "Register database"),
                 m("button", {
+                    class: (
+                        "pure-button fb-toolbar-button" + (
+                            platform
+                            ? ""
+                            : " fb-button-disabled"
+                        )
+                    ),
+                    disabled: !platform,
+                    onclick: vm.doCreate,
+                    title: (
+                        platform
+                        ? "Build a new instance database from a template"
+                        : (
+                            "Only a platform administrator may create " +
+                            "a database"
+                        )
+                    )
+                }, "Create instance"),
+                m("button", {
                     class: "pure-button fb-toolbar-button",
                     onclick: vm.refresh,
                     title: "Read the registry again"
@@ -461,6 +728,8 @@ adminInstancesPage.component = {
             ]),
             m(f.getComponent("Dialog"), {viewModel: vm.errorDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.registerDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.createDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.dropDialog()}),
             (
                 vm.isLoading()
                 ? m("div", {class: "fb-admin-note"}, "Reading the registry…")
@@ -669,10 +938,9 @@ adminInstancesPage.component = {
                 : undefined
             ),
             m("div", {class: "fb-admin-note"}, (
-                "Building a database is still \"node install.js " +
-                "--instance <name>\", and dropping one is still the " +
-                "Admin Console's or the command line's. Provisioning " +
-                "from here waits on tenant plan D.1."
+                "\"node install.js --instance <name>\" still works " +
+                "from the command line and registers what it builds " +
+                "here."
             ))
         ]);
     }

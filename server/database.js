@@ -164,7 +164,8 @@
                 let client = obj.client;
                 let resp = await client.query(
                     (
-                        "SELECT _pk, _organization_organization_pk AS org " +
+                        "SELECT _pk, is_active, " +
+                        "  _organization_organization_pk AS org " +
                         "FROM tenant WHERE id = $1 AND NOT is_deleted"
                     ),
                     [req.tenant.id]
@@ -183,6 +184,19 @@
                     throw new Error(
                         "Instance " + req.tenant.name +
                         " is not assigned to an organization"
+                    );
+                }
+                /*
+                    The registry's own switch (tenant plan D.4) and the
+                    provisioning gate (D.1): a closed instance, or one
+                    still being built, refuses new sign-ins. Nothing
+                    here checked it before, so "close" only changed the
+                    row.
+                */
+                if (resp.rows[0].is_active !== true) {
+                    throw new Error(
+                        "Instance " + req.tenant.name +
+                        " is closed to sign-in"
                     );
                 }
 
