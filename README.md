@@ -295,7 +295,10 @@ modules/<name>/<version>/      # npm-format package: package.json,
 One directory per version, because two databases served by one process
 may run different versions of one module: each database's `module` rows
 say which version it deployed, and its requests dispatch to that
-version's services. A module with no package on the server falls back
+version's services. The module's **client** script comes from the
+package too, so what the browser compiles is a file that changes only
+by deployment access rather than a table row anyone with write access
+could change. A module with no package on the server falls back
 to the code deployed into the database, so existing installations work
 unchanged until they are repackaged. `modulesDir` in `config.json`
 moves the directory.
