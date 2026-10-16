@@ -283,6 +283,8 @@
             });
             let users;
 
+            let passkeys = {rows: []};
+
             try {
                 await instance.connect();
                 users = await instance.query(
@@ -292,6 +294,22 @@
                     "WHERE is_active AND is_login IS NOT false " +
                     "  AND NOT user_account.is_deleted"
                 );
+                /*
+                    Passkeys registered against this instance (C.1):
+                    they belong to the identity now, so copy them to
+                    the manager. An instance that predates passkeys
+                    has no table, which is fine.
+                */
+                passkeys = await instance.query(
+                    "SELECT ua.name, wc.credential_id, wc.counter, " +
+                    "  wc.public_key, wc.rp_id, wc.origin_url " +
+                    "FROM webauthn_credential wc " +
+                    "JOIN user_account ua " +
+                    "  ON wc._user_user_account_pk = ua._pk " +
+                    "WHERE NOT wc.is_deleted"
+                ).catch(function () {
+                    return {rows: []};
+                });
                 await instance.end();
             } catch (err) {
                 say(
@@ -368,6 +386,56 @@
                             "Backfill: access to " + tenant.name
                         ]);
                     }
+                }
+            }
+
+            let pk = 0;
+            while (pk < passkeys.rows.length) {
+                let row = passkeys.rows[pk];
+                let owner = known[row.name.toLowerCase()];
+
+                pk += 1;
+
+                if (!owner) {
+                    continue;
+                }
+                say(
+                    "Copy passkey of \"" + row.name + "\" from \"" +
+                    tenant.name + "\""
+                );
+                if (apply && owner.pk) {
+                    await manager.query(
+                        (
+                            "CREATE TABLE IF NOT EXISTS " +
+                            "\"$identity_credential\" (" +
+                            "  credential_id text PRIMARY KEY," +
+                            "  identity_pk bigint NOT NULL," +
+                            "  public_key text NOT NULL," +
+                            "  counter bigint NOT NULL DEFAULT 0," +
+                            "  rp_id text NOT NULL DEFAULT ''," +
+                            "  origin_url text NOT NULL DEFAULT ''," +
+                            "  created timestamp with time zone " +
+                            "    NOT NULL DEFAULT now()" +
+                            ")"
+                        )
+                    );
+                    await manager.query(
+                        (
+                            "INSERT INTO \"$identity_credential\" (" +
+                            "  credential_id, identity_pk, public_key, " +
+                            "  counter, rp_id, origin_url" +
+                            ") VALUES ($1, $2, $3, $4, $5, $6) " +
+                            "ON CONFLICT (credential_id) DO NOTHING"
+                        ),
+                        [
+                            row.credential_id,
+                            owner.pk,
+                            row.public_key,
+                            row.counter || 0,
+                            row.rp_id || "",
+                            row.origin_url || ""
+                        ]
+                    );
                 }
             }
         }
