@@ -233,6 +233,159 @@
             return path.join(dir, manifest.module, manifest.version);
         }
 
+        /*
+            The property a library appears under on `f` when the
+            package does not say: the name, in camel case, with the
+            punctuation npm allows and JavaScript identifiers do not
+            taken out -- "big.js" is `bigJs`, "node-fetch" is
+            `nodeFetch`, "@acme/widgets" is `acmeWidgets`.
+        */
+        function propertyFor(name) {
+            let words = String(name).split(/[^A-Za-z0-9]+/).filter(
+                (word) => word.length
+            );
+
+            return words.map(function (word, i) {
+                if (i === 0) {
+                    return word.charAt(0).toLowerCase() + word.slice(1);
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }).join("");
+        }
+
+        /**
+            The libraries an installed package declares, as the
+            properties they are to appear under on `f` (ADR-002
+            question 1, which retires `ModuleNpm`).
+
+            A package says so in its own `package.json`:
+
+                "featherbone": {
+                    "libraries": {
+                        "bigJs": {"package": "big.js"},
+                        "someClass": {"package": "lib", "export": "Some"}
+                    }
+                }
+
+            With no such block every dependency is offered under its
+            own name, camel-cased, which is what the `ModuleNpm` rows
+            did by default.
+
+            @method libraries
+            @param {String} name Module name
+            @param {String} version Version
+            @return {Array} [{property, package, export}]
+        */
+        that.libraries = function (name, version) {
+            let pkg = that.resolve(name, version);
+            let file;
+            let json;
+            let declared;
+            let ret = [];
+
+            if (!pkg) {
+                return ret;
+            }
+
+            file = path.join(pkg.dir, "package.json");
+
+            if (!fs.existsSync(file)) {
+                return ret;
+            }
+
+            try {
+                json = JSON.parse(fs.readFileSync(file, "utf8"));
+            } catch (err) {
+                console.error(
+                    "Package " + file + " is unreadable: " + err.message
+                );
+                return ret;
+            }
+
+            declared = (json.featherbone || {}).libraries;
+
+            if (declared) {
+                Object.keys(declared).forEach(function (property) {
+                    let one = declared[property] || {};
+
+                    ret.push({
+                        export: one.export,
+                        package: one.package || property,
+                        property
+                    });
+                });
+                return ret;
+            }
+
+            Object.keys(json.dependencies || {}).forEach(function (dep) {
+                ret.push({
+                    export: undefined,
+                    package: dep,
+                    property: propertyFor(dep)
+                });
+            });
+
+            return ret;
+        };
+
+        /**
+            Load an installed package's libraries onto the Featherbone
+            global, from the package's own `node_modules` -- which is
+            what lets two versions of a module need different releases
+            of the same library.
+
+            A library that is not installed is reported and skipped,
+            the way the `ModuleNpm` loader did: a module whose
+            libraries are missing should fail where it uses them, with
+            a line in the log saying why, rather than stopping the
+            server from starting.
+
+            @method loadLibraries
+            @param {String} name Module name
+            @param {String} version Version
+            @param {Object} global The `f` global
+            @return {Array} The properties loaded
+        */
+        that.loadLibraries = function (name, version, global) {
+            let pkg = that.resolve(name, version);
+            let loaded = [];
+
+            if (!pkg) {
+                return loaded;
+            }
+
+            that.libraries(name, version).forEach(function (lib) {
+                let where = path.resolve(
+                    path.join(pkg.dir, "node_modules", lib.package)
+                );
+                let mod;
+
+                try {
+                    mod = require(
+                        fs.existsSync(where)
+                        ? where
+                        : lib.package
+                    );
+                } catch (err) {
+                    console.error(
+                        "Unable to load library " + lib.package +
+                        " for " + name + " " + version + ": " +
+                        err.message
+                    );
+                    return;
+                }
+
+                global[lib.property] = (
+                    lib.export
+                    ? mod[lib.export]
+                    : mod
+                );
+                loaded.push(lib.property);
+            });
+
+            return loaded;
+        };
+
         /**
             Install a package on this server (ADR-002 section 6).
             Nothing about any database changes: the files are unpacked

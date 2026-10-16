@@ -324,6 +324,28 @@ replace it. If the package declares dependencies, `npm install` runs
 inside its own version directory, so two versions of a module may need
 different releases of the same library.
 
+A module's **libraries** come from its own `package.json` and its own
+`node_modules`, which is what lets two versions of a module need
+different releases of the same library:
+
+```json
+"dependencies": {"big.js": "^6.1.1"},
+"featherbone": {"libraries": {"money": {"package": "big.js"}}}
+```
+
+`featherbone.libraries` names the properties the libraries appear
+under on `f`; with no such block every dependency is offered under its
+own name in camel case (`big.js` as `f.bigJs`). They are loaded with
+the database's modules, before the module's own code runs, so a
+library that is missing is reported where it was needed instead of
+stopping the server.
+
+This retires **`ModuleNpm`**. Those rows are still honored for a module
+the server holds no package for, with a line in the log saying so, and
+they are read from the instance now rather than from the manager -- the
+one-mode collapse had left that loader pointed at the manager, so an
+instance's rows had quietly stopped being loaded at all.
+
 **Deploy** applies one installed version to one database:
 
 ```bash
