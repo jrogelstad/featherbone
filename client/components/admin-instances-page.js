@@ -102,6 +102,35 @@ adminInstancesPage.viewModel = function () {
     */
     vm.isLoading = f.prop(true);
     /**
+        The row the toolbar's buttons act on: an instance's id, or the
+        id of a database registered to no organization.
+        @method selection
+        @return {String}
+    */
+    vm.selection = f.prop("");
+    /**
+        Style of the right-click menu: where it is, or not shown.
+        @method menuStyle
+        @return {Object}
+    */
+    vm.menuStyle = f.prop({display: "none"});
+    /**
+        The right-click menu goes away on any click, wherever it lands,
+        and on Escape. One function for the life of the page, so the
+        listener that was added is the one that is removed.
+        @method closeMenu
+        @param {Event} [e]
+    */
+    vm.closeMenu = function (e) {
+        if (
+            vm.menuStyle().display !== "none" &&
+            (!e || e.type === "click" || e.key === "Escape")
+        ) {
+            vm.menuStyle({display: "none"});
+            m.redraw();
+        }
+    };
+    /**
         Why the page is empty, when it is. An organization with no
         instances and a registry that could not be read are different
         answers and must not look alike.
@@ -822,149 +851,328 @@ adminInstancesPage.component = {
         }
 
         /*
-            fb-button-disabled restores the pointer events Pure takes
-            away from a disabled .pure-button. Without it the browser
-            never hovers the button, so the title saying why it is
-            disabled is never seen.
+            What can be done to a row, as data, so the toolbar's buttons
+            and the right-click menu are the same list and cannot
+            disagree. Each is {key, label, title, disabled, run}; a
+            button stays in the toolbar when it does not apply and is
+            disabled, with the title saying why.
         */
-        function action(label, title, disabled, onclick) {
-            return m("button", {
-                class: (
-                    "pure-button fb-admin-action" + (
-                        disabled
-                        ? " fb-button-disabled"
-                        : ""
-                    )
-                ),
-                disabled,
-                onclick,
-                title
-            }, label);
+        let needsRow = "Select a row in the list first";
+        let needsOrg = (
+            "Only an organization administrator may change the registry"
+        );
+
+        function find(id) {
+            let inst = instances.find((row) => row.id === id);
+            let orphan = orphans.find((row) => row.id === id);
+
+            return (
+                inst
+                ? {instance: inst}
+                : (
+                    orphan
+                    ? {orphan}
+                    : {}
+                )
+            );
         }
 
-        function actions(instance) {
-            let list = [];
-            let pending = provisioning[instance.id];
+        function describe(id) {
+            let found = find(id);
+            let instance = found.instance;
+            let orphan = found.orphan;
+            let pending = instance && provisioning[instance.id];
+            let list = {};
+            let hasRow = Boolean(instance || orphan);
 
-            if (!orgWide) {
-                return list;
+            function entry(key, label, title, disabled, run) {
+                list[key] = {
+                    disabled: Boolean(disabled),
+                    key,
+                    label,
+                    run,
+                    title
+                };
             }
 
-            if (pending) {
-                list.push(action(
-                    "Resume",
-                    "Pick the build up from where it stopped",
-                    !platform,
-                    () => vm.doResume(instance)
-                ));
-            } else if (instance.isActive) {
-                list.push(action(
-                    "Close",
-                    (
-                        instance.isCurrent
-                        ? (
-                            "This is the instance you are signed in " +
-                            "to. Close it from another one."
+            function reason(applies, why) {
+                // Why a button is off, most useful reason first
+                if (!hasRow) {
+                    return needsRow;
+                }
+                if (!orgWide) {
+                    return needsOrg;
+                }
+                return applies ? "" : why;
+            }
+
+            entry(
+                "state",
+                (
+                    instance && !instance.isActive
+                    ? "Open"
+                    : "Close"
+                ),
+                (
+                    reason(Boolean(instance), "Select an instance") || (
+                        pending
+                        ? "Resume the build first"
+                        : (
+                            instance.isActive
+                            ? (
+                                instance.isCurrent
+                                ? (
+                                    "This is the instance you are " +
+                                    "signed in to. Close it from " +
+                                    "another one."
+                                )
+                                : "Stop anyone signing in to this instance"
+                            )
+                            : "Let people sign in to this instance again"
                         )
-                        : "Stop anyone signing in to this instance"
-                    ),
-                    instance.isCurrent,
-                    () => vm.doStatus(instance, false)
-                ));
-            } else {
-                list.push(action(
-                    "Open",
-                    "Let people sign in to this instance again",
-                    false,
-                    () => vm.doStatus(instance, true)
-                ));
-            }
+                    )
+                ),
+                (
+                    !instance || !orgWide || pending ||
+                    (instance.isActive && instance.isCurrent)
+                ),
+                () => vm.doStatus(instance, !instance.isActive)
+            );
 
-            if (instance.isMaintenance) {
-                list.push(action(
-                    "End maintenance",
-                    (
-                        platform
-                        ? "Let the instance answer requests again"
-                        : "Only a platform administrator may do this"
-                    ),
-                    !platform,
-                    () => vm.doMaintenance(instance, false)
-                ));
-            } else {
-                list.push(action(
-                    "Maintenance",
-                    (
-                        platform
-                        ? (
-                            "Hold the instance for a deployment: it " +
-                            "answers 503 with an explanation, and only " +
-                            "a platform administrator can sign in"
+            entry(
+                "resume",
+                "Resume",
+                (
+                    reason(Boolean(instance), "Select an instance") || (
+                        pending
+                        ? "Pick the build up from where it stopped"
+                        : "Only a build that stopped can be resumed"
+                    )
+                ),
+                !instance || !orgWide || !pending || !platform,
+                () => vm.doResume(instance)
+            );
+
+            entry(
+                "maintenance",
+                (
+                    instance && instance.isMaintenance
+                    ? "End maintenance"
+                    : "Maintenance"
+                ),
+                (
+                    reason(Boolean(instance), "Select an instance") || (
+                        !platform
+                        ? "Only a platform administrator may do this"
+                        : (
+                            instance.isMaintenance
+                            ? "Let the instance answer requests again"
+                            : (
+                                "Hold the instance for a deployment: it " +
+                                "answers 503 with an explanation, and " +
+                                "only a platform administrator can sign in"
+                            )
                         )
-                        : "Only a platform administrator may do this"
-                    ),
-                    !platform,
-                    () => vm.doMaintenance(instance, true)
-                ));
-            }
+                    )
+                ),
+                !instance || !orgWide || !platform,
+                () => vm.doMaintenance(instance, !instance.isMaintenance)
+            );
 
-            list.push(action(
+            entry(
+                "deploy",
                 "Deploy",
                 (
-                    platform
-                    ? (
-                        "Apply a package this server holds to this " +
-                        "instance, holding it while that runs"
+                    reason(Boolean(instance), "Select an instance") || (
+                        platform
+                        ? (
+                            "Apply a package this server holds to this " +
+                            "instance, holding it while that runs"
+                        )
+                        : "Only a platform administrator may deploy"
                     )
-                    : "Only a platform administrator may deploy"
                 ),
-                !platform,
+                !instance || !orgWide || !platform,
                 () => vm.doDeploy(instance)
-            ));
+            );
 
-            list.push(action(
+            entry(
+                "template",
                 "Template",
                 (
-                    platform
-                    ? (
-                        "Copy this instance into the template new " +
-                        "instances are built from"
-                    )
-                    : "Only a platform administrator may build a template"
-                ),
-                !platform,
-                () => vm.doTemplate(instance)
-            ));
-
-            list.push(action(
-                "Drop",
-                (
-                    !platform
-                    ? (
-                        "Only a platform administrator may drop a " +
-                        "database"
-                    )
-                    : (
-                        instance.isCurrent
+                    reason(Boolean(instance), "Select an instance") || (
+                        platform
                         ? (
-                            "This is the instance you are signed in " +
-                            "to. Drop it from another one."
+                            "Copy this instance into the template new " +
+                            "instances are built from"
                         )
                         : (
-                            "Drop the database and remove it from " +
-                            "the registry"
+                            "Only a platform administrator may build a " +
+                            "template"
                         )
                     )
                 ),
-                !platform || instance.isCurrent,
+                !instance || !orgWide || !platform,
+                () => vm.doTemplate(instance)
+            );
+
+            entry(
+                "drop",
+                "Drop",
+                (
+                    reason(Boolean(instance), "Select an instance") || (
+                        !platform
+                        ? (
+                            "Only a platform administrator may drop a " +
+                            "database"
+                        )
+                        : (
+                            instance.isCurrent
+                            ? (
+                                "This is the instance you are signed in " +
+                                "to. Drop it from another one."
+                            )
+                            : (
+                                "Drop the database and remove it from " +
+                                "the registry"
+                            )
+                        )
+                    )
+                ),
+                !instance || !orgWide || !platform || instance.isCurrent,
                 () => vm.doDrop(instance)
-            ));
+            );
+
+            entry(
+                "attach",
+                "Attach",
+                (
+                    reason(
+                        Boolean(orphan),
+                        "Only a database registered to no organization " +
+                        "can be attached"
+                    ) || (
+                        "Make this an instance of " + (
+                            data.organization
+                            ? data.organization.name
+                            : "this organization"
+                        )
+                    )
+                ),
+                !orphan || !orgWide,
+                () => vm.doAttach(orphan)
+            );
 
             return list;
         }
 
-        return m("div", [
+        // What the right-click menu offers for a row: what applies to it
+        function menuKeys(id) {
+            let found = find(id);
+
+            if (found.orphan) {
+                return ["attach"];
+            }
+
+            return (
+                provisioning[id]
+                ? ["resume", "maintenance", "deploy", "template", "drop"]
+                : ["state", "maintenance", "deploy", "template", "drop"]
+            );
+        }
+
+        function select(id) {
+            vm.selection(id);
+        }
+
+        function rowEvents(id) {
+            return {
+                class: (
+                    "fb-admin-row" + (
+                        vm.selection() === id
+                        ? " fb-table-row-selected"
+                        : ""
+                    )
+                ),
+                key: id,
+                oncontextmenu: function (e) {
+                    e.preventDefault();
+                    select(id);
+
+                    if (!orgWide) {
+                        vm.menuStyle({display: "none"});
+                        return;
+                    }
+
+                    vm.menuStyle({
+                        display: "block",
+                        left: e.pageX + "px",
+                        top: e.pageY + "px"
+                    });
+                },
+                onclick: () => select(id)
+            };
+        }
+
+        function toolbarButton(entry) {
+            return m("button", {
+                class: (
+                    "pure-button fb-toolbar-button" + (
+                        entry.disabled
+                        ? " fb-button-disabled"
+                        : ""
+                    )
+                ),
+                disabled: entry.disabled,
+                id: "admin-instance-" + entry.key,
+                onclick: entry.run,
+                title: entry.title
+            }, entry.label);
+        }
+
+        let current = describe(vm.selection());
+
+        return m("div", {
+            oncreate: function () {
+                document.addEventListener("click", vm.closeMenu);
+                document.addEventListener("keydown", vm.closeMenu);
+            },
+            onremove: function () {
+                document.removeEventListener("click", vm.closeMenu);
+                document.removeEventListener("keydown", vm.closeMenu);
+            }
+        }, [
             m(f.getComponent("EnvBanner")),
+            m("div", {
+                class: "fb-context-menu",
+                style: vm.menuStyle()
+            }, [
+                m("ul", {
+                    class: (
+                        "pure-menu-list fb-menu-list fb-menu-list-show"
+                    ),
+                    id: "admin-instance-menu"
+                }, menuKeys(vm.selection()).map(function (key) {
+                    let entry = current[key];
+
+                    return m("li", {
+                        class: (
+                            "pure-menu-link fb-menu-list-item" + (
+                                entry.disabled
+                                ? " pure-menu-disabled"
+                                : ""
+                            )
+                        ),
+                        id: "admin-instance-menu-" + key,
+                        onclick: function () {
+                            if (!entry.disabled) {
+                                entry.run();
+                            }
+                        },
+                        title: entry.title
+                    }, entry.label);
+                }))
+            ]),
             m("div", {
                 class: "fb-toolbar",
                 id: "toolbar"
@@ -1014,7 +1222,15 @@ adminInstancesPage.component = {
                     class: "pure-button fb-toolbar-button",
                     onclick: vm.refresh,
                     title: "Read the registry again"
-                }, "Refresh")
+                }, "Refresh"),
+                m("div", {class: "fb-toolbar-fill"}),
+                toolbarButton(current.state),
+                toolbarButton(current.resume),
+                toolbarButton(current.maintenance),
+                toolbarButton(current.deploy),
+                toolbarButton(current.template),
+                toolbarButton(current.drop),
+                toolbarButton(current.attach)
             ]),
             m("div", {class: "fb-title"}, [
                 f.icon("storage", "fb-title-icon"),
@@ -1072,12 +1288,11 @@ adminInstancesPage.component = {
                             m("th", {class: "fb-admin-col-status"}, "Users"),
                             m("th", {class: "fb-admin-col-grants"}, "Serving"),
                             m("th", {class: "fb-admin-col-name"}, "Modules"),
-                            m("th", {class: "fb-admin-col-status"}, "Sign-in"),
-                            m("th", {class: "fb-admin-col-actions"}, "")
+                            m("th", {class: "fb-admin-col-status"}, "Sign-in")
                         ])
                     ]),
                     m("tbody", instances.map(function (instance) {
-                        return m("tr", {key: instance.id}, [
+                        return m("tr", rowEvents(instance.id), [
                             m("td", [
                                 instance.name,
                                 (
@@ -1133,10 +1348,7 @@ adminInstancesPage.component = {
                             m("td", instance.users),
                             m("td", served(instance)),
                             m("td", modules(instance)),
-                            m("td", status(instance)),
-                            m("td", {
-                                class: "fb-admin-col-actions"
-                            }, actions(instance))
+                            m("td", status(instance))
                         ]);
                     }))
                 ])
@@ -1174,33 +1386,13 @@ adminInstancesPage.component = {
                                     }, "Name"),
                                     m("th", {
                                         class: "fb-admin-col-name"
-                                    }, "Database"),
-                                    m("th", {
-                                        class: "fb-admin-col-actions"
-                                    }, "")
+                                    }, "Database")
                                 ])
                             ]),
                             m("tbody", orphans.map(function (row) {
-                                return m("tr", {key: row.id}, [
+                                return m("tr", rowEvents(row.id), [
                                     m("td", row.name),
-                                    m("td", row.database),
-                                    m("td", {
-                                        class: "fb-admin-col-actions"
-                                    }, [
-                                        action(
-                                            "Attach",
-                                            (
-                                                "Make this an instance of " +
-                                                (
-                                                    data.organization
-                                                    ? data.organization.name
-                                                    : "this organization"
-                                                )
-                                            ),
-                                            false,
-                                            () => vm.doAttach(row)
-                                        )
-                                    ])
+                                    m("td", row.database)
                                 ]);
                             }))
                         ])
