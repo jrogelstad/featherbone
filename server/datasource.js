@@ -2364,6 +2364,21 @@
     that.authenticate = db.authenticate;
 
     /**
+        Authenticate against an identity in the manager with no
+        instance in play, for the picker at a URL that names no
+        database (tenant plan G.1). Exposes
+        {{#crossLink "Database/authenticateIdentityOnly:method"}}
+        {{/crossLink}} via datasource.
+
+        @method authenticateIdentityOnly
+        @param {String} username
+        @param {String} password
+        @param {String} [organization] Organization name
+        @return {Promise}
+    */
+    that.authenticateIdentityOnly = db.authenticateIdentityOnly;
+
+    /**
         Resolves to {{#crossLink "User"}}{{/crossLink}} for passport
         management. Exposes
         {{#crossLink "Database/deserializeUser:method"}}{{/crossLink}}

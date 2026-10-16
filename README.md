@@ -104,6 +104,37 @@ making of it is audited as `user_account.provisioned`. Nothing is
 created for a failed sign-in. A user who already exists in the
 organization is granted access and keeps the password they already have.
 
+### Choosing an instance
+
+A URL with a database in it signs in to that database, as it always has.
+A URL with **no** database -- the server's own root -- answers with the
+**picker**: sign in once against the manager, see the instances your
+grants reach, and open one. Nothing else is served there, since the
+manager is not routable.
+
+The picker proves the identity and nothing more. Opening an instance is
+what proves access to *that* instance: the grant is read again at the
+door, so a sign-in that now reaches several instances cannot walk into
+one it was never granted, and revoking a grant shuts the door at the
+next entry. An instance that is closed or down for maintenance is
+listed and marked rather than hidden, so somebody who was working in it
+yesterday is told why it will not open.
+
+A username is unique within its organization, not across the
+installation, so a name that exists in two organizations is asked which
+one it means. The picker never lists the organizations to someone who
+has not signed in -- that would say where a username exists -- and it
+does not try the password against each candidate either, since a wrong
+one would count a failure against every one of them and lock them all.
+Type the organization's name and sign in again.
+
+Two-factor organizations (`organization.isTwoFactorRequired`, ADR-001
+C.2) can pick here but sign in at the instance: the code is sent by the
+instance's own mail service, which the manager has none of. The picker
+lists their instances and opening one lands on that instance's sign-in,
+which asks for the factor. Nothing is admitted on a half-proved
+identity.
+
 ### Starting a new installation
 
 ```bash
