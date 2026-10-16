@@ -152,6 +152,48 @@ describe("the instance picker (G.1)", function () {
         await grantState(SOLO, settings.testDb, true);
     });
 
+    it("refuses an instance named after one of its own paths",
+            async function () {
+        /*
+            The picker and the console answer at paths with no database
+            in them, so an instance whose database were called
+            "platform" could never be opened: the root route would
+            answer first. The name is refused rather than allowed and
+            then found wanting.
+        */
+        let admin = new Session();
+
+        await admin.signIn(settings.adminUser, settings.password);
+        await db.withClient(settings.managerDb, (client) => client.query(
+            (
+                "UPDATE identity SET is_platform_admin = true " +
+                "WHERE lower(username) = lower($1)"
+            ),
+            [settings.adminUser]
+        ));
+
+        let resp = await admin.raw("POST", "/admin/instance", {
+            database: "platform",
+            name: "Shadowed"
+        });
+
+        assert.ok(resp.status >= 400, "status " + resp.status);
+        assert.match(
+            JSON.stringify(resp.body),
+            /cannot be created or dropped from here/,
+            "refused for being a name the server answers itself, not " +
+            "merely for not existing"
+        );
+
+        await db.withClient(settings.managerDb, (client) => client.query(
+            (
+                "UPDATE identity SET is_platform_admin = false " +
+                "WHERE lower(username) = lower($1)"
+            ),
+            [settings.adminUser]
+        ));
+    });
+
     it("answers at a URL with no database in it", async function () {
         let resp = await new Session(ROOT).raw("GET", "/");
 
