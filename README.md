@@ -188,6 +188,21 @@ unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
 
+### Connection budget
+
+Each instance the server loads gets its own connection pool, capped by
+`pgTenantPoolSize` (default 10) with idle clients closed after
+`pgTenantIdleTimeout` milliseconds (default 60000), plus one held
+connection listening for events. The manager's own pool is capped by
+`pgMaxConnections` (default 10). The worst case for one node is
+
+    instances x (pgTenantPoolSize + 1) + pgMaxConnections
+
+but a quiet instance holds only its listener, so the practical floor is
+`instances + pgMaxConnections`. Size `max_connections` on the cluster
+from the worst case across every node you run, with headroom; lower
+`pgTenantPoolSize` or put PgBouncer in front when instances multiply.
+
 ### Administering instances
 
 The **Instances** button, next to Users in the same group, is the other
