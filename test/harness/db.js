@@ -12,6 +12,7 @@
 
 const {Client} = require("pg");
 const {execFileSync} = require("child_process");
+const path = require("path");
 const format = require("pg-format");
 const settings = require("./env");
 const {Identities} = require("../../server/services/identities");
@@ -310,6 +311,29 @@ async function deployFixtures() {
     await deploy(settings.testDb2, "1.1.0");
 }
 
+/*
+    The manager is a copy of the source database, and a source database
+    that began life combined carries whatever registry tables it had when
+    it was made. Bring the copy current the way a real manager is
+    brought current -- `install.js --manager` aimed at it -- so a column
+    added to the registry since (tenant.is_maintenance, say) is there
+    without anyone upgrading the source by hand. Installing again over a
+    current manager changes nothing.
+*/
+function upgradeManager() {
+    execFileSync(
+        process.execPath,
+        ["install.js", "--manager"],
+        {
+            cwd: path.resolve(__dirname, "..", ".."),
+            env: Object.assign({}, process.env, {
+                managerDatabase: settings.managerDb
+            }),
+            stdio: "pipe"
+        }
+    );
+}
+
 async function clone() {
     if (settings.testDb === settings.sourceDb) {
         throw new Error("FB_TEST_DB must differ from the source database");
@@ -361,6 +385,7 @@ async function clone() {
     await markAs(settings.testDb, "instance");
     await markAs(settings.testDb2, "instance");
     await markAs(settings.managerDb, "manager");
+    await upgradeManager();
     await registerInstances();
     await deployFixtures();
 }
