@@ -725,15 +725,33 @@
                 req.body.username = req.body.name;
                 req.body.tenant = req.tenant;
                 req.body.newAccount = true;
-                await magicLogin.send(req, {json: () => ""});
+                await magicLogin.send(req, mailRes());
                 respond.bind(res, data)();
             }
         ).catch(
             error.bind(res)
         );
     }
+    /*
+        A response stand-in for magic-link sends that answer the caller
+        some other way. The strategy reports a failed send through
+        res.status().json(), so the stand-in has to hold both or a mail
+        hiccup turns the real answer into a 500 (seen with the
+        two-factor envelope, C.2).
+    */
+    function mailRes() {
+        return {
+            end: () => "",
+            json: () => "",
+            send: () => "",
+            status: function () {
+                return this;
+            }
+        };
+    }
+
     f.datasource.magicLoginSend = async function (opts) {
-        await magicLogin.send(opts, {json: () => ""});
+        await magicLogin.send(opts, mailRes());
     };
 
     function doPatchUserAccount(req, res) {
@@ -1754,7 +1772,15 @@
                 return;
             }
 
-            if (twoFactorAuth) {
+            /*
+                A second factor when the installation demands one
+                (config twoFactorAuth, everywhere) or when the signed-in
+                user's organization does (organization
+                isTwoFactorRequired, tenant plan C.2): the policy
+                belongs to the organization, and two organizations on
+                one installation may answer differently.
+            */
+            if (twoFactorAuth || req.user.isTwoFactorRequired) {
                 let userEmail = "";
                 let userPhone = "";
 
@@ -1782,7 +1808,7 @@
                 req.body.tenant = req.tenant;
 
                 try {
-                    magicLogin.send(req, {json: () => ""});
+                    magicLogin.send(req, mailRes());
                     respond.bind(res)({
                         success: true,
                         confirmUrl: req.magicHref,
