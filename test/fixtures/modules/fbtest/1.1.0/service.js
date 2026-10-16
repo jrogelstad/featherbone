@@ -8,7 +8,13 @@ function doFbtestVersion(obj) {
         resolve({
             version: "1.1.0",
             source: "disk",
-            database: obj.client.database
+            database: obj.client.database,
+            /*
+                The library this package declares in its own
+                package.json, loaded from its own directory rather
+                than from a ModuleNpm row (ADR-002 question 1).
+            */
+            library: typeof f.fbtestBig
         });
     });
 }

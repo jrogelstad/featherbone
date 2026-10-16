@@ -497,7 +497,7 @@
         "name": "ModuleNpm",
         "plural": "ModuleNpms",
         "module": "Core",
-        "description": "npm package dependencies",
+        "description": "DEPRECATED (ADR-002): npm package dependencies. A module declares its libraries in its own package.json and they are installed in its own version directory; rows here are still loaded for a module the server holds no package for",
         "properties": {
             "module": {
                 "description": "Parent module",
