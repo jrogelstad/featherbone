@@ -36,6 +36,7 @@
     "smtpHost": "smtp.yourdomain.com",
     "smtpSecure": true,
     "smtpPort": 465,
+    "ssoCallbackUrl": "",
     "splashTitle": "Home",
     "splashUrl": "",
     "ssl": false,
