@@ -671,14 +671,36 @@
             }
         }
 
-        function instanceOut(row, registry, current) {
+        function instanceOut(row, registry, current, deployed) {
             let served = registry || [];
             let live = served.find(
                 (entry) => entry.pgDatabase === row.pg_database
             );
+            /*
+                What this instance carries, and whether a newer package
+                is installed on the server (ADR-002: the fleet view).
+                Absent when the instance could not be asked, which is
+                not the same as carrying nothing.
+            */
+            let carried = (deployed || {})[row.pg_database];
 
             return {
+                behind: (
+                    carried
+                    ? carried.modules.filter((mod) => mod.isBehind).length
+                    : 0
+                ),
                 database: row.pg_database,
+                modules: (
+                    carried
+                    ? carried.modules
+                    : undefined
+                ),
+                modulesError: (
+                    carried
+                    ? carried.error
+                    : "Not asked"
+                ),
                 expiration: row.expiration,
                 id: row.id,
                 isActive: row.is_active,
@@ -738,8 +760,28 @@
                     ctx.tier === "platform" || ctx.tier === "organization"
                 );
                 let current = obj.tenant.id;
+                /*
+                    The fleet view (ADR-002): what each instance
+                    carries, and what this server holds to deploy.
+                    Asked only for someone who can see the whole
+                    organization, because it means a round trip to
+                    every registered instance.
+                */
+                let orgWideView = (
+                    ctx.tier === "platform" || ctx.tier === "organization"
+                );
+                let deployed = (
+                    orgWideView
+                    ? await datasource.deployedModules()
+                    : {}
+                );
                 let instances = rows.map(
-                    (row) => instanceOut(row, obj.registry, current)
+                    (row) => instanceOut(
+                        row,
+                        obj.registry,
+                        current,
+                        deployed
+                    )
                 );
                 let audit = [];
                 let databases = [];
@@ -747,8 +789,11 @@
                 let services = [];
                 let templates = [];
                 let provisioning = {};
+                let installed = [];
 
                 if (orgWide) {
+                    installed = await datasource.installedPackages();
+
                     let trail = await manager.systemAudit(
                         mclient,
                         obj.limit
@@ -865,6 +910,11 @@
                         name: organization.name
                     },
                     orphans,
+                    /*
+                        Packages on this server's file system, which is
+                        what Deploy may apply (ADR-002 section 6).
+                    */
+                    packages: installed,
                     provisioning,
                     services,
                     templates,
@@ -1098,6 +1148,145 @@
                 });
 
                 return true;
+            });
+        };
+
+        /**
+            Deploy an installed package into one instance (ADR-002
+            section 6). Install put the files on this server; this is
+            the separate, deliberate act of applying one version to one
+            database.
+
+            The instance is held while it runs (question 7) and let go
+            afterwards. A deployment that fails leaves it held, because
+            the schema is then in a state nobody has checked; ending
+            the maintenance is the deliberate act that says someone
+            has.
+
+            @method deployPackage
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Instance
+            @param {String} payload.data.module
+            @param {String} payload.data.version
+            @return {Promise}
+        */
+        that.deployPackage = async function (obj) {
+            let data = obj.data || {};
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let target;
+                let dir;
+                let tenant;
+
+                requirePlatform(ctx, "deploy a package");
+
+                if (!data.module || !data.version) {
+                    throw invalid("Name the module and the version");
+                }
+
+                target = await manager.instanceById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such instance in this organization");
+                }
+
+                dir = datasource.packageDir(data.module, data.version);
+
+                if (!dir) {
+                    throw invalid(
+                        data.module + " " + data.version +
+                        " is not installed on this server. Install it " +
+                        "with `node install.js --package <file>`."
+                    );
+                }
+
+                /*
+                    The registry entry this process serves, which is
+                    what carries the connection to the instance.
+                */
+                tenant = (obj.registry || []).find(
+                    (entry) => entry.pgDatabase === target.pg_database
+                );
+
+                if (!tenant) {
+                    throw invalid(
+                        target.pg_database + " is registered but this " +
+                        "server is not serving it, so it cannot be " +
+                        "deployed to from here."
+                    );
+                }
+
+                await manager.setInstanceMaintenance(
+                    mclient,
+                    target._pk,
+                    true,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: "instance.deploy_began",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        data.module + " " + data.version + " into " +
+                        target.name + " (" + target.pg_database + ")"
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+
+                try {
+                    await datasource.install(dir, obj.user, {
+                        databases: [target.pg_database],
+                        tenant: obj.tenant
+                    });
+                    await datasource.recordDeployed(
+                        target.pg_database,
+                        data.module,
+                        data.version,
+                        obj.user
+                    );
+                } catch (err) {
+                    await manager.audit(mclient, {
+                        action: "instance.deploy_failed",
+                        actorPk: actorPk(ctx),
+                        by: obj.user,
+                        detail: (
+                            data.module + " " + data.version + " into " +
+                            target.pg_database + ": " +
+                            (err.message || err)
+                        ),
+                        organizationPk: ctx.organizationPk
+                    });
+                    throw err;
+                }
+
+                await manager.setInstanceMaintenance(
+                    mclient,
+                    target._pk,
+                    false,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: "instance.deployed",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        data.module + " " + data.version + " into " +
+                        target.name + " (" + target.pg_database + ")"
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+
+                return {
+                    database: target.pg_database,
+                    module: data.module,
+                    version: data.version
+                };
             });
         };
 
