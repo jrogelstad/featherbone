@@ -41,7 +41,9 @@
 (function (exports) {
     "use strict";
 
+    const child = require("child_process");
     const fs = require("fs");
+    const os = require("os");
     const path = require("path");
 
     /**
@@ -179,6 +181,434 @@
             });
 
             return ret;
+        };
+
+        /**
+            The client script of an installed package: the module code
+            the browser compiles. One file per package, named by the
+            manifest's "module" entry (ADR-002 section 2 -- the other
+            half of `Module.script`).
+
+            @method clientSource
+            @param {String} name Module name
+            @param {String} version Version
+            @return {Object|undefined} {module, script, version}
+        */
+        that.clientSource = function (name, version) {
+            let pkg = that.resolve(name, version);
+            let found;
+
+            if (!pkg) {
+                return undefined;
+            }
+
+            (pkg.manifest.files || []).forEach(function (file) {
+                if (file.type !== "module" || found) {
+                    return;
+                }
+
+                found = {
+                    module: file.module || pkg.manifest.module || name,
+                    script: fs.readFileSync(
+                        path.join(pkg.dir, file.path),
+                        "utf8"
+                    ),
+                    version: (
+                        file.version ||
+                        pkg.manifest.version ||
+                        version
+                    )
+                };
+            });
+
+            return found;
+        };
+
+        /*
+            Where a package goes: one directory per module and version,
+            named by the manifest's module, because that name is what a
+            database's `module` row carries and dispatch matches on.
+        */
+        function placeOf(dir, manifest) {
+            return path.join(dir, manifest.module, manifest.version);
+        }
+
+        /*
+            The property a library appears under on `f` when the
+            package does not say: the name, in camel case, with the
+            punctuation npm allows and JavaScript identifiers do not
+            taken out -- "big.js" is `bigJs`, "node-fetch" is
+            `nodeFetch`, "@acme/widgets" is `acmeWidgets`.
+        */
+        function propertyFor(name) {
+            let words = String(name).split(/[^A-Za-z0-9]+/).filter(
+                (word) => word.length
+            );
+
+            return words.map(function (word, i) {
+                if (i === 0) {
+                    return word.charAt(0).toLowerCase() + word.slice(1);
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }).join("");
+        }
+
+        /**
+            The libraries an installed package declares, as the
+            properties they are to appear under on `f` (ADR-002
+            question 1, which retires `ModuleNpm`).
+
+            A package says so in its own `package.json`:
+
+                "featherbone": {
+                    "libraries": {
+                        "bigJs": {"package": "big.js"},
+                        "someClass": {"package": "lib", "export": "Some"}
+                    }
+                }
+
+            With no such block every dependency is offered under its
+            own name, camel-cased, which is what the `ModuleNpm` rows
+            did by default.
+
+            @method libraries
+            @param {String} name Module name
+            @param {String} version Version
+            @return {Array} [{property, package, export}]
+        */
+        that.libraries = function (name, version) {
+            let pkg = that.resolve(name, version);
+            let file;
+            let json;
+            let declared;
+            let ret = [];
+
+            if (!pkg) {
+                return ret;
+            }
+
+            file = path.join(pkg.dir, "package.json");
+
+            if (!fs.existsSync(file)) {
+                return ret;
+            }
+
+            try {
+                json = JSON.parse(fs.readFileSync(file, "utf8"));
+            } catch (err) {
+                console.error(
+                    "Package " + file + " is unreadable: " + err.message
+                );
+                return ret;
+            }
+
+            declared = (json.featherbone || {}).libraries;
+
+            if (declared) {
+                Object.keys(declared).forEach(function (property) {
+                    let one = declared[property] || {};
+
+                    ret.push({
+                        export: one.export,
+                        package: one.package || property,
+                        property
+                    });
+                });
+                return ret;
+            }
+
+            Object.keys(json.dependencies || {}).forEach(function (dep) {
+                ret.push({
+                    export: undefined,
+                    package: dep,
+                    property: propertyFor(dep)
+                });
+            });
+
+            return ret;
+        };
+
+        /**
+            Load an installed package's libraries onto the Featherbone
+            global, from the package's own `node_modules` -- which is
+            what lets two versions of a module need different releases
+            of the same library.
+
+            A library that is not installed is reported and skipped,
+            the way the `ModuleNpm` loader did: a module whose
+            libraries are missing should fail where it uses them, with
+            a line in the log saying why, rather than stopping the
+            server from starting.
+
+            @method loadLibraries
+            @param {String} name Module name
+            @param {String} version Version
+            @param {Object} global The `f` global
+            @return {Array} The properties loaded
+        */
+        that.loadLibraries = function (name, version, global) {
+            let pkg = that.resolve(name, version);
+            let loaded = [];
+
+            if (!pkg) {
+                return loaded;
+            }
+
+            that.libraries(name, version).forEach(function (lib) {
+                let where = path.resolve(
+                    path.join(pkg.dir, "node_modules", lib.package)
+                );
+                let mod;
+
+                try {
+                    mod = require(
+                        fs.existsSync(where)
+                        ? where
+                        : lib.package
+                    );
+                } catch (err) {
+                    console.error(
+                        "Unable to load library " + lib.package +
+                        " for " + name + " " + version + ": " +
+                        err.message
+                    );
+                    return;
+                }
+
+                global[lib.property] = (
+                    lib.export
+                    ? mod[lib.export]
+                    : mod
+                );
+                loaded.push(lib.property);
+            });
+
+            return loaded;
+        };
+
+        /**
+            Install a package on this server (ADR-002 section 6).
+            Nothing about any database changes: the files are unpacked
+            where the server looks for them, and Deploy is a separate
+            act.
+
+            The source is a directory, or an `npm pack` tarball, whose
+            `package.json` and `manifest.json` must agree about the
+            name and the version -- the manifest's module name is the
+            directory, and a package that disagrees with itself would
+            be dispatched under a name it does not answer to.
+
+            @method install
+            @param {String} source Directory or .tgz
+            @param {Object} [options]
+            @param {String} [options.dir] Modules directory
+            @param {Boolean} [options.force] Replace the version
+            @param {Boolean} [options.skipLibraries] Do not npm install
+            @return {Object} {name, version, dir, libraries}
+        */
+        that.install = function (source, opts) {
+            opts = opts || {};
+
+            let into = opts.dir || root;
+            let work;
+            let from = source;
+            let manifest;
+            let pkgJson;
+            let place;
+            let libraries = false;
+
+            if (!fs.existsSync(source)) {
+                throw new Error("No package at " + source);
+            }
+
+            if (!fs.statSync(source).isDirectory()) {
+                /*
+                    An npm tarball holds everything under "package/".
+                    tar is used rather than a dependency: npm itself
+                    needs it, and Windows has shipped it since 10.
+                */
+                work = fs.mkdtempSync(
+                    path.join(os.tmpdir(), "fb-package-")
+                );
+                child.execFileSync("tar", ["-xzf", source, "-C", work]);
+                from = (
+                    fs.existsSync(path.join(work, "package"))
+                    ? path.join(work, "package")
+                    : work
+                );
+            }
+
+            try {
+                manifest = manifestOf(from);
+                if (!manifest) {
+                    throw new Error(
+                        "No readable manifest.json in " + source
+                    );
+                }
+                if (!manifest.module || !manifest.version) {
+                    throw new Error(
+                        "manifest.json must name a module and a version"
+                    );
+                }
+
+                let pfile = path.join(from, "package.json");
+
+                if (fs.existsSync(pfile)) {
+                    pkgJson = JSON.parse(fs.readFileSync(pfile, "utf8"));
+                    if (
+                        pkgJson.version &&
+                        pkgJson.version !== manifest.version
+                    ) {
+                        throw new Error(
+                            "package.json says version " +
+                            pkgJson.version + " and manifest.json says " +
+                            manifest.version
+                        );
+                    }
+                }
+
+                place = placeOf(into, manifest);
+                if (fs.existsSync(place)) {
+                    if (!opts.force) {
+                        throw new Error(
+                            manifest.module + " " + manifest.version +
+                            " is already installed at " + place +
+                            ". Pass force to replace it."
+                        );
+                    }
+                    fs.rmSync(place, {recursive: true});
+                }
+
+                fs.mkdirSync(place, {recursive: true});
+                fs.cpSync(from, place, {recursive: true});
+
+                /*
+                    The module's own libraries, installed inside its own
+                    version directory: npm's one-version-per-name rule
+                    is right at this scale, and it is what lets two
+                    versions of a module need different releases of the
+                    same library (ADR-002 question 1, which retires
+                    `ModuleNpm`).
+                */
+                if (
+                    !opts.skipLibraries &&
+                    pkgJson &&
+                    pkgJson.dependencies &&
+                    Object.keys(pkgJson.dependencies).length
+                ) {
+                    child.execFileSync(
+                        "npm",
+                        ["install", "--omit=dev", "--no-audit", "--no-fund"],
+                        {cwd: place, stdio: "inherit"}
+                    );
+                    libraries = true;
+                }
+            } finally {
+                if (work) {
+                    fs.rmSync(work, {recursive: true, force: true});
+                }
+            }
+
+            that.scan(into);
+
+            return {
+                dir: place,
+                libraries,
+                name: manifest.module,
+                version: manifest.version
+            };
+        };
+
+        /*
+            Enough version comparison to answer "which is newest" and
+            "is this one behind": dotted numbers, and a prerelease
+            (1.2.0-rc.1) sorts before the release it leads to. Written
+            here rather than taken as a dependency, because that is the
+            whole of what the fleet view needs; ranges would be the
+            reason to reach for the semver package (ADR-002 question 1).
+        */
+        function parts(version) {
+            let main = String(version).split("-");
+
+            return {
+                numbers: main[0].split(".").map(function (one) {
+                    let n = parseInt(one, 10);
+
+                    return (
+                        Number.isNaN(n)
+                        ? 0
+                        : n
+                    );
+                }),
+                pre: main.slice(1).join("-")
+            };
+        }
+
+        /**
+            Compare two versions: -1, 0 or 1.
+
+            @method compareVersions
+            @param {String} a
+            @param {String} b
+            @return {Number}
+        */
+        that.compareVersions = function (a, b) {
+            let one = parts(a);
+            let two = parts(b);
+            let len = Math.max(one.numbers.length, two.numbers.length);
+            let i = 0;
+            let ret = 0;
+
+            while (i < len && ret === 0) {
+                let x = one.numbers[i] || 0;
+                let y = two.numbers[i] || 0;
+
+                if (x !== y) {
+                    ret = (
+                        x > y
+                        ? 1
+                        : -1
+                    );
+                }
+                i += 1;
+            }
+
+            if (ret !== 0) {
+                return ret;
+            }
+
+            if (one.pre === two.pre) {
+                return 0;
+            }
+            if (!one.pre) {
+                return 1;
+            }
+            if (!two.pre) {
+                return -1;
+            }
+            return (
+                one.pre > two.pre
+                ? 1
+                : -1
+            );
+        };
+
+        /**
+            The newest installed version of a module, or undefined when
+            the server holds none.
+
+            @method newest
+            @param {String} name Module name
+            @return {String|undefined}
+        */
+        that.newest = function (name) {
+            let found = Object.keys(index[name] || {});
+
+            if (!found.length) {
+                return undefined;
+            }
+
+            return found.sort(that.compareVersions)[found.length - 1];
         };
 
         /**

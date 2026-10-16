@@ -210,7 +210,16 @@ half of administration: which databases this installation serves and
 which organization they belong to. For each instance it shows the
 database, the connection it is reached through, how many of the
 organization's people may enter it, whether this server has it loaded
-and listening, and whether sign-in is open.
+and listening, how many modules it carries and how many of those are
+behind a package installed on the server, and whether sign-in is open.
+
+The module count is the **fleet view**: the versions are read from each
+instance itself rather than from the registry's cached copy, an
+instance that cannot be asked says "unknown" rather than "none", and
+hovering lists each module with its version and the newer one the
+server holds. Upgrading a fleet is a rolling outage -- one instance
+held at a time -- so the screen says how many are behind and leaves
+the order to you.
 
 From there an organization administrator can:
 
@@ -240,6 +249,11 @@ tenant's -- can also:
   anyone else's make the copy refuse;
 * **drop** an instance: the database and its registration, audited,
   never the one you are signed in to;
+* **deploy** a package this server holds into an instance ("Deploy" on
+  the row): it holds the instance, applies the package, records the
+  version in that instance's `module` row and lets it go. The same act
+  as the command line's, audited at both ends, and a failed one leaves
+  the instance held;
 * **hold** an instance for a deployment ("Maintenance" on the row).
   Schema changes are not run under live traffic (ADR-002 question 7),
   so Deploy brackets itself with this state and it can also be thrown
@@ -281,10 +295,94 @@ modules/<name>/<version>/      # npm-format package: package.json,
 One directory per version, because two databases served by one process
 may run different versions of one module: each database's `module` rows
 say which version it deployed, and its requests dispatch to that
-version's services. A module with no package on the server falls back
+version's services. The module's **client** script comes from the
+package too, so what the browser compiles is a file that changes only
+by deployment access rather than a table row anyone with write access
+could change. A module with no package on the server falls back
 to the code deployed into the database, so existing installations work
 unchanged until they are repackaged. `modulesDir` in `config.json`
 moves the directory.
+
+A service row belonging to **no module** is not loaded and is not
+carried forward (ADR-002 question 6): such a row is source code in a
+table, executed by the server, outside any module and so outside any
+package. Loading only ever walked the modules, so these were never
+executed; nothing said so, and the code sat there looking live. Each
+database is now told once, by name, when its services load. Nothing is
+deleted -- dropping someone's code is their decision:
+
+```sql
+SELECT name, module FROM data_service
+WHERE NOT is_deleted
+  AND module NOT IN (SELECT name FROM module WHERE NOT is_deleted);
+```
+
+### Install, and Deploy
+
+These are two acts, and `install.js` does them separately.
+
+**Install** puts a package's files on this server and changes no
+database at all:
+
+```bash
+node install.js --package <directory-or-tarball>   # [--force]
+node install.js --packages                         # what is installed
+```
+
+The source is a directory or an `npm pack` tarball. Its
+`package.json` and `manifest.json` must agree about the version, and
+the manifest's `module` is the directory name, because that name is
+what a database's `module` row carries and what dispatch matches on. A
+version already installed is left alone unless `--force` says to
+replace it. If the package declares dependencies, `npm install` runs
+inside its own version directory, so two versions of a module may need
+different releases of the same library.
+
+A module's **libraries** come from its own `package.json` and its own
+`node_modules`, which is what lets two versions of a module need
+different releases of the same library:
+
+```json
+"dependencies": {"big.js": "^6.1.1"},
+"featherbone": {"libraries": {"money": {"package": "big.js"}}}
+```
+
+`featherbone.libraries` names the properties the libraries appear
+under on `f`; with no such block every dependency is offered under its
+own name in camel case (`big.js` as `f.bigJs`). They are loaded with
+the database's modules, before the module's own code runs, so a
+library that is missing is reported where it was needed instead of
+stopping the server.
+
+This retires **`ModuleNpm`**. Those rows are still honored for a module
+the server holds no package for, with a line in the log saying so, and
+they are read from the instance now rather than from the manager -- the
+one-mode collapse had left that loader pointed at the manager, so an
+instance's rows had quietly stopped being loaded at all.
+
+**Deploy** applies one installed version to one database:
+
+```bash
+node install.js --deploy <module>[@<version>] --instance <database>
+node install.js --deploy <module>[@<version>] --manager
+```
+
+It holds the instance while it works (see maintenance, above), applies
+the manifest, records the version in that database's `module` row and
+lets the instance go. With more than one version installed the version
+must be named: holding several is the point, so the choice is not
+guessed. **A deployment that fails leaves the instance held** -- the
+schema is then in a state nobody has checked, and ending the
+maintenance from the Instances screen is the deliberate act that says
+someone has. The manager follows the same rules as any instance, but it
+has no registry row of its own to hold and a manager deployment takes
+the administration screens down while it runs, which is why it is a
+command-line act.
+
+`node install.js --instance <name>` with no `--deploy` is still the
+whole framework install: Install and Deploy of Featherbone's own
+manifest in one action, plus registering the instance and its first
+identity. A failure now exits non-zero, so a script can tell.
 
 # Tests
 
