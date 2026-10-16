@@ -4,6 +4,8 @@ Status: **accepted**, 2026-10-11 -- every question in section 8 settled
 the same day. Supersedes the choice offered in `tenant-management-plan.md`
 section 10.
 Author: John, written up by Claude from his direction of 2026-10-11.
+Implementation status as of 2026-10-16 is the last section; the decision
+itself is unchanged.
 
 ## 1. The question that forced this
 
@@ -289,10 +291,14 @@ changes the shape of several items.
 
 * **Section 10 is withdrawn** in favour of this ADR.
 * **`wip/one-instance-mode`** is not wasted: configuration, the `"$db"`
-  marker, Install targets, boot checks and the harness all stand. It stays
-  parked until there is a catalog to serve.
+  marker, Install targets, boot checks and the harness all stand. *Update:
+  rebuilt on this ADR as `feat/one-mode` and merged; the wip branch is
+  obsolete.*
 * **D.4 and D.5** are partly absorbed: the Admin Console seam is now the
-  Install/Deploy split, and editions become enforceable.
+  Install/Deploy split, and editions become enforceable. *Update: D.4 is
+  done (registry, provisioning, templates, sweep in the framework; the
+  module keeps commerce). D.5 is still a decision, now cheaper because the
+  per-database catalog exists.*
 * **Improvement items 4.1, 4.3 and 0.15** are substantially addressed.
 * Tier B (identity) is **untouched** by this and can proceed in parallel.
 
@@ -302,3 +308,39 @@ version a database is on. Then the per-version catalog (question 3), which
 is the bulk of the work. Improvement items 2.6, 3.3 and 0.14 should be
 fixed before extension-by-inheritance or user columns are offered to
 customers, for the reasons in section 7.
+
+## 10. Implementation status, 2026-10-16
+
+**Built and merged** (`feat/adr-002-packages`, `feat/one-mode`; see
+`featherbone-fix-branches.md`):
+
+* Every database has its own catalog (`settings.catalogFor`) and its own
+  route and service registries; routes mount once through `mountedRoutes`
+  and dispatch by what the requesting database deployed.
+* Module server code loads from installed packages under
+  `modules/<name>/<version>/`, the database's `module` row choosing the
+  version, with the old table rows as the fallback. Proven by a fixture
+  package at 1.0.0 and 1.1.0 served to two databases from one process
+  (`test/api/modules.test.js`).
+* Catalog loading is invalidation-based (the next request reloads), and the
+  datasource refuses writes to a read-only package-defined feather (405).
+* The manager is never routable and holds no application modules; the
+  `"$db"` marker (schema 2: `manager` and `instance`) and Install targets
+  stand.
+
+**Not built:**
+
+* Install/Deploy separation in the UI, and the fleet view (which instance is
+  on which version, upgrade the ones behind).
+* Client module scripts served from disk; they are still `Module.script`
+  rows compiled in the browser.
+* Manager Deploy via the CLI, and dropping the now-redundant module-less
+  `Script` rows.
+* D.5 (editions as a boundary) is enforceable on this foundation but not
+  decided.
+* Improvement items 2.6, 3.3 and 0.14 still gate offering extension by
+  inheritance or user columns to customers (section 7).
+
+**Known open:** the catalog-routes golden gained `/fbtest/version ->
+fbtestVersion`; confirm it on a full install with SupplyChain and Job Shop,
+which the sandbox lacks.
