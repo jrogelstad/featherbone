@@ -214,15 +214,32 @@ and listening, and whether sign-in is open.
 
 From there an organization administrator can:
 
-* **register** a database that already exists in the cluster, so the
-  server serves it at `/<database>/` and the organization's users can
-  be granted access to it;
+* **register** a database that already exists in the cluster -- one
+  whose `"$db"` marker says it is an instance; anything else is refused
+  with the reason -- so the server serves it at `/<database>/` and the
+  organization's users can be granted access to it;
 * **attach** an instance that belongs to no organization, as an
   installation that pre-dates ADR-001 has;
 * **close** an instance to sign-in and open it again. Closing leaves
   the database alone -- nobody can enter it, everything in it stays --
   and the instance you are signed in to cannot be closed from inside
-  itself.
+  itself. A demo instance (`isDemo`) whose `expiration` has passed is
+  closed by the server itself, hourly, audited.
+
+A **platform administrator** -- the cluster is Featherbone's, not a
+tenant's -- can also:
+
+* **create** an instance from a template, as a resumable build: clone,
+  verify the clone's marker, grant every organization administrator
+  access with a tenant-super-user profile, open for sign-in. Each step
+  is recorded in the manager, so a build that stops resumes from where
+  it left off ("Resume" on the row), and two servers cannot build the
+  same instance twice;
+* **copy an instance into a template** ("Template" on the row). The
+  source must be quiet: this server lets go of its own connections,
+  anyone else's make the copy refuse;
+* **drop** an instance: the database and its registration, audited,
+  never the one you are signed in to.
 
 Registering does not build a database: `node install.js --instance
 <name>` does that, and it registers the instance as well, so the screen
