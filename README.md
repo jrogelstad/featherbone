@@ -104,7 +104,18 @@ was created in and grants that instance; setting a password writes the
 identity's hash, so it changes once for every instance the person can
 reach; deactivating or deleting the account deactivates that instance's
 grant and leaves the identity and the grant row in place, so the record
-of who could reach what survives. A user who already exists in the
+of who could reach what survives.
+
+**A grant is enough to get in.** Each instance keeps a local
+`user_account` row -- the profile that holds preferences and the contact
+link -- and somebody granted an instance they have never opened has
+none. It is made for them the first time they sign in, on the strength
+of the grant: active identity, same organization as the instance, active
+grant to it. The profile joins `everyone` and nothing else, and the
+making of it is audited as `user_account.provisioned`. Nothing is
+created for a failed sign-in, and nothing is created on the `role` path,
+where a cluster-wide login role plus an on-demand profile would be a way
+into any database. A user who already exists in the
 organization is granted access and keeps the password they already have.
 Group roles and memberships are rows in `role` and `role_membership`
 under both strategies. Each of these writes a row to `admin_audit`.

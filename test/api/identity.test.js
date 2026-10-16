@@ -127,6 +127,25 @@ async function seed() {
             identities.hashPassword(settings.password)
         );
 
+        /*
+            Granted the instance, with no local profile at all: what
+            somebody looks like the moment they are granted an
+            instance they have never opened (B.7).
+        */
+        let freshPk = await identity(
+            "fbtident0006",
+            "fbt_noprofile",
+            identities.hashPassword(settings.password)
+        );
+        await grant("fbtgrant0006", freshPk);
+
+        // Neither granted nor profiled: nothing may be made for them
+        await identity(
+            "fbtident0007",
+            "fbt_ungranted",
+            identities.hashPassword(settings.password)
+        );
+
         // The clean case: an identity with no Postgres login role at
         // all, which is what every user looks like after B.4
         let norolePk = await identity(
@@ -486,28 +505,50 @@ describe("identity sign-in (authStrategy identity)", function () {
             assert.equal(resp.body.created, true);
 
             /*
-                An identity with a grant still needs the local profile
-                the instance keeps (B.5), so creating one here is half
-                the job: the screen says so, and this proves it.
+                The grant is enough: the local profile the instance
+                keeps is made on the first sign-in (B.7). Creating an
+                identity from the screen used to be half the job, and
+                the other half was a SQL statement.
             */
             let attempt = await new Session(base).signIn(
                 name,
                 "Admin-Ui-Pw-2"
             );
-            assert.equal(attempt.status, 401);
-
-            let contact = await access.createContact(admin, name);
-            await admin.raw("POST", "/data/user-account", {
-                contact: {id: contact.id},
-                membership: [{role: "everyone"}],
-                name,
-                password: "ignored-the-identity-has-one"
-            });
 
             assert.equal(
-                (await new Session(base).signIn(name, "Admin-Ui-Pw-2")).status,
+                attempt.status,
                 200,
-                "the password set on the identity is the one that counts"
+                "the identity signs in with no profile prepared"
+            );
+
+            let profile = await db.withClient(
+                settings.testDb,
+                (client) => client.query(
+                    (
+                        "SELECT u.is_super, " +
+                        "  (SELECT count(*)::int FROM role_membership rm " +
+                        "    WHERE rm._parent_role_pk = u._pk " +
+                        "      AND NOT rm.is_deleted) AS roles " +
+                        "FROM user_account u WHERE u.name = $1"
+                    ),
+                    [name]
+                )
+            );
+
+            assert.equal(profile.rows.length, 1, "and the profile is there");
+            assert.equal(profile.rows[0].is_super, false);
+            assert.equal(
+                profile.rows[0].roles,
+                1,
+                "a member of everyone and nothing else"
+            );
+
+            // The password that counts is the identity's, either way
+            assert.equal(
+                (
+                    await new Session(base).signIn(name, "wrong-password")
+                ).status,
+                401
             );
         });
 
@@ -927,6 +968,154 @@ describe("identity sign-in (authStrategy identity)", function () {
             expected.sort();
             assert.deepEqual(roles, expected);
             assert.equal(await hasPgRole(user), false);
+        });
+    });
+
+    /*
+        The local profile an instance needs, made on demand from a
+        live grant (tenant plan B.7).
+    */
+    describe("the local profile a grant implies", function () {
+        function profileOf(name) {
+            return db.withClient(
+                settings.testDb,
+                (client) => client.query(
+                    (
+                        "SELECT u.name, u.is_super, u.is_active, " +
+                        "  u.is_login, u.change_password, " +
+                        "  (SELECT count(*)::int FROM role_membership rm " +
+                        "    WHERE rm._parent_role_pk = u._pk " +
+                        "      AND rm.role = 'everyone' " +
+                        "      AND NOT rm.is_deleted) AS everyone " +
+                        "FROM user_account u WHERE u.name = $1 " +
+                        "  AND NOT u.is_deleted"
+                    ),
+                    [name]
+                )
+            );
+        }
+
+        it("is missing before the first sign-in", async function () {
+            let resp = await profileOf("fbt_noprofile");
+
+            assert.equal(resp.rows.length, 0, "nothing there yet");
+
+            // Fixture sanity: the identity and its grant do exist
+            let granted = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "SELECT i.username, i.status, g.is_active, " +
+                        "  t.pg_database FROM identity i " +
+                        "LEFT OUTER JOIN access_grant g ON " +
+                        "  g._identity_identity_pk = i._pk " +
+                        "LEFT OUTER JOIN tenant t ON " +
+                        "  g._tenant_tenant_pk = t._pk " +
+                        "WHERE i.username = $1"
+                    ),
+                    ["fbt_noprofile"]
+                )
+            );
+
+            assert.equal(
+                granted.rows.length,
+                1,
+                "one identity, one grant: " + JSON.stringify(granted.rows)
+            );
+            assert.equal(granted.rows[0].status, "active");
+            assert.equal(granted.rows[0].is_active, true);
+            assert.equal(granted.rows[0].pg_database, settings.testDb);
+        });
+
+        it("lets a granted identity in and makes the profile",
+                async function () {
+            let session = new Session(base);
+            let resp = await session.signIn(
+                "fbt_noprofile",
+                settings.password
+            );
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let made = await profileOf("fbt_noprofile");
+
+            assert.equal(made.rows.length, 1, "the profile was made");
+
+            let row = made.rows[0];
+
+            assert.equal(row.is_active, true);
+            assert.equal(row.is_login, true);
+            assert.equal(
+                row.is_super,
+                false,
+                "and it carries no authority of its own"
+            );
+            assert.equal(row.change_password, false);
+            assert.equal(row.everyone, 1, "a member of everyone, only");
+        });
+
+        it("records it in the audit trail", async function () {
+            let resp = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "SELECT a.detail, i.username FROM admin_audit a " +
+                        "LEFT OUTER JOIN identity i ON " +
+                        "  a._target_identity_identity_pk = i._pk " +
+                        "WHERE a.action = 'user_account.provisioned'"
+                    )
+                )
+            );
+
+            assert.ok(
+                resp.rows.some((row) => row.username === "fbt_noprofile"),
+                "the profile created is audited against the identity"
+            );
+        });
+
+        it("signs in again without making a second one",
+                async function () {
+            let session = new Session(base);
+
+            assert.equal(
+                (
+                    await session.signIn("fbt_noprofile", settings.password)
+                ).status,
+                200
+            );
+
+            let again = await profileOf("fbt_noprofile");
+
+            assert.equal(again.rows.length, 1, "still exactly one");
+        });
+
+        it("makes nothing for an identity with no grant",
+                async function () {
+            let session = new Session(base);
+            let resp = await session.signIn(
+                "fbt_ungranted",
+                settings.password
+            );
+
+            assert.equal(resp.status, 401, "refused, as before");
+
+            let none = await profileOf("fbt_ungranted");
+
+            assert.equal(
+                none.rows.length,
+                0,
+                "and the refusal left nothing behind"
+            );
+        });
+
+        it("makes nothing on a wrong password", async function () {
+            let session = new Session(base);
+
+            await session.signIn("fbt_noprofile2", settings.password);
+
+            let none = await profileOf("fbt_noprofile2");
+
+            assert.equal(none.rows.length, 0);
         });
     });
 
