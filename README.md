@@ -286,6 +286,51 @@ to the code deployed into the database, so existing installations work
 unchanged until they are repackaged. `modulesDir` in `config.json`
 moves the directory.
 
+### Install, and Deploy
+
+These are two acts, and `install.js` does them separately.
+
+**Install** puts a package's files on this server and changes no
+database at all:
+
+```bash
+node install.js --package <directory-or-tarball>   # [--force]
+node install.js --packages                         # what is installed
+```
+
+The source is a directory or an `npm pack` tarball. Its
+`package.json` and `manifest.json` must agree about the version, and
+the manifest's `module` is the directory name, because that name is
+what a database's `module` row carries and what dispatch matches on. A
+version already installed is left alone unless `--force` says to
+replace it. If the package declares dependencies, `npm install` runs
+inside its own version directory, so two versions of a module may need
+different releases of the same library.
+
+**Deploy** applies one installed version to one database:
+
+```bash
+node install.js --deploy <module>[@<version>] --instance <database>
+node install.js --deploy <module>[@<version>] --manager
+```
+
+It holds the instance while it works (see maintenance, above), applies
+the manifest, records the version in that database's `module` row and
+lets the instance go. With more than one version installed the version
+must be named: holding several is the point, so the choice is not
+guessed. **A deployment that fails leaves the instance held** -- the
+schema is then in a state nobody has checked, and ending the
+maintenance from the Instances screen is the deliberate act that says
+someone has. The manager follows the same rules as any instance, but it
+has no registry row of its own to hold and a manager deployment takes
+the administration screens down while it runs, which is why it is a
+command-line act.
+
+`node install.js --instance <name>` with no `--deploy` is still the
+whole framework install: Install and Deploy of Featherbone's own
+manifest in one action, plus registering the instance and its first
+identity. A failure now exits non-zero, so a script can tell.
+
 # Tests
 
 A regression suite lives under `test/` and needs no extra dependencies (Node 18+ and the PostgreSQL client tools).

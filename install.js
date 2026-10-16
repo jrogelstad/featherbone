@@ -27,6 +27,7 @@
     const {Database} = require("./server/database");
     const {Installer} = require("./server/services/installer");
     const {Manager} = require("./server/services/manager");
+    const {Packages} = require("./server/services/packages");
     const datasource = require("./server/datasource");
     const format = require("pg-format");
     const path = require("path");
@@ -34,6 +35,7 @@
     const db = new Database();
     const installer = new Installer();
     const manager = new Manager();
+    const packages = new Packages();
     const config = new Config();
 
     let conf;
@@ -53,6 +55,21 @@
     */
     let target;
     let targetDb;
+    /*
+        Install and Deploy are two acts (ADR-002 section 6). Install
+        puts a package's files on this server and touches no database;
+        Deploy applies one installed (module, version) to one database
+        and records it there. `--package` and `--packages` are the
+        first, `--deploy` the second; with none of them this is the
+        ordinary framework install, which is Install and Deploy of the
+        framework's own manifest in one action.
+    */
+    let packageSrc;
+    let isDeploy = false;
+    let listPackages = false;
+    let deployName;
+    let deployVersion;
+    let force = false;
     /*
         An application database to install and register in the control
         plane, so the server can serve it (tenant plan A.1). Without
@@ -76,7 +93,8 @@
     let orgGiven = false;
     const FLAGS = [
         "--mode", "--manager", "--instance", "--target", "--dir", "-D",
-        "-U", "--username", "-W", "--password", "--organization"
+        "-U", "--username", "-W", "--password", "--organization",
+        "--package", "--packages", "--deploy", "--force"
     ];
 
     argv.forEach(function (arg, i) {
@@ -98,6 +116,18 @@
         }
 
         switch (arg) {
+        case "--package":
+            packageSrc = argv[argv.indexOf("--package") + 1];
+            break;
+        case "--packages":
+            listPackages = true;
+            break;
+        case "--deploy":
+            deployName = argv[argv.indexOf("--deploy") + 1];
+            break;
+        case "--force":
+            force = true;
+            break;
         case "--organization":
             orgName = argv[argv.indexOf("--organization") + 1];
             orgGiven = true;
@@ -136,15 +166,122 @@
         }
     });
 
+    if (deployName && deployName.indexOf("@") !== -1) {
+        deployVersion = deployName.slice(deployName.indexOf("@") + 1);
+        deployName = deployName.slice(0, deployName.indexOf("@"));
+    }
+
     dir = path.resolve(__dirname, thedir || ".");
 
     if (superuser && superpwd === undefined) {
         throw new Error("Password must be provided for user");
     }
 
+    /*
+        A failed install used to exit 0, so nothing calling this could
+        tell: the message went to stderr and the shell was told all was
+        well. Install and Deploy are meant to be run from scripts
+        (ADR-002 section 6), so they answer honestly.
+    */
     function error(err) {
         console.error(err);
-        process.exit();
+        process.exit(1);
+    }
+
+    /*
+        Install (ADR-002 section 6): register a package's files on this
+        server. No database changes, so this needs neither a connection
+        nor a target; Deploy is what reaches a database.
+    */
+    async function installPackage() {
+        let resp = await config.read();
+        let where = resp.modulesDir;
+        let done = packages.install(packageSrc, {
+            dir: where,
+            force
+        });
+
+        console.log(
+            "Installed " + done.name + " " + done.version + " at " +
+            done.dir + (
+                done.libraries
+                ? " with its libraries"
+                : ""
+            )
+        );
+        console.log(
+            "Nothing is deployed yet. Apply it to a database with " +
+            "`node install.js --deploy " + done.name + "@" +
+            done.version + " --instance <database>`."
+        );
+    }
+
+    async function showPackages() {
+        let resp = await config.read();
+        let where = resp.modulesDir;
+        let found;
+
+        packages.scan(where);
+        found = packages.installed();
+
+        if (!found.length) {
+            console.log("No packages installed in " + where);
+            return;
+        }
+
+        console.log("Packages installed in " + where + ":");
+        found.forEach(function (one) {
+            console.log("  " + one.name + " " + one.version);
+        });
+    }
+
+    /*
+        Which package Deploy is to apply: the version asked for, or the
+        one installed version when there is only one. Choosing between
+        several is the caller's, because the point of holding more than
+        one is that two databases run different ones (ADR-002
+        question 3).
+    */
+    function resolveDeploy(resp) {
+        let where = resp.modulesDir;
+        let found;
+
+        packages.scan(where);
+        found = packages.installed().filter(
+            (one) => one.name === deployName
+        );
+
+        if (!found.length) {
+            throw new Error(
+                "No package \"" + deployName + "\" installed in " +
+                where + ". Install one with `--package <file>`, or " +
+                "list what is there with `--packages`."
+            );
+        }
+
+        if (!deployVersion) {
+            if (found.length > 1) {
+                throw new Error(
+                    deployName + " is installed at " +
+                    found.map((one) => one.version).join(", ") +
+                    ". Name the one to deploy, as " + deployName + "@" +
+                    found[0].version + "."
+                );
+            }
+            deployVersion = found[0].version;
+        }
+
+        let pkg = packages.resolve(deployName, deployVersion);
+
+        if (!pkg) {
+            throw new Error(
+                deployName + " " + deployVersion +
+                " is not installed on this server. Installed: " +
+                found.map((one) => one.version).join(", ")
+            );
+        }
+
+        return pkg.dir;
     }
 
     function connect() {
@@ -211,10 +348,25 @@
             );
         }
 
-        console.log(
-            "Installing " + target + " database \"" + targetDb +
-            "\" in " + mode + " mode"
-        );
+        if (deployName) {
+            isDeploy = true;
+            dir = resolveDeploy(conf);
+            console.log(
+                "Deploying " + deployName + " " + deployVersion +
+                " into " + target + " database \"" + targetDb + "\""
+            );
+            if (target === "manager") {
+                console.warn(
+                    "A manager deployment takes the administration " +
+                    "screens down while it runs (ADR-002 question 5)."
+                );
+            }
+        } else {
+            console.log(
+                "Installing " + target + " database \"" + targetDb +
+                "\" in " + mode + " mode"
+            );
+        }
 
         let missing = config.missingSecrets(conf);
         if (missing.length) {
@@ -278,6 +430,14 @@
 
         // Otherwise create database first
         } else {
+            if (isDeploy) {
+                throw new Error(
+                    "There is no database \"" + targetDb +
+                    "\" to deploy into. Deploy applies a package to a " +
+                    "database that exists; `--instance <name>` with no " +
+                    "`--deploy` builds one."
+                );
+            }
             msg = "Creating database \"";
             msg += targetDb + "\"";
             console.log(msg);
@@ -320,7 +480,7 @@
                 client.query(sql).then(resolve).catch(() => resolve());
             }
 
-            if (!superuser) {
+            if (!superuser || isDeploy) {
                 resolve();
                 return;
             }
@@ -349,6 +509,187 @@
     }
 
     /*
+        A manager connection for the registry writes a deployment makes
+        around itself. The manager is not an instance and has no
+        registry row of its own, so a manager deployment has nothing to
+        hold -- which is the other reason it is a command-line act.
+    */
+    async function managerClient() {
+        let cpClient = new Client({
+            database: config.managerDatabase(conf),
+            host: conf.pgHost,
+            password: superpwd || conf.pgPassword,
+            port: conf.pgPort,
+            user: superuser || conf.pgUser
+        });
+
+        await cpClient.connect();
+        return cpClient;
+    }
+
+    async function holdInstance(hold) {
+        let cpClient;
+        let resp;
+
+        if (target !== "instance") {
+            return false;
+        }
+
+        try {
+            cpClient = await managerClient();
+        } catch (ignore) {
+            console.warn(
+                "Cannot reach the manager to hold \"" + targetDb +
+                "\"; deploying without it."
+            );
+            return false;
+        }
+
+        try {
+            resp = await cpClient.query(
+                (
+                    "SELECT 1 FROM information_schema.columns " +
+                    "WHERE table_name = 'tenant' " +
+                    "  AND column_name = 'is_maintenance'"
+                )
+            );
+
+            if (!resp.rows.length) {
+                if (hold) {
+                    console.warn(
+                        "This manager has no maintenance state yet, so " +
+                        "the instance stays open while the schema " +
+                        "changes. Run `node install.js --manager` to " +
+                        "upgrade it."
+                    );
+                }
+                return false;
+            }
+
+            resp = await cpClient.query(
+                (
+                    "UPDATE tenant SET is_maintenance = $2, " +
+                    "  updated = now(), updated_by = $3 " +
+                    "WHERE pg_database = $1 AND NOT is_deleted " +
+                    "RETURNING id"
+                ),
+                [targetDb, hold === true, conf.pgUser]
+            );
+
+            if (!resp.rows.length) {
+                if (hold) {
+                    console.warn(
+                        "\"" + targetDb + "\" is not registered in " +
+                        "the manager, so there is nothing to hold."
+                    );
+                }
+                return false;
+            }
+
+            console.log(
+                hold
+                ? "Holding \"" + targetDb + "\" for the deployment"
+                : "\"" + targetDb + "\" is open again"
+            );
+            return true;
+        } finally {
+            await cpClient.end();
+        }
+    }
+
+    /*
+        What the database now carries (ADR-002 question 2): one row per
+        module with its version, which is the record Deploy owes the
+        database, what dispatch reads to pick a handler, and what the
+        fleet view compares against the packages on the server.
+
+        A manifest that ships a client module file records this itself
+        while installing; one that ships only services or feathers
+        leaves nothing behind, and did until now.
+    */
+    async function recordDeploy() {
+        let modules = await datasource.request({
+            client,
+            method: "GET",
+            name: "Module",
+            properties: ["id", "name", "version"],
+            user
+        }, true);
+        let found = modules.find((row) => row.name === deployName);
+
+        if (found && found.version === deployVersion) {
+            return;
+        }
+
+        if (found) {
+            await datasource.request({
+                client,
+                data: [{
+                    op: "replace",
+                    path: "/version",
+                    value: deployVersion
+                }],
+                id: found.id,
+                method: "PATCH",
+                name: "Module",
+                user
+            }, true);
+            console.log(
+                deployName + " in \"" + targetDb + "\" moves from " +
+                found.version + " to " + deployVersion
+            );
+            return;
+        }
+
+        await datasource.request({
+            client,
+            data: {
+                name: deployName,
+                owner: user,
+                script: "",
+                version: deployVersion
+            },
+            id: Buffer.from(deployName).toString("base64"),
+            method: "POST",
+            name: "Module",
+            user
+        }, true);
+        console.log(
+            deployName + " " + deployVersion + " is recorded in \"" +
+            targetDb + "\""
+        );
+    }
+
+    /*
+        Deploy (ADR-002 sections 6 and 7): hold the instance, apply the
+        package, let it go. A deployment that fails leaves the hold on
+        deliberately -- the schema is then in a state nobody has
+        checked, and "End maintenance" on the Instances screen is the
+        deliberate act that says it has been.
+    */
+    async function deploy() {
+        let held = await holdInstance(true);
+
+        try {
+            await install();
+            await recordDeploy();
+        } catch (err) {
+            if (held) {
+                console.error(
+                    "The deployment failed with \"" + targetDb +
+                    "\" still held. Check the database, then end the " +
+                    "maintenance from the Instances screen."
+                );
+            }
+            throw err;
+        }
+
+        if (held) {
+            await holdInstance(false);
+        }
+    }
+
+    /*
         Put the instance in the control plane's registry so a server can
         route "/<name>/" to it (tenant plan A.1). Without this an
         instance database exists but nothing knows about it, and the
@@ -367,7 +708,7 @@
         travelling as a parameter rather than in the SQL text.
     */
     async function registerInstance() {
-        if (!instanceName) {
+        if (!instanceName || isDeploy) {
             return;
         }
 
@@ -481,7 +822,7 @@
         first administrator too (there is no one else to appoint one).
     */
     async function provisionIdentity() {
-        if (!instanceName) {
+        if (!instanceName || isDeploy) {
             return;
         }
 
@@ -652,6 +993,21 @@
     }
 
     // Real work starts here
+    /*
+        Install and the package listing are the server's own business
+        and never open a database (ADR-002 section 6), so they answer
+        on their own and stop.
+    */
+    if (listPackages) {
+        showPackages().then(() => process.exit()).catch(error);
+        return;
+    }
+
+    if (packageSrc) {
+        installPackage().then(() => process.exit()).catch(error);
+        return;
+    }
+
     config.read().then(
         start
     ).then(
@@ -659,7 +1015,13 @@
     ).then(
         connect // This time to database with service user
     ).then(
-        install
+        function () {
+            return (
+                isDeploy
+                ? deploy()
+                : install()
+            );
+        }
     ).then(
         registerInstance
     ).then(
