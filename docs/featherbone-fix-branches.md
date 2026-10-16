@@ -8,6 +8,34 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Merge order, 2026-10-16
+
+Ten branches went up this day. Three stand alone and can go in any
+order:
+
+1. `fix/registry-refresh-one-at-a-time` -- the F.3 hang.
+2. `fix/harness-upgrade-manager` -- the harness's manager copy.
+3. `docs/platform-admin-items`, then `docs/decisions-2026-10-16` --
+   docs only, the second written on top of the first.
+
+The rest are **one stack, in this order**, each built on the one above
+it:
+
+4. `fix/one-pool-per-database`
+5. `feat/g1-instance-picker`
+6. `feat/g2-platform-console`
+7. `feat/demo-drop-after-grace`
+8. `feat/fleet-group-deploy`
+9. `feat/d5-edition-platform-only`
+10. `feat/c3-azure-ad-sso`
+
+Merging the last one brings all of them. `feat/c3-azure-ad-sso` also
+carries the harness change from (2), so whichever of the two is merged
+first, the other is a no-op. Each one's own row below says what it is
+and what it was tested against; the suite was run over the whole stack
+at the end -- unit 342/0, and the api suite at the sandbox's
+14-failure baseline, which is what it was before any of this.
+
 ## Delivery
 
 - **Update 2026-10-08: pushing from the cloud works now.** Attaching `FeatherboneJS/Featherbone` to the session with push access (the add-repo step) lets the session push branches directly. Clone it shallow, branch from `master`, commit as `jrogelstad <john@rogelstad.net>` with the Co-Authored-By trailer, push `fix/<item>`, and John opens the PR. One branch per plan item. The bundle workflow below is no longer needed.
