@@ -793,21 +793,47 @@
                 );
             }
 
+            /*
+                A registered instance is never quiet while this process
+                serves it: its pool holds a LISTEN connection. Cloning
+                one as a template is legitimate (tenant plan D.1), so
+                let go of our own connections first; the next registry
+                read takes it back up. Anyone else's connections still
+                make the clone refuse, which is the honest answer on a
+                second node.
+            */
+            let held = tenants.find((t) => t.pgDatabase === source);
+
+            if (held) {
+                await releaseTenant(held);
+            }
+
             let create = "CREATE DATABASE %I TEMPLATE %I;";
 
             await conn1.client.query(create.format([name, source]));
             created = true;
 
-            // Bring the instance's module list up to date from the
-            // database that was just built
+            /*
+                Bring the instance's module list up to date from the
+                database that was just built. Asked of the manager
+                (tenant false), not the caller: Tenant lives only
+                there, and a fresh instance's catalog has never heard
+                of it (tenant plan D.1; before this it only worked on
+                databases that predate the manager split). The pipeline
+                checks out and commits its own connection -- a lent
+                client's transaction is the lender's to commit, and an
+                uncommitted PATCH here held the tenant row locked
+                against the very step that activates it.
+            */
             instances = await that.request({
-                client: pClient,
                 method: "GET",
                 name: "Tenant",
                 filter: {criteria: [{
                     property: "pgDatabase",
                     value: name
-                }]}
+                }]},
+                tenant: false,
+                user
             }, true);
 
             if (!instances.length) {
@@ -834,7 +860,6 @@
             }, true);
 
             await that.request({
-                client: pClient,
                 id: instances[0].id,
                 method: "PATCH",
                 name: "Tenant",
@@ -843,6 +868,7 @@
                     path: "/modules",
                     value: mods
                 }],
+                tenant: false,
                 user
             }, true);
         } catch (err) {

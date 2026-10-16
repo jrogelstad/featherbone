@@ -3049,6 +3049,18 @@
             "/:db/admin/instance/status",
             doAdminInstance("setInstanceActive")
         );
+        dbRouter.post(
+            "/:db/admin/instance/provision",
+            doAdminInstance("provisionInstance")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/provision/resume",
+            doAdminInstance("provisionResume")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/drop",
+            doAdminInstance("dropInstance")
+        );
         dbRouter.get("/:db/sessions", doGetSessions);
         dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);
