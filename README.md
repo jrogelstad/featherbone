@@ -76,38 +76,23 @@ there (the default is `instance`).
 
 ## Identity sign-in
 
-Sign-in has two strategies, chosen by `authStrategy` in `config.json`
-(ADR-001, `docs/adr-001-identity-and-tenancy.md`):
+Sign-in is by identity (ADR-001, `docs/adr-001-identity-and-tenancy.md`):
+the password is verified in Node against the `identity` table in the
+manager. An identity belongs to an organization, a username is unique
+within its organization, and an `access_grant` row per instance says which
+databases the identity may enter -- so one person is one password across
+their test and production instances. No Postgres login role is involved:
+the service account in `config.json` is the only role Featherbone uses,
+and it needs no `CREATEROLE`.
 
-* `role` (the default) -- today's path: the password is checked by
-  opening a Postgres connection as the user's login role.
-* `identity` -- the password is verified in Node against the `identity`
-  table in the manager. An identity belongs to an organization, a
-  username is unique within its organization, and an `access_grant` row
-  per instance says which databases the identity may enter -- so one
-  person is one password across their test and production instances,
-  and no Postgres login role is involved.
-
-`authStrategy` is in `server/config.template.json` as `"role"`, which is
-also what the code assumes when the setting is absent.
-
-To move an existing installation, run `node scripts/migrate-identities.js`
-(a dry run; add `--apply` to write). It creates the organization, attaches
-registered instances, and makes an identity per existing user with an
-access grant per instance. Given superuser credentials
-(`--username`/`--password`) it also copies each user's password verifier
-from `pg_authid`, so every password keeps working and is re-hashed to the
-application's own form (scrypt) on first sign-in. Then set
-`"authStrategy": "identity"` and restart; setting it back to `"role"`
-reverses the cutover until login roles are retired.
-
-Under `identity`, managing users stops touching the cluster. Creating a
-user account creates the identity in the organization of the instance it
-was created in and grants that instance; setting a password writes the
-identity's hash, so it changes once for every instance the person can
-reach; deactivating or deleting the account deactivates that instance's
-grant and leaves the identity and the grant row in place, so the record
-of who could reach what survives.
+Managing users never touches the cluster. Creating a user account creates
+the identity in the organization of the instance it was created in and
+grants that instance; setting a password writes the identity's hash, so it
+changes once for every instance the person can reach; deactivating or
+deleting the account deactivates that instance's grant and leaves the
+identity and the grant row in place, so the record of who could reach what
+survives. Group roles and memberships are rows in `role` and
+`role_membership`. Each of these writes a row to `admin_audit`.
 
 **A grant is enough to get in.** Each instance keeps a local
 `user_account` row -- the profile that holds preferences and the contact
@@ -116,58 +101,60 @@ none. It is made for them the first time they sign in, on the strength
 of the grant: active identity, same organization as the instance, active
 grant to it. The profile joins `everyone` and nothing else, and the
 making of it is audited as `user_account.provisioned`. Nothing is
-created for a failed sign-in, and nothing is created on the `role` path,
-where a cluster-wide login role plus an on-demand profile would be a way
-into any database. A user who already exists in the
+created for a failed sign-in. A user who already exists in the
 organization is granted access and keeps the password they already have.
-Group roles and memberships are rows in `role` and `role_membership`
-under both strategies. Each of these writes a row to `admin_audit`.
 
-Two steps are left to the operator once `authStrategy` is `identity`
-everywhere: revoke `CREATEROLE` from the service account, and stop
-relying on `Role.isLogin`, which is deprecated.
-
-### Starting a new installation on identities
-
-A brand new installation cannot begin on `"identity"`: `node install.js`
-creates the first administrator as a Postgres role and a local account,
-and nothing creates the organization an identity needs, so sign-in would
-refuse with "Instance … is not assigned to an organization". The path is
-to install, then migrate immediately:
+### Starting a new installation
 
 ```bash
 node install.js --manager
-node install.js --instance <name>
-node scripts/migrate-identities.js --apply     --username postgres --password <pw>     --organization "<your organization>" --org-admin admin
-# then set "authStrategy": "identity" and restart
+node install.js --instance <name> --organization "<your organization>"
 ```
 
-The backfill creates the organization, makes the installer's
-administrator an identity with the password it already has, grants it the
-instance and -- with `--org-admin` -- appoints it the organization's
-first administrator. Nothing else does that: the Users screen lets one
-administrator promote another, which is no use when there is not one yet.
+Installing an instance attaches it to the organization (created if it
+does not exist; `--organization` defaults to "Default", and an instance
+that already belongs to one keeps it), makes the service account from
+`config.json` an identity in that organization with the password in
+`pgPassword`, grants it the instance, and appoints it the organization's
+administrator -- and, when it is the first identity on the platform, the
+platform administrator. Sign in to `/<name>/` as that user and create the
+others from the Users screen. Re-running the install on an instance is
+safe: it updates the installed scripts and changes nothing in the manager
+it already made.
 
-### The migration is one way
+### Moving an existing installation
 
-Set `authStrategy` to `identity` when the backfill is done, and that is
-the direction of travel: the role path is on its way out (tenant plan
-B.8), so there is no supported way back and no tooling for one. The
-safety net before a cutover is a backup:
+An installation that predates identities has nobody who can sign in until
+it has been migrated, since there is no longer any other way in. Run
+`node scripts/migrate-identities.js` (a dry run; add `--apply` to write).
+It creates the organization, attaches registered instances, and makes an
+identity per existing user with an access grant per instance. Given
+superuser credentials (`--username`/`--password`) it also copies each
+user's password verifier from `pg_authid`, so every password keeps working
+and is re-hashed to the application's own form (scrypt) on first sign-in.
+`--org-admin <username>` appoints the organization's first administrator;
+nothing else does. Then re-run `node install.js --instance <name>` on each
+instance so it carries the current scripts, and restart.
+
+```bash
+node scripts/migrate-identities.js --apply \
+    --username postgres --password <pw> \
+    --organization "<your organization>" --org-admin admin
+node install.js --instance <name>
+```
+
+The migration is one way: once an installation is on identities there is
+no path back to Postgres login roles, and no tooling for one. The safety
+net before it is a backup:
 
 ```bash
 pg_dump <each instance> > <name>-before-cutover.sql
 pg_dump <the manager>   > manager-before-cutover.sql
 ```
 
-**Setting the flag back to `"role"` is not a rollback**, and it is worth
-being precise about why. It works only until the first password is
-changed or the first user is created on the identity path, because
-neither reaches Postgres: a password set through an identity leaves the
-cluster role holding whatever it held before, and a user created on the
-identity path has no cluster role at all. Flip the flag after either has
-happened and those people are locked out with nothing in the database to
-explain it. Restore the backup instead.
+The login roles the old users had are left on the cluster; drop them when
+you are satisfied, and revoke `CREATEROLE` from the service account, which
+no longer needs it.
 
 ### Administering identities
 
@@ -188,12 +175,33 @@ What you may do depends on who you are (ADR-001):
 * a **tenant super user** with neither flag may only act on people who
   can already reach the instance they are signed in to.
 
-The screen reads under either strategy and says which one is in force,
-so you can see what identity sign-in would do before switching to it.
+Sign-in is organization-scoped, so a platform administrator is never
+signed in to another organization's instance. For the emergency that
+rule would otherwise block -- an organization whose only administrator
+has left -- the Users screen offers platform administrators an
+organization picker: pick the organization, suspend the departed
+administrator, appoint the replacement. Every change is audited against
+the organization acted on.
+
 It is served from `client/components/admin-page.js`, which the
 unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
+
+### Connection budget
+
+Each instance the server loads gets its own connection pool, capped by
+`pgTenantPoolSize` (default 10) with idle clients closed after
+`pgTenantIdleTimeout` milliseconds (default 60000), plus one held
+connection listening for events. The manager's own pool is capped by
+`pgMaxConnections` (default 10). The worst case for one node is
+
+    instances x (pgTenantPoolSize + 1) + pgMaxConnections
+
+but a quiet instance holds only its listener, so the practical floor is
+`instances + pgMaxConnections`. Size `max_connections` on the cluster
+from the worst case across every node you run, with headroom; lower
+`pgTenantPoolSize` or put PgBouncer in front when instances multiply.
 
 ### Administering instances
 
@@ -206,23 +214,53 @@ and listening, and whether sign-in is open.
 
 From there an organization administrator can:
 
-* **register** a database that already exists in the cluster, so the
-  server serves it at `/<database>/` and the organization's users can
-  be granted access to it;
+* **register** a database that already exists in the cluster -- one
+  whose `"$db"` marker says it is an instance; anything else is refused
+  with the reason -- so the server serves it at `/<database>/` and the
+  organization's users can be granted access to it;
 * **attach** an instance that belongs to no organization, as an
   installation that pre-dates ADR-001 has;
 * **close** an instance to sign-in and open it again. Closing leaves
   the database alone -- nobody can enter it, everything in it stays --
   and the instance you are signed in to cannot be closed from inside
-  itself.
+  itself. A demo instance (`isDemo`) whose `expiration` has passed is
+  closed by the server itself, hourly, audited.
+
+A **platform administrator** -- the cluster is Featherbone's, not a
+tenant's -- can also:
+
+* **create** an instance from a template, as a resumable build: clone,
+  verify the clone's marker, grant every organization administrator
+  access with a tenant-super-user profile, open for sign-in. Each step
+  is recorded in the manager, so a build that stops resumes from where
+  it left off ("Resume" on the row), and two servers cannot build the
+  same instance twice;
+* **copy an instance into a template** ("Template" on the row). The
+  source must be quiet: this server lets go of its own connections,
+  anyone else's make the copy refuse;
+* **drop** an instance: the database and its registration, audited,
+  never the one you are signed in to;
+* **hold** an instance for a deployment ("Maintenance" on the row).
+  Schema changes are not run under live traffic (ADR-002 question 7),
+  so Deploy brackets itself with this state and it can also be thrown
+  by hand when something stopped halfway. While it is on the instance
+  answers `503` with an explanation -- not the `404` an unservable
+  database used to give -- for everything except its own pages,
+  sign-in and the administration routes, and only a platform
+  administrator can sign in: on an installation with one instance, the
+  screen that ends the maintenance is served from that instance.
+  Beginning and ending are both audited.
+
+The maintenance state is a column on the registry row, so a manager
+database built before it needs `node install.js --manager` once. Until
+that is run the screen reports no instance in maintenance and the
+button says what to do, rather than failing: an upgrade is never
+blocked by it.
 
 Registering does not build a database: `node install.js --instance
 <name>` does that, and it registers the instance as well, so the screen
 is for databases that exist but are not registered here. Dropping a
-database is still the command line's. Provisioning from the screen is
-tenant plan D.1, and so is checking the `"$db"` marker before
-registering, which nothing does yet -- a database registered by mistake
-shows up as loaded but answers nothing.
+database is the screen's now as well as the command line's.
 
 A tenant super user with no organization flag sees the instance they
 are signed in to and changes nothing: what a database is registered as

@@ -55,9 +55,6 @@ async function start() {
     child = spawn(process.execPath, ["server.js"], {
         cwd: settings.root,
         env: Object.assign({}, process.env, {
-            // Sign-in is by identity (ADR-001). Set here so the suite
-            // does not depend on what server/config.json happens to say.
-            authStrategy: "identity",
             managerDatabase: settings.managerDb,
             modulesDir: settings.modulesDir,
             PORT: String(settings.port),

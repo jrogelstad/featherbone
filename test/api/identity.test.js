@@ -1,22 +1,17 @@
 /*
-    Identity sign-in (ADR-001 B.1/B.2), behind authStrategy "identity".
+    Identity sign-in (ADR-001 B.1/B.2), the only way in (B.8).
 
-    A second server is started against the same databases with
-    authStrategy=identity, so the suite proves both strategies work on
-    one build. Identities are seeded in the manager: one with the
-    application's own scrypt hash, one with the verifier Postgres holds
-    for the harness user, which is the migration path -- the password
-    must keep working, and the verifier must be replaced by a scrypt
-    hash on the first successful sign-in.
+    Identities are seeded in the manager: one with the application's
+    own scrypt hash, one with the verifier Postgres held for the harness
+    user, which is the migration path -- the password must keep
+    working, and the verifier must be replaced by a scrypt hash on the
+    first successful sign-in.
 */
 /*jslint node*/
 "use strict";
 
 const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const path = require("path");
-const {spawn} = require("child_process");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
@@ -24,7 +19,6 @@ const access = require("./lib/access");
 const {Identities} = require("../../server/services/identities");
 
 const identities = new Identities();
-const PORT = settings.port + 2;
 const GENERIC = "Invalid sign in credentials.";
 
 async function seed() {
@@ -121,55 +115,10 @@ async function seed() {
     });
 }
 
-describe("identity sign-in (authStrategy identity)", function () {
-    let child;
-    let base = "http://127.0.0.1:" + PORT + "/" + settings.testDb;
+describe("identity sign-in", function () {
+    let base = settings.baseUrl;
 
-    before(async function () {
-        await seed();
-
-        let logFile = path.join(settings.artifacts, "server-identity.log");
-        child = spawn(process.execPath, ["server.js"], {
-            cwd: settings.root,
-            env: Object.assign({}, process.env, {
-                authStrategy: "identity",
-                managerDatabase: settings.managerDb,
-                modulesDir: settings.modulesDir,
-                PORT: String(PORT),
-                clientPort: String(PORT),
-                logSilent: "true",
-                twoFactorAuth: "false"
-            }),
-            stdio: [
-                "ignore",
-                fs.openSync(logFile, "w"),
-                fs.openSync(logFile, "a")
-            ]
-        });
-
-        let started = Date.now();
-        while (Date.now() - started < 60000) {
-            if (child.exitCode !== null) {
-                throw new Error(
-                    "identity server exited; see " + logFile
-                );
-            }
-            try {
-                let resp = await fetch(base + "/", {redirect: "manual"});
-                if (resp.status < 500) {
-                    return;
-                }
-            } catch (ignore) {}
-            await new Promise((r) => setTimeout(r, 250));
-        }
-        throw new Error("identity server did not start; see " + logFile);
-    });
-
-    after(function () {
-        if (child && child.exitCode === null) {
-            child.kill("SIGTERM");
-        }
-    });
+    before(seed);
 
     it("signs in against the application's own hash and serves data",
             async function () {
@@ -353,7 +302,7 @@ describe("identity sign-in (authStrategy identity)", function () {
             let resp = await admin.get("/admin/overview");
 
             assert.equal(resp.organization.name, "FBTest");
-            assert.equal(resp.authStrategy, "identity");
+            assert.equal(resp.authStrategy, undefined, "no strategy flag");
             assert.ok(
                 resp.identities.some(
                     (row) => row.username === settings.adminUser
@@ -609,28 +558,304 @@ describe("identity sign-in (authStrategy identity)", function () {
 
             assert.equal(resp.status, 401);
         });
+    });
 
-        it("serves the same screen from the harness server too",
-                async function () {
-            /*
-                Both servers in this run sign in by identity against
-                the same databases, so the harness server shows the
-                same organization. (This used to prove the screen was
-                readable before the cutover, when the harness server
-                still used Postgres roles; that path is on its way out,
-                tenant plan B.8.)
-            */
-            let other = new Session();
-            let resp = await other.signIn(
+    /*
+        The break-glass path (ADR-001 requirement 3, tenant plan A.4).
+        Sign-in is organization-scoped, so a platform administrator can
+        never be signed in to another organization's instance; instead
+        the admin routes let them name the organization to act on. The
+        canonical emergency: an organization's only administrator has
+        left, so somebody must suspend them and appoint a replacement,
+        and both actions must land in the audit trail against that
+        organization.
+    */
+    describe("break-glass: reaching another organization (A.4)",
+            function () {
+        const ORG = "FBGlass";
+        const ORG_ID = "fbtglass0001";
+        const DEPARTED = "fbt_departed";
+        const REPLACEMENT = "fbt_replacement";
+        let admin;
+        let ids = {};
+
+        function flags(username, data) {
+            return db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "UPDATE identity SET is_org_admin = $2, " +
+                        "is_platform_admin = $3 WHERE username = $1"
+                    ),
+                    [
+                        username,
+                        data.isOrgAdmin === true,
+                        data.isPlatformAdmin === true
+                    ]
+                )
+            );
+        }
+
+        async function seed() {
+            await db.withClient(settings.managerDb, async function (client) {
+                let resp = await client.query(
+                    (
+                        "SELECT _pk FROM organization " +
+                        "WHERE id = $1 AND NOT is_deleted"
+                    ),
+                    [ORG_ID]
+                );
+                let orgPk;
+
+                if (resp.rows.length) {
+                    orgPk = resp.rows[0]._pk;
+                } else {
+                    resp = await client.query(
+                        (
+                            "INSERT INTO organization (_pk, id, created, " +
+                            "created_by, updated, updated_by, is_deleted, " +
+                            "owner, etag, name, is_active, authentication, " +
+                            "is_two_factor_required) VALUES (" +
+                            "nextval('object__pk_seq'), $1, now(), $2, " +
+                            "now(), $2, false, $2, $1, $3, true, " +
+                            "'password', false) RETURNING _pk"
+                        ),
+                        [ORG_ID, "harness", ORG]
+                    );
+                    orgPk = resp.rows[0]._pk;
+                }
+
+                async function identity(username, isOrgAdmin, suffix) {
+                    let found = await client.query(
+                        (
+                            "SELECT _pk, id FROM identity " +
+                            "WHERE _organization_organization_pk = $1 " +
+                            "  AND username = $2 AND NOT is_deleted"
+                        ),
+                        [orgPk, username]
+                    );
+
+                    if (!found.rows.length) {
+                        found = await client.query(
+                            (
+                                "INSERT INTO identity (_pk, id, created, " +
+                                "created_by, updated, updated_by, " +
+                                "is_deleted, owner, etag, " +
+                                "_organization_organization_pk, username, " +
+                                "full_name, email, password_hash, status, " +
+                                "is_platform_admin, is_org_admin, " +
+                                "failed_attempts) VALUES (" +
+                                "nextval('object__pk_seq'), $1, now(), " +
+                                "$2, now(), $2, false, $2, $1, $3, $4, " +
+                                "$4, '', '', 'active', false, $5, 0) " +
+                                "RETURNING _pk, id"
+                            ),
+                            [
+                                "fbtglass000" + suffix,
+                                "harness",
+                                orgPk,
+                                username,
+                                isOrgAdmin
+                            ]
+                        );
+                    } else {
+                        await client.query(
+                            (
+                                "UPDATE identity SET status = 'active', " +
+                                "is_org_admin = $2 WHERE _pk = $1"
+                            ),
+                            [found.rows[0]._pk, isOrgAdmin]
+                        );
+                    }
+
+                    return found.rows[0];
+                }
+
+                ids.orgPk = orgPk;
+                ids.departed = await identity(DEPARTED, true, "2");
+                ids.replacement = await identity(REPLACEMENT, false, "3");
+            });
+        }
+
+        async function unseed() {
+            await db.withClient(settings.managerDb, async function (client) {
+                await client.query(
+                    (
+                        "DELETE FROM admin_audit " +
+                        "WHERE _on_behalf_of_organization_pk = $1"
+                    ),
+                    [ids.orgPk]
+                );
+                await client.query(
+                    (
+                        "DELETE FROM identity " +
+                        "WHERE _organization_organization_pk = $1"
+                    ),
+                    [ids.orgPk]
+                );
+                await client.query(
+                    "DELETE FROM organization WHERE _pk = $1",
+                    [ids.orgPk]
+                );
+            });
+        }
+
+        before(async function () {
+            await seed();
+            await flags(settings.adminUser, {isPlatformAdmin: true});
+            admin = new Session(base);
+            let resp = await admin.signIn(
                 settings.adminUser,
                 settings.password
             );
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        });
 
-            let overview = await other.get("/admin/overview");
-            assert.equal(overview.authStrategy, "identity");
-            assert.equal(overview.organization.name, "FBTest");
-            assert.ok(overview.identities.length > 0);
+        after(async function () {
+            await flags(settings.adminUser, {});
+            await unseed();
+        });
+
+        it("offers a platform administrator every organization",
+                async function () {
+            let resp = await admin.get("/admin/overview");
+
+            assert.ok(Array.isArray(resp.organizations));
+            assert.ok(
+                resp.organizations.some((row) => row.name === ORG),
+                "the stricken organization is on the list"
+            );
+        });
+
+        it("shows the named organization's identities", async function () {
+            let resp = await admin.get(
+                "/admin/overview?organization=" + ORG_ID
+            );
+
+            assert.equal(resp.organization.name, ORG);
+            assert.ok(
+                resp.identities.some(
+                    (row) => row.username === DEPARTED && row.isOrgAdmin
+                ),
+                "the departed administrator is visible"
+            );
+        });
+
+        it("suspends the departed administrator and appoints the " +
+                "replacement", async function () {
+            let resp = await admin.raw(
+                "POST",
+                "/admin/identity/status",
+                {
+                    id: ids.departed.id,
+                    organization: ORG_ID,
+                    status: "disabled"
+                }
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            resp = await admin.raw(
+                "POST",
+                "/admin/identity/org-admin",
+                {
+                    id: ids.replacement.id,
+                    isOrgAdmin: true,
+                    organization: ORG_ID
+                }
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let rows = await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let r = await client.query(
+                        (
+                            "SELECT username, status, is_org_admin " +
+                            "FROM identity " +
+                            "WHERE _organization_organization_pk = $1 " +
+                            "ORDER BY username"
+                        ),
+                        [ids.orgPk]
+                    );
+                    return r.rows;
+                }
+            );
+            let departed = rows.find((r) => r.username === DEPARTED);
+            let replacement = rows.find((r) => r.username === REPLACEMENT);
+
+            assert.equal(departed.status, "disabled");
+            assert.equal(replacement.is_org_admin, true);
+        });
+
+        it("leaves the trail against the organization acted on",
+                async function () {
+            let rows = await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let r = await client.query(
+                        (
+                            "SELECT action FROM admin_audit " +
+                            "WHERE _on_behalf_of_organization_pk = $1 " +
+                            "ORDER BY occurred"
+                        ),
+                        [ids.orgPk]
+                    );
+                    return r.rows.map((row) => row.action);
+                }
+            );
+
+            assert.ok(rows.includes("identity.disabled"));
+            assert.ok(rows.includes("identity.org_admin_granted"));
+        });
+
+        it("refuses the reach to an organization administrator",
+                async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            try {
+                let resp = await admin.raw(
+                    "GET",
+                    "/admin/overview?organization=" + ORG_ID
+                );
+                assert.equal(resp.status, 401);
+                assert.match(resp.body, /platform administrator/);
+
+                resp = await admin.raw(
+                    "POST",
+                    "/admin/identity/status",
+                    {
+                        id: ids.departed.id,
+                        organization: ORG_ID,
+                        status: "active"
+                    }
+                );
+                assert.equal(resp.status, 401);
+            } finally {
+                await flags(settings.adminUser, {isPlatformAdmin: true});
+            }
+        });
+
+        it("answers 404 for an organization that does not exist",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/overview?organization=nosuchorg001"
+            );
+
+            assert.equal(resp.status, 404);
+        });
+
+        it("keeps an organization administrator's own list bare",
+                async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            try {
+                let resp = await admin.get("/admin/overview");
+
+                assert.equal(resp.organizations, undefined);
+            } finally {
+                await flags(settings.adminUser, {isPlatformAdmin: true});
+            }
         });
     });
 

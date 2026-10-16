@@ -77,7 +77,9 @@ const settings = Object.freeze({
     port: Number(env.FB_TEST_PORT || 3990),
     keepDb: env.FB_TEST_KEEP_DB === "1",
     updateGolden: env.FB_UPDATE_GOLDEN === "1",
-    // Test users (cluster-wide Postgres roles, dropped on teardown)
+    // Test users: identities in the harness manager. The harness also
+    // gives these two a Postgres login role, so the migration path
+    // (copying a pg_authid verifier) has something to copy.
     adminUser: env.FB_TEST_ADMIN_USER || "fbtest_admin",
     basicUser: env.FB_TEST_BASIC_USER || "fbtest_basic",
     password: env.FB_TEST_USER_PASSWORD || "Fbtest-Regression-1!",

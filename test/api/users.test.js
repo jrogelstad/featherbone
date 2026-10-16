@@ -465,7 +465,6 @@ describe("user accounts", function () {
 
             assert.ok(resp.status >= 400);
             assert.equal((await access.account(user.name)).is_super, false);
-            assert.equal((await access.roleInfo(user.name)).rolcreatedb, false);
         });
 
         it("cannot set another user's password", async function () {
@@ -477,8 +476,11 @@ describe("user accounts", function () {
 
             assert.ok(resp.status >= 400);
             assert.match(String(resp.body), /Not authorized to update/);
-            assert.equal(await access.pgLogin(other.name, "Hijack-7"), false);
-            assert.equal(await access.pgLogin(other.name, other.password), true);
+            assert.equal(await access.canSignIn(other.name, "Hijack-7"), false);
+            assert.equal(
+                await access.canSignIn(other.name, other.password),
+                true
+            );
         });
 
         it("gets no record reading another account by id", async function () {

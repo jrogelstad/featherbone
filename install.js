@@ -26,12 +26,14 @@
     const {Config} = require("./server/config");
     const {Database} = require("./server/database");
     const {Installer} = require("./server/services/installer");
+    const {Manager} = require("./server/services/manager");
     const datasource = require("./server/datasource");
     const format = require("pg-format");
     const path = require("path");
 
     const db = new Database();
     const installer = new Installer();
+    const manager = new Manager();
     const config = new Config();
 
     let conf;
@@ -62,9 +64,44 @@
     // Which banner the database shows: dev, test or prod. Recorded in
     // the database rather than on each server (John, Oct 2026).
     let mode;
+    /*
+        The organization an instance is installed into (ADR-001). Sign-in
+        is by identity, and an identity belongs to an organization, so an
+        instance has to be attached to one before anyone can enter it.
+        The organization is created if it does not exist, and the service
+        account becomes its first administrator with the password in
+        config.json (tenant plan B.8).
+    */
+    let orgName = "Default";
+    let orgGiven = false;
+    const FLAGS = [
+        "--mode", "--manager", "--instance", "--target", "--dir", "-D",
+        "-U", "--username", "-W", "--password", "--organization"
+    ];
 
-    argv.forEach(function (arg) {
+    argv.forEach(function (arg, i) {
+        /*
+            An unknown flag used to be ignored, and with no --instance
+            the manager is what gets installed: `--my_database` quietly
+            reinstalled the manager (John, Oct 2026). Refuse it.
+        */
+        if (
+            i > 1 &&
+            arg.startsWith("-") &&
+            FLAGS.indexOf(arg) === -1
+        ) {
+            console.error(
+                "Unknown option \"" + arg + "\". Options: " +
+                FLAGS.join(", ")
+            );
+            process.exit(1);
+        }
+
         switch (arg) {
+        case "--organization":
+            orgName = argv[argv.indexOf("--organization") + 1];
+            orgGiven = true;
+            break;
         case "--mode":
             mode = argv[argv.indexOf("--mode") + 1];
             break;
@@ -268,26 +305,19 @@
             let sql;
             let conn;
 
-            function grantUser() {
-                sql = (
-                    "GRANT SELECT ON pg_authid TO " +
-                    conf.pgUser + ";"
-                );
-                client.query(sql).then(resolve).catch(reject);
-            }
-
+            /*
+                The service account is the only Postgres role
+                Featherbone uses: users are identities in the manager,
+                not login roles, so it needs no CREATEROLE (ADR-001).
+            */
             function createUser() {
-                sql = (
-                    "CREATE USER " + conf.pgUser + " WITH " +
-                    "LOGIN " +
-                    "NOSUPERUSER " +
-                    "CREATEROLE " +
-                    "INHERIT " +
-                    "NOREPLICATION " +
-                    "CONNECTION LIMIT -1 " +
-                    "PASSWORD '" + conf.pgPassword + "';"
+                sql = format(
+                    "CREATE USER %I WITH LOGIN NOSUPERUSER INHERIT " +
+                    "NOREPLICATION CONNECTION LIMIT -1 PASSWORD %L;",
+                    conf.pgUser,
+                    conf.pgPassword
                 );
-                client.query(sql).then(grantUser).catch(grantUser);
+                client.query(sql).then(resolve).catch(() => resolve());
             }
 
             if (!superuser) {
@@ -438,6 +468,184 @@
         }
     }
 
+    /*
+        Attach the instance to its organization and make sure somebody
+        can sign in to it: the service account becomes an identity in
+        the organization with a grant on this instance, and the
+        organization's administrator if it has none yet. Idempotent --
+        an existing identity keeps its password and flags.
+
+        The installer made the matching local super user account, so
+        this one identity is a tenant super user, organization
+        administrator and, on a first installation, the platform's
+        first administrator too (there is no one else to appoint one).
+    */
+    async function provisionIdentity() {
+        if (!instanceName) {
+            return;
+        }
+
+        let managerDb = config.managerDatabase(conf);
+        let cpClient = new Client({
+            database: managerDb,
+            host: conf.pgHost,
+            password: superpwd || conf.pgPassword,
+            port: conf.pgPort,
+            user: superuser || conf.pgUser
+        });
+        let by = conf.pgUser;
+
+        await cpClient.connect();
+
+        try {
+            let resp = await cpClient.query(
+                (
+                    "SELECT t._pk, t._organization_organization_pk AS org, " +
+                    "  o.name AS org_name " +
+                    "FROM tenant t " +
+                    "LEFT JOIN organization o " +
+                    "  ON o._pk = t._organization_organization_pk " +
+                    "WHERE t.pg_database = $1 AND NOT t.is_deleted"
+                ),
+                [instanceName]
+            );
+            let tenantPk = resp.rows[0]._pk;
+            let orgPk = resp.rows[0].org;
+
+            if (orgPk !== null) {
+                // Already attached: that organization, whatever was asked
+                if (orgGiven && resp.rows[0].org_name !== orgName) {
+                    console.log(
+                        "Instance \"" + instanceName + "\" already " +
+                        "belongs to organization \"" +
+                        resp.rows[0].org_name + "\"; --organization " +
+                        "ignored"
+                    );
+                }
+                orgName = resp.rows[0].org_name;
+            } else {
+                resp = await cpClient.query(
+                    (
+                        "SELECT _pk FROM organization " +
+                        "WHERE name = $1 AND NOT is_deleted"
+                    ),
+                    [orgName]
+                );
+
+                if (resp.rows.length) {
+                    orgPk = resp.rows[0]._pk;
+                } else {
+                    resp = await cpClient.query(
+                        (
+                            "INSERT INTO organization (_pk, id, created, " +
+                            "created_by, updated, updated_by, " +
+                            "is_deleted, owner, etag, name, is_active, " +
+                            "authentication, is_two_factor_required) " +
+                            "VALUES (nextval('object__pk_seq'), $1, " +
+                            "now(), $2, now(), $2, false, $2, $1, $3, " +
+                            "true, 'password', false) RETURNING _pk"
+                        ),
+                        [f.createId(), by, orgName]
+                    );
+                    orgPk = resp.rows[0]._pk;
+                    await manager.audit(cpClient, {
+                        action: "organization.created",
+                        by,
+                        detail: "Install: " + orgName,
+                        organizationPk: orgPk
+                    });
+                    console.log("Created organization \"" + orgName + "\"");
+                }
+
+                await manager.attachInstance(cpClient, tenantPk, orgPk, by);
+                console.log(
+                    "Attached instance \"" + instanceName +
+                    "\" to organization \"" + orgName + "\""
+                );
+            }
+
+            let anyone = await cpClient.query(
+                "SELECT 1 FROM identity WHERE NOT is_deleted LIMIT 1"
+            );
+            let added = await manager.addIdentity(cpClient, {
+                by,
+                organizationPk: orgPk,
+                password: conf.pgPassword,
+                username: conf.pgUser
+            });
+
+            await manager.setGrant(cpClient, {
+                by,
+                identityPk: added.identityPk,
+                isActive: true,
+                tenantPk
+            });
+
+            if (added.created) {
+                await manager.audit(cpClient, {
+                    action: "identity.created",
+                    by,
+                    detail: "Install: instance " + instanceName,
+                    organizationPk: orgPk,
+                    targetIdentityPk: added.identityPk
+                });
+                console.log(
+                    "Created identity \"" + conf.pgUser + "\" in \"" +
+                    orgName + "\" with the password in config.json"
+                );
+            }
+
+            resp = await cpClient.query(
+                "SELECT is_org_admin, is_platform_admin FROM identity " +
+                "WHERE _pk = $1",
+                [added.identityPk]
+            );
+
+            if (!resp.rows[0].is_org_admin) {
+                await manager.setOrgAdmin(
+                    cpClient,
+                    added.identityPk,
+                    true,
+                    by
+                );
+                await manager.audit(cpClient, {
+                    action: "identity.org_admin_granted",
+                    by,
+                    detail: "Install: first administrator of " + orgName,
+                    organizationPk: orgPk,
+                    targetIdentityPk: added.identityPk
+                });
+            }
+
+            if (!anyone.rows.length && !resp.rows[0].is_platform_admin) {
+                await cpClient.query(
+                    (
+                        "UPDATE identity SET is_platform_admin = true, " +
+                        "updated = now(), updated_by = $2 WHERE _pk = $1"
+                    ),
+                    [added.identityPk, by]
+                );
+                await manager.audit(cpClient, {
+                    action: "identity.platform_admin_granted",
+                    by,
+                    detail: "Install: first identity on this platform",
+                    organizationPk: orgPk,
+                    targetIdentityPk: added.identityPk
+                });
+                console.log(
+                    "\"" + conf.pgUser + "\" is the platform administrator"
+                );
+            }
+
+            console.log(
+                "Sign in to /" + instanceName + "/ as \"" + conf.pgUser +
+                "\"; the password is pgPassword in config.json"
+            );
+        } finally {
+            await cpClient.end();
+        }
+    }
+
     function done() {
         client.end();
         process.exit();
@@ -454,6 +662,8 @@
         install
     ).then(
         registerInstance
+    ).then(
+        provisionIdentity
     ).then(
         done
     ).catch(

@@ -4959,6 +4959,7 @@
       "isActive": "boolean required alwaysLoad default=true",
       "isDeleted": "boolean readOnly alwaysLoad <Object",
       "isDemo": "boolean",
+      "isMaintenance": "boolean alwaysLoad default=false",
       "lock": "object:lock readOnly alwaysLoad <Object",
       "modules": "array readOnly alwaysLoad",
       "name": "string required naturalKey alwaysLoad",

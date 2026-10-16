@@ -117,9 +117,20 @@
                         max: resp.pgMaxConnections || 10,
                         password: resp.pgPassword,
                         port: resp.pgPort,
-                        ssl: sslConfig(resp), // This doesn't look right
+                        // The manager is on this server's own cluster,
+                        // so the server's TLS settings are the right
+                        // ones here.
+                        ssl: sslConfig(resp),
                         user: resp.pgUser
-                    }
+                    },
+                    /*
+                        What each instance's pool may grow to, and how
+                        long an idle client lives (tenant plan E.4).
+                        pgMaxConnections governs the manager pool
+                        above, as it always has.
+                    */
+                    tenantIdleTimeout: resp.pgTenantIdleTimeout || 60000,
+                    tenantPoolSize: resp.pgTenantPoolSize || 10
                 };
                 resolve(resp);
             });
@@ -154,6 +165,7 @@
                 "'system',false,'system',$1"
             );
             let obj;
+            let orgTwoFactor;
 
             if (!req || !req.tenant || req.tenant.id === "-1") {
                 throw new Error("Sign in requires an instance");
@@ -164,8 +176,13 @@
                 let client = obj.client;
                 let resp = await client.query(
                     (
-                        "SELECT _pk, _organization_organization_pk AS org " +
-                        "FROM tenant WHERE id = $1 AND NOT is_deleted"
+                        "SELECT t._pk, t.is_active, " +
+                        "  t._organization_organization_pk AS org, " +
+                        "  o.is_two_factor_required " +
+                        "FROM tenant t " +
+                        "LEFT JOIN organization o " +
+                        "  ON o._pk = t._organization_organization_pk " +
+                        "WHERE t.id = $1 AND NOT t.is_deleted"
                     ),
                     [req.tenant.id]
                 );
@@ -185,11 +202,33 @@
                         " is not assigned to an organization"
                     );
                 }
+                /*
+                    The registry's own switch (tenant plan D.4) and the
+                    provisioning gate (D.1): a closed instance, or one
+                    still being built, refuses new sign-ins. Nothing
+                    here checked it before, so "close" only changed the
+                    row.
+                */
+                if (resp.rows[0].is_active !== true) {
+                    throw new Error(
+                        "Instance " + req.tenant.name +
+                        " is closed to sign-in"
+                    );
+                }
+
+                /*
+                    Whether this organization requires a second factor
+                    (tenant plan C.2): rides to doSignIn on the resolved
+                    user, so the policy is the organization's rather
+                    than one global switch.
+                */
+                orgTwoFactor = resp.rows[0].is_two_factor_required;
 
                 resp = await client.query(
                     (
                         "SELECT _pk, password_hash, status, " +
-                        "  failed_attempts, locked_until " +
+                        "  failed_attempts, locked_until, " +
+                        "  is_platform_admin " +
                         "FROM identity " +
                         "WHERE _organization_organization_pk = $1 " +
                         "  AND lower(username) = lower($2) " +
@@ -310,6 +349,25 @@
                     );
                 }
 
+                /*
+                    A deployment is running, so the schema underneath
+                    is moving (ADR-002 question 7). Everyone is kept
+                    out except a platform administrator, who has to be
+                    able to get in: on an installation with one
+                    instance the screen that clears maintenance is
+                    served from that instance.
+                */
+                if (
+                    req.tenant.isMaintenance === true &&
+                    row.is_platform_admin !== true
+                ) {
+                    throw new Error(
+                        "Down for maintenance. Instance " +
+                        req.tenant.name +
+                        " is being deployed to and will be back."
+                    );
+                }
+
                 await client.query(
                     (
                         "UPDATE identity SET failed_attempts = 0, " +
@@ -325,15 +383,19 @@
 
             // The local profile: preferences, contact and the stable
             // key history points at. Still required (B.5).
-            return await that.deserializeUser(req, username);
+            let user = await that.deserializeUser(req, username);
+
+            user.isTwoFactorRequired = orgTwoFactor === true;
+            return user;
         }
 
         // ..........................................................
         // PUBLIC
         //
         /**
-            Authenticates user against database credentials, and if successful
-            resolves to
+            Authenticates a user against their identity in the manager
+            database (ADR-001) and, when the identity holds a live grant
+            on the requested instance, resolves to
             {{#crossLink "User"}}{{/crossLink}}.
             Note this function does not create a persistant client connection.
             All actual client connections are handled by the service account.
@@ -342,128 +404,8 @@
             @param {String} password
             @return {Promise}
         */
-        that.authenticate = async function (req, username, pswd) {
-            let conf = await config.read();
-
-            if (config.authStrategy(conf) === "identity") {
-                return await authenticateIdentity(req, username, pswd);
-            }
-
-            let pgdb;
-            let pghost;
-            let pgport;
-            let resp;
-            let client1;
-
-            if (req && req.tenant) {
-                pgdb = req.tenant.pgDatabase;
-                pghost = req.tenant.pgService.pgHost;
-                pgport = req.tenant.pgService.pgPort;
-            } else {
-                pgdb = config.managerDatabase(conf);
-                pghost = conf.pgHost;
-                pgport = conf.pgPort;
-            }
-            let login1 = new Pool({
-                database: pgdb,
-                host: pghost,
-                password: pswd,
-                port: pgport,
-                ssl: sslConfig(conf),
-                user: username
-            });
-            let login2 = new Pool({
-                database: pgdb,
-                host: conf.pgHost,
-                password: conf.pgPassword,
-                port: conf.pgPort,
-                ssl: sslConfig(conf),
-                user: conf.pgUser
-            });
-            let client2 = await login2.connect();
-
-            try {
-                client1 = await login1.connect();
-            } catch (e) {
-                resp = await client2.query((
-                    "SELECT sign_in_attempts " +
-                    "FROM user_account " +
-                    "WHERE name = $1 " +
-                    " AND is_active;"
-                ), [username]);
-
-                if (resp.rows.length === 0) {
-                    return Promise.reject(new Error(
-                        "No active user account " + username + " found"
-                    ));
-                }
-
-                let attempts = resp.rows[0].sign_in_attempts + 1;
-
-                await client2.query((
-                    "UPDATE user_account SET " +
-                    "sign_in_attempts = $2 " +
-                    "WHERE name = $1"
-                ), [username, attempts]);
-
-                if (attempts > 3) {
-                    await client2.query((
-                        "UPDATE user_account SET " +
-                        "is_locked = true " +
-                        "WHERE name = $1"
-                    ), [username]);
-
-                    return Promise.reject(new Error(
-                        "Too many sign in attempts. " +
-                        "Account is locked."
-                    ));
-                }
-
-                if (attempts === 3) {
-                    return Promise.reject(new Error(
-                        "Invalid sign in credentials. " +
-                        "One more attempt before account is locked."
-                    ));
-                }
-
-                return Promise.reject(e);
-            } finally {
-                login1.end();
-            }
-
-            client1.release();
-
-            resp = await client2.query((
-                "SELECT is_active, is_locked " +
-                "FROM user_account " +
-                "WHERE name = $1 " +
-                " AND is_active"
-            ), [username]);
-
-            if (resp.rows.length === 0) {
-                return Promise.reject(new Error(
-                    "No active user account " + username + " found"
-                ));
-            }
-
-            let row = resp.rows[0];
-            if (row.is_locked) {
-                return Promise.reject(new Error(
-                    "User account is locked"
-                ));
-            }
-
-            await client2.query((
-                "UPDATE user_account SET " +
-                "last_sign_in = now(), " +
-                "sign_in_attempts = 0 " +
-                "WHERE name = $1"
-            ), [username]);
-
-            client2.release();
-            login2.end();
-
-            return await that.deserializeUser(req, username);
+        that.authenticate = function (req, username, pswd) {
+            return authenticateIdentity(req, username, pswd);
         };
         /**
             Database connection object. This object is requested from a
@@ -552,9 +494,29 @@
                         pool = new Pool({
                             database: tenant.pgDatabase,
                             host: tenant.pgService.pgHost,
+                            /*
+                                Idle clients go away on their own, so an
+                                instance nobody is using holds only its
+                                LISTEN connection. With the cap this
+                                bounds a node at
+                                (instances x (1 + cap)) + manager
+                                connections; see the README's sizing
+                                note (tenant plan E.4).
+                            */
+                            idleTimeoutMillis: (
+                                cache.tenantIdleTimeout
+                            ),
+                            max: cache.tenantPoolSize,
                             password: tenant.pgService.pgPassword,
                             port: tenant.pgService.pgPort,
-                            ssl: sslConfig(cache), // Doesn't look right
+                            /*
+                                The server's own TLS settings stand in
+                                for the service's: every TenantService
+                                row today points at the cluster this
+                                server already trusts, and the service
+                                carries no TLS material of its own yet.
+                            */
+                            ssl: sslConfig(cache),
                             user: tenant.pgService.pgUser
                         });
                     } else {
@@ -844,29 +806,25 @@
 
                 if (!resp.rows.length) {
                     /*
-                        No profile here yet. On the identity path a
-                        live grant is reason enough to make one
-                        (B.7); otherwise, and when there is no grant,
-                        the answer stands.
+                        No profile here yet. A live grant is reason
+                        enough to make one (B.7); without a grant the
+                        answer stands.
                     */
-                    let conf = await config.read();
                     let made = false;
 
-                    if (config.authStrategy(conf) === "identity") {
-                        try {
-                            made = await provisionProfile(req, username);
-                        } catch (err) {
-                            /*
-                                Say so: without this the person is told
-                                their account does not exist, which is
-                                true but not the reason.
-                            */
-                            console.error(
-                                "Could not make the local profile for " +
-                                username + " in " + req.tenant.name +
-                                ": " + (err.message || err)
-                            );
-                        }
+                    try {
+                        made = await provisionProfile(req, username);
+                    } catch (err) {
+                        /*
+                            Say so: without this the person is told
+                            their account does not exist, which is
+                            true but not the reason.
+                        */
+                        console.error(
+                            "Could not make the local profile for " +
+                            username + " in " + req.tenant.name +
+                            ": " + (err.message || err)
+                        );
                     }
 
                     if (made) {

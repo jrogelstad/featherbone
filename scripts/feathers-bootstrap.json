@@ -771,7 +771,7 @@
                 "default": "createId()"
             },
             "isSuper": {
-                "description": "System adiminstrator flag",
+                "description": "Tenant super user: unrestricted within this instance only (ADR-001). Not a platform role.",
                 "type": "boolean",
                 "default": false
             },

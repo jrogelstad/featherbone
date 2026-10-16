@@ -51,6 +51,20 @@ adminInstancesPage.viewModel = function () {
         name: f.prop(""),
         service: f.prop("")
     };
+    let build = {
+        database: f.prop(""),
+        name: f.prop(""),
+        service: f.prop(""),
+        template: f.prop("")
+    };
+    let dropEntry = {
+        confirm: f.prop(""),
+        instance: f.prop()
+    };
+    let tpl = {
+        name: f.prop(""),
+        source: f.prop("")
+    };
 
     function request(method, path, body) {
         return m.request({
@@ -97,6 +111,21 @@ adminInstancesPage.viewModel = function () {
     */
     vm.registerDialog = f.prop();
     /**
+        @method createDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.createDialog = f.prop();
+    /**
+        @method dropDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.dropDialog = f.prop();
+    /**
+        @method templateDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.templateDialog = f.prop();
+    /**
         @method buttonDone
         @return {ViewModels.Button}
     */
@@ -133,6 +162,19 @@ adminInstancesPage.viewModel = function () {
         let data = vm.overview() || {};
 
         return data.tier === "organization" || data.tier === "platform";
+    };
+
+    /**
+        Whether the caller may build and drop databases, which is a
+        platform administrator's power alone (ADR-001): the cluster is
+        Featherbone's, not a tenant's.
+        @method isPlatform
+        @return {Boolean}
+    */
+    vm.isPlatform = function () {
+        let data = vm.overview() || {};
+
+        return data.tier === "platform";
     };
 
     /**
@@ -175,6 +217,72 @@ adminInstancesPage.viewModel = function () {
             id: instance.id,
             isActive
         }).then(vm.refresh).catch(fail);
+    };
+
+    /**
+        Put an instance into maintenance, or take it out again. A
+        deployment is not run under live traffic (ADR-002 question 7),
+        so the state is thrown here when one is done by hand.
+        @method doMaintenance
+        @param {Object} instance
+        @param {Boolean} isMaintenance
+    */
+    vm.doMaintenance = function (instance, isMaintenance) {
+        request("POST", "/admin/instance/maintenance", {
+            id: instance.id,
+            isMaintenance
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
+        @method doCreate
+    */
+    vm.doCreate = function () {
+        let data = vm.overview() || {};
+        let services = data.services || [];
+        let templates = data.templates || [];
+
+        build.name("");
+        build.database("");
+        build.template(templates[0] || "");
+        build.service(
+            services.length
+            ? services[0].id
+            : ""
+        );
+        vm.createDialog().show();
+    };
+
+    /**
+        @method doDrop
+        @param {Object} instance
+    */
+    vm.doDrop = function (instance) {
+        dropEntry.instance(instance);
+        dropEntry.confirm("");
+        vm.dropDialog().show();
+    };
+
+    /**
+        Pick an unfinished build up from the step it stopped at.
+        @method doResume
+        @param {Object} instance
+    */
+    vm.doResume = function (instance) {
+        request("POST", "/admin/instance/provision/resume", {
+            id: instance.id
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
+        Build or rebuild the template copy of an instance.
+        @method doTemplate
+        @param {Object} instance
+    */
+    vm.doTemplate = function (instance) {
+        tpl.source(instance.database);
+        tpl.name(instance.database.slice(0, 52) + "_template");
+        vm.templateDialog().show();
     };
 
     // ..........................................................
@@ -251,6 +359,162 @@ adminInstancesPage.viewModel = function () {
         ]);
     };
 
+    vm.createDialog(f.createViewModel("Dialog", {
+        icon: "add_circle",
+        onOk: function () {
+            request("POST", "/admin/instance/provision", {
+                database: build.database(),
+                name: build.name(),
+                service: build.service(),
+                template: build.template()
+            }).then(function (resp) {
+                if (resp && resp.state !== "active") {
+                    fail(new Error(
+                        "Provisioning stopped at \"" + resp.state +
+                        "\": " + (resp.detail || "see the registry") +
+                        ". Resume it from the instance row."
+                    ));
+                }
+                return vm.refresh();
+            }).catch(fail);
+        },
+        title: "Create an instance"
+    }));
+    vm.createDialog().content = function () {
+        let data = vm.overview() || {};
+        let services = data.services || [];
+        let templates = data.templates || [];
+        let instances = data.instances || [];
+        let sources = templates.concat(
+            (data.databases || []).filter(
+                (name) => templates.indexOf(name) === -1
+            ),
+            instances.map((row) => row.database).filter(
+                (name) => templates.indexOf(name) === -1
+            )
+        );
+
+        return m("div", {class: "pure-form pure-form-aligned"}, [
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildName"}, "Name:"),
+                m("input", {
+                    id: "fbBuildName",
+                    oninput: (e) => build.name(e.target.value),
+                    required: true,
+                    value: build.name()
+                })
+            ]),
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildDb"}, "Database:"),
+                m("input", {
+                    id: "fbBuildDb",
+                    oninput: (e) => build.database(e.target.value),
+                    placeholder: "lowercase, letters and underscores",
+                    required: true,
+                    value: build.database()
+                })
+            ]),
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildTpl"}, "Template:"),
+                m("select", {
+                    id: "fbBuildTpl",
+                    onchange: (e) => build.template(e.target.value),
+                    value: build.template()
+                }, sources.map(
+                    (name) => m("option", {value: name}, name)
+                ))
+            ]),
+            m("div", {class: "pure-control-group"}, [
+                m("label", {for: "fbBuildSvc"}, "Connection:"),
+                m("select", {
+                    id: "fbBuildSvc",
+                    onchange: (e) => build.service(e.target.value),
+                    value: build.service()
+                }, services.map(
+                    (row) => m("option", {value: row.id}, (
+                        row.name + " (" + row.user + "@" + row.host + ")"
+                    ))
+                ))
+            ]),
+            m("div", {class: "fb-admin-note"}, (
+                "Clones the template into a new database, checks the " +
+                "clone is an instance, grants every organization " +
+                "administrator access, and opens it for sign-in. Each " +
+                "step is recorded, so a build that stops can be " +
+                "resumed from where it left off. A template that is a " +
+                "live instance must be quiet while it is cloned."
+            ))
+        ]);
+    };
+
+    vm.dropDialog(f.createViewModel("Dialog", {
+        icon: "delete",
+        onOk: function () {
+            let instance = dropEntry.instance() || {};
+
+            request("POST", "/admin/instance/drop", {
+                id: instance.id
+            }).then(vm.refresh).catch(fail);
+        },
+        title: "Drop an instance"
+    }));
+    vm.dropDialog().content = function () {
+        let instance = dropEntry.instance() || {};
+
+        vm.dropDialog().okDisabled(
+            dropEntry.confirm() !== instance.database
+        );
+
+        return m("div", [
+            m("div", {class: "fb-admin-note"}, (
+                "This drops the database \"" + instance.database +
+                "\" and removes \"" + instance.name + "\" from the " +
+                "registry. There is no undo short of a backup."
+            )),
+            m("div", {class: "pure-form"}, [
+                m("label", {for: "fbDropConfirm"}, (
+                    "Type the database name to confirm: "
+                )),
+                m("input", {
+                    id: "fbDropConfirm",
+                    oninput: (e) => dropEntry.confirm(e.target.value),
+                    value: dropEntry.confirm()
+                })
+            ])
+        ]);
+    };
+
+    vm.templateDialog(f.createViewModel("Dialog", {
+        icon: "content_copy",
+        onOk: function () {
+            request("POST", "/admin/template", {
+                name: tpl.name(),
+                source: tpl.source()
+            }).then(vm.refresh).catch(fail);
+        },
+        title: "Build a template"
+    }));
+    vm.templateDialog().content = function () {
+        return m("div", [
+            m("div", {class: "pure-form"}, [
+                m("label", {for: "fbTplName"}, "Template name: "),
+                m("input", {
+                    id: "fbTplName",
+                    oninput: (e) => tpl.name(e.target.value),
+                    value: tpl.name()
+                })
+            ]),
+            m("div", {class: "fb-admin-note"}, (
+                "Copies \"" + tpl.source() + "\" into a frozen " +
+                "database new instances are provisioned from, " +
+                "replacing any template of that name in place. The " +
+                "source must be quiet while it is copied: this server " +
+                "lets go of its own connections, anyone else's make " +
+                "the copy refuse."
+            ))
+        ]);
+    };
+
     vm.buttonDone(f.createViewModel("Button", {
         class: "fb-toolbar-button",
         label: "&Done",
@@ -293,6 +557,8 @@ adminInstancesPage.component = {
         let databases = data.databases || [];
         let audit = data.audit || [];
         let orgWide = vm.isOrgWide();
+        let platform = vm.isPlatform();
+        let provisioning = data.provisioning || {};
 
         /*
             What this server is doing with the instance, which is not
@@ -338,6 +604,39 @@ adminInstancesPage.component = {
         }
 
         function status(instance) {
+            let pending = provisioning[instance.id];
+
+            if (pending) {
+                return m("span", {
+                    class: "fb-admin-status fb-admin-status-locked",
+                    title: (
+                        pending.detail
+                        ? (
+                            "Provisioning stopped at \"" + pending.state +
+                            "\": " + pending.detail
+                        )
+                        : "Being built; stopped at \"" + pending.state + "\""
+                    )
+                }, [
+                    f.icon("schedule", "fb-admin-status-icon"),
+                    pending.state
+                ]);
+            }
+
+            if (instance.isMaintenance) {
+                return m("span", {
+                    class: "fb-admin-status fb-admin-status-locked",
+                    title: (
+                        "Down for a deployment: it answers nothing but " +
+                        "its sign-in and these screens, and only a " +
+                        "platform administrator can sign in"
+                    )
+                }, [
+                    f.icon("build", "fb-admin-status-icon"),
+                    "maintenance"
+                ]);
+            }
+
             return m("span", {
                 class: (
                     "fb-admin-status fb-admin-status-" + (
@@ -385,36 +684,110 @@ adminInstancesPage.component = {
         }
 
         function actions(instance) {
+            let list = [];
+            let pending = provisioning[instance.id];
+
             if (!orgWide) {
-                return [];
+                return list;
             }
 
-            if (instance.isActive) {
-                return [
-                    action(
-                        "Close",
-                        (
-                            instance.isCurrent
-                            ? (
-                                "This is the instance you are signed in " +
-                                "to. Close it from another one."
-                            )
-                            : "Stop anyone signing in to this instance"
-                        ),
-                        instance.isCurrent,
-                        () => vm.doStatus(instance, false)
-                    )
-                ];
-            }
-
-            return [
-                action(
+            if (pending) {
+                list.push(action(
+                    "Resume",
+                    "Pick the build up from where it stopped",
+                    !platform,
+                    () => vm.doResume(instance)
+                ));
+            } else if (instance.isActive) {
+                list.push(action(
+                    "Close",
+                    (
+                        instance.isCurrent
+                        ? (
+                            "This is the instance you are signed in " +
+                            "to. Close it from another one."
+                        )
+                        : "Stop anyone signing in to this instance"
+                    ),
+                    instance.isCurrent,
+                    () => vm.doStatus(instance, false)
+                ));
+            } else {
+                list.push(action(
                     "Open",
                     "Let people sign in to this instance again",
                     false,
                     () => vm.doStatus(instance, true)
-                )
-            ];
+                ));
+            }
+
+            if (instance.isMaintenance) {
+                list.push(action(
+                    "End maintenance",
+                    (
+                        platform
+                        ? "Let the instance answer requests again"
+                        : "Only a platform administrator may do this"
+                    ),
+                    !platform,
+                    () => vm.doMaintenance(instance, false)
+                ));
+            } else {
+                list.push(action(
+                    "Maintenance",
+                    (
+                        platform
+                        ? (
+                            "Hold the instance for a deployment: it " +
+                            "answers 503 with an explanation, and only " +
+                            "a platform administrator can sign in"
+                        )
+                        : "Only a platform administrator may do this"
+                    ),
+                    !platform,
+                    () => vm.doMaintenance(instance, true)
+                ));
+            }
+
+            list.push(action(
+                "Template",
+                (
+                    platform
+                    ? (
+                        "Copy this instance into the template new " +
+                        "instances are built from"
+                    )
+                    : "Only a platform administrator may build a template"
+                ),
+                !platform,
+                () => vm.doTemplate(instance)
+            ));
+
+            list.push(action(
+                "Drop",
+                (
+                    !platform
+                    ? (
+                        "Only a platform administrator may drop a " +
+                        "database"
+                    )
+                    : (
+                        instance.isCurrent
+                        ? (
+                            "This is the instance you are signed in " +
+                            "to. Drop it from another one."
+                        )
+                        : (
+                            "Drop the database and remove it from " +
+                            "the registry"
+                        )
+                    )
+                ),
+                !platform || instance.isCurrent,
+                () => vm.doDrop(instance)
+            ));
+
+            return list;
         }
 
         return m("div", [
@@ -446,6 +819,25 @@ adminInstancesPage.component = {
                     )
                 }, "Register database"),
                 m("button", {
+                    class: (
+                        "pure-button fb-toolbar-button" + (
+                            platform
+                            ? ""
+                            : " fb-button-disabled"
+                        )
+                    ),
+                    disabled: !platform,
+                    onclick: vm.doCreate,
+                    title: (
+                        platform
+                        ? "Build a new instance database from a template"
+                        : (
+                            "Only a platform administrator may create " +
+                            "a database"
+                        )
+                    )
+                }, "Create instance"),
+                m("button", {
                     class: "pure-button fb-toolbar-button",
                     onclick: vm.refresh,
                     title: "Read the registry again"
@@ -461,6 +853,9 @@ adminInstancesPage.component = {
             ]),
             m(f.getComponent("Dialog"), {viewModel: vm.errorDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.registerDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.createDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.dropDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.templateDialog()}),
             (
                 vm.isLoading()
                 ? m("div", {class: "fb-admin-note"}, "Reading the registry…")
@@ -522,6 +917,25 @@ adminInstancesPage.component = {
                                     ? m("span", {
                                         class: "fb-admin-tag"
                                     }, "demo")
+                                    : undefined
+                                ),
+                                (
+                                    (
+                                        instance.isDemo &&
+                                        instance.expiration &&
+                                        new Date(
+                                            instance.expiration
+                                        ) < new Date()
+                                    )
+                                    ? m("span", {
+                                        class: "fb-admin-tag",
+                                        title: (
+                                            "Expired " + new Date(
+                                                instance.expiration
+                                            ).toLocaleString() +
+                                            "; the sweep closes it"
+                                        )
+                                    }, "expired")
                                     : undefined
                                 )
                             ]),
@@ -669,10 +1083,9 @@ adminInstancesPage.component = {
                 : undefined
             ),
             m("div", {class: "fb-admin-note"}, (
-                "Building a database is still \"node install.js " +
-                "--instance <name>\", and dropping one is still the " +
-                "Admin Console's or the command line's. Provisioning " +
-                "from here waits on tenant plan D.1."
+                "\"node install.js --instance <name>\" still works " +
+                "from the command line and registers what it builds " +
+                "here."
             ))
         ]);
     }
