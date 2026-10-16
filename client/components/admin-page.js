@@ -391,8 +391,9 @@ adminPage.viewModel = function () {
                 ))
             ]),
             m("div", {class: "fb-admin-note"}, (
-                grant.username() + " will be able to sign in to it once " +
-                "they have a user account there."
+                grant.username() + " will be able to sign in to it. The " +
+                "account the instance keeps is made for them the first " +
+                "time they do."
             ))
         ]);
     };
