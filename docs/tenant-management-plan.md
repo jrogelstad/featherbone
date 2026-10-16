@@ -21,7 +21,7 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | Tier | Done | Part done | Open |
 | --- | --- | --- | --- |
 | A Foundations | A.1, A.2, A.3, A.5 | A.4 | — |
-| B Identity cutover | B.1-B.5, B.7 | — | B.6 |
+| B Identity cutover | B.1-B.7 | — | B.8 |
 | C Credentials and SSO | — | — | C.1, C.2, C.3, C.4 |
 | D Tenant lifecycle | D.2, D.3 | D.4 | D.1, D.5 |
 | E Multi-node readiness | — | — | E.1–E.5 |
@@ -32,15 +32,25 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 entry boundary, no Postgres login roles, user administration and the registry
 both on screen (Users and Instances). Isolation between organizations is
 demonstrated rather than asserted, with a mutation check (**F.1**, the
-"done when" of improvement-plan item 1.1). What is *not* done is proving the
-migration on a real cluster and being able to get back: **B.6** — one
-migration command, a dry run, and a documented rollback per phase. Until
-that, improvement-plan Tier 1 stays gated on the cutover being reversible,
-not on whether it works.
+"done when" of improvement-plan item 1.1), and the cutover is now
+reversible: one command to migrate, one to go back, both rehearsed against a
+copy of `demo` (**B.6**). **Tier B is complete.**
 
-**Next three, in order:** B.6, then the rest of A.4 (the `is_super` rename,
-and appointing the first organization administrator, which today needs SQL —
-nothing in the UI or the backfill sets `is_org_admin`), then D.1.
+What that leaves for improvement-plan item 1.1 is a decision rather than
+code: run the cutover on a real installation. Everything needed to do it,
+and to undo it, exists and has been exercised.
+
+The direction from here is **B.8**: no `authStrategy` at all, identities as
+the only way users work, the same collapse section 9 made for modes. That
+waits on the cutover being run for real, on `install.js` being able to start
+an installation on identities, and on the test harness, which signs in
+through the role path in every suite today.
+
+**Next three, in order:** the rest of A.4 (rename `is_super` to tenant super
+user in docs and UI; the break-glass path end to end), then D.1 provisioning
+— which unblocks creating and dropping databases from the Instances screen,
+the `"$db"` marker check when registering one, and `install.js` starting an
+installation on identities in one step — then B.8 itself.
 
 **Known gaps recorded elsewhere in this doc:** D.1 blocks creating or dropping
 a database from the Instances screen, and the `"$db"` marker check when
@@ -56,7 +66,7 @@ mostly independent.
 | Tier | Theme | Items | Gate |
 | --- | --- | --- | --- |
 | A | Foundations | 5 | None — start here |
-| B | Identity cutover | 6 | Needs A |
+| B | Identity cutover | 8 | Needs A |
 | C | Credentials and SSO | 4 | Needs B |
 | D | Tenant lifecycle into the framework | 5 | Needs A; independent of B |
 | E | Multi-node readiness | 5 | A.2 first; rest independent |
@@ -395,6 +405,39 @@ purpose.
           whose local profile was rolled back is refused at
           `deserializeUser`. A sweep for identities with no grant
           belongs with B.6.
+- [x] **B.6 Migration tooling, one way.** (M) *Done 2026-10-15 on
+  `feat/b6-migration-tooling`. The item asked for a rollback as well, and
+  that was dropped on 2026-10-15 after John put the question: once an
+  installation is on identities there is no reason to go back, and keeping a
+  way back keeps the role path alive -- which is what B.8 now exists to
+  delete. A rollback script was written and then removed; what it was really
+  for was establishing the facts below.*
+    - *`migrate-identities.js` was already the one command; it now takes
+      `--org-admin <username>` and appoints the organization's first
+      administrator, audited. Nothing else could: the Users screen lets one
+      administrator promote another, which is no use when there is not one
+      yet, and the backfill created every identity with no flags.*
+    - *`authStrategy` is now in `config.template.json` as `"role"`, which is
+      also what the code assumes when it is absent. It was undiscoverable
+      before, which is how it came up.*
+    - *The README says the migration is one way, that a backup is the safety
+      net, and **why setting the flag back is not a rollback**: it works only
+      until the first password is changed or the first user is created on the
+      identity path, because neither reaches Postgres -- a password set
+      through an identity leaves the cluster role holding what it held
+      before, and a user created there has no cluster role at all. After
+      either, flipping the flag locks those people out with nothing in the
+      database to explain it.*
+    - *A brand new installation still cannot start on `"identity"`:
+      `install.js` creates the first administrator as a Postgres role and
+      nothing creates the organization an identity needs, so the path is
+      install, backfill with `--org-admin`, then switch. That is a
+      prerequisite of B.8 and belongs with D.1.*
+    - *Rehearsed against a copy of `demo`: registered it, backfilled it,
+      switched to identity, created a user that exists only as an identity
+      and changed another's password. The api suite run with that copy as its
+      source has the same failure set as the baseline, 66 either way in this
+      sandbox for want of Job Shop and SupplyChain.*
 - [x] **B.7 Provision the local profile when access is granted.** (S)
   *Done 2026-10-15 on `feat/b7-local-profile`. The profile is made on the
   first sign-in, in `deserializeUser`, on the strength of a live grant:
@@ -428,12 +471,35 @@ purpose.
       user screen from inside it.
     - Done when: granting someone an instance is enough for them to sign in to
       it, with no SQL and no second screen.
-- [ ] **B.6 Migration tooling and rollback.** (M)
-    - One command to migrate a cluster: backfill organizations, identities,
-      grants and verifiers; report anything ambiguous rather than guessing.
-    - A documented rollback for each phase, and a dry-run mode.
-    - Done when: a copy of `demo` migrates cleanly, the full test suite passes
-      against it, and the rollback restores role-based sign-in.
+- [ ] **B.8 Retire the role path.** (M) *Added 2026-10-15, John's call: by
+  the end of this there is no `authStrategy`, and identities are simply how
+  users work -- the same collapse section 9 made for modes. Two ways to be a
+  user is the problem ADR-001 set out to remove, and a flag keeps both.*
+    - Delete the `role` branch of `database.js` `authenticate`, the
+      `authStrategy` setting and `config.authStrategy`, the
+      `usesIdentities()` branches in `server/services/role.js`, the local
+      profile pre-check in `doSignIn` and the identity gate on
+      `provisionProfile`. Drop `Role.isLogin`, deprecated since B.4.
+    - Withdraw `CREATEROLE` from the service account, which is the point of
+      all of it.
+    - Keep the `pg_authid` verifier import in the backfill: it is how an
+      existing installation migrates without anybody resetting a password.
+    - Prerequisites, in order:
+        1. every installation actually migrated -- the decision, not the code;
+        2. `install.js` able to start a fresh installation on identities in
+           one step (it creates the first administrator as a Postgres role
+           today, and nothing creates the organization); with D.1;
+        3. **the test harness**, which is the hidden cost: every api suite
+           signs in through the role path today, with `identity.test.js` and
+           `isolation.test.js` running their own servers against seeded
+           identities. The harness has to seed an organization, identities
+           and grants for every suite instead. B.7 helps -- the local
+           profiles make themselves;
+        4. a decision on Tier C for anyone using passkeys, which are
+           per-instance until C.1.
+    - Done when: there is no way to sign in as a Postgres role, the suite
+      runs green with no `authStrategy` anywhere, and the service account
+      cannot create roles.
 
 ## Tier C: Credentials and SSO
 
