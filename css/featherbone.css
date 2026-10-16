@@ -2996,6 +2996,12 @@ button:disabled .fb-ipicon,
   font-size: 12px;
 }
 
+/* A row is selected by clicking it; the toolbar's buttons and the
+   right-click menu act on the selected row. */
+.fb-admin-row {
+  cursor: default;
+}
+
 .fb-admin-status {
   display: inline-flex;
   align-items: center;

@@ -205,6 +205,12 @@ from the worst case across every node you run, with headroom; lower
 
 ### Administering instances
 
+Actions on an instance work the way they do everywhere in Featherbone:
+click a row to select it, and the buttons on the right of the toolbar
+(Close/Open, Resume, Maintenance, Deploy, Template, Drop, Attach) enable
+for what that row allows -- hover a disabled one to see why it is off --
+or right-click the row for the same actions in a menu.
+
 The **Instances** button, next to Users in the same group, is the other
 half of administration: which databases this installation serves and
 which organization they belong to. For each instance it shows the
@@ -242,19 +248,18 @@ tenant's -- can also:
   verify the clone's marker, grant every organization administrator
   access with a tenant-super-user profile, open for sign-in. Each step
   is recorded in the manager, so a build that stops resumes from where
-  it left off ("Resume" on the row), and two servers cannot build the
+  it left off ("Resume"), and two servers cannot build the
   same instance twice;
-* **copy an instance into a template** ("Template" on the row). The
+* **copy an instance into a template** ("Template"). The
   source must be quiet: this server lets go of its own connections,
   anyone else's make the copy refuse;
 * **drop** an instance: the database and its registration, audited,
   never the one you are signed in to;
-* **deploy** a package this server holds into an instance ("Deploy" on
-  the row): it holds the instance, applies the package, records the
+* **deploy** a package this server holds into an instance ("Deploy"): it holds the instance, applies the package, records the
   version in that instance's `module` row and lets it go. The same act
   as the command line's, audited at both ends, and a failed one leaves
   the instance held;
-* **hold** an instance for a deployment ("Maintenance" on the row).
+* **hold** an instance for a deployment ("Maintenance").
   Schema changes are not run under live traffic (ADR-002 question 7),
   so Deploy brackets itself with this state and it can also be thrown
   by hand when something stopped halfway. While it is on the instance
