@@ -18,6 +18,11 @@
 /*jslint node, this, for, devel, unordered */
 /**
     PDF file generator.
+
+    Forms are laid out with pdfmake (which renders through pdfkit). The
+    layout mirrors the earlier pdfjs implementation: same paper sizes,
+    padding, default font size and line height, a header repeated on every
+    page (title, company address and logo) and a "page / pages" footer.
     @module PDF
 */
 
@@ -25,6 +30,7 @@
     "use strict";
 
     const readFileSync = "readFileSync"; // Lint dogma
+    const writeFileSync = "writeFileSync";
     const f = require("../../common/core");
     const fs = require("fs");
     const {CRUD} = require("./crud");
@@ -32,40 +38,129 @@
     const {Feathers} = require("./feathers");
     const {Settings} = require("./settings");
     const fetch = require("node-fetch");
-    const pdf = require("pdfjs");
+    const pdfmake = require("pdfmake");
     //const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
     //const {registerFont, createCanvas} = require("canvas");
     //const defTextLabel = "Confidential";
     const formats = new Tools().formats;
     const settings = new Settings();
 
+    // Points per centimeter
+    const CM = 72 / 2.54;
+    // Defaults carried over from pdfjs so printed forms keep their density
+    const DEFAULT_FONT_SIZE = 11;
+    const LINE_HEIGHT = 1.15;
+    // Ascender and descender (per 1000 units of em) of each font family.
+    // pdfjs advanced each line by (ascender - 2 * descender) * 1.15, while
+    // pdfmake advances by (ascender - descender) * lineHeight, so the
+    // pdfmake lineHeight is scaled per family to keep the same spacing.
+    // Values are the fonts' own metrics as pdfkit reads them; the unit
+    // test checks them against pdfkit.
+    const METRICS = {
+        Barcode39: [600, -400],
+        Barcode39Text: [600, -400],
+        Barcode39Extended: [600, -400],
+        Barcode39ExtendedText: [600, -400],
+        Courier: [629, -157],
+        Helvetica: [718, -207],
+        Times: [683, -217]
+    };
+    // Cell padding pdfjs counted inside column widths; pdfmake adds it
+    const CELL_PADDING = 5;
+    const PAGE_PADDING = 36;
+    const PAGE_PADDING_TOP = 54;
+    // Largest page height PDF viewers accept, used to measure header height
+    const MEASURE_HEIGHT = 14400;
+    const MEASURE_ID = "fb-measure-";
+
+    // The 14 standard PDF fonts are built into pdfkit and referenced by
+    // name. The barcode fonts are TrueType files loaded into pdfmake's
+    // virtual file system once at start up.
+    const STANDARD_FONTS = [
+        "Courier",
+        "Courier-Bold",
+        "Courier-BoldOblique",
+        "Courier-Oblique",
+        "Helvetica",
+        "Helvetica-Bold",
+        "Helvetica-BoldOblique",
+        "Helvetica-Oblique",
+        "Times-Roman",
+        "Times-Bold",
+        "Times-BoldItalic",
+        "Times-Italic"
+    ];
+    const BARCODE_FILES = {
+        Barcode39: "LibreBarcode39-Regular.ttf",
+        Barcode39Text: "LibreBarcode39Text-Regular.ttf",
+        Barcode39Extended: "LibreBarcode39Extended-Regular.ttf",
+        Barcode39ExtendedText: "LibreBarcode39ExtendedText-Regular.ttf"
+    };
+    const families = {
+        Courier: {
+            normal: "Courier",
+            bold: "Courier-Bold",
+            italics: "Courier-Oblique",
+            bolditalics: "Courier-BoldOblique"
+        },
+        Helvetica: {
+            normal: "Helvetica",
+            bold: "Helvetica-Bold",
+            italics: "Helvetica-Oblique",
+            bolditalics: "Helvetica-BoldOblique"
+        },
+        Times: {
+            normal: "Times-Roman",
+            bold: "Times-Bold",
+            italics: "Times-Italic",
+            bolditalics: "Times-BoldItalic"
+        }
+    };
+
+    Object.keys(BARCODE_FILES).forEach(function (family) {
+        let file = BARCODE_FILES[family];
+
+        pdfmake.virtualfs[writeFileSync](
+            file,
+            fs[readFileSync]("./fonts/" + file)
+        );
+        families[family] = {
+            normal: file,
+            bold: file,
+            italics: file,
+            bolditalics: file
+        };
+    });
+    pdfmake.setFonts(families);
+    // Everything a form needs is handed to pdfmake in memory, so refuse
+    // any attempt to fetch a URL or read the local disk while rendering.
+    pdfmake.setUrlAccessPolicy(() => false);
+    pdfmake.setLocalAccessPolicy((path) => STANDARD_FONTS.includes(path));
+
+    /**
+        Font names a form may use (see the `font` property on forms and
+        form attributes) mapped to pdfmake font family and style.
+
+        @property fonts
+        @private
+    */
     const fonts = {
-        Barcode39: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode39-Regular.ttf")
-        ),
-        Barcode39Text: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode39Text-Regular.ttf")
-        ),
-        Barcode39Extended: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode39Extended-Regular.ttf")
-        ),
-        Barcode39ExtendedText: new pdf.Font(
-            fs[readFileSync](
-                "./fonts/LibreBarcode39ExtendedText-Regular.ttf"
-            )
-        ),
-        Courier: require("pdfjs/font/Courier"),
-        CourierBold: require("pdfjs/font/Courier-Bold"),
-        CourierBoldOblique: require("pdfjs/font/Courier-BoldOblique"),
-        CourierOblique: require("pdfjs/font/Courier-Oblique"),
-        Helvetica: require("pdfjs/font/Helvetica"),
-        HelveticaBold: require("pdfjs/font/Helvetica-Bold"),
-        HelveticaBoldOblique: require("pdfjs/font/Helvetica-BoldOblique"),
-        HelveticaOblique: require("pdfjs/font/Helvetica-Oblique"),
-        Times: require("pdfjs/font/Times-Roman"),
-        TimesBold: require("pdfjs/font/Times-Bold"),
-        TimesBoldItalic: require("pdfjs/font/Times-BoldItalic"),
-        TimesItalic: require("pdfjs/font/Times-Italic")
+        Barcode39: {font: "Barcode39"},
+        Barcode39Text: {font: "Barcode39Text"},
+        Barcode39Extended: {font: "Barcode39Extended"},
+        Barcode39ExtendedText: {font: "Barcode39ExtendedText"},
+        Courier: {font: "Courier"},
+        CourierBold: {font: "Courier", bold: true},
+        CourierBoldOblique: {font: "Courier", bold: true, italics: true},
+        CourierOblique: {font: "Courier", italics: true},
+        Helvetica: {font: "Helvetica"},
+        HelveticaBold: {font: "Helvetica", bold: true},
+        HelveticaBoldOblique: {font: "Helvetica", bold: true, italics: true},
+        HelveticaOblique: {font: "Helvetica", italics: true},
+        Times: {font: "Times"},
+        TimesBold: {font: "Times", bold: true},
+        TimesBoldItalic: {font: "Times", bold: true, italics: true},
+        TimesItalic: {font: "Times", italics: true}
     };
     const crud = new CRUD();
     const feathers = new Feathers();
@@ -124,6 +219,211 @@
             width: 360
         }
     };
+
+    /**
+        Text style for a font name. Unknown names (for example the bold
+        variant of a font that has none, such as "Barcode39Bold") return
+        an empty style so the text inherits the document font, which is
+        what pdfjs did with an undefined font.
+
+        @method fontStyle
+        @param {String} name Font name
+        @return {Object}
+        @private
+    */
+    function lineHeightOf(family) {
+        let metrics = METRICS[family];
+
+        return LINE_HEIGHT * (
+            (metrics[0] - 2 * metrics[1]) / (metrics[0] - metrics[1])
+        );
+    }
+
+    function fontStyle(name) {
+        let style = fonts[name];
+
+        if (!style) {
+            return {};
+        }
+        return {
+            font: style.font,
+            bold: Boolean(style.bold),
+            italics: Boolean(style.italics),
+            lineHeight: lineHeightOf(style.font)
+        };
+    }
+
+    function str(value) {
+        if (value === undefined || value === null) {
+            return "";
+        }
+        return String(value);
+    }
+
+    /**
+        Build a pdfmake text node.
+
+        @method textNode
+        @param {Any} value Text
+        @param {Object} [opts] Options
+        @param {String} [opts.font] Font name
+        @param {Number} [opts.fontSize] Font size
+        @param {String} [opts.textAlign] Alignment
+        @return {Object}
+        @private
+    */
+    function textNode(value, opts) {
+        let text = str(value);
+        // An empty run list takes no height, as empty text did in pdfjs
+        let node = {
+            text: text || []
+        };
+
+        opts = opts || {};
+        Object.assign(node, fontStyle(opts.font));
+        // A barcode split over two lines cannot be scanned. pdfjs wrapped
+        // only at spaces and let a long word run past the cell; pdfmake
+        // would break the word, so make each word an unbreakable run.
+        if (text && BARCODE_FILES[node.font]) {
+            node.text = text.split(/(\s+)/).filter(Boolean).map(
+                (word) => (
+                    /^\s+$/.test(word)
+                    ? word
+                    : {text: word, noWrap: true}
+                )
+            );
+        }
+        if (opts.fontSize) {
+            node.fontSize = opts.fontSize;
+        }
+        if (opts.textAlign) {
+            node.alignment = opts.textAlign;
+        }
+        return node;
+    }
+
+    /**
+        Text made of several runs separated by line breaks, the
+        equivalent of pdfjs `cell().text().add().br().add()`.
+
+        @method richText
+        @return {Object}
+        @private
+    */
+    function richText() {
+        let runs = [];
+        let that = {node: {text: runs}};
+
+        that.add = function (value, opts) {
+            runs.push(textNode(value, opts));
+            return that;
+        };
+
+        that.br = function () {
+            runs.push("\n");
+            return that;
+        };
+
+        return that;
+    }
+
+    /**
+        Whether bytes are an image pdfkit can embed (JPEG or PNG).
+
+        @method isImage
+        @param {Buffer} bytes
+        @return {Boolean}
+        @private
+    */
+    function isImage(bytes) {
+        return Boolean(bytes) && bytes.length > 4 && (
+            (bytes[0] === 0xff && bytes[1] === 0xd8) ||
+            (bytes.toString("latin1", 1, 4) === "PNG")
+        );
+    }
+
+    function spacer(height) {
+        return {canvas: [], margin: [0, height, 0, 0]};
+    }
+
+    /**
+        Table layout with no rules and fixed cell padding.
+
+        @method plainLayout
+        @param {Object} padding Padding in points for left, right, top
+        and bottom
+        @param {Function} [hLineWidth] Horizontal rule width by index
+        @return {Object}
+        @private
+    */
+    function noLine() {
+        return 0;
+    }
+
+    function plainLayout(padding, hLineWidth) {
+        return {
+            hLineWidth: hLineWidth || noLine,
+            vLineWidth: noLine,
+            paddingLeft: () => padding.left,
+            paddingRight: () => padding.right,
+            paddingTop: () => padding.top,
+            paddingBottom: () => padding.bottom
+        };
+    }
+
+    function evenPadding(n) {
+        return {left: n, right: n, top: n, bottom: n};
+    }
+
+    /**
+        pdfmake places headers and footers inside the page margins, so the
+        margins must be large enough to hold them. Lay out each node on its
+        own tall page with a marker after it and read where the marker
+        landed.
+
+        @method measureHeights
+        @param {Array} nodes Functions that each return a fresh node
+        (pdfmake annotates the nodes it lays out, so they are not reused)
+        @param {Object} def Document definition the nodes belong to
+        @return {Promise} Array of heights in points
+        @private
+    */
+    async function measureHeights(nodes, def) {
+        let tops = {};
+        let content = [];
+
+        nodes.forEach(function (node, i) {
+            content.push({
+                stack: [node()],
+                pageBreak: (
+                    i
+                    ? "before"
+                    : undefined
+                )
+            });
+            content.push({text: ".", id: MEASURE_ID + i});
+        });
+
+        await pdfmake.createPdf({
+            pageSize: {width: def.pageSize.width, height: MEASURE_HEIGHT},
+            pageMargins: [0, 0, 0, 0],
+            defaultStyle: def.defaultStyle,
+            images: Object.assign({}, def.images),
+            content,
+            pageBreakBefore: function (node) {
+                if (node.id && node.id.startsWith(MEASURE_ID)) {
+                    tops[node.id] = node.startPosition.top;
+                }
+                return false;
+            }
+        }).getBuffer();
+
+        // Round up so floating point error cannot push the last line of
+        // a header out of its margin
+        return nodes.map(
+            (ignore, i) => Math.ceil(tops[MEASURE_ID + i] || 0) + 1
+        );
+    }
 
     function buildForm(feather, localFeathers) {
         let props;
@@ -331,18 +631,36 @@
                 ? form.paperSize
                 : "Letter Wide"
             );
-            let doc = new pdf.Document({
-                width: sizes[defSize].width,
-                height: sizes[defSize].height,
-                font: fonts[defFont],
-                padding: 36,
-                paddingTop: 54,
-                properties: {
+            let page = sizes[defSize];
+            let content = [];
+            let doc = {
+                pageSize: {
+                    width: page.width,
+                    height: page.height
+                },
+                pageMargins: [
+                    PAGE_PADDING,
+                    PAGE_PADDING_TOP,
+                    PAGE_PADDING,
+                    PAGE_PADDING
+                ],
+                defaultStyle: Object.assign(
+                    fontStyle("Helvetica"),
+                    fontStyle(defFont),
+                    {fontSize: DEFAULT_FONT_SIZE}
+                ),
+                info: {
                     creator: vClient.currentUser()
-                }
-            });
+                },
+                images: {},
+                content
+            };
+            let section = content;
 
             let header;
+            let headerCells;
+            let footer;
+            let heights;
             let src;
             let res;
             if (globalSettings && globalSettings.logo) {
@@ -351,15 +669,19 @@
             } else {
                 src = fs[readFileSync]("./files/logo.jpg");
             }
-            let logo = new pdf.Image(src);
+            if (isImage(src)) {
+                doc.images.logo = (
+                    "data:application/octet-stream;base64," +
+                    src.toString("base64")
+                );
+            } else {
+                console.error(
+                    "Logo is not a JPEG or PNG image; printing without it"
+                );
+            }
             let n = 0;
             let file = (filename || f.createId()) + ".pdf";
             let path = dir + file;
-            let w = fs.createWriteStream(path);
-
-            w.on("error", function () {
-                return;
-            });
 
             form = form || buildForm(
                 localFeathers[rows[0].objectType],
@@ -455,6 +777,9 @@
                 );
             }
 
+            // Cells are appended to `row` (an array) in order. Some
+            // branches add no cell at all, exactly as before; rows are
+            // padded to the table width when the table is built.
             function formatValue(
                 row,
                 feather,
@@ -474,7 +799,7 @@
                 let lkey;
                 let rel;
                 let fontStr = style.font || defFont;
-                let ovrFont = fonts[fontStr];
+                let ovrFont = fontStr;
 
                 function fontMod(val) {
                     if (fontStr.startsWith("Barcode")) {
@@ -494,13 +819,13 @@
                 }
 
                 if (printBlank) {
-                    row.cell("");
+                    row.push(textNode(""));
                     return;
                 }
 
                 if (typeof p.type === "object") {
                     if (value === null) {
-                        row.cell("");
+                        row.push(textNode(""));
                         return;
                     }
 
@@ -519,10 +844,10 @@
                         if (rec[attr].phone) {
                             value += cr + "Ph: " + rec[attr].phone;
                         }
-                        row.cell(fontMod(value), {
+                        row.push(textNode(fontMod(value), {
                             font: ovrFont,
                             fontSize: style.fontSize
-                        });
+                        }));
                         return;
                     }
 
@@ -538,13 +863,13 @@
                                 label: rec[attr].label,
                                 source: rec[attr].resource
                             });
-                            row.cell(figure);
+                            row.push(textNode(figure));
                         }
                         return;
                     }
 
                     if (inheritedFrom(p.type.relation, "Contact")) {
-                        rel = row.cell().text();
+                        rel = richText();
                         rel.add(
                             value.fullName
                         );
@@ -580,6 +905,7 @@
                                 );
                             }
                         }
+                        row.push(rel.node);
                         return;
                     }
 
@@ -596,7 +922,7 @@
                         nkey = lkey;
                         lkey = undefined;
                     }
-                    rel = row.cell().text();
+                    rel = richText();
                     if (lkey) {
                         rel.add(
                             fontMod(value[nkey]),
@@ -620,13 +946,14 @@
                             }
                         );
                     }
+                    row.push(rel.node);
                     return;
                 }
 
                 switch (p.type || typeof value) {
                 case "string":
                     if (!value) {
-                        row.cell("");
+                        row.push(textNode(""));
                         return;
                     }
                     if (p.dataList) {
@@ -646,10 +973,10 @@
                         value = new Date(value).toLocaleString();
                     }
 
-                    row.cell(fontMod(value), {
+                    row.push(textNode(fontMod(value), {
                         font: ovrFont,
                         fontSize: style.fontSize
-                    });
+                    }));
                     break;
                 case "boolean":
                     if (value) {
@@ -657,18 +984,18 @@
                     } else {
                         value = "";
                     }
-                    row.cell(fontMod(value), {
+                    row.push(textNode(fontMod(value), {
                         font: ovrFont,
                         fontSize: style.fontSize
-                    });
+                    }));
                     break;
                 case "integer":
                 case "number":
-                    row.cell(fontMod(value.toLocaleString()), {
+                    row.push(textNode(fontMod(value.toLocaleString()), {
                         font: ovrFont,
                         fontSize: style.fontSize,
                         textAlign: "right"
-                    });
+                    }));
                     break;
                 case "object":
                     if (
@@ -683,22 +1010,29 @@
                                 value,
                                 formats[p.format].scale
                             );
-                            row.cell(fontMod(value), {
+                            row.push(textNode(fontMod(value), {
                                 font: ovrFont,
                                 fontSize: style.fontSize,
                                 textAlign: "right"
-                            });
+                            }));
                         } else {
-                            row.cell("Invalid currency");
+                            row.push(textNode("Invalid currency"));
                         }
                     }
                     break;
                 default:
-                    row.cell(fontMod(value), {
+                    row.push(textNode(fontMod(value), {
                         font: ovrFont,
                         fontSize: style.fontSize
-                    });
+                    }));
                 }
+            }
+
+            function padRow(row, length) {
+                while (row.length < length) {
+                    row.push(textNode(""));
+                }
+                return row.slice(0, length);
             }
 
             function formatTable(obj) {
@@ -706,40 +1040,25 @@
                 let attr = obj.attribute;
                 let p = resolveProperty(attr.attr, feather);
 
-                let tr;
-                let maxWidth = doc.width.minus(
-                    doc.paddingLeft
-                ).minus(doc.paddingRight);
+                let tr = [];
+                let body = [tr];
+                let lines;
+                let maxWidth = page.width - PAGE_PADDING - PAGE_PADDING;
                 let ttlWidth = 0;
                 let cols = attr.columns.filter(function (c) {
                     ttlWidth += c.width || COL_WIDTH_DEFAULT;
                     return ttlWidth <= maxWidth;
                 });
-                let table;
 
                 if (attr.showLabel) {
-                    doc.cell("", {
-                        minHeight: 10
-                    });
-                    doc.cell(getLabel(obj.feather, attr) + ":", {
-                        padding: 5,
-                        font: fonts[defFont + "Bold"]
-                    });
+                    section.push(spacer(10));
+                    section.push(Object.assign(
+                        textNode(getLabel(obj.feather, attr) + ":", {
+                            font: defFont + "Bold"
+                        }),
+                        {margin: CELL_PADDING}
+                    ));
                 }
-
-                table = doc.table({
-                    widths: cols.map(
-                        (c) => c.width || COL_WIDTH_DEFAULT
-                    ),
-                    borderHorizontalWidths: function (i) {
-                        return (
-                            i < 2
-                            ? 1
-                            : 0.1
-                        );
-                    },
-                    padding: 5
-                });
 
                 if (!p.type) {
                     throw (
@@ -749,14 +1068,9 @@
                 }
                 feather = localFeathers[p.type.relation];
 
-                tr = table.header({
-                    font: fonts[defFont + "Bold"],
-                    borderBottomWidth: 1.5
-                });
-
                 function addHeaderCol(col) {
                     let opts = {
-                        font: fonts[defFont + "Bold"]
+                        font: defFont + "Bold"
                     };
                     let prop = resolveProperty(col.attr, feather);
 
@@ -771,11 +1085,11 @@
                     ) {
                         opts.textAlign = "right";
                     }
-                    tr.cell(getLabel(feather.name, col), opts);
+                    tr.push(textNode(getLabel(feather.name, col), opts));
                 }
 
                 function addRow(rec) {
-                    let row = table.row();
+                    let row = [];
 
                     cols.forEach(function (col) {
                         formatValue(
@@ -791,10 +1105,44 @@
                             col.printBlank
                         );
                     });
+                    body.push(padRow(row, cols.length));
                 }
 
                 cols.forEach(addHeaderCol);
-                data[attr.attr].forEach(addRow);
+                lines = data[attr.attr] || [];
+                lines.forEach(addRow);
+
+                if (!cols.length) {
+                    return;
+                }
+
+                section.push({
+                    table: {
+                        headerRows: 1,
+                        widths: cols.map(
+                            (c) => (
+                                (c.width || COL_WIDTH_DEFAULT) -
+                                2 * CELL_PADDING
+                            )
+                        ),
+                        body
+                    },
+                    // Heavy rule above and below the column headings,
+                    // hairlines between rows
+                    layout: plainLayout(
+                        evenPadding(CELL_PADDING),
+                        function (i) {
+                            if (i === 1) {
+                                return 1.5;
+                            }
+                            return (
+                                i < 2
+                                ? 1
+                                : 0.1
+                            );
+                        }
+                    )
+                });
             }
 
             function buildSection(tab) {
@@ -802,21 +1150,30 @@
                 let colCnt = 0;
                 let rowCnt = 0;
                 let ary = [];
-                let tbl;
+                let body = [];
                 let units = [];
                 let c = 0;
                 let tables = [];
 
                 if (tab) {
-                    doc.cell("", {
-                        minHeight: 10
-                    });
-                    doc.cell(tab.name, {
-                        font: fonts[defFont + "Bold"],
-                        backgroundColor: 0xd3d3d3,
-                        fontSize: 14,
-                        paddingLeft: 9,
-                        paddingBottom: 2
+                    section.push(spacer(10));
+                    section.push({
+                        table: {
+                            widths: ["*"],
+                            body: [[Object.assign(
+                                textNode(tab.name, {
+                                    font: defFont + "Bold",
+                                    fontSize: 14
+                                }),
+                                {fillColor: "#d3d3d3"}
+                            )]]
+                        },
+                        layout: plainLayout({
+                            left: 9,
+                            right: 0,
+                            top: 0,
+                            bottom: 2
+                        })
                     });
                 }
 
@@ -841,21 +1198,18 @@
 
                 // Build table
                 while (c < colCnt) {
-                    units.push(100); // label
-                    units.push(134); // value
+                    units.push(100 - 2 * CELL_PADDING); // label
+                    units.push(134 - 2 * CELL_PADDING); // value
                     c += 1;
                 }
-                tbl = doc.table({
-                    widths: units,
-                    padding: 5
-                });
 
                 function addRow() {
-                    let row = tbl.row();
+                    let row = [];
                     let i = 0;
                     let attr;
                     let label;
 
+                    body.push(row);
                     while (i < colCnt) {
                         if (ary[i] === undefined) {
                             i += 1;
@@ -873,12 +1227,12 @@
                                     attr
                                 );
 
-                                row.cell(label + ":", {
+                                row.push(textNode(label + ":", {
                                     textAlign: "right",
-                                    font: fonts[defFont + "Bold"]
-                                });
+                                    font: defFont + "Bold"
+                                }));
                             } else {
-                                row.cell("");
+                                row.push(textNode(""));
                             }
                             // Handle value
                             if (attr.columns.length) {
@@ -911,6 +1265,16 @@
                     c += 1;
                 }
 
+                if (body.length) {
+                    section.push({
+                        table: {
+                            widths: units,
+                            body: body.map((r) => padRow(r, units.length))
+                        },
+                        layout: plainLayout(evenPadding(CELL_PADDING))
+                    });
+                }
+
                 while (tables.length) {
                     formatTable(tables.shift());
                 }
@@ -919,19 +1283,19 @@
             }
 
             if (form.hideLogo !== true || form.hideTitle !== true) {
-                header = doc.header().table({
-                    widths: [null, 5 * pdf.cm, 2.5 * pdf.cm],
-                    paddingBottom: 1 * pdf.cm
-                }).row();
-
-                header.cell().text({
-                    fontSize: 20,
-                    font: fonts[defFont + "Bold"]
-                }).add(
-                    form.hideTitle
-                    ? ""
-                    : form.title || rows[0].objectType.toName()
-                );
+                header = [
+                    textNode(
+                        (
+                            form.hideTitle
+                            ? ""
+                            : form.title || rows[0].objectType.toName()
+                        ),
+                        {
+                            fontSize: 20,
+                            font: defFont + "Bold"
+                        }
+                    )
+                ];
 
                 if (!form.hideLogo) {
                     let addr = "";
@@ -987,18 +1351,65 @@
                             addr += "Ph: " + globalSettings.phone;
                         }
                     }
-                    header.cell().text().add(addr);
-                    header.cell().image(logo, {
-                        align: "right",
-                        height: 2.5 * pdf.cm
-                    });
+                    header.push(textNode(addr));
+                    if (doc.images.logo) {
+                        header.push({
+                            image: "logo",
+                            fit: [2.5 * CM, 2.5 * CM],
+                            alignment: "right"
+                        });
+                    }
                 }
+
+                headerCells = header;
+                header = function () {
+                    return {
+                        margin: [
+                            PAGE_PADDING,
+                            PAGE_PADDING_TOP,
+                            PAGE_PADDING,
+                            0
+                        ],
+                        table: {
+                            widths: ["*", 5 * CM, 2.5 * CM],
+                            body: [padRow(f.copy(headerCells), 3)]
+                        },
+                        layout: plainLayout({
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 1 * CM
+                        })
+                    };
+                };
             }
 
-            doc.footer().pageNumber(function (curr, total) {
-                return curr + " / " + total;
-            }, {textAlign: "center"});
-            doc.cell("", {minHeight: 0.1 * pdf.cm});
+            footer = function (curr, total) {
+                return {
+                    text: curr + " / " + total,
+                    alignment: "center",
+                    margin: [PAGE_PADDING, 0, PAGE_PADDING, 0]
+                };
+            };
+
+            // Make room for the header and footer, which pdfmake draws
+            // inside the page margins
+            heights = await measureHeights(
+                (
+                    header
+                    ? [header, footer.bind(null, 1, 1)]
+                    : [footer.bind(null, 1, 1)]
+                ),
+                doc
+            );
+            if (header) {
+                doc.pageMargins[1] = heights.shift();
+                doc.header = header;
+            }
+            doc.pageMargins[3] = PAGE_PADDING + heights.shift();
+            doc.footer = footer;
+
+            content.push(spacer(0.1 * CM));
 
             // Loop through data to build content
             function getRow() {
@@ -1017,11 +1428,18 @@
                             annotation.dataSource
                         ];
                     }
+                    // Each record after the first starts a new page
+                    section = [];
+                    content.push({
+                        stack: section,
+                        pageBreak: (
+                            content.length > 1
+                            ? "before"
+                            : undefined
+                        )
+                    });
                     buildSection();
                     form.tabs.forEach(buildSection);
-                    if (ids.length) {
-                        doc.pageBreak();
-                    }
                 }
                 n = 0;
             }
@@ -1040,8 +1458,7 @@
             });
             */
 
-            doc.pipe(w);
-            await doc.end();
+            await pdfmake.createPdf(doc).write(path);
             /*
             if (!options || !options.watermark) {
                 return file;
@@ -1067,6 +1484,7 @@
 
         return that;
     };
+
 
     /*
     function fetchBytes(url) {

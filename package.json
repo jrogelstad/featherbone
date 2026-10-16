@@ -7,6 +7,9 @@
   "author": "Featherbone LLC",
   "license": "GPL v3",
   "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node test/run.js",
     "test:unit": "node test/run.js unit",
@@ -38,7 +41,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "passport-magic-login": "^1.2.2",
-    "pdfjs": "^2.4.7",
+    "pdfmake": "^0.3.11",
     "pg": "^8.7.3",
     "pg-format": "^1.0.4",
     "print-js": "^1.6.0",
