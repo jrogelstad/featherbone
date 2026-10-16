@@ -138,6 +138,77 @@
         return false;
     }
 
+    /*
+        `ModuleNpm` rows: libraries declared in a table rather than in
+        the module's own package.json. Deprecated by ADR-002 question
+        1 and read only for a module the server holds no package for.
+        Loaded globally, as they always were, which is the collision
+        the per-package directories exist to end.
+    */
+    let legacyWarned = false;
+
+    async function loadLegacyLibraries(client, rows, onDisk) {
+        let has = await client.query(
+            "SELECT to_regclass('module_npm') IS NOT NULL AS found;"
+        );
+        let resp;
+        let pending = rows.filter(
+            (row) => onDisk[row.name] === undefined
+        ).map((row) => row.name);
+
+        if (!has.rows[0].found || !pending.length) {
+            return;
+        }
+
+        resp = await client.query(
+            (
+                "SELECT m.name AS module, n.package, n.property, " +
+                "  n.export FROM module_npm n " +
+                "JOIN module m ON m._pk = n._module_module_pk " +
+                "WHERE NOT n.is_deleted AND NOT m.is_deleted " +
+                "  AND m.name = ANY($1)"
+            ),
+            [pending]
+        );
+
+        if (!resp.rows.length) {
+            return;
+        }
+
+        if (!legacyWarned) {
+            legacyWarned = true;
+            console.warn(
+                "ModuleNpm rows are deprecated (ADR-002): declare " +
+                "libraries in the module's package.json and install " +
+                "the module as a package. Still loading rows for: " +
+                resp.rows.map((row) => row.module).filter(
+                    (name, i, all) => all.indexOf(name) === i
+                ).join(", ")
+            );
+        }
+
+        resp.rows.forEach(function (row) {
+            let property = (
+                row.property ||
+                row.export ||
+                row.package
+            ).toCamelCase(true);
+
+            try {
+                f[property] = (
+                    row.export
+                    ? require(row.package)[row.export]
+                    : require(row.package)
+                );
+            } catch (err) {
+                console.error(
+                    "Unable to load npm module " + row.package +
+                    " for " + row.module + ": " + err.message
+                );
+            }
+        });
+    }
+
     async function buildRegistry(client) {
         let reg = {
             GET: {},
@@ -183,6 +254,26 @@
                 onDisk[row.name] = row.version;
             }
         });
+
+        /*
+            A module's libraries come from its own package, installed
+            in its own version directory, and are loaded here --
+            before its code runs, and per database, which is where
+            everything else about a database's modules is decided
+            (ADR-002 question 1, which retires `ModuleNpm`).
+
+            The rows are still honored for a module with no package
+            yet, so an installation that has not been repackaged keeps
+            working, and they are read from this database rather than
+            from the manager: the one-mode collapse left that loader
+            pointed at `tenant: false`, so an instance's rows had
+            quietly stopped being loaded at all.
+        */
+        Object.keys(onDisk).forEach(function (name) {
+            packages.loadLibraries(name, onDisk[name], f);
+        });
+
+        await loadLegacyLibraries(client, mods.rows, onDisk);
 
         // A database mid-install has no service rows to load yet
         let hasServices = await client.query(
@@ -3418,30 +3509,17 @@
         @method loadModules
         @return {Promise}
     */
-    that.loadNpmModules = async function (pUser, pClient) {
-        let conf = await config.read();
-        let mods = await that.request({
-            method: "GET",
-            name: "Module",
-            user: pUser || conf.pgUser,
-            client: pClient,
-            properties: ["id", "npm"],
-            tenant: false
-        }, true);
-
-        // Instantiate npm packages listed on modules
-        mods.forEach(function (mod) {
-            mod.npm.forEach(function (pkg) {
-                let pname = pkg.property || pkg.export || pkg.package;
-                pname = pname.toCamelCase(true);
-
-                if (pkg.export) {
-                    f[pname] = require(pkg.package)[pkg.export];
-                    return;
-                }
-                f[pname] = require(pkg.package);
-            });
-        });
+    that.loadNpmModules = async function () {
+        /*
+            Libraries are loaded with the database's modules now, in
+            the per-database registry build, from each package's own
+            directory (ADR-002 question 1). This stayed as a no-op
+            because the installer and the boot sequence both call it,
+            and because it used to read `tenant: false` -- the manager
+            -- so on a multi-instance installation it was loading the
+            wrong database's rows anyway.
+        */
+        return;
     };
 
      /**
