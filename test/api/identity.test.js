@@ -1,22 +1,17 @@
 /*
-    Identity sign-in (ADR-001 B.1/B.2), behind authStrategy "identity".
+    Identity sign-in (ADR-001 B.1/B.2), the only way in (B.8).
 
-    A second server is started against the same databases with
-    authStrategy=identity, so the suite proves both strategies work on
-    one build. Identities are seeded in the manager: one with the
-    application's own scrypt hash, one with the verifier Postgres holds
-    for the harness user, which is the migration path -- the password
-    must keep working, and the verifier must be replaced by a scrypt
-    hash on the first successful sign-in.
+    Identities are seeded in the manager: one with the application's
+    own scrypt hash, one with the verifier Postgres held for the harness
+    user, which is the migration path -- the password must keep
+    working, and the verifier must be replaced by a scrypt hash on the
+    first successful sign-in.
 */
 /*jslint node*/
 "use strict";
 
 const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const path = require("path");
-const {spawn} = require("child_process");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
@@ -24,7 +19,6 @@ const access = require("./lib/access");
 const {Identities} = require("../../server/services/identities");
 
 const identities = new Identities();
-const PORT = settings.port + 2;
 const GENERIC = "Invalid sign in credentials.";
 
 async function seed() {
@@ -121,55 +115,10 @@ async function seed() {
     });
 }
 
-describe("identity sign-in (authStrategy identity)", function () {
-    let child;
-    let base = "http://127.0.0.1:" + PORT + "/" + settings.testDb;
+describe("identity sign-in", function () {
+    let base = settings.baseUrl;
 
-    before(async function () {
-        await seed();
-
-        let logFile = path.join(settings.artifacts, "server-identity.log");
-        child = spawn(process.execPath, ["server.js"], {
-            cwd: settings.root,
-            env: Object.assign({}, process.env, {
-                authStrategy: "identity",
-                managerDatabase: settings.managerDb,
-                modulesDir: settings.modulesDir,
-                PORT: String(PORT),
-                clientPort: String(PORT),
-                logSilent: "true",
-                twoFactorAuth: "false"
-            }),
-            stdio: [
-                "ignore",
-                fs.openSync(logFile, "w"),
-                fs.openSync(logFile, "a")
-            ]
-        });
-
-        let started = Date.now();
-        while (Date.now() - started < 60000) {
-            if (child.exitCode !== null) {
-                throw new Error(
-                    "identity server exited; see " + logFile
-                );
-            }
-            try {
-                let resp = await fetch(base + "/", {redirect: "manual"});
-                if (resp.status < 500) {
-                    return;
-                }
-            } catch (ignore) {}
-            await new Promise((r) => setTimeout(r, 250));
-        }
-        throw new Error("identity server did not start; see " + logFile);
-    });
-
-    after(function () {
-        if (child && child.exitCode === null) {
-            child.kill("SIGTERM");
-        }
-    });
+    before(seed);
 
     it("signs in against the application's own hash and serves data",
             async function () {
@@ -353,7 +302,7 @@ describe("identity sign-in (authStrategy identity)", function () {
             let resp = await admin.get("/admin/overview");
 
             assert.equal(resp.organization.name, "FBTest");
-            assert.equal(resp.authStrategy, "identity");
+            assert.equal(resp.authStrategy, undefined, "no strategy flag");
             assert.ok(
                 resp.identities.some(
                     (row) => row.username === settings.adminUser
@@ -608,29 +557,6 @@ describe("identity sign-in (authStrategy identity)", function () {
             let resp = await fetch(base + "/admin/overview");
 
             assert.equal(resp.status, 401);
-        });
-
-        it("serves the same screen from the harness server too",
-                async function () {
-            /*
-                Both servers in this run sign in by identity against
-                the same databases, so the harness server shows the
-                same organization. (This used to prove the screen was
-                readable before the cutover, when the harness server
-                still used Postgres roles; that path is on its way out,
-                tenant plan B.8.)
-            */
-            let other = new Session();
-            let resp = await other.signIn(
-                settings.adminUser,
-                settings.password
-            );
-            assert.equal(resp.status, 200, JSON.stringify(resp.body));
-
-            let overview = await other.get("/admin/overview");
-            assert.equal(overview.authStrategy, "identity");
-            assert.equal(overview.organization.name, "FBTest");
-            assert.ok(overview.identities.length > 0);
         });
     });
 

@@ -3056,19 +3056,6 @@ button:disabled .fb-ipicon,
   vertical-align: 1px;
 }
 
-.fb-admin-banner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 8px;
-  padding: 6px 10px;
-  border: 1px solid var(--fb-border);
-  border-left: 4px solid var(--fb-accent);
-  background-color: var(--fb-surface-alt);
-  color: var(--fb-text);
-  font-size: 13px;
-}
-
 .fb-admin-meta {
   margin: 4px 8px 8px 8px;
   color: var(--fb-text);

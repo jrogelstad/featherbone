@@ -8,7 +8,6 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const format = require("pg-format");
 const settings = require("../../harness/env");
 const db = require("../../harness/db");
 const {signedIn} = require("../../harness/http");
@@ -47,26 +46,12 @@ function escapeRegExp(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Postgres role + super user account, like harness/db.js bootstrap().
-// Returns the user name. Role names are per test database so parallel
-// runs do not collide.
+// Super user account plus the identity that signs in as it (ADR-001).
+// Returns the user name. Names are per test database so parallel runs
+// do not collide.
 async function createSuperUser(tag) {
     let name = "fbtest_" + tag + "_" + settings.testDb;
     await db.withClient(settings.testDb, async function (client) {
-        let resp = await client.query(
-            "SELECT 1 FROM pg_roles WHERE rolname = $1",
-            [name]
-        );
-        await client.query(format(
-            (
-                resp.rows.length
-                ? "ALTER"
-                : "CREATE"
-            ) + " ROLE %I LOGIN PASSWORD %L",
-            name,
-            settings.password
-        ));
-        await client.query(format("GRANT everyone TO %I", name));
         await client.query(
             "DELETE FROM user_account WHERE name = $1",
             [name]
@@ -97,7 +82,7 @@ async function signedInAs(tag) {
     return session;
 }
 
-// Best effort: the role is cluster wide, the account dies with the DB
+// The account dies with the test database; just end the session
 async function dropUser(session) {
     if (!session) {
         return;
@@ -106,14 +91,6 @@ async function dropUser(session) {
         await session.signOut();
     } catch (ignore) {
         // Server may already be gone
-    }
-    try {
-        await db.withClient("postgres", (client) => client.query(format(
-            "DROP ROLE IF EXISTS %I",
-            session.userName
-        )));
-    } catch (ignore) {
-        // Still referenced (open connection); harmless
     }
 }
 

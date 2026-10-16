@@ -11,9 +11,8 @@
     two passwords, and nothing an administrator can do in one reaches
     the other.
 
-    The suite runs its own server with authStrategy=identity against
-    the harness databases, seeds a second organization that shares
-    usernames with the first, and then tries to cross the line: by
+    The suite seeds a second organization that shares usernames with
+    the first, and then tries to cross the line: by
     signing in, and through every write the administration routes
     offer. It also covers F.2's substance -- one person with an
     identity in each organization, separate credentials, and revoking
@@ -24,16 +23,12 @@
 
 const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const path = require("path");
-const {spawn} = require("child_process");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
 const {Identities} = require("../../server/services/identities");
 
 const identities = new Identities();
-const PORT = settings.port + 3;
 const OTHER_PW = "Fbtest-Other-Org-2!";
 const OTHER_ORG = "FBOther";
 const OTHER_ONLY = "fbt_other_only";
@@ -232,8 +227,7 @@ function identityPk(client, organization, username) {
 }
 
 describe("two organizations are strangers (F.1)", function () {
-    let child;
-    let base = "http://127.0.0.1:" + PORT + "/" + settings.testDb;
+    let base = settings.baseUrl;
     let idsOther = {};
     let hashes = {};
 
@@ -251,51 +245,9 @@ describe("two organizations are strangers (F.1)", function () {
             resp = await identityPk(client, "FBTest", settings.basicUser);
             hashes.a = resp.rows[0].password_hash;
         });
-
-        let logFile = path.join(settings.artifacts, "server-isolation.log");
-
-        child = spawn(process.execPath, ["server.js"], {
-            cwd: settings.root,
-            env: Object.assign({}, process.env, {
-                authStrategy: "identity",
-                managerDatabase: settings.managerDb,
-                modulesDir: settings.modulesDir,
-                PORT: String(PORT),
-                clientPort: String(PORT),
-                logSilent: "true",
-                twoFactorAuth: "false"
-            }),
-            stdio: [
-                "ignore",
-                fs.openSync(logFile, "w"),
-                fs.openSync(logFile, "a")
-            ]
-        });
-
-        let started = Date.now();
-        while (Date.now() - started < 60000) {
-            if (child.exitCode !== null) {
-                throw new Error(
-                    "isolation server exited; see " + logFile
-                );
-            }
-            try {
-                let resp = await fetch(base + "/", {redirect: "manual"});
-                if (resp.status < 500) {
-                    return;
-                }
-            } catch (ignore) {}
-            await new Promise((r) => setTimeout(r, 250));
-        }
-        throw new Error("isolation server did not start; see " + logFile);
     });
 
-    after(async function () {
-        if (child && child.exitCode === null) {
-            child.kill("SIGTERM");
-        }
-        await unseed();
-    });
+    after(unseed);
 
     describe("sign-in", function () {
         it("keeps one password per organization for one username",

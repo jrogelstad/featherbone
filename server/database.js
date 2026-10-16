@@ -332,8 +332,9 @@
         // PUBLIC
         //
         /**
-            Authenticates user against database credentials, and if successful
-            resolves to
+            Authenticates a user against their identity in the manager
+            database (ADR-001) and, when the identity holds a live grant
+            on the requested instance, resolves to
             {{#crossLink "User"}}{{/crossLink}}.
             Note this function does not create a persistant client connection.
             All actual client connections are handled by the service account.
@@ -342,128 +343,8 @@
             @param {String} password
             @return {Promise}
         */
-        that.authenticate = async function (req, username, pswd) {
-            let conf = await config.read();
-
-            if (config.authStrategy(conf) === "identity") {
-                return await authenticateIdentity(req, username, pswd);
-            }
-
-            let pgdb;
-            let pghost;
-            let pgport;
-            let resp;
-            let client1;
-
-            if (req && req.tenant) {
-                pgdb = req.tenant.pgDatabase;
-                pghost = req.tenant.pgService.pgHost;
-                pgport = req.tenant.pgService.pgPort;
-            } else {
-                pgdb = config.managerDatabase(conf);
-                pghost = conf.pgHost;
-                pgport = conf.pgPort;
-            }
-            let login1 = new Pool({
-                database: pgdb,
-                host: pghost,
-                password: pswd,
-                port: pgport,
-                ssl: sslConfig(conf),
-                user: username
-            });
-            let login2 = new Pool({
-                database: pgdb,
-                host: conf.pgHost,
-                password: conf.pgPassword,
-                port: conf.pgPort,
-                ssl: sslConfig(conf),
-                user: conf.pgUser
-            });
-            let client2 = await login2.connect();
-
-            try {
-                client1 = await login1.connect();
-            } catch (e) {
-                resp = await client2.query((
-                    "SELECT sign_in_attempts " +
-                    "FROM user_account " +
-                    "WHERE name = $1 " +
-                    " AND is_active;"
-                ), [username]);
-
-                if (resp.rows.length === 0) {
-                    return Promise.reject(new Error(
-                        "No active user account " + username + " found"
-                    ));
-                }
-
-                let attempts = resp.rows[0].sign_in_attempts + 1;
-
-                await client2.query((
-                    "UPDATE user_account SET " +
-                    "sign_in_attempts = $2 " +
-                    "WHERE name = $1"
-                ), [username, attempts]);
-
-                if (attempts > 3) {
-                    await client2.query((
-                        "UPDATE user_account SET " +
-                        "is_locked = true " +
-                        "WHERE name = $1"
-                    ), [username]);
-
-                    return Promise.reject(new Error(
-                        "Too many sign in attempts. " +
-                        "Account is locked."
-                    ));
-                }
-
-                if (attempts === 3) {
-                    return Promise.reject(new Error(
-                        "Invalid sign in credentials. " +
-                        "One more attempt before account is locked."
-                    ));
-                }
-
-                return Promise.reject(e);
-            } finally {
-                login1.end();
-            }
-
-            client1.release();
-
-            resp = await client2.query((
-                "SELECT is_active, is_locked " +
-                "FROM user_account " +
-                "WHERE name = $1 " +
-                " AND is_active"
-            ), [username]);
-
-            if (resp.rows.length === 0) {
-                return Promise.reject(new Error(
-                    "No active user account " + username + " found"
-                ));
-            }
-
-            let row = resp.rows[0];
-            if (row.is_locked) {
-                return Promise.reject(new Error(
-                    "User account is locked"
-                ));
-            }
-
-            await client2.query((
-                "UPDATE user_account SET " +
-                "last_sign_in = now(), " +
-                "sign_in_attempts = 0 " +
-                "WHERE name = $1"
-            ), [username]);
-
-            client2.release();
-            login2.end();
-
-            return await that.deserializeUser(req, username);
+        that.authenticate = function (req, username, pswd) {
+            return authenticateIdentity(req, username, pswd);
         };
         /**
             Database connection object. This object is requested from a
@@ -844,29 +725,25 @@
 
                 if (!resp.rows.length) {
                     /*
-                        No profile here yet. On the identity path a
-                        live grant is reason enough to make one
-                        (B.7); otherwise, and when there is no grant,
-                        the answer stands.
+                        No profile here yet. A live grant is reason
+                        enough to make one (B.7); without a grant the
+                        answer stands.
                     */
-                    let conf = await config.read();
                     let made = false;
 
-                    if (config.authStrategy(conf) === "identity") {
-                        try {
-                            made = await provisionProfile(req, username);
-                        } catch (err) {
-                            /*
-                                Say so: without this the person is told
-                                their account does not exist, which is
-                                true but not the reason.
-                            */
-                            console.error(
-                                "Could not make the local profile for " +
-                                username + " in " + req.tenant.name +
-                                ": " + (err.message || err)
-                            );
-                        }
+                    try {
+                        made = await provisionProfile(req, username);
+                    } catch (err) {
+                        /*
+                            Say so: without this the person is told
+                            their account does not exist, which is
+                            true but not the reason.
+                        */
+                        console.error(
+                            "Could not make the local profile for " +
+                            username + " in " + req.tenant.name +
+                            ": " + (err.message || err)
+                        );
                     }
 
                     if (made) {
