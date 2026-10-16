@@ -366,6 +366,98 @@
             };
         };
 
+        /*
+            Enough version comparison to answer "which is newest" and
+            "is this one behind": dotted numbers, and a prerelease
+            (1.2.0-rc.1) sorts before the release it leads to. Written
+            here rather than taken as a dependency, because that is the
+            whole of what the fleet view needs; ranges would be the
+            reason to reach for the semver package (ADR-002 question 1).
+        */
+        function parts(version) {
+            let main = String(version).split("-");
+
+            return {
+                numbers: main[0].split(".").map(function (one) {
+                    let n = parseInt(one, 10);
+
+                    return (
+                        Number.isNaN(n)
+                        ? 0
+                        : n
+                    );
+                }),
+                pre: main.slice(1).join("-")
+            };
+        }
+
+        /**
+            Compare two versions: -1, 0 or 1.
+
+            @method compareVersions
+            @param {String} a
+            @param {String} b
+            @return {Number}
+        */
+        that.compareVersions = function (a, b) {
+            let one = parts(a);
+            let two = parts(b);
+            let len = Math.max(one.numbers.length, two.numbers.length);
+            let i = 0;
+            let ret = 0;
+
+            while (i < len && ret === 0) {
+                let x = one.numbers[i] || 0;
+                let y = two.numbers[i] || 0;
+
+                if (x !== y) {
+                    ret = (
+                        x > y
+                        ? 1
+                        : -1
+                    );
+                }
+                i += 1;
+            }
+
+            if (ret !== 0) {
+                return ret;
+            }
+
+            if (one.pre === two.pre) {
+                return 0;
+            }
+            if (!one.pre) {
+                return 1;
+            }
+            if (!two.pre) {
+                return -1;
+            }
+            return (
+                one.pre > two.pre
+                ? 1
+                : -1
+            );
+        };
+
+        /**
+            The newest installed version of a module, or undefined when
+            the server holds none.
+
+            @method newest
+            @param {String} name Module name
+            @return {String|undefined}
+        */
+        that.newest = function (name) {
+            let found = Object.keys(index[name] || {});
+
+            if (!found.length) {
+                return undefined;
+            }
+
+            return found.sort(that.compareVersions)[found.length - 1];
+        };
+
         /**
             Every installed package, for reporting.
 

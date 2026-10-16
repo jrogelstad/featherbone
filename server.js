@@ -3166,6 +3166,10 @@
             doAdminInstance("setInstanceMaintenance")
         );
         dbRouter.post(
+            "/:db/admin/instance/deploy",
+            doAdminInstance("deployPackage")
+        );
+        dbRouter.post(
             "/:db/admin/instance/provision",
             doAdminInstance("provisionInstance")
         );
