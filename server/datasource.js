@@ -993,6 +993,15 @@
         dbName,
         template
     ) {
+        /*
+            Credentials are optional since D.4: the service account owns
+            the databases it installs, so it can clone and rename them.
+            Only the pg_database template mark is a superuser's to set,
+            and that mark is best effort below -- a template without it
+            still provisions, because the service account owns the copy.
+        */
+        let marked = true;
+
         const sqlDrop = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
         const sqlCopy = "CREATE DATABASE %I TEMPLATE %I;";
         const sqlRename = "ALTER DATABASE %I RENAME TO %I;";
@@ -1024,8 +1033,16 @@
             return client.query(sqlDrop.format([name]));
         }
 
-        function mark(name, isTemplate) {
-            return client.query(sqlMark.format([name, isTemplate]));
+        async function mark(name, isTemplate) {
+            try {
+                await client.query(sqlMark.format([name, isTemplate]));
+            } catch (err) {
+                // insufficient_privilege: the mark needs a superuser
+                if (err.code !== "42501") {
+                    throw err;
+                }
+                marked = false;
+            }
         }
 
         function rename(from, to) {
@@ -1056,9 +1073,9 @@
         client = new Client({
             database: config.managerDatabase(conf),
             host: conf.pgHost,
-            password: superpwd,
+            password: superpwd || conf.pgPassword,
             port: conf.pgPort,
-            user: superuser
+            user: superuser || conf.pgUser
         });
 
         // Let go of the source: a template copy needs it quiet
@@ -1142,9 +1159,11 @@
 
         await auditDatabase(
             "database.templated",
-            superuser,
+            superuser || conf.pgUser,
             target + " from " + source
         );
+
+        return {marked, template: target};
     };
 
     // Run an action against every registered tenant. A tenant that can't be

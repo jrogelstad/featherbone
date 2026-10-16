@@ -1896,6 +1896,30 @@
         newly registered instance would not be served until the next
         restart.
     */
+    /*
+        Demo instances run out (tenant plan D.4): is_demo with an
+        expiration in the past stops accepting sign-ins. Checked when
+        the registry loads and every hour after, so an expired demo
+        closes without anyone pressing anything; the audit trail says
+        when each one went.
+    */
+    async function sweepDemos() {
+        try {
+            let closed = await admin.sweepDemos();
+
+            if (closed.length) {
+                logger.info(
+                    "Expired demo instance(s) closed: " +
+                    closed.join(", ")
+                );
+            }
+        } catch (err) {
+            logger.error(
+                "Could not sweep expired demos: " + (err.message || err)
+            );
+        }
+    }
+
     function doAdminInstance(method) {
         return async function (req, res) {
             try {
@@ -3061,6 +3085,14 @@
             "/:db/admin/instance/drop",
             doAdminInstance("dropInstance")
         );
+        dbRouter.post(
+            "/:db/admin/template",
+            doAdminInstance("buildTemplate")
+        );
+        dbRouter.post(
+            "/:db/admin/instances/sweep",
+            doAdminInstance("sweepDemosGuarded")
+        );
         dbRouter.get("/:db/sessions", doGetSessions);
         dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);
@@ -3137,7 +3169,10 @@
 
     init().then(
         subscribeToTenants
-    ).then(
+    ).then(function () {
+        sweepDemos();
+        setInterval(sweepDemos, 3600000);
+    }).then(
         subscribeToFeathers
     ).then(
         subscribeToCatalog
