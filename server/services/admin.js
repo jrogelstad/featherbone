@@ -1357,6 +1357,167 @@
             });
         };
 
+        /**
+            Deploy one package version into several instances, one
+            after another (ADR-002's fleet upgrade; John, 2026-10-16:
+            "I'd like the option to upgrade the fleet one by one or in
+            a group... likely patches I would want to deploy to a
+            fleet, especially if urgent").
+
+            Each instance is deployed exactly as a single deployment
+            is -- held, applied, let go -- so a group is a sequence of
+            the same act rather than a second way of doing it. That is
+            what makes it a rolling outage: one instance is down at a
+            time, and the instances are named rather than implied, so
+            testing in one database before production is the same
+            action with one name in the list.
+
+            The default is to stop at the first failure, which leaves
+            that instance held and the ones after it untouched. Pass
+            `stopOnError: false` to carry on, for the urgent patch
+            where the instances that can take it should.
+
+            @method deployFleet
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {Array} payload.data.instances Instance ids, in order
+            @param {String} payload.data.module
+            @param {String} payload.data.version
+            @param {Boolean} [payload.data.stopOnError] Default true
+            @return {Promise} {deployed, failed, results}
+        */
+        that.deployFleet = async function (obj) {
+            let data = obj.data || {};
+            let ids = data.instances;
+            let stop = data.stopOnError !== false;
+            let targets = [];
+
+            if (!Array.isArray(ids) || !ids.length) {
+                throw invalid("Name the instances to deploy to");
+            }
+            if (!data.module || !data.version) {
+                throw invalid("Name the module and the version");
+            }
+            if (!datasource.packageDir(data.module, data.version)) {
+                throw invalid(
+                    data.module + " " + data.version +
+                    " is not installed on this server. Install it " +
+                    "with `node install.js --package <file>`."
+                );
+            }
+
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "deploy to the fleet");
+
+                let n = 0;
+
+                while (n < ids.length) {
+                    let found = await manager.instanceAnywhereById(
+                        mclient,
+                        ids[n]
+                    );
+
+                    n += 1;
+
+                    if (!found) {
+                        throw notFound("No instance has the id " + ids[n - 1]);
+                    }
+                    targets.push(found);
+                }
+
+                await manager.audit(mclient, {
+                    action: "fleet.deploy_began",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        data.module + " " + data.version + " into " +
+                        targets.length + " instance(s): " +
+                        targets.map((t) => t.pg_database).join(", ")
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+            });
+
+            let results = [];
+            let n = 0;
+
+            while (n < targets.length) {
+                let target = targets[n];
+
+                n += 1;
+
+                try {
+                    /*
+                        Each one runs as itself, in its own
+                        organization: a platform administrator deploys
+                        across organizations, and every instance's
+                        audit trail should say what happened to it.
+                    */
+                    await that.deployPackage(Object.assign({}, obj, {
+                        data: {
+                            id: target.id,
+                            module: data.module,
+                            version: data.version
+                        },
+                        organization: target.organization_id
+                    }));
+                    results.push({
+                        database: target.pg_database,
+                        id: target.id,
+                        name: target.name,
+                        ok: true,
+                        organization: target.organization
+                    });
+                } catch (err) {
+                    results.push({
+                        database: target.pg_database,
+                        id: target.id,
+                        message: err.message || String(err),
+                        name: target.name,
+                        ok: false,
+                        organization: target.organization
+                    });
+
+                    if (stop) {
+                        break;
+                    }
+                }
+            }
+
+            let deployed = results.filter((r) => r.ok).length;
+            let failed = results.filter((r) => !r.ok).length;
+
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                await manager.audit(mclient, {
+                    action: "fleet.deploy_finished",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        data.module + " " + data.version + ": " +
+                        deployed + " deployed, " + failed + " failed" + (
+                            failed && stop
+                            ? ", stopped at the first failure with " +
+                                (targets.length - results.length) +
+                                " not attempted"
+                            : ""
+                        )
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+            });
+
+            return {
+                deployed,
+                failed,
+                notAttempted: targets.length - results.length,
+                results
+            };
+        };
+
         // ..................................................................
         // PROVISIONING (tenant plan D.1)
         //
