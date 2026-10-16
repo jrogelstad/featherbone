@@ -1474,13 +1474,38 @@
         let conn = await db.connect();
 
         try {
-            await conn.client.query(
-                "CREATE TABLE IF NOT EXISTS \"$claim\" (" +
-                "  key text PRIMARY KEY," +
-                "  claimed_by text NOT NULL DEFAULT ''," +
-                "  until timestamp with time zone NOT NULL" +
-                ")"
+            /*
+                The table is made on first use. CREATE TABLE IF NOT
+                EXISTS is not safe against itself: two processes making
+                it at the same instant can both pass the existence
+                check and one then dies on the catalog's unique index
+                (pg_type_typname_nsp_index). Look first, and when it has
+                to be made serialize on an advisory lock so only one
+                process makes it and the rest find it there.
+            */
+            let found = await conn.client.query(
+                "SELECT to_regclass('\"$claim\"') IS NOT NULL AS found"
             );
+
+            if (!found.rows[0].found) {
+                await conn.client.query(
+                    "SELECT pg_advisory_lock(hashtext('featherbone.claim'))"
+                );
+                try {
+                    await conn.client.query(
+                        "CREATE TABLE IF NOT EXISTS \"$claim\" (" +
+                        "  key text PRIMARY KEY," +
+                        "  claimed_by text NOT NULL DEFAULT ''," +
+                        "  until timestamp with time zone NOT NULL" +
+                        ")"
+                    );
+                } finally {
+                    await conn.client.query(
+                        "SELECT pg_advisory_unlock(" +
+                        "hashtext('featherbone.claim'))"
+                    );
+                }
+            }
 
             let resp = await conn.client.query(
                 (

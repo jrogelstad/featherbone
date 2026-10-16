@@ -91,11 +91,13 @@ async function cleanupClaim() {
         "DROP DATABASE IF EXISTS " + CLAIM_DB + " WITH (FORCE)"
     ));
     await db.withClient(settings.managerDb, async function (client) {
-        await client.query(
-            "DELETE FROM \"$claim\" WHERE key LIKE 'fbtest%'"
-        ).catch(function () {
-            return;
-        });
+        /*
+            Dropped, not just emptied: the table is made on first use,
+            and two processes making it at the same instant is the case
+            that has to hold (it once died on pg_type_typname_nsp_index).
+            Emptied, a leftover table hides that from every later run.
+        */
+        await client.query("DROP TABLE IF EXISTS \"$claim\"");
         await client.query(
             (
                 "DELETE FROM \"$provision\" WHERE tenant_pk IN (" +
@@ -342,13 +344,24 @@ describe("two nodes, one installation (F.3)", function () {
 
     it("two processes contending for one claim produce one winner",
             async function () {
-        let results = await Promise.all([
-            contend("fbtest_cron_job", 60),
-            contend("fbtest_cron_job", 60)
-        ]);
+        /*
+            Six, not two: the table is made on first use and the race
+            between makers is a matter of timing, which more contenders
+            make near certain instead of occasional.
+        */
+        await db.withClient(settings.managerDb, (client) => client.query(
+            "DROP TABLE IF EXISTS \"$claim\""
+        ));
+
+        let results = await Promise.all([1, 2, 3, 4, 5, 6].map(
+            () => contend("fbtest_cron_job", 60)
+        ));
 
         results.sort();
-        assert.deepEqual(results, ["LOSE", "WIN"]);
+        assert.deepEqual(
+            results,
+            ["LOSE", "LOSE", "LOSE", "LOSE", "LOSE", "WIN"]
+        );
     });
 
     it("an expired claim is anyone's again", async function () {
