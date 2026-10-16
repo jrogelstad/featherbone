@@ -256,6 +256,39 @@ unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
 
+### Settings the platform owns
+
+A settings row is normally the instance's own: its super user may
+change it, and `$auth` can grant others the same. Some settings are not
+the instance's to decide. The **edition** is the case this exists for
+-- it says what an instance offers, which is the platform's to set and
+not the customer's, even though the customer's administrator is super
+user in their own instance.
+
+A setting becomes the platform's in either of two ways:
+
+* its definition says `"isPlatformOnly": true`, which is how a module
+  declares one of its own settings; or
+* `config.json`'s `platformOnlySettings` names it, which is how an
+  installation locks a module's setting down without waiting for the
+  module to declare it:
+
+```json
+"platformOnlySettings": ["jobShopSettings"]
+```
+
+Changing one then needs a platform administrator -- the identity flag
+in the manager, not the instance's super user -- and anyone else is
+told whose it is. Reading is unchanged: the platform decides who sets
+it, not who sees it. The framework's own saves (the feather catalog
+and the like) are internal and unaffected.
+
+This is the answer to the plan's D.5: an edition is **not** a security
+boundary. Every feather and route is installed whatever the edition, so
+it decides what is offered rather than what is possible, and treating
+it as a wall would mean a package per edition. What is a boundary is
+*who may change it*, and that is here.
+
 ### Upgrading a fleet
 
 Deploy from the Instances screen applies one package version to one

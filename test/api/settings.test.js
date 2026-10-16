@@ -292,4 +292,133 @@ describe("settings", function () {
             }
         });
     });
+
+    /*
+        The edition is the case this exists for (tenant plan D.5, and
+        John's answer of 2026-10-16: "eventually in this new structure
+        I would like the edition setting to only be set or changed by
+        the platform administrator"). The instance's own super user is
+        the customer's administrator, and what the instance offers is
+        not theirs to decide; the platform's administrator is somebody
+        else, in the manager.
+    */
+    describe("a setting the platform owns", function () {
+        const PLATFORM_SETTING = "fbtEditionSetting";
+
+        function platformFlag(value) {
+            return db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "UPDATE identity SET is_platform_admin = $2, " +
+                        "  updated = now(), updated_by = 'fbtest' " +
+                        "WHERE lower(username) = lower($1)"
+                    ),
+                    [settings.adminUser, value]
+                )
+            );
+        }
+
+        before(async function () {
+            createdNames.push(PLATFORM_SETTING);
+            await db.query(
+                "DELETE FROM \"$settings\" WHERE name = $1",
+                [PLATFORM_SETTING]
+            );
+            await db.query(
+                (
+                    "INSERT INTO \"$settings\" (_pk, id, name, " +
+                    "  definition, data, etag, created, created_by, " +
+                    "  updated, updated_by) " +
+                    "VALUES (nextval('object__pk_seq'), $1, $1, $2, $3, " +
+                    "  $1, now(), 'fbtest', now(), 'fbtest')"
+                ),
+                [
+                    PLATFORM_SETTING,
+                    JSON.stringify({
+                        description: "What this instance offers",
+                        isPlatformOnly: true,
+                        name: PLATFORM_SETTING,
+                        properties: {
+                            edition: {
+                                default: "Standard",
+                                description: "Edition",
+                                type: "string"
+                            }
+                        }
+                    }),
+                    JSON.stringify({edition: "Standard"})
+                ]
+            );
+            await platformFlag(false);
+        });
+
+        after(async function () {
+            await platformFlag(false);
+        });
+
+        it("refuses the instance's own super user", async function () {
+            let resp = await admin.raw(
+                "PUT",
+                "/settings/" + PLATFORM_SETTING,
+                {data: {edition: "Enterprise"}}
+            );
+
+            assert.equal(resp.status, 401, JSON.stringify(resp.body));
+            assert.match(
+                JSON.stringify(resp.body),
+                /platform's to set/,
+                "and says whose it is"
+            );
+
+            let stored = await row(PLATFORM_SETTING);
+
+            assert.deepEqual(
+                stored.data,
+                {edition: "Standard"},
+                "and nothing changed"
+            );
+        });
+
+        it("takes it from a platform administrator", async function () {
+            await platformFlag(true);
+
+            let resp = await admin.raw(
+                "PUT",
+                "/settings/" + PLATFORM_SETTING,
+                {data: {edition: "Enterprise"}}
+            );
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.deepEqual(
+                (await row(PLATFORM_SETTING)).data,
+                {edition: "Enterprise"}
+            );
+        });
+
+        it("still lets a super user change an ordinary setting",
+                async function () {
+            await platformFlag(false);
+
+            let name = "fbtOrdinary" + Date.now().toString(36);
+
+            createdNames.push(name);
+
+            let resp = await admin.raw("PUT", "/settings/" + name, {
+                data: {answer: 42}
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        });
+
+        it("reads to anyone the instance allows", async function () {
+            let got = await admin.get("/settings/" + PLATFORM_SETTING);
+
+            assert.equal(
+                got.data.edition,
+                "Enterprise",
+                "the platform decides who sets it, not who sees it"
+            );
+        });
+    });
 });
