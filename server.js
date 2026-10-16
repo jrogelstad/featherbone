@@ -97,8 +97,6 @@
     let loglevel;
     let consolelog;
     let debug;
-    // "role" or "identity" (ADR-001); read once at boot, like debug
-    let authStrategy = "role";
 
     argv.forEach(function (arg) {
         switch (arg) {
@@ -410,7 +408,6 @@
 
             // Other config
             debug = Boolean(resp.debug);
-            authStrategy = config.authStrategy(resp);
 
             // Default 1 day.
             sessionTimeout = resp.sessionTimeout || 86400000;
@@ -466,7 +463,15 @@
         "Too many sign in attempts.",
         "Invalid sign in credentials. One more attempt",
         "User account is locked",
-        "Maximum allowed sessions"
+        "Maximum allowed sessions",
+        /*
+            A held instance says so (ADR-002 question 7). Unlike the
+            others this is not about the account, and unlike a closed
+            instance it is a state that ends, so telling the person is
+            the point: the alternative is a generic refusal while
+            everything looks fine.
+        */
+        "Down for maintenance"
     ];
 
     function signInMessage(err) {
@@ -728,15 +733,33 @@
                 req.body.username = req.body.name;
                 req.body.tenant = req.tenant;
                 req.body.newAccount = true;
-                await magicLogin.send(req, {json: () => ""});
+                await magicLogin.send(req, mailRes());
                 respond.bind(res, data)();
             }
         ).catch(
             error.bind(res)
         );
     }
+    /*
+        A response stand-in for magic-link sends that answer the caller
+        some other way. The strategy reports a failed send through
+        res.status().json(), so the stand-in has to hold both or a mail
+        hiccup turns the real answer into a 500 (seen with the
+        two-factor envelope, C.2).
+    */
+    function mailRes() {
+        return {
+            end: () => "",
+            json: () => "",
+            send: () => "",
+            status: function () {
+                return this;
+            }
+        };
+    }
+
     f.datasource.magicLoginSend = async function (opts) {
-        await magicLogin.send(opts, {json: () => ""});
+        await magicLogin.send(opts, mailRes());
     };
 
     function doPatchUserAccount(req, res) {
@@ -1746,7 +1769,6 @@
 
     async function doSignIn(req, res) {
         let message;
-        let rows;
         req.flash = function (ignore, msg) {
             logger.verbose(msg);
             message = msg;
@@ -1758,7 +1780,15 @@
                 return;
             }
 
-            if (twoFactorAuth) {
+            /*
+                A second factor when the installation demands one
+                (config twoFactorAuth, everywhere) or when the signed-in
+                user's organization does (organization
+                isTwoFactorRequired, tenant plan C.2): the policy
+                belongs to the organization, and two organizations on
+                one installation may answer differently.
+            */
+            if (twoFactorAuth || req.user.isTwoFactorRequired) {
                 let userEmail = "";
                 let userPhone = "";
 
@@ -1786,7 +1816,7 @@
                 req.body.tenant = req.tenant;
 
                 try {
-                    magicLogin.send(req, {json: () => ""});
+                    magicLogin.send(req, mailRes());
                     respond.bind(res)({
                         success: true,
                         confirmUrl: req.magicHref,
@@ -1806,34 +1836,13 @@
                 });
             }
         }
-        rows = await datasource.request({
-            filter: {criteria: [{
-                property: "name",
-                value: req.body.username
-            }]},
-            method: "GET",
-            name: "UserAccount",
-            tenant: req.tenant,
-            user: req.body.username
-        }, true);
-
-        if (!rows.length && authStrategy !== "identity") {
-            res.statusCode = 401;
-            // Same answer as a wrong password: don't reveal which users or
-            // databases exist
-            message = "Invalid sign in credentials.";
-            next(true);
-            return;
-        }
-
         /*
-            On the identity path a missing local profile is not an
-            answer: the identity and its grant live in the manager, and
-            somebody granted an instance they have never opened has no
-            profile in it yet. Authentication decides, and the profile
-            is made once the grant is proven (tenant plan B.7,
-            server/database.js). A wrong username still gets the same
-            generic refusal, from there instead of here.
+            A missing local profile is not an answer: the identity and
+            its grant live in the manager, and somebody granted an
+            instance they have never opened has no profile in it yet.
+            Authentication decides, and the profile is made once the
+            grant is proven (tenant plan B.7, server/database.js). A
+            wrong username gets the same generic refusal from there.
         */
         authenticateLocal(req, res, next);
     }
@@ -1891,6 +1900,13 @@
                 can tell a registered instance from one that is
                 actually up (tenant plan D.3's registry accessor).
             */
+            /*
+                The organization to act on, for a platform
+                administrator's break-glass reach (tenant plan A.4).
+                Reads carry it in the query string, writes in the body;
+                admin.js refuses it for everyone else.
+            */
+            organization: req.query.organization || undefined,
             registry: datasource.registeredTenants(),
             tenant: req.tenant,
             user: req.user.name
@@ -1914,6 +1930,30 @@
         newly registered instance would not be served until the next
         restart.
     */
+    /*
+        Demo instances run out (tenant plan D.4): is_demo with an
+        expiration in the past stops accepting sign-ins. Checked when
+        the registry loads and every hour after, so an expired demo
+        closes without anyone pressing anything; the audit trail says
+        when each one went.
+    */
+    async function sweepDemos() {
+        try {
+            let closed = await admin.sweepDemos();
+
+            if (closed.length) {
+                logger.info(
+                    "Expired demo instance(s) closed: " +
+                    closed.join(", ")
+                );
+            }
+        } catch (err) {
+            logger.error(
+                "Could not sweep expired demos: " + (err.message || err)
+            );
+        }
+    }
+
     function doAdminInstance(method) {
         return async function (req, res) {
             try {
@@ -2611,6 +2651,35 @@
         }
     }
 
+    /*
+        What an instance in maintenance still answers: its own pages
+        and sign-in, so a platform administrator can get to the
+        Instances screen, and the administration routes that screen
+        calls -- including the one that ends the maintenance.
+    */
+    const MAINTENANCE_PATHS = [
+        "/admin/",
+        "/sign-in",
+        "/sign-out",
+        "/connect",
+        "/webauthn/",
+        "/auth/",
+        "/reset-password",
+        "/modules",
+        "/settings",
+        "/do/getSettings"
+    ];
+
+    function maintenanceOk(req) {
+        let rest = req.path.slice(1);
+
+        rest = rest.slice(rest.indexOf("/"));
+        if (rest === "" || rest === "/") {
+            return true;
+        }
+        return MAINTENANCE_PATHS.some((p) => rest.startsWith(p));
+    }
+
     async function start() {
         // Resolve database
         dbRouter.param("db", function (req, res, next, id) {
@@ -2632,6 +2701,24 @@
             if (tenant) {
                 req.database = id;
                 req.tenant = tenant;
+                /*
+                    An instance in maintenance is having its schema
+                    changed, so it answers nothing but the few things
+                    needed to get it back (ADR-002 question 7): the
+                    sign-in pages and the administration routes, which
+                    is where a platform administrator clears the state.
+                    Before, there was no state at all and a half-built
+                    instance answered as if it were well.
+                */
+                if (tenant.isMaintenance === true && !maintenanceOk(req)) {
+                    res.status(503).json({
+                        message: (
+                            "Instance " + tenant.name +
+                            " is down for maintenance"
+                        )
+                    });
+                    return;
+                }
                 next();
                 return;
             }
@@ -2870,7 +2957,14 @@
                 tableName: "$session"
             }),
             secret: thesecret,
-            resave: true,
+            /*
+                Never rewrite an unchanged session (tenant plan E.3,
+                improvement plan 4.4): every request on every tenant
+                used to write a full session row in the manager.
+                rolling still slides the expiry, which the store does
+                with a cheap touch instead of a rewrite.
+            */
+            resave: false,
             rolling: true,
             saveUninitialized: false,
             cookie: {
@@ -3067,6 +3161,30 @@
             "/:db/admin/instance/status",
             doAdminInstance("setInstanceActive")
         );
+        dbRouter.post(
+            "/:db/admin/instance/maintenance",
+            doAdminInstance("setInstanceMaintenance")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/provision",
+            doAdminInstance("provisionInstance")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/provision/resume",
+            doAdminInstance("provisionResume")
+        );
+        dbRouter.post(
+            "/:db/admin/instance/drop",
+            doAdminInstance("dropInstance")
+        );
+        dbRouter.post(
+            "/:db/admin/template",
+            doAdminInstance("buildTemplate")
+        );
+        dbRouter.post(
+            "/:db/admin/instances/sweep",
+            doAdminInstance("sweepDemosGuarded")
+        );
         dbRouter.get("/:db/sessions", doGetSessions);
         dbRouter.post("/:db/do/disconnect/:id", doDisconnectSession);
         dbRouter.post("/:db/do/change-password/", doChangePassword);
@@ -3143,7 +3261,10 @@
 
     init().then(
         subscribeToTenants
-    ).then(
+    ).then(function () {
+        sweepDemos();
+        setInterval(sweepDemos, 3600000);
+    }).then(
         subscribeToFeathers
     ).then(
         subscribeToCatalog

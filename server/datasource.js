@@ -548,6 +548,7 @@
             return {
                 edition: tenant.edition,
                 id: tenant.id,
+                isMaintenance: tenant.isMaintenance === true,
                 name: tenant.name,
                 pgDatabase: tenant.pgDatabase,
                 pgService: (
@@ -674,79 +675,47 @@
 
     /*
         Who may create, clone and drop a database, and who to record
-        for it.
-
-        Under `authStrategy` "identity" this is a platform
-        administrator: ADR-001 puts the cluster in Featherbone's own
-        hands rather than a tenant's. Under the default "role" strategy
-        there are no identities to ask, so the authority stays where it
-        has always been, a super user of the database the request came
-        from, and the check is the one these functions already made.
+        for it: a platform administrator. ADR-001 puts the cluster in
+        Featherbone's own hands rather than a tenant's.
 
         Resolves to the caller's name, or to a denial to reject with.
         The check is inside these functions, so module code cannot
         reach CREATE DATABASE without passing it.
     */
     async function databaseActor(pClient, verb) {
-        let conf = await config.read();
         let user = (
             (pClient && typeof pClient.currentUser === "function")
             ? pClient.currentUser()
             : undefined
         );
-        let isSuper;
-
-        if (conf.authStrategy === "identity") {
-            let tenant = tenants.find(
-                (t) => t.pgDatabase === (pClient && pClient.database)
-            );
-            let allowed = await manager.run(async function (mclient) {
-                let instance = await manager.instance(
+        let tenant = tenants.find(
+            (t) => t.pgDatabase === (pClient && pClient.database)
+        );
+        let allowed = await manager.run(async function (mclient) {
+            let instance = await manager.instance(
+                mclient,
+                tenant
+            ).catch(() => undefined);
+            let actor = (
+                instance
+                ? await manager.identity(
                     mclient,
-                    tenant
-                ).catch(() => undefined);
-                let actor = (
-                    instance
-                    ? await manager.identity(
-                        mclient,
-                        instance.organizationPk,
-                        user || ""
-                    )
-                    : undefined
-                );
-
-                return Boolean(actor && actor.is_platform_admin);
-            });
-
-            return (
-                allowed
-                ? {user}
-                : {
-                    message: (
-                        "Only a platform administrator may " + verb +
-                        " databases"
-                    )
-                }
+                    instance.organizationPk,
+                    user || ""
+                )
+                : undefined
             );
-        }
 
-        /*
-            Asked of the database the request came from, which is where
-            a super user's row lives. createDatabase used to ask the
-            default connection, so it only recognized a super user who
-            also had an account in the manager.
-        */
-        isSuper = await tools.isSuperUser({
-            client: pClient,
-            user
-        }).catch(() => false);
+            return Boolean(actor && actor.is_platform_admin);
+        });
 
         return (
-            isSuper
+            allowed
             ? {user}
             : {
                 message: (
-                    "User must be a super user to " + verb + " databases"
+                    "Only a platform administrator may " + verb +
+                    " databases"
                 )
             }
         );
@@ -825,21 +794,47 @@
                 );
             }
 
+            /*
+                A registered instance is never quiet while this process
+                serves it: its pool holds a LISTEN connection. Cloning
+                one as a template is legitimate (tenant plan D.1), so
+                let go of our own connections first; the next registry
+                read takes it back up. Anyone else's connections still
+                make the clone refuse, which is the honest answer on a
+                second node.
+            */
+            let held = tenants.find((t) => t.pgDatabase === source);
+
+            if (held) {
+                await releaseTenant(held);
+            }
+
             let create = "CREATE DATABASE %I TEMPLATE %I;";
 
             await conn1.client.query(create.format([name, source]));
             created = true;
 
-            // Bring the instance's module list up to date from the
-            // database that was just built
+            /*
+                Bring the instance's module list up to date from the
+                database that was just built. Asked of the manager
+                (tenant false), not the caller: Tenant lives only
+                there, and a fresh instance's catalog has never heard
+                of it (tenant plan D.1; before this it only worked on
+                databases that predate the manager split). The pipeline
+                checks out and commits its own connection -- a lent
+                client's transaction is the lender's to commit, and an
+                uncommitted PATCH here held the tenant row locked
+                against the very step that activates it.
+            */
             instances = await that.request({
-                client: pClient,
                 method: "GET",
                 name: "Tenant",
                 filter: {criteria: [{
                     property: "pgDatabase",
                     value: name
-                }]}
+                }]},
+                tenant: false,
+                user
             }, true);
 
             if (!instances.length) {
@@ -866,7 +861,6 @@
             }, true);
 
             await that.request({
-                client: pClient,
                 id: instances[0].id,
                 method: "PATCH",
                 name: "Tenant",
@@ -875,6 +869,7 @@
                     path: "/modules",
                     value: mods
                 }],
+                tenant: false,
                 user
             }, true);
         } catch (err) {
@@ -999,6 +994,15 @@
         dbName,
         template
     ) {
+        /*
+            Credentials are optional since D.4: the service account owns
+            the databases it installs, so it can clone and rename them.
+            Only the pg_database template mark is a superuser's to set,
+            and that mark is best effort below -- a template without it
+            still provisions, because the service account owns the copy.
+        */
+        let marked = true;
+
         const sqlDrop = "DROP DATABASE IF EXISTS %I WITH (FORCE);";
         const sqlCopy = "CREATE DATABASE %I TEMPLATE %I;";
         const sqlRename = "ALTER DATABASE %I RENAME TO %I;";
@@ -1030,8 +1034,16 @@
             return client.query(sqlDrop.format([name]));
         }
 
-        function mark(name, isTemplate) {
-            return client.query(sqlMark.format([name, isTemplate]));
+        async function mark(name, isTemplate) {
+            try {
+                await client.query(sqlMark.format([name, isTemplate]));
+            } catch (err) {
+                // insufficient_privilege: the mark needs a superuser
+                if (err.code !== "42501") {
+                    throw err;
+                }
+                marked = false;
+            }
         }
 
         function rename(from, to) {
@@ -1062,9 +1074,9 @@
         client = new Client({
             database: config.managerDatabase(conf),
             host: conf.pgHost,
-            password: superpwd,
+            password: superpwd || conf.pgPassword,
             port: conf.pgPort,
-            user: superuser
+            user: superuser || conf.pgUser
         });
 
         // Let go of the source: a template copy needs it quiet
@@ -1148,9 +1160,59 @@
 
         await auditDatabase(
             "database.templated",
-            superuser,
+            superuser || conf.pgUser,
             target + " from " + source
         );
+
+        return {marked, template: target};
+    };
+
+    /**
+        Claim a piece of named work for a window of time, so the same
+        work runs once however many nodes are running (tenant plan E.1).
+        First caller in wins and the rest are told no until the window
+        passes; a claim is a row in the manager, so it survives the
+        claimant dying and expires on its own rather than leaking.
+
+        The scheduler calls this before firing a job -- claim the job's
+        name for its interval, run it on a win, stay quiet on a loss.
+
+        @method claimWork
+        @param {String} key What is being claimed, e.g. a cron job name
+        @param {Number} [seconds] How long the claim holds. Default 60.
+        @return {Promise} Boolean, whether the caller holds the claim
+    */
+    that.claimWork = async function (key, seconds) {
+        let window = Math.max(1, Math.floor(seconds || 60));
+        let conn = await db.connect();
+
+        try {
+            await conn.client.query(
+                "CREATE TABLE IF NOT EXISTS \"$claim\" (" +
+                "  key text PRIMARY KEY," +
+                "  claimed_by text NOT NULL DEFAULT ''," +
+                "  until timestamp with time zone NOT NULL" +
+                ")"
+            );
+
+            let resp = await conn.client.query(
+                (
+                    "INSERT INTO \"$claim\" (key, claimed_by, until) " +
+                    "VALUES ($1, $2, now() + ($3 || ' seconds')" +
+                    "::interval) " +
+                    "ON CONFLICT (key) DO UPDATE SET " +
+                    "  claimed_by = $2, " +
+                    "  until = now() + ($3 || ' seconds')::interval " +
+                    "WHERE \"$claim\".until < now() " +
+                    "RETURNING key"
+                ),
+                [key, db.nodeId || "", String(window)]
+            );
+
+            return resp.rows.length > 0;
+        } finally {
+            conn.done();
+        }
     };
 
     // Run an action against every registered tenant. A tenant that can't be
@@ -2829,17 +2891,11 @@
           {{/crossLink}}
           * {{#crossLink "Services.Role/changeRoleLogin:method"}}
           {{/crossLink}}
-          * {{#crossLink "Services.Role/changeRoleCreateDb:method"}}
-          {{/crossLink}}
           * {{#crossLink "Services.Role/changeRolePassword:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/createRole:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/dropRole:method"}}
-          {{/crossLink}}
-          * {{#crossLink "Services.Role/grantMembership:method"}}
-          {{/crossLink}}
-          * {{#crossLink "Services.Role/revokeMembership:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Feathers/saveAuthorization:method"}}
           {{/crossLink}}
@@ -3217,6 +3273,12 @@
             properties: ["id", "name", "pgService", "pgDatabase", "edition"],
             user: conf.pgUser
         }, true);
+        /*
+            Maintenance is read on its own (ADR-002 question 7) rather
+            than as a Tenant property, so the registry still loads
+            against a manager that has not been upgraded for it.
+        */
+        let maintenance = await manager.maintenanceFlags(conn.client);
         let tenant;
         let n = 0;
         let svc;
@@ -3227,6 +3289,21 @@
             tenant = pTenants[n];
             n += 1;
             found = tenants.find((t) => t.id === tenant.id);
+
+            /*
+                An instance already in the registry keeps its live
+                objects -- its pool and its LISTEN connection hang off
+                this one -- but the fields the manager owns are read
+                again, because loadTenants runs on every Tenant change
+                and those changes have to reach the process. Before,
+                only new rows were looked at, so flipping a flag in
+                the manager changed nothing until a restart.
+            */
+            if (found) {
+                found.name = tenant.name;
+                found.edition = tenant.edition;
+                found.isMaintenance = maintenance[tenant.id] === true;
+            }
 
             if (!found) {
                 svc = tservices.find((s) => s.id === tenant.pgService.id);
@@ -3252,6 +3329,7 @@
                     );
                 }
 
+                tenant.isMaintenance = maintenance[tenant.id] === true;
                 tenants.push(tenant);
             }
         }
@@ -3380,19 +3458,12 @@
     that.registerFunction("POST", "changeRoleLogin", role.changeRoleLogin);
     that.registerFunction(
         "POST",
-        "changeRoleCreateDb",
-        role.changeRoleCreateDb
-    );
-    that.registerFunction(
-        "POST",
         "changeRolePassword",
         role.changeRolePassword
     );
     that.registerFunction("POST", "createRole", role.createRole);
     that.registerFunction("POST", "doAggregate", crud.doAggregate);
     that.registerFunction("POST", "dropRole", role.dropRole);
-    that.registerFunction("POST", "grantMembership", role.grantMembership);
-    that.registerFunction("POST", "revokeMembership", role.revokeMembership);
     that.registerFunction(
         "POST",
         "saveAuthorization",

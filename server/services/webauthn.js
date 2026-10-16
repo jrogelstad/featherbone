@@ -2,12 +2,12 @@
 
 (function (exports) {
     "use strict";
-    const f = require("../../common/core");
-    const datasource = require("../datasource");
     const {Fido2Lib} = require("fido2-lib");
     const crypto = require("crypto");
     const pdf = require("./pdf.js");
-    let challenges = {};
+    const {Manager} = require("./manager");
+
+    const manager = new Manager();
 
     let fido2Lib;
     let rpId;
@@ -80,233 +80,371 @@
         });
     }
 
-    async function findUserAccount(name) {
-        let object = {
-            method: "GET",
-            name: "UserAccount",
-            user: "featheradmin",
-            "filter": {
-                "limit": 1,
-                "offset": 0,
-                "criteria": [
-                    {
-                        "property": [
-                            "id",
-                            "name",
-                            "contact.fullName"
-                        ],
-                        "operator": "~*",
-                        "value": name
-                    }
-                ]
-            }
-        };
-        return await datasource.request(object, true);
-    }
-    async function findCredentials(name, byId) {
-        let object = {
-            method: "GET",
-            name: "WebauthnCredential",
-            user: "featheradmin",
-            properties: [
-                "id",
-                "user.id",
-                "credentialId",
-                "counter",
-                "publicKey"
-            ],
-            filter: {
-                "limit": 20,
-                "offset": 0,
-                "criteria": [
-                    {
-                        "property": [
-                            (
-                                (byId)
-                                ? "credentialId"
-                                : "user.name"
-                            )
-                        ],
-                        "operator": "=",
-                        "value": name
-                    }
-                ]
-            },
-            "showDeleted": false
-        };
-        if (byId) {
-            console.log(object.filter.criteria);
-        }
-        return await datasource.request(object, true);
+    /*
+        Passkeys belong to the identity in the manager (tenant plan
+        C.1), not to one database: a credential registered against one
+        instance signs its owner in to every database the identity can
+        reach. Bare tables like "$provision", made on first use, so an
+        existing manager needs no reinstall and no generic data route
+        ever serves key material.
+
+        Challenges live in "$identity_challenge" rather than process
+        memory, so a ceremony begun on one node finishes on another
+        (E.2), and a restart between the two steps fails the ceremony
+        instead of dangling.
+    */
+    async function ensureTables(mclient) {
+        await mclient.query(
+            "CREATE TABLE IF NOT EXISTS \"$identity_credential\" (" +
+            "  credential_id text PRIMARY KEY," +
+            "  identity_pk bigint NOT NULL," +
+            "  public_key text NOT NULL," +
+            "  counter bigint NOT NULL DEFAULT 0," +
+            "  rp_id text NOT NULL DEFAULT ''," +
+            "  origin_url text NOT NULL DEFAULT ''," +
+            "  created timestamp with time zone NOT NULL DEFAULT now()" +
+            ")"
+        );
+        await mclient.query(
+            "CREATE TABLE IF NOT EXISTS \"$identity_challenge\" (" +
+            "  identity_pk bigint NOT NULL," +
+            "  kind text NOT NULL," +
+            "  challenge text NOT NULL," +
+            "  expires timestamp with time zone NOT NULL," +
+            "  PRIMARY KEY (identity_pk, kind)" +
+            ")"
+        );
     }
 
-    async function createCredential(userId, credentialId, counter, publicKey) {
-        let id = f.createId();
-        let nowIso = new Date().toISOString();
-        let data = {
-            "id": id,
-            "created": nowIso,
-            "createdBy": "",
-            "updated": nowIso,
-            "updatedBy": "",
-            "isDeleted": false,
-            "objectType": "",
-            "user": {
-                "id": userId
-            },
-            "credentialId": credentialId,
-            "counter": counter,
-            "publicKey": publicKey,
-            "rpId": rpId,
-            "originUrl": originUrl
+    /*
+        The identity behind the signed-in user of this instance: the
+        instance names its organization, the organization scopes the
+        username (ADR-001).
+    */
+    async function identityFor(mclient, req) {
+        let instance = await manager.instance(mclient, req.tenant);
+        let found = await manager.identity(
+            mclient,
+            instance.organizationPk,
+            req.user.name
+        );
+
+        if (!found) {
+            throw new Error(
+                "No identity " + req.user.name + " in this organization"
+            );
+        }
+
+        return {
+            identity: found,
+            organizationPk: instance.organizationPk,
+            tenantPk: instance.tenantPk
         };
-        let payload = {
-            name: "WebauthnCredential",
-            method: "POST",
-            user: "featheradmin",
-            eventKey: undefined,
-            id: undefined,
-            data
-        };
-        return await datasource.request(payload, true);
+    }
+
+    async function setChallenge(mclient, identityPk, kind, challenge) {
+        await ensureTables(mclient);
+        await mclient.query(
+            (
+                "INSERT INTO \"$identity_challenge\" (" +
+                "  identity_pk, kind, challenge, expires" +
+                ") VALUES ($1, $2, $3, now() + interval '2 minutes') " +
+                "ON CONFLICT (identity_pk, kind) DO UPDATE SET " +
+                "  challenge = $3, expires = now() + interval '2 minutes'"
+            ),
+            [identityPk, kind, challenge]
+        );
+    }
+
+    // One use each: read and remove, refusing an expired one
+    async function takeChallenge(mclient, identityPk, kind) {
+        await ensureTables(mclient);
+        let resp = await mclient.query(
+            (
+                "DELETE FROM \"$identity_challenge\" " +
+                "WHERE identity_pk = $1 AND kind = $2 " +
+                "RETURNING challenge, expires"
+            ),
+            [identityPk, kind]
+        );
+
+        if (
+            !resp.rows.length ||
+            new Date(resp.rows[0].expires) < new Date()
+        ) {
+            throw new Error(
+                "No current " + kind + " challenge. Start over."
+            );
+        }
+
+        return resp.rows[0].challenge;
+    }
+
+    async function findCredentials(mclient, identityPk) {
+        await ensureTables(mclient);
+        let resp = await mclient.query(
+            (
+                "SELECT credential_id, public_key, counter " +
+                "FROM \"$identity_credential\" WHERE identity_pk = $1"
+            ),
+            [identityPk]
+        );
+
+        return resp.rows;
+    }
+
+    /*
+        A credential by its id, with its owner -- and the proof the
+        owner may enter the instance asking: an active identity holding
+        an active grant. The passkey follows the identity everywhere the
+        identity can go, and nowhere it cannot.
+    */
+    async function credentialFor(mclient, credentialId, tenantPk) {
+        await ensureTables(mclient);
+        let resp = await mclient.query(
+            (
+                "SELECT c.credential_id, c.public_key, c.counter, " +
+                "  c.identity_pk, i.username " +
+                "FROM \"$identity_credential\" c " +
+                "JOIN identity i ON i._pk = c.identity_pk " +
+                "JOIN access_grant g " +
+                "  ON g._identity_identity_pk = i._pk " +
+                " AND g._tenant_tenant_pk = $2 " +
+                " AND g.is_active AND NOT g.is_deleted " +
+                "WHERE c.credential_id = $1 " +
+                "  AND i.status = 'active' AND NOT i.is_deleted"
+            ),
+            [credentialId, tenantPk]
+        );
+
+        return resp.rows[0];
+    }
+
+    async function createCredential(identityPk, credentialId, counter, pem) {
+        await manager.run(async function (mclient) {
+            await ensureTables(mclient);
+            await mclient.query(
+                (
+                    "INSERT INTO \"$identity_credential\" (" +
+                    "  credential_id, identity_pk, public_key, counter, " +
+                    "  rp_id, origin_url" +
+                    ") VALUES ($1, $2, $3, $4, $5, $6) " +
+                    "ON CONFLICT (credential_id) DO NOTHING"
+                ),
+                [credentialId, identityPk, pem, counter, rpId, originUrl]
+            );
+        });
     }
 
     async function doWebAuthNRegister(req, res) {
+        try {
+            let registrationOptions = await manager.run(
+                async function (mclient) {
+                    let ctx = await identityFor(mclient, req);
+                    let options = await fido2Lib.attestationOptions();
+                    let randId = crypto.randomUUID();
 
-        let users = await findUserAccount(req.user.name);
-        let user = users[0];
-        let registrationOptions = await fido2Lib.attestationOptions();
-        registrationOptions.user.id = user.id;
-        registrationOptions.user.name = user.name;
+                    options.user.id = ctx.identity.id;
+                    options.user.name = req.user.name;
+                    /// Could be contact name
+                    options.user.displayName = req.user.name;
+                    options.challenge = randId;
+                    await setChallenge(
+                        mclient,
+                        ctx.identity._pk,
+                        "reg",
+                        randId
+                    );
 
-        /// Could be contact name
-        registrationOptions.user.displayName = user.name;
-        let randId = crypto.randomUUID();
-        registrationOptions.challenge = randId;
+                    return options;
+                }
+            );
 
-        /// Challenge needs to be put into the session
-        /// or an HA location for ephemeral values
-        challenges[user.name] = randId;
-
-        res.writeHeader(200, "application/json");
-        res.write(JSON.stringify(registrationOptions));
-        res.end();
+            res.writeHeader(200, "application/json");
+            res.write(JSON.stringify(registrationOptions));
+            res.end();
+        } catch (err) {
+            res.status(500).json(err.message || String(err));
+        }
     }
 
     async function postWebAuthNRegister(req, res) {
+        try {
+            let pkc = req.body;
+            let outcome = await manager.run(async function (mclient) {
+                let ctx = await identityFor(mclient, req);
+                let stored = await takeChallenge(
+                    mclient,
+                    ctx.identity._pk,
+                    "reg"
+                );
 
-        let pkc = req.body;
-        let users = await findUserAccount(req.user.name);
-        let user = users[0];
+                // Decode the raw id, also the credential id
+                pkc.rawId = b_ab(b64url_b(pkc.rawId));
 
-        // Decode the raw id, which is the same as the credential id
-        pkc.rawId = b_ab(b64url_b(pkc.rawId));
+                const attestationExpectations = {
+                    challenge: b64_b(b64url_b64(stored)),
+                    origin: originUrl,
+                    factor: "either"
+                };
+                /// will throw an error
+                const regResult = await fido2Lib.attestationResult(
+                    pkc,
+                    attestationExpectations
+                );
 
-        /// encode the challenge into a buffer
-        let challenge = b64_b(b64url_b64(challenges[user.name]));
+                const authnrData = regResult.authnrData;
+                const credId = b_b64(
+                    new Uint8Array(authnrData.get("credId"))
+                );
 
-        const attestationExpectations = {
-            challenge,
-            origin: originUrl,
-            factor: "either"
-        };
-        console.log(attestationExpectations);
-        /// will throw an error
-        const regResult = await fido2Lib.attestationResult(
-            pkc,
-            attestationExpectations
-        );
+                return {
+                    counter: parseInt(authnrData.get("counter")),
+                    credId,
+                    identityPk: ctx.identity._pk,
+                    organizationPk: ctx.organizationPk,
+                    publicKey: authnrData.get("credentialPublicKeyPem")
+                };
+            });
 
-        const authnrData = regResult.authnrData;
-        const credId = b_b64(new Uint8Array(authnrData.get("credId")));
-        let publicKey = authnrData.get("credentialPublicKeyPem");
-        let counter = parseInt(authnrData.get("counter"));
-        console.log("Cred Id", credId);
-        console.log("Public Key", publicKey);
-        console.log("counter", counter);
+            await createCredential(
+                outcome.identityPk,
+                outcome.credId,
+                outcome.counter,
+                outcome.publicKey
+            );
 
-        let createRet = await createCredential(
-            user.id,
-            credId,
-            counter,
-            publicKey
-        );
-        res.writeHeader(200, "application/json");
-        res.write(JSON.stringify(createRet));
-        res.end();
+            // A new way in is a privileged change (ADR-001 A.4)
+            await manager.run((mclient) => manager.audit(mclient, {
+                action: "identity.passkey_registered",
+                by: req.user.name,
+                organizationPk: outcome.organizationPk,
+                targetIdentityPk: outcome.identityPk
+            }));
+
+            res.writeHeader(200, "application/json");
+            res.write(JSON.stringify({registered: true}));
+            res.end();
+        } catch (err) {
+            res.status(500).json(err.message || String(err));
+        }
     }
 
     async function doWebAuthNAuthenticate(req, res) {
-        let users = await findUserAccount(req.user.name);
-        let user = users[0];
+        try {
+            let authnOptions = await manager.run(async function (mclient) {
+                let ctx = await identityFor(mclient, req);
+                let creds = await findCredentials(
+                    mclient,
+                    ctx.identity._pk
+                );
+                let options;
 
-        let creds = await findCredentials(req.user.name);
-        console.log(creds);
-        let authnOptions;
-        if (creds.length) {
-            authnOptions = await fido2Lib.assertionOptions();
-            challenges[user.name] = authnOptions.challenge;
-            authnOptions.challenge = b_b64url(ab_b(authnOptions.challenge));
-            authnOptions.allowCredentials = [];
-            creds.forEach(function (cred) {
-                let credId = cred.credentialId;
-                authnOptions.allowCredentials.push({
-                    type: "public-key",
-                    id: credId
-                    //,transports: ["internal"]
+                if (!creds.length) {
+                    return {registrationRequired: true};
+                }
+
+                options = await fido2Lib.assertionOptions();
+                await setChallenge(
+                    mclient,
+                    ctx.identity._pk,
+                    "auth",
+                    b_b64url(ab_b(options.challenge))
+                );
+                options.challenge = b_b64url(ab_b(options.challenge));
+                options.allowCredentials = creds.map(function (cred) {
+                    return {
+                        type: "public-key",
+                        id: cred.credential_id
+                    };
                 });
+
+                return options;
             });
-        } else {
-            authnOptions = {
-                registrationRequired: true
-            };
+
+            res.writeHeader(200, "application/json");
+            res.write(JSON.stringify(authnOptions));
+            res.end();
+        } catch (err) {
+            res.status(500).json(err.message || String(err));
         }
-        res.writeHeader(200, "application/json");
-        res.write(JSON.stringify(authnOptions));
-        res.end();
     }
 
     async function postWebAuthNAuthenticate(req, res) {
         let pkc = req.body;
-        let users = await findUserAccount(req.user.name);
-        let creds = await findCredentials(pkc.rawId, true);
-        let user = users[0];
-        let cred = creds[0];
         let result = {
             authenticated: false,
             error: false,
             message: null
         };
-        if (cred && user) {
-            pkc.rawId = b_ab(b64url_b(pkc.rawId));
-            // let handle = pkc.response.userHandle;
-            pkc.response.userHandle = "null";
-            const assertionExpectations = {
-                challenge: b_b64url(ab_b(challenges[user.name])),
-                origin: originUrl,
-                factor: "either",
-                publicKey: cred.publicKey,
-                prevCounter: 0,
-                userHandle: "null"
-            };
-            assertionExpectations.allowCredentials = [];
-            assertionExpectations.allowCredentials.push({
-                type: "public-key",
-                id: pkc.rawId
+
+        try {
+            await manager.run(async function (mclient) {
+                let ctx = await identityFor(mclient, req);
+                let cred = await credentialFor(
+                    mclient,
+                    pkc.rawId,
+                    ctx.tenantPk
+                );
+
+                if (!cred || cred.identity_pk !== ctx.identity._pk) {
+                    result.error = true;
+                    result.message = "User or credential missing";
+                    return;
+                }
+
+                let stored = await takeChallenge(
+                    mclient,
+                    ctx.identity._pk,
+                    "auth"
+                );
+
+                pkc.rawId = b_ab(b64url_b(pkc.rawId));
+                pkc.response.userHandle = "null";
+
+                const assertionExpectations = {
+                    challenge: stored,
+                    origin: originUrl,
+                    factor: "either",
+                    publicKey: cred.public_key,
+                    prevCounter: Number(cred.counter),
+                    userHandle: "null",
+                    allowCredentials: [{
+                        type: "public-key",
+                        id: pkc.rawId
+                    }]
+                };
+
+                try {
+                    let assertion = await fido2Lib.assertionResult(
+                        pkc,
+                        assertionExpectations
+                    );
+
+                    /*
+                        The signature counter guards against a cloned
+                        authenticator; it used to be checked against a
+                        hard zero and never written back.
+                    */
+                    await mclient.query(
+                        (
+                            "UPDATE \"$identity_credential\" " +
+                            "SET counter = $2 WHERE credential_id = $1"
+                        ),
+                        [
+                            cred.credential_id,
+                            Number(assertion.authnrData.get("counter"))
+                        ]
+                    );
+                    result.authenticated = true;
+                } catch (e) {
+                    console.error(e);
+                    result.error = true;
+                }
             });
-            console.log(assertionExpectations);
-            try {
-                await fido2Lib.assertionResult(pkc, assertionExpectations);
-                result.authenticated = true;
-            } catch (e) {
-                console.error(e);
-                result.error = true;
-            }
-        } else {
-            console.log("Credential", cred);
-            console.error("Missing credential", pkc.rawId);
+        } catch (err) {
             result.error = true;
-            result.message = "User or credential missing";
+            result.message = err.message || String(err);
         }
 
         res.writeHeader(200, "application/json");

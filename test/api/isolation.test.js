@@ -11,9 +11,8 @@
     two passwords, and nothing an administrator can do in one reaches
     the other.
 
-    The suite runs its own server with authStrategy=identity against
-    the harness databases, seeds a second organization that shares
-    usernames with the first, and then tries to cross the line: by
+    The suite seeds a second organization that shares usernames with
+    the first, and then tries to cross the line: by
     signing in, and through every write the administration routes
     offer. It also covers F.2's substance -- one person with an
     identity in each organization, separate credentials, and revoking
@@ -24,17 +23,14 @@
 
 const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const path = require("path");
-const {spawn} = require("child_process");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
 const {Identities} = require("../../server/services/identities");
 
 const identities = new Identities();
-const PORT = settings.port + 3;
 const OTHER_PW = "Fbtest-Other-Org-2!";
+const OTHER_DB = (settings.testDb + "_other").toLowerCase();
 const OTHER_ORG = "FBOther";
 const OTHER_ONLY = "fbt_other_only";
 
@@ -232,8 +228,7 @@ function identityPk(client, organization, username) {
 }
 
 describe("two organizations are strangers (F.1)", function () {
-    let child;
-    let base = "http://127.0.0.1:" + PORT + "/" + settings.testDb;
+    let base = settings.baseUrl;
     let idsOther = {};
     let hashes = {};
 
@@ -251,51 +246,9 @@ describe("two organizations are strangers (F.1)", function () {
             resp = await identityPk(client, "FBTest", settings.basicUser);
             hashes.a = resp.rows[0].password_hash;
         });
-
-        let logFile = path.join(settings.artifacts, "server-isolation.log");
-
-        child = spawn(process.execPath, ["server.js"], {
-            cwd: settings.root,
-            env: Object.assign({}, process.env, {
-                authStrategy: "identity",
-                managerDatabase: settings.managerDb,
-                modulesDir: settings.modulesDir,
-                PORT: String(PORT),
-                clientPort: String(PORT),
-                logSilent: "true",
-                twoFactorAuth: "false"
-            }),
-            stdio: [
-                "ignore",
-                fs.openSync(logFile, "w"),
-                fs.openSync(logFile, "a")
-            ]
-        });
-
-        let started = Date.now();
-        while (Date.now() - started < 60000) {
-            if (child.exitCode !== null) {
-                throw new Error(
-                    "isolation server exited; see " + logFile
-                );
-            }
-            try {
-                let resp = await fetch(base + "/", {redirect: "manual"});
-                if (resp.status < 500) {
-                    return;
-                }
-            } catch (ignore) {}
-            await new Promise((r) => setTimeout(r, 250));
-        }
-        throw new Error("isolation server did not start; see " + logFile);
     });
 
-    after(async function () {
-        if (child && child.exitCode === null) {
-            child.kill("SIGTERM");
-        }
-        await unseed();
-    });
+    after(unseed);
 
     describe("sign-in", function () {
         it("keeps one password per organization for one username",
@@ -530,6 +483,244 @@ describe("two organizations are strangers (F.1)", function () {
                 200,
                 "disabling their other identity must not reach this one"
             );
+        });
+    });
+
+    /*
+        The mirror image (F.2's remainder): until now the second
+        organization owned nothing, so "each administrator sees only
+        their own" was proven from one side. Give it an instance of its
+        own and prove it from theirs.
+    */
+    describe("the view from the other organization (F.2)", function () {
+        let ours;
+        let theirs;
+        let baseOther = base.replace(
+            "/" + settings.testDb,
+            "/" + OTHER_DB
+        );
+
+        before(async function () {
+            // Build a third instance as the platform administrator...
+            await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "UPDATE identity SET is_platform_admin = true " +
+                        "WHERE _pk IN (SELECT i._pk FROM identity i " +
+                        "  JOIN organization o ON " +
+                        "    i._organization_organization_pk = o._pk " +
+                        "  WHERE o.name = 'FBTest' AND i.username = $1)"
+                    ),
+                    [settings.adminUser]
+                )
+            );
+
+            ours = new Session(base);
+            let resp = await ours.signIn(
+                settings.adminUser,
+                settings.password
+            );
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let overview = await ours.get("/admin/instances");
+            let built = await ours.raw(
+                "POST",
+                "/admin/instance/provision",
+                {
+                    database: OTHER_DB,
+                    name: "Theirs",
+                    service: overview.services[0].id,
+                    template: settings.testDb2
+                }
+            );
+            assert.equal(
+                built.status,
+                200,
+                JSON.stringify(built.body)
+            );
+            assert.equal(built.body.state, "active");
+
+            /*
+                ...and hand it to the other organization: the tenant
+                row moves, the builder's grants on it go, and their
+                administrator gets one. The profile in the new database
+                makes itself on first sign-in (B.7).
+            */
+            await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    await client.query(
+                        (
+                            "UPDATE tenant SET " +
+                            "_organization_organization_pk = (" +
+                            "  SELECT _pk FROM organization " +
+                            "  WHERE name = $2) " +
+                            "WHERE pg_database = $1"
+                        ),
+                        [OTHER_DB, OTHER_ORG]
+                    );
+                    await client.query(
+                        (
+                            "DELETE FROM access_grant WHERE " +
+                            "_tenant_tenant_pk = (SELECT _pk FROM tenant " +
+                            "  WHERE pg_database = $1)"
+                        ),
+                        [OTHER_DB]
+                    );
+                    await client.query(
+                        (
+                            "INSERT INTO access_grant (" + DOC_COLS +
+                            ",_identity_identity_pk,_tenant_tenant_pk," +
+                            "is_active,granted) " +
+                            "SELECT " + docVals("fbtisogrant1") + "," +
+                            "  i._pk, t._pk, true, now() " +
+                            "FROM identity i, tenant t " +
+                            "JOIN organization o " +
+                            "  ON o.name = $2 " +
+                            "WHERE i._organization_organization_pk = " +
+                            "  o._pk AND i.username = $1 " +
+                            "  AND t.pg_database = $3"
+                        ),
+                        [settings.adminUser, OTHER_ORG, OTHER_DB]
+                    );
+                }
+            );
+
+            theirs = new Session(baseOther);
+            resp = await theirs.signIn(settings.adminUser, OTHER_PW);
+            assert.equal(
+                resp.status,
+                200,
+                "their administrator enters their instance: " +
+                JSON.stringify(resp.body)
+            );
+        });
+
+        after(async function () {
+            await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    await client.query(
+                        (
+                            "UPDATE identity SET is_platform_admin = " +
+                            "false WHERE username = $1"
+                        ),
+                        [settings.adminUser]
+                    );
+                    await client.query(
+                        (
+                            "DELETE FROM \"$provision\" WHERE " +
+                            "tenant_pk IN (SELECT _pk FROM tenant " +
+                            "  WHERE pg_database = $1)"
+                        ),
+                        [OTHER_DB]
+                    ).catch(function () {
+                        return;
+                    });
+                    await client.query(
+                        (
+                            "DELETE FROM access_grant WHERE " +
+                            "_tenant_tenant_pk IN (SELECT _pk FROM " +
+                            "  tenant WHERE pg_database = $1)"
+                        ),
+                        [OTHER_DB]
+                    );
+                    await client.query(
+                        "DELETE FROM tenant WHERE pg_database = $1",
+                        [OTHER_DB]
+                    );
+                }
+            );
+            await db.withClient("postgres", (client) => client.query(
+                "DROP DATABASE IF EXISTS " + OTHER_DB + " WITH (FORCE)"
+            ));
+        });
+
+        it("their administrator sees their instance and nothing of ours",
+                async function () {
+            let overview = await theirs.get("/admin/instances");
+            let databases = overview.instances.map(
+                (row) => row.database
+            );
+
+            assert.ok(
+                databases.includes(OTHER_DB),
+                "their own instance is there"
+            );
+            assert.equal(
+                databases.includes(settings.testDb),
+                false,
+                "ours is not"
+            );
+            assert.equal(
+                databases.includes(settings.testDb2),
+                false,
+                "none of ours is"
+            );
+            assert.equal(overview.organization.name, OTHER_ORG);
+        });
+
+        it("our administrator does not see theirs", async function () {
+            let overview = await ours.get("/admin/instances");
+            let databases = overview.instances.map(
+                (row) => row.database
+            );
+
+            assert.equal(
+                databases.includes(OTHER_DB),
+                false,
+                "their instance is not in our registry view"
+            );
+        });
+
+        it("our administrator cannot close theirs", async function () {
+            let theirRow = await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let resp = await client.query(
+                        (
+                            "SELECT id FROM tenant " +
+                            "WHERE pg_database = $1 AND NOT is_deleted"
+                        ),
+                        [OTHER_DB]
+                    );
+
+                    return resp.rows[0];
+                }
+            );
+
+            let resp = await ours.raw("POST", "/admin/instance/status", {
+                id: theirRow.id,
+                isActive: false
+            });
+
+            assert.equal(resp.status, 404, "not in our organization");
+        });
+
+        it("their administrator cannot close ours", async function () {
+            let ourRow = await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let resp = await client.query(
+                        (
+                            "SELECT id FROM tenant " +
+                            "WHERE pg_database = $1 AND NOT is_deleted"
+                        ),
+                        [settings.testDb2]
+                    );
+
+                    return resp.rows[0];
+                }
+            );
+
+            let resp = await theirs.raw(
+                "POST",
+                "/admin/instance/status",
+                {id: ourRow.id, isActive: false}
+            );
+
+            assert.equal(resp.status, 404, "not in their organization");
         });
     });
 });
