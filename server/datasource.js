@@ -1261,6 +1261,23 @@
         );
     };
 
+    /*
+        How long an expired demo is kept before the sweep drops it, in
+        days. Closing is immediate; dropping waits, because somebody
+        may yet say they want it back (John, Oct 2026). Zero or absent
+        means it is never dropped, only closed.
+    */
+    function demoGraceDays(conf) {
+        let days = Number((conf || {}).demoGraceDays);
+
+        if (!Number.isFinite(days) || days <= 0) {
+            return 0;
+        }
+        return Math.floor(days);
+    }
+
+    that.demoGraceDays = demoGraceDays;
+
     /**
         Delete an application database, taking its instance out of the
         registry first.
@@ -1273,27 +1290,16 @@
         @param {String} database Target database name
         @return {Object} Promise
     */
-    that.deleteDatabase = async function (pClient, dbName) {
-        let conf = await config.read();
-        let target = writableName(dbName, conf);
-        let name;
-        let user;
-        let actor;
+    /*
+        The drop itself, once something has decided it may happen. Who
+        decided is the caller's to establish: deleteDatabase asks
+        databaseActor, and deleteExpiredDemo reads the registry, where
+        the policy already says the instance is finished (tenant plan
+        D.4).
+    */
+    async function dropDatabaseNow(name, user) {
         let conn1;
         let tenant;
-
-        if (target.message) {
-            return Promise.reject(target.message);
-        }
-
-        name = target.name;
-        actor = await databaseActor(pClient, "drop");
-
-        if (actor.message) {
-            return Promise.reject(actor.message);
-        }
-
-        user = actor.user;
 
         try {
             /*
@@ -1321,6 +1327,73 @@
         }
 
         await auditDatabase("database.dropped", user, name);
+    }
+
+    that.deleteDatabase = async function (pClient, dbName) {
+        let conf = await config.read();
+        let target = writableName(dbName, conf);
+        let actor;
+
+        if (target.message) {
+            return Promise.reject(target.message);
+        }
+
+        actor = await databaseActor(pClient, "drop");
+
+        if (actor.message) {
+            return Promise.reject(actor.message);
+        }
+
+        await dropDatabaseNow(target.name, actor.user);
+    };
+
+    /**
+        Drop a demo that ran out and was never asked for back (tenant
+        plan D.4). Called by the sweep on the server's own clock, with
+        nobody signed in.
+
+        There is no actor to authorize it and none is wanted: the
+        registry decides. The instance has to be a demo, closed, and
+        past its expiration by the grace period, and this reads that
+        for itself rather than taking the caller's word -- so the worst
+        a caller can do by reaching it is drop a demo the policy had
+        already finished with.
+
+        @method deleteExpiredDemo
+        @param {String} database Target database name
+        @return {Promise} Boolean, whether it was dropped
+    */
+    that.deleteExpiredDemo = async function (dbName) {
+        let conf = await config.read();
+        let target = writableName(dbName, conf);
+        let days = demoGraceDays(conf);
+
+        if (target.message) {
+            return Promise.reject(target.message);
+        }
+        if (!days) {
+            return false;
+        }
+
+        let allowed = await manager.run(
+            (mclient) => mclient.query(
+                (
+                    "SELECT 1 FROM tenant " +
+                    "WHERE pg_database = $1 AND is_demo " +
+                    "  AND NOT is_active AND NOT is_deleted " +
+                    "  AND expiration IS NOT NULL " +
+                    "  AND expiration < now() - ($2 || ' days')::interval"
+                ),
+                [target.name, String(days)]
+            )
+        );
+
+        if (!allowed.rows.length) {
+            return false;
+        }
+
+        await dropDatabaseNow(target.name, "system");
+        return true;
     };
 
     /**
