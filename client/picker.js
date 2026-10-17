@@ -321,6 +321,17 @@
                     : "on"
                 ),
                 id,
+                /*
+                    The starting value is put in once, when the box is
+                    made. Handing it over as an attribute makes Mithril
+                    put it back on every redraw, and a keystroke is a
+                    redraw, so typing would be undone as it happened.
+                */
+                oncreate: function (vnode) {
+                    if (value !== undefined) {
+                        vnode.dom.value = value;
+                    }
+                },
                 onkeydown: function (e) {
                     if (e.which === 13 && onEnter) {
                         onEnter();
@@ -328,8 +339,7 @@
                         return false;
                     }
                 },
-                type: type || "text",
-                value
+                type: type || "text"
             })
         ]);
     }
@@ -339,11 +349,15 @@
             class: "pure-control-group fb-sign-in"
         }, [
             m("label", {class: "fb-sign-in-label", for: id}, label),
-            m("select", {id}, options.map(function (option) {
-                return m("option", {
-                    selected: option.value === value,
-                    value: option.value
-                }, option.label);
+            m("select", {
+                id,
+                oncreate: function (vnode) {
+                    if (value !== undefined) {
+                        vnode.dom.value = value;
+                    }
+                }
+            }, options.map(function (option) {
+                return m("option", {value: option.value}, option.label);
             }))
         ]);
     }
@@ -813,12 +827,13 @@
                         for: "two-factor"
                     }, "Second factor"),
                     m("input", {
-                        checked: (
-                            kind === "edit"
-                            ? organization.isTwoFactorRequired
-                            : false
-                        ),
                         id: "two-factor",
+                        oncreate: function (vnode) {
+                            vnode.dom.checked = (
+                                kind === "edit" &&
+                                organization.isTwoFactorRequired === true
+                            );
+                        },
                         type: "checkbox"
                     })
                 ])
@@ -881,8 +896,10 @@
                         for: "just-in-time"
                     }, "Make accounts"),
                     m("input", {
-                        checked: have.isJustInTime === true,
                         id: "just-in-time",
+                        oncreate: function (vnode) {
+                            vnode.dom.checked = have.isJustInTime === true;
+                        },
                         type: "checkbox"
                     })
                 ]),
