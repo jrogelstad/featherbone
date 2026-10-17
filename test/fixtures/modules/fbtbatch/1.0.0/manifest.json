@@ -1,0 +1,10 @@
+{
+    "module": "fbtbatch",
+    "version": "1.0.0",
+    "files": [
+        {
+            "type": "batch",
+            "path": "helpLinks.json"
+        }
+    ]
+}
