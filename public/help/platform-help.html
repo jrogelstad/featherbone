@@ -255,15 +255,21 @@ without waiting for a sign-out.</p>
 how many people, how many of those can administer it, and how it signs in. A
 row reading <em>none</em> under administrators is worth acting on — that
 organization has nobody who can manage its own people.</p>
-<p><strong>Every instance on this installation</strong> is the per-instance
-Instances screen with the organization boundary taken off: each database with
-its owner, its state, the connection it is reached through, and what module
-versions it carries.</p>
-<p>Click a row to select it. The buttons along the toolbar enable for what
-that row allows, and a disabled one explains itself when you hover it.
-Right-clicking a row offers the same actions as a menu. The tick boxes in the
-instance list are a separate thing — they choose which instances a group
-deploy acts on.</p>
+<p><strong>Instances</strong> is the per-instance Instances screen with the
+organization boundary taken off: every database on the installation with its
+owner, its state, the connection it is reached through, and what module
+versions it carries. Tick <strong>Show selected organization's
+instances</strong> to narrow it to whichever organization is selected
+above.</p>
+<p>Each list carries its own toolbar, over its own heading, so the buttons
+that act on an organization are never mixed with the ones that act on an
+instance. Click a row to select it; the buttons enable for what that row
+allows, and a disabled one explains itself when you hover it. Right-clicking
+an organization offers the same actions as a menu.</p>
+<p>The tick boxes in the instance list are a separate thing — they choose
+which instances a group deploy acts on. A tick that the organization filter
+has hidden drops out of the deployment, so Deploy never acts on something you
+cannot see.</p>
 </article>
 
 </div></section>
@@ -718,8 +724,8 @@ reports it until that changes.</p>
 <article id="fleet-upgrade" class="topic"><h4>Upgrading a fleet<a class="anchor" href="#fleet-upgrade" aria-label="Link to this topic">#</a></h4>
 <p>Deploy from the Instances screen applies one package version to one
 instance. The console does the same across a group: tick the instances in
-<strong>Every instance on this installation</strong>, press
-<strong>Deploy</strong>, and choose the package.</p>
+<strong>Instances</strong>, press <strong>Deploy</strong>, and choose the
+package.</p>
 <p>A group is a sequence of single deployments, not a second way of deploying.
 Each instance is held, applied to, and let go in turn — so one is down at a
 time rather than all of them.</p>
