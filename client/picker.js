@@ -36,6 +36,11 @@
 (function () {
     "use strict";
 
+    // Served from "public", which is mounted above the ":db" routing,
+    // so the address holds whatever instance the reader came from --
+    // and holds from the console, which is in no instance at all.
+    const HELP = "/help/platform-help.html";
+
     const AUTH = [
         {label: "Local password", value: "password"},
         {label: "Single sign-on only", value: "sso"},
@@ -1193,6 +1198,16 @@
                     class: "pure-button",
                     onclick: load
                 }, "Refresh"),
+                m("button", {
+                    class: "pure-button",
+                    onclick: function () {
+                        window.open(HELP, "_blank");
+                    },
+                    title: (
+                        "How platform administration works, in a page " +
+                        "made to be read or printed"
+                    )
+                }, "Help"),
                 m("div", {class: "fb-toolbar-fill"}),
                 toolbarButton(actions.organization),
                 toolbarButton(actions.edit),
