@@ -3082,3 +3082,14 @@ button:disabled .fb-ipicon,
 .fb-admin-subtitle {
   margin-top: 4px;
 }
+
+/* The picker and the platform console (tenant plan G.1-G.3), which are
+   their own page rather than part of the application bundle. */
+.fb-platform-body {
+  padding: 8px 12px 16px 12px;
+}
+.fb-platform-section {
+  margin: 16px 0 6px 0;
+  font-weight: 700;
+  color: var(--fb-text);
+}
