@@ -26,6 +26,7 @@
     const PgSession = require("connect-pg-simple")(session);
     const expressFileUpload = require("express-fileupload");
     const fs = require("fs");
+    const os = require("os");
     const bodyParser = require("body-parser");
     const f = require("./common/core");
     const qs = require("qs");
@@ -2254,6 +2255,60 @@
         };
     }
 
+    /*
+        A package arrives as a file rather than as JSON, so this stages
+        it and hands the path to the same service the rest of the
+        console's acts go through -- which is where the platform-
+        administrator check and the audit live. The staged copy goes
+        whatever happens: it is somebody's upload sitting in a temp
+        directory.
+    */
+    async function doPackageUpload(req, res) {
+        let staged;
+
+        try {
+            if (!req.user && !(req.session || {}).identity) {
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+
+            let file = (req.files || {}).package;
+
+            if (!file) {
+                res.status(400).json("No package was uploaded");
+                return;
+            }
+
+            staged = file.tempFilePath || path.join(
+                os.tmpdir(),
+                "fb-upload-" + Date.now()
+            );
+
+            if (!file.tempFilePath) {
+                fs.writeFileSync(staged, file.data);
+            }
+
+            let payload = adminPayload(req);
+
+            payload.data = {
+                force: String(req.query.force) === "true",
+                source: staged
+            };
+
+            respond.bind(res)(await admin.installPackage(payload));
+        } catch (e) {
+            error.bind(res)(e);
+        } finally {
+            if (staged) {
+                try {
+                    fs.rmSync(staged, {force: true});
+                } catch (ignore) {
+                    // the upload directory is the temp directory's
+                }
+            }
+        }
+    }
+
     function platformData(obj) {
         return Object.assign({}, obj.data, {by: obj.by});
     }
@@ -2309,7 +2364,14 @@
             ),
             registry: datasource.registeredTenants(),
             tenant: req.tenant,
-            user: req.user.name
+            /*
+                No session is a 401 rather than the type error reading
+                a name off nothing used to raise: these routes answer
+                where no database is named, so an unauthenticated
+                caller reaches them and has to be told, not handed a
+                stack trace.
+            */
+            user: (req.user || {}).name
         };
     }
 
@@ -2378,6 +2440,11 @@
     function doAdminInstance(method) {
         return async function (req, res) {
             try {
+                if (!req.user && !(req.session || {}).identity) {
+                    res.status(401).json("Unauthorized session");
+                    return;
+                }
+
                 let resp = await admin[method](adminPayload(req));
 
                 await refreshTenants();
@@ -3806,6 +3873,27 @@
         app.post(
             "/platform/instances/sweep",
             doAdminInstance("sweepDemosGuarded")
+        );
+        app.get("/platform/packages", doAdminInstance("packages"));
+        app.post(
+            "/platform/packages/remove",
+            doAdminInstance("removePackage")
+        );
+        /*
+            Install from an uploaded archive. The upload middleware is
+            put on this route rather than the app: everything else
+            under /platform is JSON, and the file parser has no
+            business in front of it. The size cap is the one thing a
+            public-facing upload must not leave open.
+        */
+        app.post(
+            "/platform/packages/install",
+            expressFileUpload({
+                abortOnLimit: true,
+                limits: {fileSize: 256 * 1024 * 1024},
+                useTempFiles: true
+            }),
+            doPackageUpload
         );
 
         app.use("/", dbRouter);
