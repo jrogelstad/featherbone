@@ -358,22 +358,41 @@ customers, for the reasons in section 7.
 * **Question 1, `ModuleNpm` retired** (`feat/adr002-retire-module-npm`).
 * **Question 6, module-less `Script` rows** (`feat/adr002-orphan-scripts`).
 
+**Answered 2026-10-16, and built the same day:**
+
+* **The combined zip install** -- John: "I'm going to abandon the
+  admin_console package." So there is nothing to retire and nothing to
+  build: Install then Deploy, on the command line and on the screen,
+  is the path, and the combined action goes with the package that
+  carried it.
+* **Fleet upgrade as one action** -- John: "I'd like the option to
+  upgrade the fleet one by one or in a group. For example, if I want to
+  test in a test database before going to production, I would need to
+  do that individually. But likely patches I would want to deploy to a
+  fleet, especially if urgent." Built on `feat/fleet-group-deploy`:
+  `deployFleet` applies one version to a named list of instances, each
+  one going through the single-instance path -- held, applied, let go --
+  so a group is a *sequence* of the same act and the outage rolls
+  rather than landing on everyone at once. The instances are named
+  rather than implied, which is what makes "the test database first"
+  the same action as "the whole fleet". The first failure stops the
+  rest by default; carrying on is a tick for the urgent patch.
+* **Section 7's two tiers for customer extension** -- John: "either way
+  I don't think that fundamentally changes anything we've done or are
+  going to do here. It's mainly just an implementation methodology and
+  note." Recorded as that. A package that inherits a feather works on
+  this foundation today; spare user columns with per-database aliases
+  are still gated by improvement item 0.14 (column-level
+  authorization).
+
 **Not built:**
 
-* **C.3/C.4-style UI for Install**: uploading a package through the
-  Admin Console still goes through the old combined zip install, which
-  installs *and* deploys in one action. The separated path exists
-  (command line plus the screen's Deploy); retiring the combined one is
-  a decision, not code.
-* **Fleet upgrade as one action.** Upgrading many instances is a rolling
-  outage; the screen says how many are behind and leaves the order to a
-  person. Whether to automate it is open.
-* **Section 7's two tiers for customer extension** -- a package that
-  inherits a feather, and spare user columns with per-database aliases.
-  Improvement item 0.14 (column-level authorization) still gates the
-  second; 2.6 and 3.3 are merged.
-* **D.5** (editions as a boundary) is enforceable on this foundation but
-  undecided.
+* **D.5** (editions as a boundary) -- settled 2026-10-16 and no longer
+  this ADR's business: an edition decides what an instance *offers*, not
+  what is possible, so it is not a boundary and a package per edition is
+  what it exists to avoid. Who may set it is a boundary, and that is the
+  platform administrator (`feat/d5-edition-platform-only`; tenant plan
+  D.5).
 * **The Develop workbook's feather authorization editing** (section 6).
   Authorizations stay per database, so they need an editor once feather
   editing leaves the UI -- and feather editing has not left the UI yet,
