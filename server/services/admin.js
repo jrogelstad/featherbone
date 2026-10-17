@@ -1327,9 +1327,27 @@
                 });
 
                 try {
+                    /*
+                        The target's registry entry, not the caller's.
+                        It is the connection the installer writes
+                        through, so the caller's sent a deployment at
+                        the database the operator happened to be signed
+                        in to -- and from the platform console, where
+                        there is no instance at all, at the manager.
+                        The resolution above was already looking this
+                        up and refusing when the server does not serve
+                        it; it simply was not the value passed.
+
+                        What it looked like: a module whose install
+                        starts a ServerProcess failed on "Either a
+                        client or tenant value must be included", and
+                        the failed deployment left the instance held
+                        (John, Oct 2026).
+                    */
                     await datasource.install(dir, obj.user, {
                         databases: [target.pg_database],
-                        tenant: obj.tenant
+                        isSuper: true,
+                        tenant
                     });
                     await datasource.recordDeployed(
                         target.pg_database,

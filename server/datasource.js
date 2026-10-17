@@ -2314,6 +2314,22 @@
         }
 
         resp = await db.connect(opts.tenant);
+
+        /*
+            A trusted install acts as the service account, which is
+            what the command line has always done (install.js sets the
+            client's user to config's pgUser). The operator who asked
+            is recorded in the audit, not impersonated in the database:
+            a platform administrator deploying to a customer's instance
+            is generally not a user of it at all, and the row-level
+            ownership checks are written for users of the database.
+        */
+        if (opts.isSuper === true) {
+            let conf = await config.read();
+
+            resp.client.currentUser = () => conf.pgUser;
+        }
+
         // Do the work
         while (targets.length) {
             await installer.install(
@@ -2322,7 +2338,17 @@
                 filename,
                 username,
                 {
-                    isSuper: false,
+                    /*
+                        "Super" here means a caller the installer need
+                        not re-check: it skips the per-database super
+                        user lookup and the ServerProcess progress
+                        record, which is what the command line has
+                        always passed. A Deploy has already required a
+                        platform administrator, and the database it is
+                        aimed at is not one the caller has to be a user
+                        of, so it passes it too.
+                    */
+                    isSuper: opts.isSuper === true,
                     subscription: opts.subscription,
                     tenant: targets.shift()
                 }

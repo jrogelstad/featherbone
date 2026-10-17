@@ -244,6 +244,79 @@ describe("managing the packages on this server", function () {
         assert.equal(find(after.packages, MODULE, VERSION), undefined);
     });
 
+    /*
+        Deploy from the console reaches an instance the caller is not
+        in -- there is no instance to be in. The installer writes
+        through the connection it is handed, so that connection has to
+        be the target's: the caller's would send the deployment at
+        whatever database the operator happened to be signed in to, and
+        from here, where there is none, at the manager.
+    */
+    it("deploys to the named instance from a console with no instance",
+            async function () {
+        let session = await signedIn(PLATFORM);
+        let overview = await session.get("/platform/overview");
+        /*
+            Not the primary test database: a deployment alters the
+            schema, and the golden catalog and schema suites read that
+            one. The second instance exists for exactly this.
+        */
+        let target = (overview.fleet || []).find(
+            (one) => one.database !== settings.testDb
+        );
+
+        assert.ok(target, "a second instance is listed");
+
+        let resp = await session.raw("POST", "/platform/instance/deploy", {
+            id: target.id,
+            module: "fbtest",
+            version: "1.1.0"
+        });
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        /*
+            It landed in the instance, and the manager -- the database
+            a console session's own connection would have reached --
+            was left alone.
+        */
+        let after = await session.get("/platform/overview");
+        let now = (after.fleet || []).find(
+            (one) => one.database === target.database
+        );
+
+        assert.ok(
+            ((now.modules || {}).modules || []).some(
+                (one) => one.name === "fbtest" && one.version === "1.1.0"
+            ),
+            "the instance carries the version deployed"
+        );
+
+        /*
+            The manager is a Featherbone database too, so it has a
+            module table of its own -- the point is that the module
+            deployed to an instance is not in it. Before the target's
+            connection was the one passed, this is where a console
+            deployment went.
+        */
+        let inManager = await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                (
+                    "SELECT name, version FROM module " +
+                    "WHERE name = $1 AND NOT is_deleted"
+                ),
+                ["fbtest"]
+            )
+        );
+
+        assert.deepEqual(
+            inManager.rows,
+            [],
+            "and the manager did not receive it"
+        );
+    });
+
     it("has nothing to say about a version it does not hold",
             async function () {
         let session = await signedIn(PLATFORM);
