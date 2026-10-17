@@ -83,6 +83,50 @@ class Session {
         return {status: resp.status, body: data, headers: resp.headers};
     }
 
+    /*
+        A multipart upload, for the routes that take a file rather than
+        JSON: the platform console's package install is one. fetch
+        builds the body from FormData, so the boundary is its to set --
+        hence no Content-Type here.
+    */
+    async upload(path, field, file) {
+        const fs = require("fs");
+        const nodePath = require("path");
+        let url = this.baseUrl + path;
+        let form = new FormData();
+        let opts = {headers: {}, method: "POST", redirect: "manual"};
+
+        form.append(
+            field,
+            new Blob([fs.readFileSync(file)]),
+            nodePath.basename(file)
+        );
+        opts.body = form;
+
+        if (this.cookie) {
+            opts.headers.Cookie = this.cookie;
+        }
+
+        let resp = await fetch(url, opts);
+        let text = await resp.text();
+        let data = text;
+
+        try {
+            data = (
+                text
+                ? JSON.parse(text)
+                : undefined
+            );
+        } catch (ignore) {
+            // Leave as text
+        }
+
+        if (resp.status < 200 || resp.status > 299) {
+            throw new HttpError("POST", path, resp.status, data);
+        }
+        return data;
+    }
+
     // Like raw() but throws unless 2xx
     async call(method, path, body) {
         let resp = await this.raw(method, path, body);
