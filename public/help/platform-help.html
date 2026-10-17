@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Featherbone Platform Administration</title>
+<link rel="icon" href="/media/featherbone.png">
+<style>
+:root{
+  --bg:#fff; --fg:#1d2129; --muted:#5d6672; --faint:#8a929e;
+  --line:#e3e6ea; --line2:#eef0f3; --accent:#1a6ec4; --accent-bg:#eaf2fb;
+  --code-bg:#f5f6f8; --sidebar:#fafbfc;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,
+    "Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181c; --fg:#e4e7ea; --muted:#9aa3af; --faint:#6f7884;
+    --line:#2b3037; --line2:#23272d; --accent:#64a9ec; --accent-bg:#1b2836;
+    --code-bg:#1d2127; --sidebar:#121519;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181c; --fg:#e4e7ea; --muted:#9aa3af; --faint:#6f7884;
+  --line:#2b3037; --line2:#23272d; --accent:#64a9ec; --accent-bg:#1b2836;
+  --code-bg:#1d2127; --sidebar:#121519;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);
+  -webkit-text-size-adjust:100%}
+.wrap{display:flex;align-items:flex-start;max-width:1500px;margin:0 auto}
+
+/* sidebar */
+.side{position:sticky;top:0;flex:0 0 310px;height:100vh;overflow-y:auto;
+  background:var(--sidebar);border-right:1px solid var(--line);padding:22px 0 60px}
+.brand{padding:0 20px 14px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.brand b{display:block;font-size:17px;letter-spacing:-.01em}
+.brand span{font-size:12.5px;color:var(--faint)}
+.search{padding:0 16px 14px}
+.search input{width:100%;padding:8px 11px;font:14px var(--sans);color:var(--fg);
+  background:var(--bg);border:1px solid var(--line);border-radius:7px}
+.search input:focus{outline:2px solid var(--accent-bg);border-color:var(--accent)}
+.side nav ul{list-style:none;margin:0;padding:0}
+.side nav>ul{padding:0 10px}
+.side nav a{display:block;text-decoration:none;color:var(--muted);
+  padding:4px 10px;border-radius:6px;font-size:13.5px}
+.side nav a:hover{background:var(--accent-bg);color:var(--accent)}
+.side nav a.on{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.sec-link{font-size:14px!important;font-weight:650;color:var(--fg)!important;
+  margin-top:10px}
+.grp-label{display:block;padding:9px 10px 3px;font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.nav-grp>ul>li>a{padding-left:20px}
+.hidden{display:none!important}
+.nores{padding:10px 20px;font-size:13px;color:var(--faint)}
+
+/* main */
+main{flex:1 1 auto;min-width:0;padding:42px 46px 120px;max-width:900px}
+.hero h1{margin:0 0 6px;font-size:30px;letter-spacing:-.02em}
+.hero .lede{margin:0;color:var(--muted);font-size:16px}
+.counts{margin:18px 0 0;font-size:13px;color:var(--faint)}
+.toc{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(215px,1fr))}
+.toc a{display:block;text-decoration:none;color:var(--fg);
+  border:1px solid var(--line);border-radius:9px;padding:11px 13px}
+.toc a:hover{border-color:var(--accent);background:var(--accent-bg)}
+.toc strong{display:block;font-size:14px}
+.toc em{font-style:normal;font-size:12px;color:var(--faint)}
+
+.sec{margin-top:54px;padding-top:10px}
+.sec>h2{margin:0 0 4px;font-size:23px;letter-spacing:-.015em;
+  padding-bottom:9px;border-bottom:2px solid var(--line)}
+.grp{margin-top:30px}
+.grp>h3{margin:0 0 2px;font-size:12px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--faint)}
+.topic{padding:18px 0 4px;border-bottom:1px solid var(--line2)}
+.topic:last-child{border-bottom:0}
+.topic>h4{margin:0 0 8px;font-size:18px;letter-spacing:-.01em;scroll-margin-top:16px}
+.anchor{margin-left:8px;color:var(--line);text-decoration:none;font-weight:400;
+  font-size:15px}
+.topic:hover .anchor{color:var(--faint)}
+.anchor:hover{color:var(--accent)!important}
+.topic p{margin:0 0 11px}
+.topic ul,.topic ol{margin:0 0 11px;padding-left:22px}
+.topic li{margin:0 0 5px}
+.topic li>ul,.topic li>ol{margin-top:5px}
+.topic code{background:var(--code-bg);padding:1px 5px;border-radius:4px;
+  font:13.5px var(--mono)}
+.topic pre{background:var(--code-bg);border:1px solid var(--line);
+  border-radius:7px;padding:10px 13px;overflow-x:auto;margin:0 0 12px}
+.topic pre code{background:none;padding:0;font-size:13px;line-height:1.55}
+.topic table{border-collapse:collapse;width:100%;margin:0 0 13px;font-size:13.5px;
+  display:block;overflow-x:auto}
+.topic th,.topic td{border:1px solid var(--line);padding:6px 10px;
+  text-align:left;vertical-align:top}
+.topic th{background:var(--code-bg);font-weight:650}
+.topic a{color:var(--accent)}
+
+footer{margin-top:70px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--faint)}
+footer p{margin:0 0 6px}
+.top{position:fixed;right:20px;bottom:20px;background:var(--bg);color:var(--muted);
+  border:1px solid var(--line);border-radius:50%;width:40px;height:40px;
+  cursor:pointer;font-size:17px;display:none}
+.top.show{display:block}
+.burger{display:none}
+.printnote{display:none}
+
+@media (max-width:980px){
+  .wrap{flex-direction:column}
+  .side{position:static;flex:none;width:100%;height:auto;max-height:none;
+    border-right:0;border-bottom:1px solid var(--line)}
+  .side nav{display:none}
+  .side nav.open{display:block}
+  .burger{display:block;margin:0 16px 10px;padding:8px 12px;font:14px var(--sans);
+    background:var(--bg);color:var(--fg);border:1px solid var(--line);
+    border-radius:7px;cursor:pointer}
+  main{padding:26px 16px 80px;max-width:none;width:100%}
+  .hero h1{font-size:25px}
+}
+
+/* Printing: the whole guide, one topic never split across a page.
+   Sized to be read on paper rather than scaled down from the screen. */
+@page{margin:16mm 15mm}
+@media print{
+  :root{--bg:#fff;--fg:#000;--muted:#2b2b2b;--faint:#4a4a4a;--line:#aaa;
+    --line2:#ddd;--accent:#000;--accent-bg:#fff;--code-bg:#f2f2f2}
+  .side,.top,.toc,.burger{display:none!important}
+  .wrap{display:block;max-width:none}
+  main{max-width:none;padding:0;font-size:13pt;line-height:1.5}
+  .hero h1{font-size:26pt;margin-bottom:4pt}
+  .hero .lede{font-size:13pt}
+  .counts{display:none}
+  .printnote{display:block;font-size:11pt;color:#4a4a4a;margin:10pt 0 0}
+  .sec{margin-top:0;page-break-before:always}
+  .sec:first-of-type{page-break-before:avoid;margin-top:24pt}
+  .sec>h2{font-size:20pt;padding-bottom:6pt}
+  .grp{margin-top:18pt}
+  .grp>h3{font-size:10.5pt}
+  .topic{page-break-inside:avoid;padding:12pt 0 4pt}
+  .topic>h4{font-size:15pt;margin-bottom:6pt}
+  .topic p,.topic li{font-size:13pt}
+  .topic code{font-size:11.5pt}
+  .topic pre{page-break-inside:avoid;padding:8pt 10pt}
+  .topic pre code{font-size:11pt}
+  .topic table{display:table;font-size:11.5pt;page-break-inside:avoid}
+  .topic th,.topic td{padding:5pt 8pt}
+  .anchor{display:none}
+  a{color:inherit;text-decoration:none}
+  footer{page-break-inside:avoid;font-size:11pt}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside class="side">
+  <div class="brand"><b>Platform administration</b><span>Featherbone</span></div>
+  <button class="burger" id="burger" aria-expanded="false">Browse topics</button>
+  <div class="search">
+    <input id="q" type="search" placeholder="Filter topics&hellip;" aria-label="Filter topics">
+  </div>
+  <nav id="nav"><ul><li class="nav-sec"><a href="#start" class="sec-link">How the platform fits together</a><ul><li class="nav-grp"><span class="grp-label">Orientation</span><ul><li><a href="#whole-shape">The manager and its instances</a></li><li><a href="#tiers">Three tiers of authority</a></li><li><a href="#opening-console">Opening the platform console</a></li><li><a href="#console-contents">What the console shows</a></li></ul></li></ul></li><li class="nav-sec"><a href="#organizations" class="sec-link">Organizations</a><ul><li class="nav-grp"><span class="grp-label">The model</span><ul><li><a href="#what-an-organization-is">An organization owns people and instances</a></li><li><a href="#identity-scope">Why an identity belongs to one organization</a></li></ul></li><li class="nav-grp"><span class="grp-label">Day to day</span><ul><li><a href="#onboarding">Onboarding a new organization</a></li><li><a href="#appoint-admin">Appointing an administrator</a></li><li><a href="#closing-org">Closing an organization, and opening it again</a></li><li><a href="#break-glass">When an organization's only administrator has left</a></li></ul></li></ul></li><li class="nav-sec"><a href="#sign-in" class="sec-link">Signing in</a><ul><li class="nav-grp"><span class="grp-label">Passwords</span><ul><li><a href="#picker">The picker</a></li><li><a href="#ambiguous-username">A username in two organizations</a></li><li><a href="#two-factor">Organizations that require a second factor</a></li></ul></li><li class="nav-grp"><span class="grp-label">Single sign-on</span><ul><li><a href="#sso-overview">What single sign-on changes</a></li><li><a href="#sso-entra">Setting up Microsoft Entra ID</a></li><li><a href="#sso-first-arrival">What happens the first time somebody arrives</a></li><li><a href="#sso-groups">Administrator rights from a group claim</a></li><li><a href="#sso-limits">What a provider cannot decide</a></li></ul></li></ul></li><li class="nav-sec"><a href="#instances" class="sec-link">Instances</a><ul><li class="nav-grp"><span class="grp-label">Building</span><ul><li><a href="#what-an-instance-is">What an instance is</a></li><li><a href="#new-instance">Building one from a template</a></li><li><a href="#register-attach">Registering a database that already exists</a></li></ul></li><li class="nav-grp"><span class="grp-label">Running</span><ul><li><a href="#closing-instance">Closing an instance</a></li><li><a href="#maintenance">Maintenance</a></li><li><a href="#dropping">Dropping an instance</a></li></ul></li><li class="nav-grp"><span class="grp-label">Demos</span><ul><li><a href="#demos">Demo instances and when they expire</a></li><li><a href="#demo-grace">The grace period before a demo is dropped</a></li></ul></li></ul></li><li class="nav-sec"><a href="#packages" class="sec-link">Packages and upgrades</a><ul><li class="nav-grp"><span class="grp-label">The two acts</span><ul><li><a href="#install">Install puts files on a server</a></li><li><a href="#deploy">Deploy applies a version to a database</a></li></ul></li><li class="nav-grp"><span class="grp-label">Reading the fleet</span><ul><li><a href="#module-halves">Which half a module is on</a></li><li><a href="#fleet-tags">Behind, adrift, and from rows</a></li></ul></li><li class="nav-grp"><span class="grp-label">Upgrading</span><ul><li><a href="#fleet-upgrade">Upgrading a fleet</a></li><li><a href="#deploy-failure">When a deployment fails</a></li></ul></li></ul></li><li class="nav-sec"><a href="#settings" class="sec-link">Settings the platform owns</a><ul><li class="nav-grp"><span class="grp-label">What they are</span><ul><li><a href="#edition">The edition</a></li><li><a href="#platform-only-settings">Making a setting the platform's</a></li><li><a href="#edition-not-security">Why an edition is not a security boundary</a></li></ul></li></ul></li><li class="nav-sec"><a href="#audit" class="sec-link">Authority and the audit</a><ul><li class="nav-grp"><span class="grp-label">How authority works</span><ul><li><a href="#authority">Authority is read, never remembered</a></li><li><a href="#audit-log">What is written to the audit</a></li></ul></li></ul></li><li class="nav-sec"><a href="#operations" class="sec-link">Running the installation</a><ul><li class="nav-grp"><span class="grp-label">Capacity and addressing</span><ul><li><a href="#connections">The connection budget</a></li><li><a href="#reserved-paths">Addresses the server answers itself</a></li></ul></li><li class="nav-grp"><span class="grp-label">From the command line</span><ul><li><a href="#command-line">Doing it without the console</a></li><li><a href="#troubleshooting">If something looks wrong</a></li></ul></li></ul></li></ul></nav>
+</aside>
+<main>
+  <div class="hero">
+    <h1>Platform administration</h1>
+    <p class="lede">Running a Featherbone installation: its organizations, who
+      may sign in to what, the instances they reach, and the packages those
+      instances carry.</p>
+    <p class="counts">41 topics in 8 sections</p>
+    <p class="printnote">Featherbone platform administration guide.</p>
+    <ul class="toc"><li><a href="#start"><strong>How the platform fits together</strong><em>4 topics</em></a></li><li><a href="#organizations"><strong>Organizations</strong><em>6 topics</em></a></li><li><a href="#sign-in"><strong>Signing in</strong><em>8 topics</em></a></li><li><a href="#instances"><strong>Instances</strong><em>8 topics</em></a></li><li><a href="#packages"><strong>Packages and upgrades</strong><em>6 topics</em></a></li><li><a href="#settings"><strong>Settings the platform owns</strong><em>3 topics</em></a></li><li><a href="#audit"><strong>Authority and the audit</strong><em>2 topics</em></a></li><li><a href="#operations"><strong>Running the installation</strong><em>4 topics</em></a></li></ul>
+  </div>
+
+<section id="start" class="sec"><h2>How the platform fits together</h2>
+
+<div class="grp"><h3 id="start--orientation">Orientation</h3>
+
+<article id="whole-shape" class="topic"><h4>The manager and its instances<a class="anchor" href="#whole-shape" aria-label="Link to this topic">#</a></h4>
+<p>Every Featherbone installation has the same shape. One <strong>manager</strong>
+database holds the registry of instances, the organizations, the people and
+the sessions. Any number of <strong>instance</strong> databases hold application
+data — one per customer environment, so production, test and a demo are three
+instances, not three installations.</p>
+<p>The manager is never served as an application. Pointing a browser at it
+answers 404. It has no screens of its own, which is why platform
+administration is served from an address with no database in it at all.</p>
+<p>Each database carries a one-row marker recording what it is (manager or
+instance), its schema version and its mode — <code>dev</code>, <code>test</code>
+or <code>prod</code>. The mode is what draws the coloured banner across the top
+of the page after sign-in, so an instance says for itself what it is and
+nobody edits production thinking it is test.</p>
+<table>
+<tr><th>Lives in the manager</th><th>Lives in each instance</th></tr>
+<tr><td>Organizations, identities, passwords, access grants, the instance
+registry, the audit log, sessions</td>
+<td>Application data, forms, workbooks, settings, feather authorizations,
+local user profiles</td></tr>
+</table>
+<p>The division answers two different questions. The manager answers
+<em>who are you, which organization do you belong to, and may you enter this
+database?</em> An instance answers <em>what may you do once you are
+inside?</em> Authorization never leaves the instance; only identity and
+reachability sit above it.</p>
+</article>
+
+<article id="tiers" class="topic"><h4>Three tiers of authority<a class="anchor" href="#tiers" aria-label="Link to this topic">#</a></h4>
+<p>Three distinct levels of administration, each with a different reach.</p>
+<table>
+<tr><th>Tier</th><th>Reach</th><th>What it can do</th></tr>
+<tr><td><strong>Platform administrator</strong></td><td>Every organization and
+every instance on the installation</td>
+<td>Create, close and administer organizations; build, template, deploy to and
+drop instances; appoint an organization's first administrator; take over when
+a customer's administrators are gone; set the settings the platform
+owns.</td></tr>
+<tr><td><strong>Organization administrator</strong></td><td>One organization:
+its people and its instances</td>
+<td>Create, suspend and delete identities in that organization; set and reset
+their passwords; grant and revoke access to its instances; configure how the
+organization signs in.</td></tr>
+<tr><td><strong>Tenant super user</strong></td><td>One instance</td>
+<td>Whatever authorization grants inside that database. It is unrestricted
+<em>within</em> its own database and grants nothing at all outside it.</td></tr>
+</table>
+<p>A platform administrator is an identity in the manager carrying a flag. It
+is not a Postgres superuser, and it is not a super user in some particular
+database. That matters because the tier it replaces used to be
+<em>whoever has the cluster password</em>, which could not be audited, scoped
+or revoked. This one can.</p>
+<p>The tiers nest: a platform administrator can do everything an organization
+administrator can. They do not overlap sideways — a tenant super user is
+powerful inside one database and invisible outside it.</p>
+</article>
+
+<article id="opening-console" class="topic"><h4>Opening the platform console<a class="anchor" href="#opening-console" aria-label="Link to this topic">#</a></h4>
+<p>Go to the server's address with no database in the path and sign in. That
+is the <strong>picker</strong>. If your identity carries the platform
+administrator flag, the picker offers <strong>Administer the
+platform</strong>, which opens the console at <code>/platform</code>.</p>
+<p>The console is the only screen that crosses organizations, and it is
+deliberately served where no database is named. It therefore runs with no
+instance of its own, which is why every action on it names what it acts
+on — there is no ambient "current database" to assume.</p>
+<p>Authority is re-read from your identity on each request. It is never
+taken from the session. Revoke the flag and the next click is refused,
+without waiting for a sign-out.</p>
+</article>
+
+<article id="console-contents" class="topic"><h4>What the console shows<a class="anchor" href="#console-contents" aria-label="Link to this topic">#</a></h4>
+<p>Two lists, stacked.</p>
+<p><strong>Organizations</strong> says what each one owns: how many instances,
+how many people, how many of those can administer it, and how it signs in. A
+row reading <em>none</em> under administrators is worth acting on — that
+organization has nobody who can manage its own people.</p>
+<p><strong>Every instance on this installation</strong> is the per-instance
+Instances screen with the organization boundary taken off: each database with
+its owner, its state, the connection it is reached through, and what module
+versions it carries.</p>
+<p>Click a row to select it. The buttons along the toolbar enable for what
+that row allows, and a disabled one explains itself when you hover it.
+Right-clicking a row offers the same actions as a menu. The tick boxes in the
+instance list are a separate thing — they choose which instances a group
+deploy acts on.</p>
+</article>
+
+</div></section>
+
+<section id="organizations" class="sec"><h2>Organizations</h2>
+
+<div class="grp"><h3 id="organizations--model">The model</h3>
+
+<article id="what-an-organization-is" class="topic"><h4>An organization owns people and instances<a class="anchor" href="#what-an-organization-is" aria-label="Link to this topic">#</a></h4>
+<p>An organization is the customer. It owns its instances, its identities and
+its sign-in policy. Every instance belongs to exactly one organization, and
+every identity belongs to exactly one organization.</p>
+<p>That ownership is what makes the middle tier possible. An organization
+administrator has complete authority over everyone in their organization
+precisely because nobody in it is shared with anyone else.</p>
+</article>
+
+<article id="identity-scope" class="topic"><h4>Why an identity belongs to one organization<a class="anchor" href="#identity-scope" aria-label="Link to this topic">#</a></h4>
+<p>A username is unique <em>within</em> its organization, not across the
+installation. Two organizations may both have an <code>admin</code>, and they
+are two different people.</p>
+<p>The useful consequence: one person has one password across every instance
+their organization owns. Somebody with access to <code>acme_test</code> and
+<code>acme_prod</code> signs in with the same credential for both, and an
+administrator's password reset is one act that takes effect on both at
+once.</p>
+<p>The cost is real and worth stating. A consultant who works for two
+customers has <strong>two identities</strong> and two passwords. That is
+deliberate rather than an oversight: a shared identity would mean one
+customer's administrator had authority over an account another customer also
+relied on, and no arrangement of that is safe. Where the duplication is
+genuinely a problem, single sign-on removes it — the consultant authenticates
+once at their own provider and each organization's identity becomes a binding
+to that subject.</p>
+</article>
+
+</div><div class="grp"><h3 id="organizations--day-to-day">Day to day</h3>
+
+<article id="onboarding" class="topic"><h4>Onboarding a new organization<a class="anchor" href="#onboarding" aria-label="Link to this topic">#</a></h4>
+<p>Three actions on the console, in order. Suppose a new customer, Herbalife
+Nutrition, has signed up.</p>
+<ol>
+<li><strong>New organization.</strong> Name it, and say whether it signs in by
+password, by single sign-on, or by either. If you are not sure yet, choose
+password — it can be changed later, and single sign-on needs details from
+their IT department that you probably do not have on the first day.</li>
+<li><strong>Appoint administrator.</strong> Give a username and a password.
+This makes the identity if no such name exists in that organization, marks it
+the organization's administrator, and grants it <em>no</em> instance.</li>
+<li><strong>New instance.</strong> Build their first database from a
+template.</li>
+</ol>
+<p>Then hand the administrator their credentials. Who in their company reaches
+which instance is their decision from that point, made on the Users screen
+inside an instance, not yours.</p>
+<p>Step 2 granting nothing is intentional and is the part people find
+surprising. Appointing an administrator says who may <em>decide</em> access;
+it does not hand over access itself. If you want that administrator able to
+open the instance you are about to build, grant it to them after step 3 — or
+let them grant it to themselves, which is within their authority.</p>
+</article>
+
+<article id="appoint-admin" class="topic"><h4>Appointing an administrator<a class="anchor" href="#appoint-admin" aria-label="Link to this topic">#</a></h4>
+<p>Select the organization and press <strong>Appoint administrator</strong>.
+If the username already exists in that organization, the existing identity is
+marked as administrator and keeps the password it already has. If it does not,
+the identity is made with the password you give.</p>
+<p>An organization may have several administrators, and the console's
+Organizations list shows how many. More than one is the sensible arrangement:
+an organization with a single administrator who leaves is the situation that
+forces a platform administrator to intervene.</p>
+</article>
+
+<article id="closing-org" class="topic"><h4>Closing an organization, and opening it again<a class="anchor" href="#closing-org" aria-label="Link to this topic">#</a></h4>
+<p>Closing an organization stops its identities signing in <em>anywhere</em> —
+the picker reads the organization as well as the identity, so there is no
+instance left for them to enter by another route.</p>
+<p>It touches neither the instances nor the data in them. Nothing is deleted,
+nothing is dropped, and opening the organization again restores sign-in
+exactly as it was. It is the right action for a customer who has stopped
+paying, or an account under investigation, and the wrong one for a customer
+who has genuinely left — for that, close the organization and then deal with
+the instances deliberately.</p>
+</article>
+
+<article id="break-glass" class="topic"><h4>When an organization's only administrator has left<a class="anchor" href="#break-glass" aria-label="Link to this topic">#</a></h4>
+<p>Sign-in is organization-scoped, so a platform administrator is never
+signed in to another organization's instance in the ordinary way. That rule
+would otherwise make this situation unrecoverable.</p>
+<p>The Users screen inside an instance offers platform administrators an
+organization picker. Choose the organization, suspend the departed
+administrator, and appoint the replacement.</p>
+<p>This is the power that replaced the cluster superuser, so every use of it
+is written to the audit log against the organization acted on — who did what,
+to whom, when, and on whose behalf. Use it, but expect the record to be
+read.</p>
+</article>
+
+</div></section>
+
+<section id="sign-in" class="sec"><h2>Signing in</h2>
+
+<div class="grp"><h3 id="sign-in--passwords">Passwords</h3>
+
+<article id="picker" class="topic"><h4>The picker<a class="anchor" href="#picker" aria-label="Link to this topic">#</a></h4>
+<p>A URL with a database in it signs in to that database, as it always has. A
+URL with <strong>no</strong> database — the server's own root — answers with
+the picker: sign in once against the manager, see the instances your grants
+reach, and open one.</p>
+<p>The picker proves <em>who you are</em> and nothing more. Opening an
+instance is what proves access to that instance, because the grant is read
+again at the door. Two things follow. A sign-in that now reaches several
+instances cannot walk into one it was never granted. And revoking a grant
+shuts the door at the next entry, rather than whenever the session happens to
+expire.</p>
+<p>An instance that is closed, or down for maintenance, is <strong>listed and
+marked</strong> rather than hidden. Somebody who was working in it yesterday
+is told why it will not open today, which is more useful than an instance that
+silently vanishes.</p>
+</article>
+
+<article id="ambiguous-username" class="topic"><h4>A username in two organizations<a class="anchor" href="#ambiguous-username" aria-label="Link to this topic">#</a></h4>
+<p>Because usernames are unique per organization rather than globally, a name
+that exists in two organizations is ambiguous at the picker, where no database
+has yet named the organization. You are asked to type the organization and
+sign in again.</p>
+<p>The picker will not offer a list of organizations to choose from, and will
+not try your password against each candidate. Both are deliberate. A list
+would tell an unauthenticated stranger where a given username exists, and
+trying each candidate would count a failed attempt against every one of
+them — so three wrong guesses would lock accounts belonging to people who
+were never involved.</p>
+</article>
+
+<article id="two-factor" class="topic"><h4>Organizations that require a second factor<a class="anchor" href="#two-factor" aria-label="Link to this topic">#</a></h4>
+<p>An organization can require a second factor. Those identities can use the
+picker, but they are not signed in by it: the code is sent by the instance's
+own mail service, and the manager has no mail service of its own.</p>
+<p>So the picker lists their instances, and opening one lands on that
+instance's own sign-in, which asks for the factor. Nothing is admitted on a
+half-proved identity — the picker holds no session for them in the
+meantime.</p>
+</article>
+
+</div><div class="grp"><h3 id="sign-in--sso">Single sign-on</h3>
+
+<article id="sso-overview" class="topic"><h4>What single sign-on changes<a class="anchor" href="#sso-overview" aria-label="Link to this topic">#</a></h4>
+<p>An organization can sign in through an identity provider instead of, or as
+well as, a local password. Microsoft Entra ID — still called Azure AD almost
+everywhere — is the reference target, and any OpenID Connect provider works
+the same way.</p>
+<p>The organization's <strong>sign-in</strong> setting decides what is
+allowed:</p>
+<table>
+<tr><th>Setting</th><th>Effect</th></tr>
+<tr><td><code>password</code></td><td>The provider is ignored, even if one is
+configured.</td></tr>
+<tr><td><code>sso</code></td><td>Local passwords are refused. The password is
+not even checked — there is nothing to be learned from the answer, so nothing
+is given away by the refusal.</td></tr>
+<tr><td><code>both</code></td><td>Either works. Useful while an organization is
+moving across.</td></tr>
+</table>
+<p>At the picker, <strong>Sign in with single sign-on</strong> asks which
+organization and sends the browser on from there.</p>
+</article>
+
+<article id="sso-entra" class="topic"><h4>Setting up Microsoft Entra ID<a class="anchor" href="#sso-entra" aria-label="Link to this topic">#</a></h4>
+<p>On the console, select the organization and press <strong>Single
+sign-on</strong>. You need three things from the customer's directory
+administrator, and they need one thing from you.</p>
+<table>
+<tr><th>Field</th><th>For Entra ID</th></tr>
+<tr><td>Issuer</td><td><code>https://login.microsoftonline.com/&lt;directory&gt;/v2.0</code>
+where <code>&lt;directory&gt;</code> is their tenant id</td></tr>
+<tr><td>Client id</td><td>The application id of the app registration they
+create for Featherbone</td></tr>
+<tr><td>Client secret</td><td>A secret from that registration. It is stored
+encrypted and is never shown again — the form says <em>New secret</em> on a
+provider that already has one.</td></tr>
+<tr><td>User name claim</td><td><code>preferred_username</code> unless their
+directory is set up unusually</td></tr>
+<tr><td>Administrator group</td><td>Optional. See below.</td></tr>
+</table>
+<p>What they need from you is the redirect URI to register against that app
+registration: your server's address followed by
+<code>/auth/sso/callback</code>. If the server sits behind a proxy or load
+balancer that rewrites the host, set <code>ssoCallbackUrl</code> in
+<code>config.json</code> so the address you hand them is the public one rather
+than the one the server sees.</p>
+<p>Then set the organization's sign-in to <code>both</code> and try it before
+setting it to <code>sso</code>. Moving straight to <code>sso</code> on an
+untested configuration leaves nobody in that organization able to sign in.</p>
+</article>
+
+<article id="sso-first-arrival" class="topic"><h4>What happens the first time somebody arrives<a class="anchor" href="#sso-first-arrival" aria-label="Link to this topic">#</a></h4>
+<p><strong>Who somebody is</strong> comes from the provider's subject, never
+from the email address. An address can be reassigned to a new employee; a
+subject at an issuer cannot. This is the single most important thing to
+understand about the federation, because it is what stops a departed
+employee's reissued mailbox inheriting their access.</p>
+<p>The first time a subject arrives, one of three things happens.</p>
+<ol>
+<li><strong>It is already linked</strong> to an identity here, and is that
+person.</li>
+<li><strong>Its user name matches an identity that already exists</strong> in
+that organization, and the two are linked. This is the path for somebody who
+was here before the organization moved to single sign-on: they keep their
+account, their grants and their history.</li>
+<li><strong>Neither</strong>, and an identity is <em>made</em> — but only if
+the provider is configured to make them. It is granted the databases the
+provider names and nothing else.</li>
+</ol>
+<p>All three are written to the audit log. If the provider is not set to make
+accounts and somebody arrives who has none, they are refused with a message
+saying an administrator can create one. Leaving account-making off is the
+safer default for an organization whose directory contains more people than
+should have access.</p>
+<p>The default grants are worth setting deliberately. An account made with no
+instances named reaches nothing until somebody grants it, which is safer than
+an account that reaches everything.</p>
+</article>
+
+<article id="sso-groups" class="topic"><h4>Administrator rights from a group claim<a class="anchor" href="#sso-groups" aria-label="Link to this topic">#</a></h4>
+<p>Name a group in the provider's configuration and membership of it carries
+the organization-administrator flag.</p>
+<p>It is applied on <strong>every</strong> sign-in, not only the first. So a
+group taken away in the directory is taken away here the next time that person
+signs in, without anyone remembering to do it by hand. That is the point of
+wiring it to the directory at all.</p>
+</article>
+
+<article id="sso-limits" class="topic"><h4>What a provider cannot decide<a class="anchor" href="#sso-limits" aria-label="Link to this topic">#</a></h4>
+<p>A provider vouches for <em>who somebody is</em>. It does not decide whether
+they may come in.</p>
+<ul>
+<li>A <strong>suspended or locked</strong> identity is refused whatever the
+provider says.</li>
+<li><strong>Platform administration is never a claim.</strong> A provider
+belongs to one organization, and that flag crosses all of them — a customer's
+directory cannot be allowed to mint authority over other customers.</li>
+<li>A <strong>second factor</strong> requirement is satisfied by the
+provider's own policy, since it applied that policy before it vouched for
+anyone.</li>
+</ul>
+</article>
+
+</div></section>
+
+<section id="instances" class="sec"><h2>Instances</h2>
+
+<div class="grp"><h3 id="instances--building">Building</h3>
+
+<article id="what-an-instance-is" class="topic"><h4>What an instance is<a class="anchor" href="#what-an-instance-is" aria-label="Link to this topic">#</a></h4>
+<p>An instance is one application database, registered in the manager and
+served at <code>/&lt;database&gt;/</code>. It belongs to one organization and
+carries its own data, forms, workbooks, settings and authorizations.</p>
+<p>Even a small customer usually wants more than one — production and test at
+least, often a demo as well. That is why there is no single-database
+mode.</p>
+</article>
+
+<article id="new-instance" class="topic"><h4>Building one from a template<a class="anchor" href="#new-instance" aria-label="Link to this topic">#</a></h4>
+<p>Select the organization, press <strong>New instance</strong>, and choose a
+template. The build is a sequence of steps, each recorded as it completes:
+clone the template, verify the clone's marker, grant every administrator of
+that organization access with a tenant super user profile, and open it for
+sign-in.</p>
+<p>Because each step is recorded in the manager, a build that stops partway
+<strong>resumes</strong> from where it left off rather than starting again,
+and two servers cannot both build the same instance. If you see an instance
+offering <strong>Resume</strong>, that is what it means: something interrupted
+the build and the remaining steps are still waiting.</p>
+<p>A template is made by copying an existing instance — select it and press
+<strong>Template</strong>. The source must be quiet while the copy runs. This
+server lets go of its own connections to it automatically; connections from
+anywhere else, including another node or somebody's open psql, make the copy
+refuse rather than produce a torn clone.</p>
+</article>
+
+<article id="register-attach" class="topic"><h4>Registering a database that already exists<a class="anchor" href="#register-attach" aria-label="Link to this topic">#</a></h4>
+<p>Registering does not build anything. It takes a database that already
+exists in the cluster and tells this installation to serve it.</p>
+<p>The database must carry a marker saying it is a Featherbone instance;
+anything else is refused with the reason. To build a new database from
+scratch, use <code>node install.js --instance &lt;name&gt;</code>, which
+installs <em>and</em> registers it.</p>
+<p><strong>Attach</strong> is the related action for an instance that belongs
+to no organization at all, which is what an installation predating the
+organization model has. It puts an existing instance under an organization so
+its people can be granted access to it.</p>
+</article>
+
+</div><div class="grp"><h3 id="instances--running">Running</h3>
+
+<article id="closing-instance" class="topic"><h4>Closing an instance<a class="anchor" href="#closing-instance" aria-label="Link to this topic">#</a></h4>
+<p>Closing stops sign-in to one instance. The database is untouched and
+everything in it stays. Open it again and sign-in resumes.</p>
+<p>You cannot close the instance you are signed in to from inside itself — a
+rule that exists to stop an administrator locking themselves out of the only
+screen that could undo it.</p>
+</article>
+
+<article id="maintenance" class="topic"><h4>Maintenance<a class="anchor" href="#maintenance" aria-label="Link to this topic">#</a></h4>
+<p>Schema changes are not run under live traffic. An instance being deployed
+to is therefore held in <strong>maintenance</strong> first and let go
+afterwards, and Deploy does this bracketing for you.</p>
+<p>While maintenance is on, the instance answers <code>503</code> with an
+explanation — not the <code>404</code> an unservable database used to
+give — for everything except its own pages, sign-in and the administration
+routes. Only a platform administrator can sign in. That exception matters on
+an installation with a single instance, because the screen that <em>ends</em>
+the maintenance is served from that instance.</p>
+<p>The state can also be set by hand, which is what you want when something
+stopped halfway and you need the instance quiet while you look at it.
+Beginning and ending are both audited.</p>
+<p>The state is a column on the registry row, so a manager database built
+before the column existed needs <code>node install.js --manager</code> run
+once. Until then the screen reports no instance in maintenance and the button
+says what to do, rather than failing — an upgrade is never blocked by
+it.</p>
+</article>
+
+<article id="dropping" class="topic"><h4>Dropping an instance<a class="anchor" href="#dropping" aria-label="Link to this topic">#</a></h4>
+<p>Drop removes the database and its registration. It is audited, and it will
+not drop the instance you are signed in to.</p>
+<p>There is no undo. The safety net is a backup taken beforehand, and nothing
+in the console takes one for you.</p>
+</article>
+
+</div><div class="grp"><h3 id="instances--demos">Demos</h3>
+
+<article id="demos" class="topic"><h4>Demo instances and when they expire<a class="anchor" href="#demos" aria-label="Link to this topic">#</a></h4>
+<p>An instance marked as a demo carries an expiration date. Once that date
+passes, a sweep <strong>closes</strong> it: sign-ins stop, the data stays, and
+the close is audited. The server runs the sweep when the registry loads and
+every hour after, and the Instances screen can run it early.</p>
+<p>Closing is immediate and reversible because somebody may yet ask for the
+instance back. Moving the expiration date forward is how they get it —
+reopening an instance whose expiration is still in the past only has it closed
+again on the next pass.</p>
+</article>
+
+<article id="demo-grace" class="topic"><h4>The grace period before a demo is dropped<a class="anchor" href="#demo-grace" aria-label="Link to this topic">#</a></h4>
+<p>A demo is <strong>dropped</strong> once it has been expired for
+<code>demoGraceDays</code>, which is a month by default. Dropping is neither
+immediate nor reversible, which is exactly why it waits: the month is there so
+that somebody who notices their demo has gone quiet has time to say
+so.</p>
+<p>When it goes, the database and its data go. The registry row stays, marked
+deleted, so the record of what was there and when it went outlives the
+instance.</p>
+<p>Set <code>demoGraceDays</code> to <code>0</code> and an expired demo is only
+ever closed, never dropped. A <code>config.json</code> written before the
+setting existed has no such key, which reads the same as zero — so an
+installation being upgraded drops nothing until somebody adds the key
+deliberately.</p>
+</article>
+
+</div></section>
+
+<section id="packages" class="sec"><h2>Packages and upgrades</h2>
+
+<div class="grp"><h3 id="packages--two-acts">The two acts</h3>
+
+<article id="install" class="topic"><h4>Install puts files on a server<a class="anchor" href="#install" aria-label="Link to this topic">#</a></h4>
+<p><strong>Install</strong> registers a package's files on <em>this
+server</em>. It unpacks the package to a directory per version and records
+that the version exists. It changes no database at all.</p>
+<pre><code>node install.js --package &lt;directory-or-tarball&gt;   # [--force]
+node install.js --packages                         # what is installed</code></pre>
+<p>One directory per version, deliberately, because two databases served by
+one process may run different versions of one module — test on 2.1 while
+production is still on 2.2. A version already installed is left alone unless
+<code>--force</code> says to replace it.</p>
+<p>A package's own libraries are installed inside its own version directory,
+which is what lets two versions of a module depend on different releases of
+the same library.</p>
+<p><strong>The console cannot do this yet.</strong> Install is a command-line
+act, and the Deploy form can only offer packages this server already holds. If
+the package list is empty, nothing has been installed on this server.</p>
+</article>
+
+<article id="deploy" class="topic"><h4>Deploy applies a version to a database<a class="anchor" href="#deploy" aria-label="Link to this topic">#</a></h4>
+<p><strong>Deploy</strong> applies one installed version to one database: it
+creates or alters that database's tables, loads its workbooks and data, and
+records the version now deployed there.</p>
+<p>It holds the instance in maintenance while it works, applies the package,
+and lets the instance go. The same act is available from the command line and
+from the screens, and it is audited at both ends.</p>
+<pre><code>node install.js --deploy &lt;module&gt;[@&lt;version&gt;] --instance &lt;database&gt;
+node install.js --deploy &lt;module&gt;[@&lt;version&gt;] --manager</code></pre>
+<p>With more than one version installed the version must be named. Holding
+several at once is the point of the design, so the choice is never
+guessed.</p>
+<p>The manager follows the same rules as any instance, with one practical
+difference: deploying to it takes the administration screens down while it
+runs, which is why a manager deployment is a command-line act rather than a
+button.</p>
+<p>Deployments go forward only. There is no rollback, and restoring from a
+backup is the reverse — so confirm a restore point exists before you start,
+because "forward only" is only safe if the backup is real.</p>
+</article>
+
+</div><div class="grp"><h3 id="packages--reading">Reading the fleet</h3>
+
+<article id="module-halves" class="topic"><h4>Which half a module is on<a class="anchor" href="#module-halves" aria-label="Link to this topic">#</a></h4>
+<p>A module runs from its <strong>package</strong> when this server holds that
+module at the version the database says it carries. Otherwise it runs from the
+database's <strong>own rows</strong>. It is decided per module and per
+database, so one instance can have some of each.</p>
+<p>The rows are not deleted when a package takes over. They are the fallback
+for a module with no package, and the record of what a database carried before
+it was packaged. But they are no longer what runs, and they used to say
+nothing about it. Two things now do.</p>
+<p><strong>The rows refuse to be changed.</strong> Editing a module's client
+script or one of its service rows, for a module this server serves from a
+package, is refused with a message naming the module and version — because the
+save would appear to take and change nothing that runs. The refusal is by
+where the call came from, not by who made it: Install and Deploy write those
+rows as part of their work and are unaffected, while a person at the Develop
+workbook is refused. Including a super user, who is precisely the person who
+gets past every other check.</p>
+<p><strong>The screens say which.</strong> See the tags below.</p>
+</article>
+
+<article id="fleet-tags" class="topic"><h4>Behind, adrift, and from rows<a class="anchor" href="#fleet-tags" aria-label="Link to this topic">#</a></h4>
+<p>The Instances screen and the platform console mark each instance. Hovering
+the count lists each module with its version.</p>
+<table>
+<tr><th>Tag</th><th>Means</th><th>Do</th></tr>
+<tr><td><strong>N behind</strong></td><td>It carries a version older than one
+this server holds.</td><td>Deploy it.</td></tr>
+<tr><td><strong>N adrift</strong></td><td>It names a version this server does
+<em>not</em> hold, so it has quietly fallen back to running the code in its own
+tables.</td><td>Install the package, or deploy a version this server
+has.</td></tr>
+<tr><td><strong>N from rows</strong></td><td>Modules with no package on this
+server at all.</td><td>Usually nothing — but see below.</td></tr>
+</table>
+<p><strong>Adrift is the one to care about.</strong> Nothing else tells you
+about it. It happens when a server is rebuilt without its packages, or when a
+second node was never installed to, and what it means in practice is that two
+nodes can be running different code for the same database.</p>
+<p><em>From rows</em> is ordinary for now. Core is always one of them: it is
+installed from the repository rather than as a package, so every instance
+reports it until that changes.</p>
+</article>
+
+</div><div class="grp"><h3 id="packages--upgrading">Upgrading</h3>
+
+<article id="fleet-upgrade" class="topic"><h4>Upgrading a fleet<a class="anchor" href="#fleet-upgrade" aria-label="Link to this topic">#</a></h4>
+<p>Deploy from the Instances screen applies one package version to one
+instance. The console does the same across a group: tick the instances in
+<strong>Every instance on this installation</strong>, press
+<strong>Deploy</strong>, and choose the package.</p>
+<p>A group is a sequence of single deployments, not a second way of deploying.
+Each instance is held, applied to, and let go in turn — so one is down at a
+time rather than all of them.</p>
+<p>That is also why the instances are named rather than implied. Trying a
+version in a test database before production is the same action with one name
+in the list; an urgent patch across the fleet is the same action with
+several.</p>
+<p>A fleet upgrade is a <strong>rolling outage</strong>. The screen tells you
+how many instances are behind and leaves the order to you, because the order
+is an operational judgement — which customer can be down, and when — and not
+something the software should decide.</p>
+</article>
+
+<article id="deploy-failure" class="topic"><h4>When a deployment fails<a class="anchor" href="#deploy-failure" aria-label="Link to this topic">#</a></h4>
+<p>By default the first failure stops the rest. The instance that failed is
+left <strong>held in maintenance</strong>, and the instances after it in the
+list are not attempted. The answer tells you how many were deployed, which one
+failed, and how many were not tried.</p>
+<p>Tick <strong>Carry on</strong> and the instances that can take the
+deployment get it, while the one that could not stays held for somebody to
+look at.</p>
+<p>A failed deployment leaving the instance held is deliberate. The schema is
+then in a state nobody has checked, and ending the maintenance from the
+Instances screen is the deliberate act that says somebody has checked it. Both
+the group and each instance in it are audited.</p>
+</article>
+
+</div></section>
+
+<section id="settings" class="sec"><h2>Settings the platform owns</h2>
+
+<div class="grp"><h3 id="settings--what">What they are</h3>
+
+<article id="edition" class="topic"><h4>The edition<a class="anchor" href="#edition" aria-label="Link to this topic">#</a></h4>
+<p>A settings row is normally the instance's own: its super user may change it,
+and the instance's authorization can grant others the same.</p>
+<p>Some settings are not the instance's to decide. The <strong>edition</strong>
+is the case this exists for. It says what an instance offers — which workbooks
+appear, and so what the customer has bought — which is the platform's to set
+and not the customer's, even though the customer's own administrator is super
+user inside their instance.</p>
+</article>
+
+<article id="platform-only-settings" class="topic"><h4>Making a setting the platform's<a class="anchor" href="#platform-only-settings" aria-label="Link to this topic">#</a></h4>
+<p>A setting becomes the platform's in either of two ways.</p>
+<ul>
+<li>Its definition says it is platform-only, which is how a module declares
+one of its own settings.</li>
+<li><code>config.json</code>'s <code>platformOnlySettings</code> names it,
+which is how an installation locks a module's setting down without waiting for
+the module to declare it:
+<pre><code>"platformOnlySettings": ["jobShopSettings"]</code></pre></li>
+</ul>
+<p>Changing one then needs a platform administrator — the flag on the identity
+in the manager, not the instance's super user — and anyone else is told whose
+it is.</p>
+<p>Reading is unchanged. The platform decides who <em>sets</em> it, not who
+sees it. The framework's own internal saves, such as the feather catalog, are
+unaffected.</p>
+</article>
+
+<article id="edition-not-security" class="topic"><h4>Why an edition is not a security boundary<a class="anchor" href="#edition-not-security" aria-label="Link to this topic">#</a></h4>
+<p>Worth being clear about, because it is easy to assume otherwise.</p>
+<p>Every feather and every route is installed whatever the edition. So the
+edition decides what is <em>offered</em>, not what is <em>possible</em>.
+Treating it as a wall would mean shipping a separate package for each edition,
+which is exactly the proliferation it exists to avoid.</p>
+<p>What <em>is</em> a boundary is who may change it. That is why the setting is
+locked to the platform tier, and that is the whole of the protection it
+provides.</p>
+</article>
+
+</div></section>
+
+<section id="audit" class="sec"><h2>Authority and the audit</h2>
+
+<div class="grp"><h3 id="audit--how">How authority works</h3>
+
+<article id="authority" class="topic"><h4>Authority is read, never remembered<a class="anchor" href="#authority" aria-label="Link to this topic">#</a></h4>
+<p>Every privileged act re-reads the flags on your identity from the manager.
+Nothing is trusted from the session, and nothing is cached for the length of
+one.</p>
+<p>Two consequences. Revoking somebody's platform flag takes effect on their
+next click, not on their next sign-in. And entering an instance re-reads the
+grant at the door, so a revoked grant shuts that door immediately.</p>
+</article>
+
+<article id="audit-log" class="topic"><h4>What is written to the audit<a class="anchor" href="#audit-log" aria-label="Link to this topic">#</a></h4>
+<p>The audit log lives in the manager and records who did what, to whom, when,
+and on whose behalf. Privileged acts are written to it as a matter of
+course:</p>
+<ul>
+<li>Creating, closing and reopening an organization; appointing its
+administrators.</li>
+<li>Creating, suspending and deleting identities; setting passwords; granting
+and revoking instances.</li>
+<li>Making an identity on a first single sign-on arrival, linking an existing
+one to a provider, and granting or revoking the administrator flag from a
+group claim.</li>
+<li>Building, templating, closing, deploying to and dropping an instance;
+beginning and ending maintenance; both the group and each instance of a fleet
+deploy.</li>
+<li>Closing and dropping an expired demo.</li>
+<li>Every break-glass act taken on a customer's behalf.</li>
+</ul>
+<p>The recent privileged changes for an organization are shown on the Users
+screen inside its instances.</p>
+</article>
+
+</div></section>
+
+<section id="operations" class="sec"><h2>Running the installation</h2>
+
+<div class="grp"><h3 id="operations--capacity">Capacity and addressing</h3>
+
+<article id="connections" class="topic"><h4>The connection budget<a class="anchor" href="#connections" aria-label="Link to this topic">#</a></h4>
+<p>Each instance the server loads gets <strong>one</strong> connection pool for
+the whole process, plus one held connection listening for events. The worst
+case for one node is:</p>
+<pre><code>instances x (pgTenantPoolSize + 1) + pgMaxConnections</code></pre>
+<p><code>pgTenantPoolSize</code> defaults to 10 and
+<code>pgMaxConnections</code>, which caps the manager's own pool, defaults to
+10 as well. A quiet instance holds only its listener, so the practical floor is
+<code>instances + pgMaxConnections</code>.</p>
+<p>One pool per database, not one per service. A dozen services each asking for
+their own pool would multiply that budget by twelve. Sharing is also what lets
+the server give a database up — releasing an instance before a template copy or
+a drop ends the pool everyone was using, rather than one service's and nobody
+else's.</p>
+<p>Size <code>max_connections</code> on the cluster from the worst case across
+every node you run, with headroom. Lower <code>pgTenantPoolSize</code> or put
+PgBouncer in front when instances multiply.</p>
+</article>
+
+<article id="reserved-paths" class="topic"><h4>Addresses the server answers itself<a class="anchor" href="#reserved-paths" aria-label="Link to this topic">#</a></h4>
+<p>Featherbone's URLs are shaped <code>/&lt;database&gt;/...</code>, so the
+first segment of a path normally names an instance. A few do not, because they
+belong to the server itself:</p>
+<table>
+<tr><th>Path</th><th>Is</th></tr>
+<tr><td><code>/</code></td><td>The picker: sign in, choose an instance</td></tr>
+<tr><td><code>/my/instances</code></td><td>The instances your grants
+reach</td></tr>
+<tr><td><code>/auth/sso/*</code></td><td>The single sign-on round trip. The
+callback is the address you register with the provider.</td></tr>
+<tr><td><code>/platform</code></td><td>The platform console</td></tr>
+</table>
+<p>So <code>auth</code>, <code>my</code> and <code>platform</code> are refused
+as instance names. An instance called <code>platform</code> would be shadowed
+by the console and could never be opened, so it is better refused at the point
+somebody tries to create it.</p>
+</article>
+
+</div><div class="grp"><h3 id="operations--command-line">From the command line</h3>
+
+<article id="command-line" class="topic"><h4>Doing it without the console<a class="anchor" href="#command-line" aria-label="Link to this topic">#</a></h4>
+<p>Some acts have no button, and some are better done from a shell. These are
+the ones worth knowing.</p>
+<table>
+<tr><th>To</th><th>Run</th></tr>
+<tr><td>Build or upgrade the manager</td><td><code>node install.js --manager</code></td></tr>
+<tr><td>Build an instance and register it</td><td><code>node install.js --instance &lt;name&gt; --organization "&lt;name&gt;"</code></td></tr>
+<tr><td>Put a package on this server</td><td><code>node install.js --package &lt;dir-or-tarball&gt;</code></td></tr>
+<tr><td>See what is installed</td><td><code>node install.js --packages</code></td></tr>
+<tr><td>Deploy to the manager</td><td><code>node install.js --deploy &lt;module&gt;@&lt;version&gt; --manager</code></td></tr>
+</table>
+<p>Installing an instance attaches it to the organization, creating that
+organization if it does not exist. It makes the service account from
+<code>config.json</code> an identity in that organization, grants it the
+instance, and appoints it the organization's administrator — and, when it is
+the first identity on the platform, the platform administrator. That is how
+the very first installation gets somebody who can sign in.</p>
+<p>Re-running an install on an existing instance is safe. It updates the
+installed scripts and changes nothing in the manager it already made.</p>
+</article>
+
+<article id="troubleshooting" class="topic"><h4>If something looks wrong<a class="anchor" href="#troubleshooting" aria-label="Link to this topic">#</a></h4>
+<table>
+<tr><th>Symptom</th><th>Usually</th></tr>
+<tr><td>The root address will not sign somebody in, but the instance URL
+does</td><td>Their organization is closed, or their username exists in more
+than one organization and needs the organization typed.</td></tr>
+<tr><td>An instance is listed but will not open</td><td>It is closed, in
+maintenance, or the grant was revoked. The picker says which.</td></tr>
+<tr><td>An instance answers 503</td><td>It is in maintenance. If nothing is
+deploying, a deployment failed and left it held; end the maintenance once
+somebody has checked the schema.</td></tr>
+<tr><td>The Deploy button is greyed out</td><td>No instances are ticked, or no
+packages are installed on this server.</td></tr>
+<tr><td>An organization shows <em>none</em> under
+administrators</td><td>Nobody can manage its people. Appoint one.</td></tr>
+<tr><td>An instance reports modules <em>adrift</em></td><td>This server is
+missing packages the database says it carries. Install them, or deploy a
+version this server holds.</td></tr>
+<tr><td>Editing a module script is refused</td><td>That module runs from a
+package on this server. The edit would not have changed what runs.</td></tr>
+<tr><td>Maintenance reports no instance held and says to run an
+upgrade</td><td>The manager predates the maintenance column. Run
+<code>node install.js --manager</code> once.</td></tr>
+<tr><td>Single sign-on returns an error about no sign-in waiting</td><td>The
+round trip took too long or the session was lost. Start again from the
+picker.</td></tr>
+</table>
+</article>
+
+</div></section>
+
+  <footer>
+    <p><strong>Further reading.</strong> The decisions behind all of this, with
+      the alternatives that were weighed and rejected, are in the repository:
+      <code>docs/adr-001-identity-and-tenancy.md</code> for identity, tenancy
+      and the manager database, and <code>docs/adr-002-packages-on-disk.md</code>
+      for packages, Install and Deploy. <code>README.md</code> covers
+      installation and the command line.</p>
+    <p>This page is self-contained and prints as a complete guide: use your
+      browser's print command, or save it as a PDF.</p>
+  </footer>
+</main>
+</div>
+<button class="top" id="top" aria-label="Back to top">&uarr;</button>
+<script>
+(function () {
+    "use strict";
+    var nav = document.getElementById("nav");
+    var links = [].slice.call(nav.querySelectorAll("a[href^='#']"));
+    var top = document.getElementById("top");
+    var side = document.querySelector(".side");
+    var byId = {};
+    var order = [];
+
+    links.forEach(function (a) {
+        var id = a.getAttribute("href").slice(1);
+        if (document.getElementById(id)) {
+            byId[id] = a;
+            order.push(id);
+        }
+    });
+
+    // Filter the sidebar. A group or section with nothing left is hidden
+    // too, so the list never shows an empty heading.
+    var q = document.getElementById("q");
+    var none = document.createElement("div");
+    none.className = "nores hidden";
+    none.textContent = "No topic matches.";
+    nav.parentNode.appendChild(none);
+
+    q.addEventListener("input", function () {
+        var term = q.value.trim().toLowerCase();
+        var hits = 0;
+
+        [].forEach.call(nav.querySelectorAll(".nav-sec"), function (sec) {
+            var secHits = 0;
+
+            [].forEach.call(sec.querySelectorAll(".nav-grp"), function (grp) {
+                var grpHits = 0;
+
+                [].forEach.call(grp.querySelectorAll("li > a"), function (a) {
+                    var ok = !term ||
+                        a.textContent.toLowerCase().indexOf(term) !== -1;
+
+                    a.parentNode.classList.toggle("hidden", !ok);
+                    if (ok) {
+                        grpHits += 1;
+                    }
+                });
+                grp.classList.toggle("hidden", !grpHits);
+                secHits += grpHits;
+            });
+            sec.classList.toggle("hidden", !secHits);
+            hits += secHits;
+        });
+        none.classList.toggle("hidden", Boolean(hits) || !term);
+    });
+
+    // Mark the topic being read.
+    var seen = {};
+    if (window.IntersectionObserver) {
+        var obs = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                seen[e.target.id] = e.isIntersecting;
+            });
+            var i = 0;
+            while (i < order.length) {
+                if (seen[order[i]]) {
+                    links.forEach(function (x) {
+                        x.classList.remove("on");
+                    });
+                    byId[order[i]].classList.add("on");
+                    return;
+                }
+                i += 1;
+            }
+        }, {rootMargin: "-70px 0px -75% 0px"});
+
+        order.forEach(function (id) {
+            obs.observe(document.getElementById(id));
+        });
+    }
+
+    // A deep link from the console lands mid-page; show where that is.
+    function reveal() {
+        var h;
+        try {
+            h = decodeURIComponent(location.hash.slice(1));
+        } catch (ignore) {
+            return;
+        }
+        var a = h && byId[h];
+        if (!a) {
+            return;
+        }
+        links.forEach(function (x) {
+            x.classList.remove("on");
+        });
+        a.classList.add("on");
+        if (side.scrollHeight > side.clientHeight + 10) {
+            side.scrollTop = Math.max(0, a.offsetTop - side.clientHeight / 2);
+        }
+    }
+    window.addEventListener("hashchange", reveal);
+    setTimeout(reveal, 60);
+
+    nav.addEventListener("click", function (e) {
+        if (e.target.tagName === "A" && nav.classList.contains("open")) {
+            nav.classList.remove("open");
+            document.getElementById("burger").setAttribute(
+                "aria-expanded",
+                "false"
+            );
+        }
+    });
+
+    window.addEventListener("scroll", function () {
+        top.classList.toggle("show", window.scrollY > 700);
+    });
+    top.addEventListener("click", function () {
+        window.scrollTo({behavior: "smooth", top: 0});
+    });
+
+    var b = document.getElementById("burger");
+    b.addEventListener("click", function () {
+        var open = nav.classList.toggle("open");
+        b.setAttribute("aria-expanded", (
+            open
+            ? "true"
+            : "false"
+        ));
+    });
+}());
+</script>
+</body>
+</html>
