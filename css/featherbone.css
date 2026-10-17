@@ -3002,6 +3002,19 @@ button:disabled .fb-ipicon,
   cursor: default;
 }
 
+/* The selected row looks the way it does in the table widget. The
+   tint is on the cells because the table's own cell backgrounds sit
+   over a tint put on the row. The widget's rule is scoped to
+   .fb-table, which these tables are not, so without this a selected
+   row was indistinguishable from the rest. */
+.fb-admin-table tbody tr.fb-table-row-selected td {
+  background-color: var(--fb-selected-bg);
+}
+
+.fb-admin-table tbody tr.fb-table-row-selected:hover td {
+  background-color: var(--fb-selected-hover-bg);
+}
+
 .fb-admin-status {
   display: inline-flex;
   align-items: center;

@@ -1031,8 +1031,17 @@
     function fleetRow(instance) {
         let what = carries(instance);
 
-        return m("tr", {class: "fb-admin-row"}, [
+        return m("tr", {
+            class: (
+                "fb-admin-row" + (
+                    vm.picked[instance.id] === true
+                    ? " fb-table-row-selected"
+                    : ""
+                )
+            )
+        }, [
             m("td", m("input", {
+                title: "Tick to deploy a package to this instance",
                 checked: vm.picked[instance.id] === true,
                 onclick: function (e) {
                     vm.picked[instance.id] = e.target.checked;
@@ -1257,7 +1266,12 @@
                 class: "pure-table fb-admin-table"
             }, [
                 m("thead", m("tr", [
-                    m("th", ""),
+                    m("th", {
+                        title: (
+                            "Tick the instances to deploy a package to, " +
+                            "then press Deploy"
+                        )
+                    }, "Deploy"),
                     m("th", "Organization"),
                     m("th", "Instance"),
                     m("th", "Database"),
