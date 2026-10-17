@@ -350,6 +350,7 @@
                     (
                         "SELECT t._pk, t.is_active, " +
                         "  t._organization_organization_pk AS org, " +
+                        "  o.authentication, " +
                         "  o.is_two_factor_required " +
                         "FROM tenant t " +
                         "LEFT JOIN organization o " +
@@ -395,6 +396,21 @@
                     than one global switch.
                 */
                 orgTwoFactor = resp.rows[0].is_two_factor_required;
+
+                /*
+                    An organization that has moved to single sign-on
+                    says so by its policy (ADR-001 C.3), and a local
+                    password that still works is a way round it. The
+                    password is not even checked: there is nothing to
+                    learn from the answer.
+                */
+                if (resp.rows[0].authentication === "sso") {
+                    throw new Error(
+                        "Sign in with single sign-on. Instance " +
+                        req.tenant.name + " does not take a password " +
+                        "here."
+                    );
+                }
 
                 row = await verifyCredential(
                     client,
@@ -474,7 +490,7 @@
                 let client = obj.client;
                 let resp = await client.query(
                     (
-                        "SELECT o._pk, o.id, o.name, " +
+                        "SELECT o._pk, o.id, o.name, o.authentication, " +
                         "  o.is_two_factor_required " +
                         "FROM identity i " +
                         "JOIN organization o " +
@@ -514,6 +530,13 @@
                     throw err;
                 } else {
                     org = resp.rows[0];
+                }
+
+                if (org.authentication === "sso") {
+                    throw new Error(
+                        "Sign in with single sign-on. This organization " +
+                        "does not take a password here."
+                    );
                 }
 
                 row = await verifyCredential(
