@@ -2077,13 +2077,117 @@
         };
 
         /**
+            Drop the demos that ran out long enough ago that nobody is
+            going to ask for them back (tenant plan D.4, John's answer
+            of 2026-10-16). Closing is immediate and reversible --
+            somebody may yet say "I want that one back", and moving the
+            expiration forward is how they get it. Dropping is neither,
+            so it waits out `demoGraceDays` in config.json, a month by
+            default, and never happens at all where that is zero.
+
+            The data goes with the database. The registry row stays,
+            marked deleted, so what was there and when it went survives
+            the instance.
+
+            @method sweepDemoDrops
+            @return {Promise} Names of the instances dropped
+        */
+        that.sweepDemoDrops = async function () {
+            let conf = await config.read();
+            let days = datasource.demoGraceDays(conf);
+
+            if (!days) {
+                return [];
+            }
+
+            let due = await manager.run(
+                (mclient) => mclient.query(
+                    (
+                        "SELECT _pk, name, pg_database, " +
+                        "  _organization_organization_pk AS org_pk " +
+                        "FROM tenant " +
+                        "WHERE is_demo AND NOT is_active " +
+                        "  AND NOT is_deleted " +
+                        "  AND expiration IS NOT NULL " +
+                        "  AND expiration < now() - " +
+                        "      ($1 || ' days')::interval " +
+                        "ORDER BY expiration"
+                    ),
+                    [String(days)]
+                )
+            );
+            let dropped = [];
+            let n = 0;
+
+            while (n < due.rows.length) {
+                let row = due.rows[n];
+
+                n += 1;
+
+                try {
+                    /*
+                        The registry is read again inside the drop, so
+                        an instance reopened between the query above
+                        and the drop below is left alone.
+                    */
+                    let went = await datasource.deleteExpiredDemo(
+                        row.pg_database
+                    );
+
+                    if (!went) {
+                        continue;
+                    }
+                } catch (err) {
+                    /*
+                        One that will not drop must not stop the rest,
+                        and it will be due again on the next hour.
+                    */
+                    console.error(
+                        "Could not drop the expired demo " +
+                        row.pg_database + ": " + (err.message || err)
+                    );
+                    continue;
+                }
+
+                await manager.run(async function (mclient) {
+                    await mclient.query(
+                        (
+                            "UPDATE tenant SET is_deleted = true, " +
+                            "  updated = now(), updated_by = 'system' " +
+                            "WHERE _pk = $1"
+                        ),
+                        [row._pk]
+                    );
+                    await provisionTable(mclient);
+                    await mclient.query(
+                        "DELETE FROM \"$provision\" WHERE tenant_pk = $1",
+                        [row._pk]
+                    );
+                    await manager.audit(mclient, {
+                        action: "instance.demo_dropped",
+                        by: "system",
+                        detail: (
+                            row.name + " (" + row.pg_database +
+                            "), expired more than " + days +
+                            " days ago"
+                        ),
+                        organizationPk: row.org_pk
+                    });
+                });
+                dropped.push(row.name);
+            }
+
+            return dropped;
+        };
+
+        /**
             The sweep behind a route: anyone org-wide may run it early
             rather than wait for the server's hour. The timer calls
             `sweepDemos` directly.
 
             @method sweepDemosGuarded
             @param {Object} payload
-            @return {Promise} Names of the instances closed
+            @return {Promise} {closed, dropped}, names of each
         */
         that.sweepDemosGuarded = async function (obj) {
             await manager.run(async function (mclient) {
@@ -2092,7 +2196,10 @@
                 requireOrgWide(ctx, "sweep expired demos");
             });
 
-            return await that.sweepDemos();
+            return {
+                closed: await that.sweepDemos(),
+                dropped: await that.sweepDemoDrops()
+            };
         };
 
         return that;

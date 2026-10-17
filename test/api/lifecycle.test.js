@@ -242,7 +242,7 @@ describe("templates and the demo sweep (D.4)", function () {
 
         assert.equal(resp.status, 200, JSON.stringify(resp.body));
         assert.ok(
-            resp.body.length >= 1,
+            resp.body.closed.length >= 1,
             "the expired demo is in the answer"
         );
 
@@ -313,6 +313,111 @@ describe("templates and the demo sweep (D.4)", function () {
         );
 
         assert.equal(resp.status, 200);
-        assert.deepEqual(resp.body, []);
+        assert.deepEqual(resp.body, {closed: [], dropped: []});
+    });
+
+    /*
+        Closing is reversible and immediate; dropping is neither, so it
+        waits out the grace period (John, 2026-10-16: "somebody might
+        notice and say hey, I want to turn that back on, but if nobody
+        says anything after, say, a month, we'll just completely drop
+        it"). The instance built from the template above is the one
+        that goes, so nothing the other files use is at risk.
+    */
+    describe("and drops one nobody came back for", function () {
+        // The instance built from the template above is the one that
+        // goes, so nothing the other files use is at risk
+        it("leaves one still inside the grace period alone",
+                async function () {
+            await demoClock(
+                FROM_TPL_DB,
+                true,
+                new Date(Date.now() - 86400000).toISOString()
+            );
+
+            let resp = await admin.raw(
+                "POST",
+                "/admin/instances/sweep",
+                {}
+            );
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.deepEqual(
+                resp.body.dropped,
+                [],
+                "a day past is closed, not dropped"
+            );
+
+            let there = await db.withClient(
+                "postgres",
+                (client) => client.query(
+                    "SELECT 1 FROM pg_database WHERE datname = $1",
+                    [FROM_TPL_DB]
+                )
+            );
+
+            assert.equal(there.rows.length, 1, "the database is still there");
+        });
+
+        it("drops one that ran out before the grace period",
+                async function () {
+            let conf = require("../../server/config.json");
+            let days = Number(conf.demoGraceDays) || 30;
+            let longAgo = new Date(
+                Date.now() - (days + 2) * 86400000
+            ).toISOString();
+
+            await demoClock(FROM_TPL_DB, true, longAgo);
+
+            let resp = await admin.raw(
+                "POST",
+                "/admin/instances/sweep",
+                {}
+            );
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.deepEqual(resp.body.dropped, ["From template"]);
+
+            let there = await db.withClient(
+                "postgres",
+                (client) => client.query(
+                    "SELECT 1 FROM pg_database WHERE datname = $1",
+                    [FROM_TPL_DB]
+                )
+            );
+
+            assert.equal(there.rows.length, 0, "the database is gone");
+
+            let row = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "SELECT is_deleted FROM tenant " +
+                        "WHERE pg_database = $1"
+                    ),
+                    [FROM_TPL_DB]
+                )
+            );
+
+            assert.equal(
+                row.rows[0].is_deleted,
+                true,
+                "and the registry remembers it was there"
+            );
+
+            let audited = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "SELECT 1 FROM admin_audit " +
+                        "WHERE action = 'instance.demo_dropped' " +
+                        "  AND detail LIKE $1"
+                    ),
+                    ["%" + FROM_TPL_DB + "%"]
+                )
+            );
+
+            assert.equal(audited.rows.length, 1, "and says so");
+        });
     });
 });

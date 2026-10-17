@@ -2138,6 +2138,27 @@
                 "Could not sweep expired demos: " + (err.message || err)
             );
         }
+
+        /*
+            And the ones that ran out long enough ago that nobody is
+            coming back for them (tenant plan D.4). Separate from the
+            close above: a failure to drop must not stop instances
+            being closed, which is the part that matters for sign-in.
+        */
+        try {
+            let dropped = await admin.sweepDemoDrops();
+
+            if (dropped.length) {
+                logger.warn(
+                    "Expired demo instance(s) dropped: " +
+                    dropped.join(", ")
+                );
+            }
+        } catch (err) {
+            logger.error(
+                "Could not drop expired demos: " + (err.message || err)
+            );
+        }
     }
 
     function doAdminInstance(method) {
