@@ -1302,7 +1302,48 @@
                         msg += feather.name.toName();
                         msg += " is not unique to data type ";
                         msg += unique.feather.toName() + ".";
-                        reject(new Error(msg));
+
+                        let err = new Error(msg);
+
+                        /*
+                            Which record holds the value, so a caller
+                            that is entitled to win can say so by
+                            writing to it rather than guessing at the
+                            id. A package installing its own data is
+                            the case this exists for: the row it
+                            carries and the row already there are the
+                            same record under two ids, and refusing
+                            the install leaves the package half
+                            applied (John, Oct 2026).
+                        */
+                        err.code = "natural_key_conflict";
+                        err.naturalKey = {
+                            feather: unique.feather,
+                            property: unique.prop,
+                            value: unique.value
+                        };
+
+                        try {
+                            let held = await theClient.query(
+                                (
+                                    "SELECT id FROM " +
+                                    unique.feather.toSnakeCase() +
+                                    " WHERE " +
+                                    unique.prop.toSnakeCase() +
+                                    " = $1 AND NOT is_deleted LIMIT 1"
+                                ),
+                                [unique.value]
+                            );
+
+                            if (held.rows.length) {
+                                err.heldBy = held.rows[0].id;
+                            }
+                        } catch (ignore) {
+                            // The message alone still says what is
+                            // wrong; only the retry needs the id.
+                        }
+
+                        reject(err);
                         return;
                     }
 
