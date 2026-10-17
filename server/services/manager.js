@@ -601,6 +601,36 @@
             @param {Client} client Manager client
             @return {Promise} Array of rows
         */
+        /**
+            One instance by id, whoever owns it. The organization-scoped
+            lookup above is the boundary an organization administrator
+            works inside; this is for the platform console, which works
+            across organizations and establishes its own authority
+            (tenant plan G.3).
+
+            @method instanceAnywhereById
+            @param {Client} client Manager client
+            @param {String} id
+            @return {Promise} Row or undefined, with organization_id
+        */
+        that.instanceAnywhereById = async function (client, id) {
+            let resp = await client.query(
+                (
+                    "SELECT t._pk, t.id, t.name, t.pg_database, " +
+                    "  t.is_active, " +
+                    "  t._organization_organization_pk AS organization_pk, " +
+                    "  o.id AS organization_id, o.name AS organization " +
+                    "FROM tenant t " +
+                    "LEFT OUTER JOIN organization o " +
+                    "  ON o._pk = t._organization_organization_pk " +
+                    "WHERE t.id = $1 AND NOT t.is_deleted"
+                ),
+                [id]
+            );
+
+            return resp.rows[0];
+        };
+
         that.orphanInstances = async function (client) {
             const sql = (
                 "SELECT _pk, id, name, pg_database, is_active " +

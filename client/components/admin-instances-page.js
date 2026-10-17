@@ -824,10 +824,18 @@ adminInstancesPage.component = {
                         mod.isBehind
                         ? " (server holds " + mod.newest + ")"
                         : ""
-                    ) + (
+                    ) + " -- " + (
                         mod.isOnDisk
-                        ? ""
-                        : " -- code from the database"
+                        ? "from the package on disk"
+                        : (
+                            mod.isVersionMissing
+                            ? (
+                                "from the database rows: this server " +
+                                "holds " + mod.name + " but not " +
+                                mod.version
+                            )
+                            : "from the database rows: not packaged yet"
+                        )
                     );
                 }).join("\n")
             }, [
@@ -845,6 +853,40 @@ adminInstancesPage.component = {
                             " behind the packages on this server"
                         )
                     }, instance.behind + " behind")
+                    : undefined
+                ),
+                /*
+                    Which half of the ADR-002 split this instance is
+                    on, said out loud rather than left in the tooltip.
+                    Drift first, because it is the one that bites: the
+                    instance names a version this server does not hold,
+                    so it runs its own rows and nothing says so.
+                */
+                (
+                    instance.adrift
+                    ? m("span", {
+                        class: "fb-admin-tag",
+                        style: {color: "var(--fb-danger)"},
+                        title: (
+                            instance.adrift + " module(s) name a version " +
+                            "this server does not hold, so the instance " +
+                            "runs the code in its own tables instead. " +
+                            "Install the package, or deploy the version " +
+                            "this server has."
+                        )
+                    }, instance.adrift + " adrift")
+                    : undefined
+                ),
+                (
+                    instance.fromRows && !instance.adrift
+                    ? m("span", {
+                        class: "fb-admin-tag fb-admin-muted",
+                        title: (
+                            instance.fromRows + " module(s) have no " +
+                            "package on this server, so their code is " +
+                            "still the rows in this database"
+                        )
+                    }, instance.fromRows + " from rows")
                     : undefined
                 )
             ]);

@@ -68,6 +68,29 @@
                 "WHERE NOT is_deleted"
             ),
             comment: "One grant per identity and instance"
+        },
+        {
+            name: "identity_federation_unique_subject",
+            sql: (
+                "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                "identity_federation_unique_subject ON identity_federation " +
+                "(issuer, subject) WHERE NOT is_deleted"
+            ),
+            comment: (
+                "One identity per subject at an issuer (ADR-001 C.3): the " +
+                "provider's subject is the key, so two identities cannot " +
+                "claim the same person"
+            )
+        },
+        {
+            name: "identity_provider_unique_organization",
+            sql: (
+                "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                "identity_provider_unique_organization ON " +
+                "identity_provider (_organization_organization_pk) " +
+                "WHERE NOT is_deleted"
+            ),
+            comment: "One identity provider per organization, for now"
         }
     ];
 

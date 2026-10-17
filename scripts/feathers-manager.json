@@ -355,6 +355,149 @@
         }
     },
     {
+        "name": "IdentityProvider",
+        "plural": "IdentityProviders",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "How one organization's identities sign in through an identity provider (ADR-001 C.3)",
+        "authorizations": [],
+        "properties": {
+            "organization": {
+                "description": "Organization this provider signs in",
+                "type": {
+                    "relation": "Organization",
+                    "properties": [
+                        "name",
+                        "isActive"
+                    ]
+                },
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "name": {
+                "description": "What to call it on the sign-in page",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true,
+                "isLabelKey": true,
+                "default": "Microsoft"
+            },
+            "kind": {
+                "description": "Which provider",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "azure-ad",
+                "isAlwaysLoad": true,
+                "dataList": [
+                    {
+                        "value": "azure-ad",
+                        "label": "Microsoft Entra ID (Azure AD)"
+                    },
+                    {
+                        "value": "oidc",
+                        "label": "Any OpenID Connect provider"
+                    }
+                ]
+            },
+            "issuer": {
+                "description": "Discovery URL or issuer. For Entra ID, https://login.microsoftonline.com/<directory>/v2.0",
+                "type": "string",
+                "isRequired": true
+            },
+            "clientId": {
+                "description": "Application (client) id registered with the provider",
+                "type": "string",
+                "isRequired": true
+            },
+            "clientSecret": {
+                "description": "Client secret. Stored encrypted",
+                "type": "string",
+                "format": "password",
+                "isEncrypted": true
+            },
+            "isActive": {
+                "description": "Whether this provider may be used",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "isJustInTime": {
+                "description": "Make an identity on a first sign-in the provider vouches for",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "defaultInstances": {
+                "description": "Instances a just-in-time identity is granted, by database name",
+                "type": "array"
+            },
+            "usernameClaim": {
+                "description": "Claim to take the user name from",
+                "type": "string",
+                "isRequired": true,
+                "default": "preferred_username"
+            },
+            "adminGroup": {
+                "description": "Group claim that makes an identity an organization administrator",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "IdentityFederation",
+        "plural": "IdentityFederations",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "A subject at an identity provider, and the identity it is (ADR-001 C.3)",
+        "authorizations": [],
+        "properties": {
+            "identity": {
+                "description": "Identity the subject signs in as",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName",
+                        "status"
+                    ]
+                },
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "issuer": {
+                "description": "Issuer that vouched for the subject",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "subject": {
+                "description": "The provider's own id for the person. Never the email",
+                "type": "string",
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "provider": {
+                "description": "Provider this link came from",
+                "type": {
+                    "relation": "IdentityProvider",
+                    "properties": [
+                        "name",
+                        "kind"
+                    ]
+                }
+            },
+            "lastSignedIn": {
+                "description": "Last successful sign-in through the provider",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true
+            }
+        }
+    },
+    {
         "name": "AdminAudit",
         "plural": "AdminAudits",
         "module": "Core",

@@ -48,12 +48,14 @@
 
     const {Config} = require("../config");
     const {Manager} = require("./manager");
+    const {Platform} = require("./platform");
     const {Database} = require("../database");
     const datasource = require("../datasource");
     const f = require("../../common/core");
 
     const config = new Config();
     const manager = new Manager();
+    const platform = new Platform();
     const db = new Database();
 
     const STATUSES = ["active", "disabled"];
@@ -92,14 +94,63 @@
             operation starts here, so the tier is decided once and in
             one place.
         */
-        async function contextFor(mclient, obj) {
-            let instance = await manager.instance(mclient, obj.tenant);
-            let actor = await manager.identity(
-                mclient,
-                instance.organizationPk,
-                obj.user || ""
+        /*
+            The instance the caller is signed in to, if any. The
+            platform console runs with none (tenant plan G.2): it is
+            served at a path with no database in it, so every method
+            reached from there names the instance it means.
+        */
+        function homeInstanceId(obj) {
+            return (
+                obj.tenant
+                ? obj.tenant.id
+                : undefined
             );
+        }
+
+        async function contextFor(mclient, obj) {
+            let actor;
+            let instance;
             let tier;
+
+            if (obj.tenant) {
+                instance = await manager.instance(mclient, obj.tenant);
+                actor = await manager.identity(
+                    mclient,
+                    instance.organizationPk,
+                    obj.user || ""
+                );
+            } else {
+                /*
+                    No instance: the platform console, whose session was
+                    established against the manager alone (G.1). The
+                    organization the caller signed in to is the one on
+                    the session, and the authority is read here rather
+                    than taken from it -- a session says who, never
+                    what they may do.
+                */
+                let home = await manager.organizationById(
+                    mclient,
+                    platform.organizationIdOf(obj.identity)
+                );
+
+                if (!home) {
+                    throw forbidden("Not authorized to administer");
+                }
+                instance = {organizationPk: home._pk};
+                actor = await manager.identity(
+                    mclient,
+                    home._pk,
+                    obj.user || ""
+                );
+
+                if (!actor || !actor.is_platform_admin) {
+                    throw forbidden(
+                        "Only a platform administrator may administer " +
+                        "without an instance"
+                    );
+                }
+            }
 
             if (actor && actor.is_platform_admin) {
                 tier = "platform";
@@ -197,7 +248,11 @@
                 if (!resp.rows.length) {
                     throw forbidden(
                         "User " + target.username + " has no access to " +
-                        tenant.name + ", so it cannot be changed from here"
+                        (
+                            tenant
+                            ? tenant.name
+                            : "this instance"
+                        ) + ", so it cannot be changed from here"
                     );
                 }
             }
@@ -279,7 +334,7 @@
                         };
                     }),
                     identities: identities.map(identityOut),
-                    instance: obj.tenant.id,
+                    instance: homeInstanceId(obj),
                     instances: instances.map(function (row) {
                         return {
                             database: row.pg_database,
@@ -349,7 +404,10 @@
                 let ctx = await contextFor(mclient, obj);
                 let tenantPk = ctx.tenantPk;
 
-                if (data.instance && data.instance !== obj.tenant.id) {
+                if (
+                    data.instance &&
+                    data.instance !== homeInstanceId(obj)
+                ) {
                     if (ctx.tier === "instance") {
                         throw forbidden(
                             "Only an organization administrator may grant " +
@@ -537,10 +595,14 @@
 
             return await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
-                let instanceId = data.instance || obj.tenant.id;
+                let instanceId = data.instance || homeInstanceId(obj);
                 let tenantPk = ctx.tenantPk;
 
-                if (instanceId !== obj.tenant.id) {
+                if (!instanceId) {
+                    throw invalid("An instance is required");
+                }
+
+                if (instanceId !== homeInstanceId(obj)) {
                     if (ctx.tier === "instance") {
                         throw forbidden(
                             "Only an organization administrator may grant " +
@@ -691,6 +753,26 @@
                     : 0
                 ),
                 database: row.pg_database,
+                /*
+                    How many of this instance's modules run from the
+                    database's own rows rather than from a package
+                    (ADR-002 section 2), and how many of those do so
+                    because this server does not hold the version the
+                    instance carries -- which is drift rather than a
+                    module that was never packaged.
+                */
+                adrift: (
+                    carried
+                    ? carried.modules.filter(
+                        (mod) => mod.isVersionMissing
+                    ).length
+                    : 0
+                ),
+                fromRows: (
+                    carried
+                    ? carried.modules.filter((mod) => !mod.isOnDisk).length
+                    : 0
+                ),
                 modules: (
                     carried
                     ? carried.modules
@@ -759,7 +841,7 @@
                 let orgWide = (
                     ctx.tier === "platform" || ctx.tier === "organization"
                 );
-                let current = obj.tenant.id;
+                let current = homeInstanceId(obj);
                 /*
                     The fleet view (ADR-002): what each instance
                     carries, and what this server holds to deploy.
@@ -957,6 +1039,12 @@
 
                 available = await manager.unregisteredDatabases(mclient);
 
+                let unservable = await datasource.unservableName(database);
+
+                if (unservable) {
+                    throw invalid(unservable);
+                }
+
                 if (available.indexOf(database) === -1) {
                     throw invalid(
                         "\"" + database + "\" is not a database in this " +
@@ -1119,8 +1207,7 @@
 
                 if (
                     !isActive &&
-                    obj.tenant &&
-                    target.id === obj.tenant.id
+                    target.id === homeInstanceId(obj)
                 ) {
                     throw invalid(
                         "This is the instance you are signed in to. " +
@@ -1290,6 +1377,167 @@
             });
         };
 
+        /**
+            Deploy one package version into several instances, one
+            after another (ADR-002's fleet upgrade; John, 2026-10-16:
+            "I'd like the option to upgrade the fleet one by one or in
+            a group... likely patches I would want to deploy to a
+            fleet, especially if urgent").
+
+            Each instance is deployed exactly as a single deployment
+            is -- held, applied, let go -- so a group is a sequence of
+            the same act rather than a second way of doing it. That is
+            what makes it a rolling outage: one instance is down at a
+            time, and the instances are named rather than implied, so
+            testing in one database before production is the same
+            action with one name in the list.
+
+            The default is to stop at the first failure, which leaves
+            that instance held and the ones after it untouched. Pass
+            `stopOnError: false` to carry on, for the urgent patch
+            where the instances that can take it should.
+
+            @method deployFleet
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {Array} payload.data.instances Instance ids, in order
+            @param {String} payload.data.module
+            @param {String} payload.data.version
+            @param {Boolean} [payload.data.stopOnError] Default true
+            @return {Promise} {deployed, failed, results}
+        */
+        that.deployFleet = async function (obj) {
+            let data = obj.data || {};
+            let ids = data.instances;
+            let stop = data.stopOnError !== false;
+            let targets = [];
+
+            if (!Array.isArray(ids) || !ids.length) {
+                throw invalid("Name the instances to deploy to");
+            }
+            if (!data.module || !data.version) {
+                throw invalid("Name the module and the version");
+            }
+            if (!datasource.packageDir(data.module, data.version)) {
+                throw invalid(
+                    data.module + " " + data.version +
+                    " is not installed on this server. Install it " +
+                    "with `node install.js --package <file>`."
+                );
+            }
+
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "deploy to the fleet");
+
+                let n = 0;
+
+                while (n < ids.length) {
+                    let found = await manager.instanceAnywhereById(
+                        mclient,
+                        ids[n]
+                    );
+
+                    n += 1;
+
+                    if (!found) {
+                        throw notFound("No instance has the id " + ids[n - 1]);
+                    }
+                    targets.push(found);
+                }
+
+                await manager.audit(mclient, {
+                    action: "fleet.deploy_began",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        data.module + " " + data.version + " into " +
+                        targets.length + " instance(s): " +
+                        targets.map((t) => t.pg_database).join(", ")
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+            });
+
+            let results = [];
+            let n = 0;
+
+            while (n < targets.length) {
+                let target = targets[n];
+
+                n += 1;
+
+                try {
+                    /*
+                        Each one runs as itself, in its own
+                        organization: a platform administrator deploys
+                        across organizations, and every instance's
+                        audit trail should say what happened to it.
+                    */
+                    await that.deployPackage(Object.assign({}, obj, {
+                        data: {
+                            id: target.id,
+                            module: data.module,
+                            version: data.version
+                        },
+                        organization: target.organization_id
+                    }));
+                    results.push({
+                        database: target.pg_database,
+                        id: target.id,
+                        name: target.name,
+                        ok: true,
+                        organization: target.organization
+                    });
+                } catch (err) {
+                    results.push({
+                        database: target.pg_database,
+                        id: target.id,
+                        message: err.message || String(err),
+                        name: target.name,
+                        ok: false,
+                        organization: target.organization
+                    });
+
+                    if (stop) {
+                        break;
+                    }
+                }
+            }
+
+            let deployed = results.filter((r) => r.ok).length;
+            let failed = results.filter((r) => !r.ok).length;
+
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                await manager.audit(mclient, {
+                    action: "fleet.deploy_finished",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        data.module + " " + data.version + ": " +
+                        deployed + " deployed, " + failed + " failed" + (
+                            failed && stop
+                            ? ", stopped at the first failure with " +
+                                (targets.length - results.length) +
+                                " not attempted"
+                            : ""
+                        )
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+            });
+
+            return {
+                deployed,
+                failed,
+                notAttempted: targets.length - results.length,
+                results
+            };
+        };
+
         // ..................................................................
         // PROVISIONING (tenant plan D.1)
         //
@@ -1391,6 +1639,17 @@
             let conn = await db.connect(obj.tenant);
 
             conn.client.currentUser = () => obj.user;
+            /*
+                With no instance (the platform console, G.2) the client
+                is the manager's, which is no instance's, so the
+                organization the caller signed in to travels with it
+                for the authority check in databaseActor.
+            */
+            if (!obj.tenant) {
+                conn.client.currentOrganization = () => (
+                    platform.organizationIdOf(obj.identity)
+                );
+            }
             return conn;
         }
 
@@ -1999,13 +2258,117 @@
         };
 
         /**
+            Drop the demos that ran out long enough ago that nobody is
+            going to ask for them back (tenant plan D.4, John's answer
+            of 2026-10-16). Closing is immediate and reversible --
+            somebody may yet say "I want that one back", and moving the
+            expiration forward is how they get it. Dropping is neither,
+            so it waits out `demoGraceDays` in config.json, a month by
+            default, and never happens at all where that is zero.
+
+            The data goes with the database. The registry row stays,
+            marked deleted, so what was there and when it went survives
+            the instance.
+
+            @method sweepDemoDrops
+            @return {Promise} Names of the instances dropped
+        */
+        that.sweepDemoDrops = async function () {
+            let conf = await config.read();
+            let days = datasource.demoGraceDays(conf);
+
+            if (!days) {
+                return [];
+            }
+
+            let due = await manager.run(
+                (mclient) => mclient.query(
+                    (
+                        "SELECT _pk, name, pg_database, " +
+                        "  _organization_organization_pk AS org_pk " +
+                        "FROM tenant " +
+                        "WHERE is_demo AND NOT is_active " +
+                        "  AND NOT is_deleted " +
+                        "  AND expiration IS NOT NULL " +
+                        "  AND expiration < now() - " +
+                        "      ($1 || ' days')::interval " +
+                        "ORDER BY expiration"
+                    ),
+                    [String(days)]
+                )
+            );
+            let dropped = [];
+            let n = 0;
+
+            while (n < due.rows.length) {
+                let row = due.rows[n];
+
+                n += 1;
+
+                try {
+                    /*
+                        The registry is read again inside the drop, so
+                        an instance reopened between the query above
+                        and the drop below is left alone.
+                    */
+                    let went = await datasource.deleteExpiredDemo(
+                        row.pg_database
+                    );
+
+                    if (!went) {
+                        continue;
+                    }
+                } catch (err) {
+                    /*
+                        One that will not drop must not stop the rest,
+                        and it will be due again on the next hour.
+                    */
+                    console.error(
+                        "Could not drop the expired demo " +
+                        row.pg_database + ": " + (err.message || err)
+                    );
+                    continue;
+                }
+
+                await manager.run(async function (mclient) {
+                    await mclient.query(
+                        (
+                            "UPDATE tenant SET is_deleted = true, " +
+                            "  updated = now(), updated_by = 'system' " +
+                            "WHERE _pk = $1"
+                        ),
+                        [row._pk]
+                    );
+                    await provisionTable(mclient);
+                    await mclient.query(
+                        "DELETE FROM \"$provision\" WHERE tenant_pk = $1",
+                        [row._pk]
+                    );
+                    await manager.audit(mclient, {
+                        action: "instance.demo_dropped",
+                        by: "system",
+                        detail: (
+                            row.name + " (" + row.pg_database +
+                            "), expired more than " + days +
+                            " days ago"
+                        ),
+                        organizationPk: row.org_pk
+                    });
+                });
+                dropped.push(row.name);
+            }
+
+            return dropped;
+        };
+
+        /**
             The sweep behind a route: anyone org-wide may run it early
             rather than wait for the server's hour. The timer calls
             `sweepDemos` directly.
 
             @method sweepDemosGuarded
             @param {Object} payload
-            @return {Promise} Names of the instances closed
+            @return {Promise} {closed, dropped}, names of each
         */
         that.sweepDemosGuarded = async function (obj) {
             await manager.run(async function (mclient) {
@@ -2014,7 +2377,10 @@
                 requireOrgWide(ctx, "sweep expired demos");
             });
 
-            return await that.sweepDemos();
+            return {
+                closed: await that.sweepDemos(),
+                dropped: await that.sweepDemoDrops()
+            };
         };
 
         return that;
