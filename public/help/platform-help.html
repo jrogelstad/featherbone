@@ -121,24 +121,35 @@ footer p{margin:0 0 6px}
   .hero h1{font-size:25px}
 }
 
-/* Printing: the whole guide, one topic never split across a page. */
+/* Printing: the whole guide, one topic never split across a page.
+   Sized to be read on paper rather than scaled down from the screen. */
+@page{margin:16mm 15mm}
 @media print{
-  :root{--bg:#fff;--fg:#000;--muted:#333;--faint:#555;--line:#bbb;
+  :root{--bg:#fff;--fg:#000;--muted:#2b2b2b;--faint:#4a4a4a;--line:#aaa;
     --line2:#ddd;--accent:#000;--accent-bg:#fff;--code-bg:#f2f2f2}
   .side,.top,.toc,.burger{display:none!important}
   .wrap{display:block;max-width:none}
-  main{max-width:none;padding:0;font-size:11pt}
-  .printnote{display:block;font-size:10pt;color:#555;margin:0 0 18px}
-  .sec{margin-top:26pt;page-break-before:always}
-  .sec:first-of-type{page-break-before:avoid}
-  .sec>h2{font-size:16pt}
-  .topic{page-break-inside:avoid;padding:10pt 0 2pt}
-  .topic>h4{font-size:12pt}
-  .topic table,.topic pre{page-break-inside:avoid}
-  .topic table{display:table}
+  main{max-width:none;padding:0;font-size:13pt;line-height:1.5}
+  .hero h1{font-size:26pt;margin-bottom:4pt}
+  .hero .lede{font-size:13pt}
+  .counts{display:none}
+  .printnote{display:block;font-size:11pt;color:#4a4a4a;margin:10pt 0 0}
+  .sec{margin-top:0;page-break-before:always}
+  .sec:first-of-type{page-break-before:avoid;margin-top:24pt}
+  .sec>h2{font-size:20pt;padding-bottom:6pt}
+  .grp{margin-top:18pt}
+  .grp>h3{font-size:10.5pt}
+  .topic{page-break-inside:avoid;padding:12pt 0 4pt}
+  .topic>h4{font-size:15pt;margin-bottom:6pt}
+  .topic p,.topic li{font-size:13pt}
+  .topic code{font-size:11.5pt}
+  .topic pre{page-break-inside:avoid;padding:8pt 10pt}
+  .topic pre code{font-size:11pt}
+  .topic table{display:table;font-size:11.5pt;page-break-inside:avoid}
+  .topic th,.topic td{padding:5pt 8pt}
   .anchor{display:none}
   a{color:inherit;text-decoration:none}
-  footer{page-break-inside:avoid}
+  footer{page-break-inside:avoid;font-size:11pt}
 }
 </style>
 </head>
