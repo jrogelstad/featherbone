@@ -1,0 +1,6 @@
+{
+    "name": "fbtbatch",
+    "version": "1.0.0",
+    "private": true,
+    "description": "A package whose batch collides with a record already here"
+}
