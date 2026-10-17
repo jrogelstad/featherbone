@@ -568,12 +568,18 @@ These are two acts, and `install.js` does them separately.
 database at all:
 
 ```bash
-node install.js --package <directory-or-tarball>   # [--force]
-node install.js --packages                         # what is installed
+node install.js --package <zip-tarball-or-directory>   # [--force]
+node install.js --packages                             # what is installed
 ```
 
-The source is a directory or an `npm pack` tarball. Its
-`package.json` and `manifest.json` must agree about the version, and
+The source is a **zip**, an `npm pack` tarball, or an unpacked
+directory. Zip is Featherbone's own format -- it is what the packager
+writes and what every package shipped before this looks like -- and a
+zip made by compressing a folder is read as well as one holding its
+files at the root. The format is taken from the file's own bytes
+rather than its name, so a package that was renamed on the way still
+reads. Where the package carries a `package.json`, that and
+`manifest.json` must agree about the version, and
 the manifest's `module` is the directory name, because that name is
 what a database's `module` row carries and what dispatch matches on. A
 version already installed is left alone unless `--force` says to
