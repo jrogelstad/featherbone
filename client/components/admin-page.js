@@ -33,6 +33,9 @@
 */
 const adminPage = {};
 
+// The right-click menu offers what the toolbar does, in that order
+const MENU_KEYS = ["status", "password", "grant", "admin"];
+
 const STATUS_ICON = {
     active: "check_circle",
     disabled: "block",
@@ -112,6 +115,34 @@ adminPage.viewModel = function () {
         @return {String}
     */
     vm.reachOrganization = f.prop("");
+    /**
+        The identity the toolbar and the right-click menu act on.
+        @method selection
+        @return {String}
+    */
+    vm.selection = f.prop("");
+    /**
+        Style of the right-click menu: where it is, or not shown.
+        @method menuStyle
+        @return {Object}
+    */
+    vm.menuStyle = f.prop({display: "none"});
+    /**
+        The menu goes away on any click, wherever it lands, and on
+        Escape. One function for the life of the page, so the listener
+        that was added is the one that is removed.
+        @method closeMenu
+        @param {Event} [e]
+    */
+    vm.closeMenu = function (e) {
+        if (
+            vm.menuStyle().display !== "none" &&
+            (!e || e.type === "click" || e.key === "Escape")
+        ) {
+            vm.menuStyle({display: "none"});
+            m.redraw();
+        }
+    };
     /**
         @method isLoading
         @return {Boolean}
@@ -506,104 +537,224 @@ adminPage.component = {
             });
         }
 
-        function actions(identity) {
-            let buttons = [];
+        function find(id) {
+            return identities.find((one) => one.id === id);
+        }
+
+        /*
+            What the toolbar and the right-click menu offer for the
+            selected identity. The per-row buttons these replace put
+            four controls in every row, which made the row taller than
+            its content and repeated the same four words down the
+            page; the actions belong to the selection, not to each row
+            (John, Oct 2026).
+        */
+        function describe(id) {
+            let identity = find(id);
+            let none = identity === undefined;
             /*
-                An instance administrator may only act on people who can
-                already reach the instance they are signed in to. The
-                server refuses the rest; showing the buttons anyway
+                An instance administrator may only act on people who
+                can already reach the instance they are signed in to.
+                The server refuses the rest; offering the action anyway
                 would make the refusal look like a fault.
             */
-            let mine = identity.grants.some(
+            let mine = !none && identity.grants.some(
                 (row) => row.instance === data.instance
             );
-            let why = (
-                "Only an organization administrator can change " +
-                identity.username + ", who has no access to this instance"
+            let may = orgWide || mine;
+            let list = {};
+
+            function entry(key, label, title, disabled, run) {
+                list[key] = {disabled, key, label, run, title};
+            }
+
+            function why(said) {
+                if (none) {
+                    return "Select a user";
+                }
+                if (!may) {
+                    return (
+                        "Only an organization administrator can change " +
+                        identity.username + ", who has no access to " +
+                        "this instance"
+                    );
+                }
+                return said;
+            }
+
+            /*
+                Read once, because with nothing selected there is no
+                identity to read it from -- and a title is built
+                whether or not its button is enabled.
+            */
+            let status = (
+                none
+                ? ""
+                : identity.status
             );
 
-            function add(label, title, onclick) {
-                buttons.push(m("button", {
-                    /*
-                        fb-button-disabled restores pointer events,
-                        which Pure takes away from a disabled
-                        .pure-button: without it the browser never
-                        hovers the button and the reason below is
-                        never seen.
-                    */
-                    class: (
-                        "pure-button fb-admin-action" + (
-                            (orgWide || mine)
-                            ? ""
-                            : " fb-button-disabled"
-                        )
-                    ),
-                    disabled: !(orgWide || mine),
-                    onclick: (
-                        (orgWide || mine)
-                        ? onclick
-                        : undefined
-                    ),
-                    title: (
-                        (orgWide || mine)
-                        ? title
-                        : why
+            entry(
+                "status",
+                (
+                    status === "locked"
+                    ? "Unlock"
+                    : (
+                        status === "disabled"
+                        ? "Enable"
+                        : "Disable"
                     )
-                }, label));
-            }
+                ),
+                why(
+                    status === "locked"
+                    ? "Release the lock and let them sign in again"
+                    : (
+                        status === "active"
+                        ? "Stop this identity signing in anywhere"
+                        : "Let this identity sign in again"
+                    )
+                ),
+                none || !may,
+                () => vm.doStatus(identity, (
+                    status === "active"
+                    ? "disabled"
+                    : "active"
+                ))
+            );
 
-            if (identity.status === "locked") {
-                add(
-                    "Unlock",
-                    "Release the lock and let them sign in again",
-                    () => vm.doStatus(identity, "active")
-                );
-            } else if (identity.status === "active") {
-                add(
-                    "Disable",
-                    "Stop this identity signing in anywhere",
-                    () => vm.doStatus(identity, "disabled")
-                );
-            } else {
-                add(
-                    "Enable",
-                    "Let this identity sign in again",
-                    () => vm.doStatus(identity, "active")
-                );
-            }
-
-            add(
+            entry(
+                "password",
                 "Password",
-                "Set this person's password",
+                why("Set this person's password"),
+                none || !may,
                 () => vm.doSetPassword(identity)
             );
-            add(
+
+            entry(
+                "grant",
                 "Grant",
-                "Give this person another instance",
+                why("Give this person another instance"),
+                none || !may,
                 () => vm.doGrant(identity)
             );
 
-            if (orgWide) {
-                add(
-                    (
-                        identity.isOrgAdmin
-                        ? "Unadmin"
-                        : "Make admin"
-                    ),
-                    (
-                        identity.isOrgAdmin
-                        ? "Stop this person administering the organization"
-                        : "Let this person administer the organization"
-                    ),
-                    () => vm.doOrgAdmin(identity, !identity.isOrgAdmin)
-                );
-            }
+            entry(
+                "admin",
+                (
+                    !none && identity.isOrgAdmin
+                    ? "Unadmin"
+                    : "Make admin"
+                ),
+                (
+                    none
+                    ? "Select a user"
+                    : (
+                        orgWide
+                        ? (
+                            identity.isOrgAdmin
+                            ? "Stop " + identity.username +
+                                " administering the organization"
+                            : "Let " + identity.username +
+                                " administer the organization"
+                        )
+                        : (
+                            "Only an organization administrator may " +
+                            "appoint another"
+                        )
+                    )
+                ),
+                none || !orgWide,
+                () => vm.doOrgAdmin(identity, !identity.isOrgAdmin)
+            );
 
-            return buttons;
+            return list;
         }
 
-        return m("div", [
+        function toolbarButton(entry) {
+            return m("button", {
+                /*
+                    fb-button-disabled restores pointer events, which
+                    Pure takes away from a disabled .pure-button:
+                    without it the browser never hovers the button and
+                    the reason in the title is never seen.
+                */
+                class: (
+                    "pure-button fb-toolbar-button" + (
+                        entry.disabled
+                        ? " fb-button-disabled"
+                        : ""
+                    )
+                ),
+                disabled: entry.disabled,
+                id: "admin-user-" + entry.key,
+                onclick: entry.run,
+                title: entry.title
+            }, entry.label);
+        }
+
+        function rowEvents(id) {
+            return {
+                class: (
+                    "fb-admin-row" + (
+                        vm.selection() === id
+                        ? " fb-table-row-selected"
+                        : ""
+                    )
+                ),
+                key: id,
+                oncontextmenu: function (e) {
+                    e.preventDefault();
+                    vm.selection(id);
+                    vm.menuStyle({
+                        display: "block",
+                        left: e.pageX + "px",
+                        top: e.pageY + "px"
+                    });
+                },
+                onclick: () => vm.selection(id)
+            };
+        }
+
+        let current = describe(vm.selection());
+
+        return m("div", {
+            oncreate: function () {
+                document.addEventListener("click", vm.closeMenu);
+                document.addEventListener("keydown", vm.closeMenu);
+            },
+            onremove: function () {
+                document.removeEventListener("click", vm.closeMenu);
+                document.removeEventListener("keydown", vm.closeMenu);
+            }
+        }, [
             m(f.getComponent("EnvBanner")),
+            m("div", {
+                class: "fb-context-menu",
+                style: vm.menuStyle()
+            }, [
+                m("ul", {
+                    class: "pure-menu-list fb-menu-list fb-menu-list-show",
+                    id: "admin-user-menu"
+                }, MENU_KEYS.map(function (key) {
+                    let entry = current[key];
+
+                    return m("li", {
+                        class: (
+                            "pure-menu-link fb-menu-list-item" + (
+                                entry.disabled
+                                ? " pure-menu-disabled"
+                                : ""
+                            )
+                        ),
+                        id: "admin-user-menu-" + key,
+                        onclick: function () {
+                            if (!entry.disabled) {
+                                entry.run();
+                            }
+                        },
+                        title: entry.title
+                    }, entry.label);
+                }))
+            ]),
             m("div", {
                 class: "fb-toolbar",
                 id: "toolbar"
@@ -620,7 +771,12 @@ adminPage.component = {
                     class: "pure-button fb-toolbar-button",
                     onclick: vm.refresh,
                     title: "Read the registry again"
-                }, "Refresh")
+                }, "Refresh"),
+                m("div", {class: "fb-toolbar-fill"}),
+                toolbarButton(current.status),
+                toolbarButton(current.password),
+                toolbarButton(current.grant),
+                toolbarButton(current.admin)
             ]),
             m("div", {class: "fb-title"}, [
                 f.icon("manage_accounts", "fb-title-icon"),
@@ -730,12 +886,11 @@ adminPage.component = {
                             m("th", {class: "fb-admin-col-name"}, "Name"),
                             m("th", {class: "fb-admin-col-status"}, "Status"),
                             m("th", {class: "fb-admin-col-grants"}, "Instances"),
-                            m("th", {class: "fb-admin-col-seen"}, "Last sign-in"),
-                            m("th", {class: "fb-admin-col-actions"}, "")
+                            m("th", {class: "fb-admin-col-seen"}, "Last sign-in")
                         ])
                     ]),
                     m("tbody", identities.map(function (identity) {
-                        return m("tr", {key: identity.id}, [
+                        return m("tr", rowEvents(identity.id), [
                             m("td", {title: identity.username}, [
                                 identity.username,
                                 (
@@ -765,9 +920,6 @@ adminPage.component = {
                                 ).toLocaleString()
                                 : m("span", {class: "fb-admin-muted"}, "never")
                             )),
-                            m("td", {
-                                class: "fb-admin-col-actions"
-                            }, actions(identity))
                         ]);
                     }))
                 ])
