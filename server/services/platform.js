@@ -32,6 +32,7 @@
     "use strict";
 
     const {Manager} = require("./manager");
+    const f = require("../../common/core");
     const manager = new Manager();
 
     /**
@@ -207,6 +208,477 @@
             }
 
             return {instance, ok: true};
+        };
+
+        /*
+            Everything below is the platform console (tenant plan G.2
+            and G.3): organizations, and every instance on the
+            installation. One organization's administrator has no
+            business here, so each one proves the actor is a platform
+            administrator by reading the identity rather than by
+            trusting what the session says about it.
+        */
+        function forbidden(message) {
+            let err = new Error(message);
+
+            err.statusCode = 401;
+            return err;
+        }
+
+        /*
+            The organization on a session identity, which carries both
+            its id and its name for the screen to show. Either shape is
+            accepted so a caller that already has the id can pass it.
+        */
+        function organizationIdOf(identity) {
+            let organization = (identity || {}).organization;
+
+            if (organization && typeof organization === "object") {
+                return organization.id;
+            }
+            return organization;
+        }
+
+        that.organizationIdOf = organizationIdOf;
+
+        function invalid(message) {
+            let err = new Error(message);
+
+            err.statusCode = 400;
+            return err;
+        }
+
+        /**
+            The acting identity, once it is established that it is a
+            platform administrator. Rejects otherwise.
+
+            @method actor
+            @param {Client} client Manager client
+            @param {Object} identity Session identity
+            @return {Promise} Identity row
+        */
+        that.actor = async function (client, identity) {
+            let home = await manager.organizationById(
+                client,
+                organizationIdOf(identity)
+            );
+            let actor = (
+                home
+                ? await manager.identity(
+                    client,
+                    home._pk,
+                    (identity || {}).username || ""
+                )
+                : undefined
+            );
+
+            if (!actor || !actor.is_platform_admin) {
+                throw forbidden(
+                    "Only a platform administrator may administer the " +
+                    "platform"
+                );
+            }
+
+            return actor;
+        };
+
+        /**
+            Every organization, with what it owns: how many instances
+            and identities, and whether anybody can administer it. An
+            organization with no administrator is the state onboarding
+            leaves behind, so the screen says so rather than leaving it
+            to be discovered.
+
+            @method organizations
+            @param {Client} client Manager client
+            @return {Promise} Array of organizations
+        */
+        that.organizations = async function (client) {
+            let resp = await client.query(
+                (
+                    "SELECT o.id, o.name, o.is_active, " +
+                    "  o.authentication, o.is_two_factor_required, " +
+                    "  (SELECT count(*) FROM tenant t " +
+                    "    WHERE t._organization_organization_pk = o._pk " +
+                    "      AND NOT t.is_deleted)::int AS instances, " +
+                    "  (SELECT count(*) FROM identity i " +
+                    "    WHERE i._organization_organization_pk = o._pk " +
+                    "      AND NOT i.is_deleted)::int AS identities, " +
+                    "  (SELECT count(*) FROM identity i " +
+                    "    WHERE i._organization_organization_pk = o._pk " +
+                    "      AND i.is_org_admin AND i.status = 'active' " +
+                    "      AND NOT i.is_deleted)::int AS administrators " +
+                    "FROM organization o " +
+                    "WHERE NOT o.is_deleted ORDER BY lower(o.name)"
+                )
+            );
+
+            return resp.rows.map(function (row) {
+                return {
+                    administrators: row.administrators,
+                    authentication: row.authentication,
+                    id: row.id,
+                    identities: row.identities,
+                    instances: row.instances,
+                    isActive: row.is_active === true,
+                    isTwoFactorRequired: row.is_two_factor_required === true,
+                    name: row.name
+                };
+            });
+        };
+
+        /**
+            Every instance on the installation, whoever owns it (tenant
+            plan G.3). The Instances screen shows one organization's,
+            because that is all an organization administrator may see;
+            this is the same list without that boundary, which only a
+            platform administrator is given.
+
+            @method fleet
+            @param {Client} client Manager client
+            @return {Promise} Array of instances
+        */
+        that.fleet = async function (client) {
+            let maint = (
+                await that.hasMaintenance(client)
+                ? "t.is_maintenance"
+                : "false AS is_maintenance"
+            );
+            let resp = await client.query(
+                (
+                    "SELECT t.id, t.name, t.pg_database, t.is_active, " +
+                    "  t.is_demo, t.expiration, t.modules, " + maint + ", " +
+                    "  o.id AS organization_id, o.name AS organization, " +
+                    "  s.name AS service_name, " +
+                    "  (SELECT count(*) FROM access_grant g " +
+                    "    WHERE g._tenant_tenant_pk = t._pk " +
+                    "      AND g.is_active AND NOT g.is_deleted" +
+                    "  )::int AS users " +
+                    "FROM tenant t " +
+                    "LEFT OUTER JOIN organization o " +
+                    "  ON o._pk = t._organization_organization_pk " +
+                    "LEFT OUTER JOIN tenant_service s " +
+                    "  ON s._pk = t._pg_service_tenant_service_pk " +
+                    "WHERE NOT t.is_deleted " +
+                    "ORDER BY lower(coalesce(o.name, '')), lower(t.name)"
+                )
+            );
+
+            return resp.rows.map(function (row) {
+                return {
+                    database: row.pg_database,
+                    expiration: row.expiration,
+                    id: row.id,
+                    isActive: row.is_active === true,
+                    isDemo: row.is_demo === true,
+                    isMaintenance: row.is_maintenance === true,
+                    name: row.name,
+                    organization: row.organization,
+                    organizationId: row.organization_id,
+                    service: row.service_name,
+                    users: row.users
+                };
+            });
+        };
+
+        /**
+            What a new instance can be built on: the connections
+            registered on this installation, and the databases the
+            cluster marks as templates. The Instances screen reads the
+            same two things; the console needs them before it has an
+            instance to read them from.
+
+            @method buildOptions
+            @param {Client} client Manager client
+            @return {Promise} {services, templates}
+        */
+        that.buildOptions = async function (client) {
+            let services = await manager.services(client);
+            let marked = await client.query(
+                (
+                    "SELECT datname FROM pg_database " +
+                    "WHERE datistemplate " +
+                    "  AND datname NOT IN ('template0', 'template1') " +
+                    "ORDER BY datname"
+                )
+            );
+
+            return {
+                services: services.map(function (row) {
+                    return {
+                        host: row.pg_host,
+                        id: row.id,
+                        name: row.name
+                    };
+                }),
+                templates: marked.rows.map((row) => row.datname)
+            };
+        };
+
+        /**
+            Create an organization. The name is its natural key, so a
+            second one by the same name is refused rather than made
+            quietly.
+
+            @method addOrganization
+            @param {Client} client Manager client
+            @param {Object} data
+            @param {String} data.name
+            @param {String} [data.authentication] password, sso or both
+            @param {Boolean} [data.isTwoFactorRequired]
+            @return {Promise} The organization
+        */
+        that.addOrganization = async function (client, data) {
+            let name = String((data || {}).name || "").trim();
+
+            if (!name) {
+                throw invalid("A name is required");
+            }
+
+            let found = await client.query(
+                (
+                    "SELECT 1 FROM organization " +
+                    "WHERE lower(name) = lower($1) AND NOT is_deleted"
+                ),
+                [name]
+            );
+
+            if (found.rows.length) {
+                throw invalid(
+                    "An organization named \"" + name + "\" already exists"
+                );
+            }
+
+            let auth = data.authentication || "password";
+
+            if (["password", "sso", "both"].indexOf(auth) === -1) {
+                throw invalid(
+                    "Authentication must be password, sso or both"
+                );
+            }
+
+            let id = f.createId();
+
+            await client.query(
+                (
+                    "INSERT INTO organization (_pk,id,created," +
+                    "created_by,updated,updated_by,is_deleted,owner," +
+                    "etag,name,is_active,authentication," +
+                    "is_two_factor_required) VALUES (" +
+                    "nextval('object__pk_seq'),$1,now(),$2,now(),$2," +
+                    "false,$2,$1,$3,true,$4,$5)"
+                ),
+                [
+                    id,
+                    data.by || "system",
+                    name,
+                    auth,
+                    data.isTwoFactorRequired === true
+                ]
+            );
+
+            return {id, isActive: true, name};
+        };
+
+        /**
+            Rename an organization, or change how it signs in.
+
+            @method updateOrganization
+            @param {Client} client Manager client
+            @param {Object} data
+            @param {String} data.id
+            @param {String} [data.name]
+            @param {String} [data.authentication]
+            @param {Boolean} [data.isTwoFactorRequired]
+            @return {Promise} The organization as it now stands
+        */
+        that.updateOrganization = async function (client, data) {
+            let organization = await manager.organizationById(
+                client,
+                (data || {}).id
+            );
+
+            if (!organization) {
+                throw invalid("No such organization");
+            }
+
+            let name = (
+                data.name === undefined
+                ? organization.name
+                : String(data.name).trim()
+            );
+
+            if (!name) {
+                throw invalid("A name is required");
+            }
+
+            if (name.toLowerCase() !== organization.name.toLowerCase()) {
+                let taken = await client.query(
+                    (
+                        "SELECT 1 FROM organization " +
+                        "WHERE lower(name) = lower($1) " +
+                        "  AND _pk <> $2 AND NOT is_deleted"
+                    ),
+                    [name, organization._pk]
+                );
+
+                if (taken.rows.length) {
+                    throw invalid(
+                        "An organization named \"" + name +
+                        "\" already exists"
+                    );
+                }
+            }
+
+            let current = await manager.organization(
+                client,
+                organization._pk
+            );
+            let auth = data.authentication || current.authentication;
+
+            if (["password", "sso", "both"].indexOf(auth) === -1) {
+                throw invalid(
+                    "Authentication must be password, sso or both"
+                );
+            }
+
+            let twoFactor = (
+                data.isTwoFactorRequired === undefined
+                ? current.is_two_factor_required
+                : data.isTwoFactorRequired === true
+            );
+
+            await client.query(
+                (
+                    "UPDATE organization SET name = $2, " +
+                    "  authentication = $3, is_two_factor_required = $4, " +
+                    "  updated = now(), updated_by = $5 WHERE _pk = $1"
+                ),
+                [
+                    organization._pk,
+                    name,
+                    auth,
+                    twoFactor,
+                    data.by || "system"
+                ]
+            );
+
+            return {
+                authentication: auth,
+                id: organization.id,
+                isActive: organization.is_active === true,
+                isTwoFactorRequired: twoFactor,
+                name
+            };
+        };
+
+        /**
+            Close an organization, or open it again. Closing stops its
+            identities signing in anywhere -- the picker reads the
+            organization as well as the identity -- and touches neither
+            its instances nor its data.
+
+            @method setOrganizationActive
+            @param {Client} client Manager client
+            @param {Object} data
+            @param {String} data.id
+            @param {Boolean} data.isActive
+            @return {Promise} Boolean, what it now is
+        */
+        that.setOrganizationActive = async function (client, data) {
+            let organization = await manager.organizationById(
+                client,
+                (data || {}).id
+            );
+            let isActive = (data || {}).isActive !== false;
+
+            if (!organization) {
+                throw invalid("No such organization");
+            }
+
+            await client.query(
+                (
+                    "UPDATE organization SET is_active = $2, " +
+                    "  updated = now(), updated_by = $3 WHERE _pk = $1"
+                ),
+                [organization._pk, isActive, data.by || "system"]
+            );
+
+            return isActive;
+        };
+
+        /**
+            Give an organization its first administrator, which is what
+            onboarding needs and nothing else does (tenant plan G.2).
+            Before this, a new organization's administrator was the
+            service account the installer had borrowed.
+
+            Makes the identity if there is none by that name, sets the
+            password, and marks it the organization's administrator. It
+            grants no instance: who reaches what is the organization
+            administrator's to say from the Users screen.
+
+            @method appointAdministrator
+            @param {Client} client Manager client
+            @param {Object} data
+            @param {String} data.organization Organization id
+            @param {String} data.username
+            @param {String} data.password
+            @param {String} [data.fullName]
+            @param {String} [data.email]
+            @return {Promise} {created, username}
+        */
+        that.appointAdministrator = async function (client, data) {
+            let organization = await manager.organizationById(
+                client,
+                (data || {}).organization
+            );
+            let username = String((data || {}).username || "").trim();
+            let password = (data || {}).password || "";
+
+            if (!organization) {
+                throw invalid("No such organization");
+            }
+            if (!username) {
+                throw invalid("A user name is required");
+            }
+            if (password.length < 8) {
+                throw invalid(
+                    "Password must be at least 8 characters"
+                );
+            }
+
+            let made = await manager.addIdentity(client, {
+                by: data.by,
+                email: data.email,
+                fullName: data.fullName,
+                organizationPk: organization._pk,
+                password,
+                username
+            });
+
+            if (!made.created) {
+                await manager.setPassword(
+                    client,
+                    made.identityPk,
+                    password,
+                    data.by
+                );
+                await manager.setStatus(
+                    client,
+                    made.identityPk,
+                    "active",
+                    data.by
+                );
+            }
+            await manager.setOrgAdmin(
+                client,
+                made.identityPk,
+                true,
+                data.by
+            );
+
+            return {created: made.created, username};
         };
 
         return that;

@@ -48,12 +48,14 @@
 
     const {Config} = require("../config");
     const {Manager} = require("./manager");
+    const {Platform} = require("./platform");
     const {Database} = require("../database");
     const datasource = require("../datasource");
     const f = require("../../common/core");
 
     const config = new Config();
     const manager = new Manager();
+    const platform = new Platform();
     const db = new Database();
 
     const STATUSES = ["active", "disabled"];
@@ -92,14 +94,63 @@
             operation starts here, so the tier is decided once and in
             one place.
         */
-        async function contextFor(mclient, obj) {
-            let instance = await manager.instance(mclient, obj.tenant);
-            let actor = await manager.identity(
-                mclient,
-                instance.organizationPk,
-                obj.user || ""
+        /*
+            The instance the caller is signed in to, if any. The
+            platform console runs with none (tenant plan G.2): it is
+            served at a path with no database in it, so every method
+            reached from there names the instance it means.
+        */
+        function homeInstanceId(obj) {
+            return (
+                obj.tenant
+                ? obj.tenant.id
+                : undefined
             );
+        }
+
+        async function contextFor(mclient, obj) {
+            let actor;
+            let instance;
             let tier;
+
+            if (obj.tenant) {
+                instance = await manager.instance(mclient, obj.tenant);
+                actor = await manager.identity(
+                    mclient,
+                    instance.organizationPk,
+                    obj.user || ""
+                );
+            } else {
+                /*
+                    No instance: the platform console, whose session was
+                    established against the manager alone (G.1). The
+                    organization the caller signed in to is the one on
+                    the session, and the authority is read here rather
+                    than taken from it -- a session says who, never
+                    what they may do.
+                */
+                let home = await manager.organizationById(
+                    mclient,
+                    platform.organizationIdOf(obj.identity)
+                );
+
+                if (!home) {
+                    throw forbidden("Not authorized to administer");
+                }
+                instance = {organizationPk: home._pk};
+                actor = await manager.identity(
+                    mclient,
+                    home._pk,
+                    obj.user || ""
+                );
+
+                if (!actor || !actor.is_platform_admin) {
+                    throw forbidden(
+                        "Only a platform administrator may administer " +
+                        "without an instance"
+                    );
+                }
+            }
 
             if (actor && actor.is_platform_admin) {
                 tier = "platform";
@@ -197,7 +248,11 @@
                 if (!resp.rows.length) {
                     throw forbidden(
                         "User " + target.username + " has no access to " +
-                        tenant.name + ", so it cannot be changed from here"
+                        (
+                            tenant
+                            ? tenant.name
+                            : "this instance"
+                        ) + ", so it cannot be changed from here"
                     );
                 }
             }
@@ -279,7 +334,7 @@
                         };
                     }),
                     identities: identities.map(identityOut),
-                    instance: obj.tenant.id,
+                    instance: homeInstanceId(obj),
                     instances: instances.map(function (row) {
                         return {
                             database: row.pg_database,
@@ -349,7 +404,10 @@
                 let ctx = await contextFor(mclient, obj);
                 let tenantPk = ctx.tenantPk;
 
-                if (data.instance && data.instance !== obj.tenant.id) {
+                if (
+                    data.instance &&
+                    data.instance !== homeInstanceId(obj)
+                ) {
                     if (ctx.tier === "instance") {
                         throw forbidden(
                             "Only an organization administrator may grant " +
@@ -537,10 +595,14 @@
 
             return await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
-                let instanceId = data.instance || obj.tenant.id;
+                let instanceId = data.instance || homeInstanceId(obj);
                 let tenantPk = ctx.tenantPk;
 
-                if (instanceId !== obj.tenant.id) {
+                if (!instanceId) {
+                    throw invalid("An instance is required");
+                }
+
+                if (instanceId !== homeInstanceId(obj)) {
                     if (ctx.tier === "instance") {
                         throw forbidden(
                             "Only an organization administrator may grant " +
@@ -759,7 +821,7 @@
                 let orgWide = (
                     ctx.tier === "platform" || ctx.tier === "organization"
                 );
-                let current = obj.tenant.id;
+                let current = homeInstanceId(obj);
                 /*
                     The fleet view (ADR-002): what each instance
                     carries, and what this server holds to deploy.
@@ -1125,8 +1187,7 @@
 
                 if (
                     !isActive &&
-                    obj.tenant &&
-                    target.id === obj.tenant.id
+                    target.id === homeInstanceId(obj)
                 ) {
                     throw invalid(
                         "This is the instance you are signed in to. " +
@@ -1397,6 +1458,17 @@
             let conn = await db.connect(obj.tenant);
 
             conn.client.currentUser = () => obj.user;
+            /*
+                With no instance (the platform console, G.2) the client
+                is the manager's, which is no instance's, so the
+                organization the caller signed in to travels with it
+                for the authority check in databaseActor.
+            */
+            if (!obj.tenant) {
+                conn.client.currentOrganization = () => (
+                    platform.organizationIdOf(obj.identity)
+                );
+            }
             return conn;
         }
 

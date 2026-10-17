@@ -135,6 +135,43 @@ lists their instances and opening one lands on that instance's sign-in,
 which asks for the factor. Nothing is admitted on a half-proved
 identity.
 
+### Administering the platform
+
+The picker's **Administer the platform** opens the platform console, at
+`/platform`, for a platform administrator. It is the only screen that
+crosses organizations, and it is served where no database is named, so
+it runs with no instance of its own: every act on it names what it
+acts on. Authority is read from the identity each time, never taken
+from the session.
+
+It holds two lists. **Organizations** says what each one owns -- its
+instances, its people, how many can administer it, and how it signs in
+-- and carries the actions: create one, rename it or change its
+sign-in, appoint its administrator, close it or open it again, and
+build it an instance. **Every instance on this installation** is the
+Instances screen without the organization boundary: each database with
+its owner, its state and the connection it is reached through.
+
+Onboarding a new organization is those actions in order:
+
+1. **New organization** -- name it, and say whether it signs in by
+   password, single sign-on or either.
+2. **Appoint administrator** -- a username and a password. This makes
+   the identity if there is none by that name, marks it the
+   organization's administrator, and grants it no instance: who reaches
+   what is that administrator's to say from the Users screen.
+3. **New instance** -- build their first database from a template.
+
+Before this, the only way was `node install.js --instance <name>
+--organization "<name>"`, which made the organization and left the
+service account from `config.json` as its administrator. That still
+works, and is still how the first installation is built; what it can no
+longer do is stay the only way.
+
+Closing an organization stops its identities signing in anywhere --
+the picker reads the organization as well as the identity -- and
+touches neither its instances nor their data.
+
 ### Starting a new installation
 
 ```bash
