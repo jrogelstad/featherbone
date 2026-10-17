@@ -181,11 +181,161 @@
             Lock policy matches the role path: the fourth consecutive
             failure locks the identity, and locking writes an audit row.
         */
-        async function authenticateIdentity(req, username, pswd) {
-            const DOC = (
-                "nextval('object__pk_seq'),$1,now(),'system',now()," +
-                "'system',false,'system',$1"
+        const AUDIT_DOC = (
+            "nextval('object__pk_seq'),$1,now(),'system',now()," +
+            "'system',false,'system',$1"
+        );
+
+        /*
+            The credential half of sign-in, shared by the instance
+            sign-in below and the picker's sign-in against the manager
+            alone (tenant plan G.1). Resolves the identity inside one
+            organization, verifies the password in Node, counts
+            failures and locks on the fourth, and replaces an imported
+            verifier with the application's own hash. Returns the
+            identity row; what access that buys is the caller's to
+            decide.
+        */
+        async function verifyCredential(client, orgPk, username, pswd) {
+            let resp = await client.query(
+                (
+                    "SELECT _pk, password_hash, status, " +
+                    "  failed_attempts, locked_until, " +
+                    "  is_platform_admin, is_org_admin, " +
+                    "  full_name, email, username " +
+                    "FROM identity " +
+                    "WHERE _organization_organization_pk = $1 " +
+                    "  AND lower(username) = lower($2) " +
+                    "  AND NOT is_deleted"
+                ),
+                [orgPk, username]
             );
+            let row;
+
+            if (!resp.rows.length) {
+                throw new Error(
+                    "No active user account " + username + " found"
+                );
+            }
+            row = resp.rows[0];
+
+            if (
+                row.status === "locked" || (
+                    row.locked_until &&
+                    new Date(row.locked_until) > new Date()
+                )
+            ) {
+                throw new Error("User account is locked");
+            }
+            if (row.status !== "active") {
+                throw new Error(
+                    "No active user account " + username + " found"
+                );
+            }
+
+            let check = identities.verifyPassword(
+                pswd,
+                row.password_hash,
+                username
+            );
+
+            if (!check.ok) {
+                let attempts = row.failed_attempts + 1;
+
+                await client.query(
+                    (
+                        "UPDATE identity SET failed_attempts = $2, " +
+                        "updated = now(), updated_by = 'system' " +
+                        "WHERE _pk = $1"
+                    ),
+                    [row._pk, attempts]
+                );
+
+                if (attempts > 3) {
+                    await client.query(
+                        (
+                            "UPDATE identity SET status = 'locked', " +
+                            "updated = now(), updated_by = 'system' " +
+                            "WHERE _pk = $1"
+                        ),
+                        [row._pk]
+                    );
+                    // The lock is a privileged state change, so it
+                    // leaves an audit trail (ADR-001 A.4)
+                    await client.query(
+                        (
+                            "INSERT INTO admin_audit (_pk,id,created," +
+                            "created_by,updated,updated_by,is_deleted," +
+                            "owner,etag,action,occurred," +
+                            "_target_identity_identity_pk,detail) " +
+                            "VALUES (" + AUDIT_DOC + ",$2,now(),$3,$4)"
+                        ),
+                        [
+                            f.createId(),
+                            "identity.locked",
+                            row._pk,
+                            "Locked after too many failed sign-in " +
+                            "attempts"
+                        ]
+                    );
+                    throw new Error(
+                        "Too many sign in attempts. Account is locked."
+                    );
+                }
+                if (attempts === 3) {
+                    throw new Error(
+                        "Invalid sign in credentials. " +
+                        "One more attempt before account is locked."
+                    );
+                }
+                throw new Error("Invalid sign in credentials.");
+            }
+
+            /*
+                A verifier imported from pg_authid is checked once
+                and replaced with the application's own hash, so the
+                password-equivalent export does not stay at rest
+            */
+            if (check.needsRehash) {
+                await client.query(
+                    (
+                        "UPDATE identity SET password_hash = $2, " +
+                        "updated = now(), updated_by = 'system' " +
+                        "WHERE _pk = $1"
+                    ),
+                    [row._pk, identities.hashPassword(pswd)]
+                );
+            }
+
+            return row;
+        }
+
+        // A sign-in happened: the failure count goes back to zero and
+        // the clock records it
+        function stampSignIn(client, identityPk) {
+            return client.query(
+                (
+                    "UPDATE identity SET failed_attempts = 0, " +
+                    "last_signed_in = now(), " +
+                    "updated = now(), updated_by = 'system' " +
+                    "WHERE _pk = $1"
+                ),
+                [identityPk]
+            );
+        }
+
+        /*
+            Sign in against the manager's identity table (ADR-001
+            B.1/B.2): database -> tenant -> organization -> identity ->
+            verify in Node -> access grant -> local profile. No Postgres
+            connection is ever opened as the user, so a failed sign-in
+            strands nothing (the leak item 1.6 described cannot happen
+            on this path).
+
+            Lock policy matches the role path: the fourth consecutive
+            failure locks the identity, and locking writes an audit row.
+        */
+        async function authenticateIdentity(req, username, pswd) {
             let obj;
             let orgTwoFactor;
 
@@ -246,113 +396,12 @@
                 */
                 orgTwoFactor = resp.rows[0].is_two_factor_required;
 
-                resp = await client.query(
-                    (
-                        "SELECT _pk, password_hash, status, " +
-                        "  failed_attempts, locked_until, " +
-                        "  is_platform_admin " +
-                        "FROM identity " +
-                        "WHERE _organization_organization_pk = $1 " +
-                        "  AND lower(username) = lower($2) " +
-                        "  AND NOT is_deleted"
-                    ),
-                    [resp.rows[0].org, username]
+                row = await verifyCredential(
+                    client,
+                    resp.rows[0].org,
+                    username,
+                    pswd
                 );
-
-                if (!resp.rows.length) {
-                    throw new Error(
-                        "No active user account " + username + " found"
-                    );
-                }
-                row = resp.rows[0];
-
-                if (
-                    row.status === "locked" || (
-                        row.locked_until &&
-                        new Date(row.locked_until) > new Date()
-                    )
-                ) {
-                    throw new Error("User account is locked");
-                }
-                if (row.status !== "active") {
-                    throw new Error(
-                        "No active user account " + username + " found"
-                    );
-                }
-
-                let check = identities.verifyPassword(
-                    pswd,
-                    row.password_hash,
-                    username
-                );
-
-                if (!check.ok) {
-                    let attempts = row.failed_attempts + 1;
-
-                    await client.query(
-                        (
-                            "UPDATE identity SET failed_attempts = $2, " +
-                            "updated = now(), updated_by = 'system' " +
-                            "WHERE _pk = $1"
-                        ),
-                        [row._pk, attempts]
-                    );
-
-                    if (attempts > 3) {
-                        await client.query(
-                            (
-                                "UPDATE identity SET status = 'locked', " +
-                                "updated = now(), updated_by = 'system' " +
-                                "WHERE _pk = $1"
-                            ),
-                            [row._pk]
-                        );
-                        // The lock is a privileged state change, so it
-                        // leaves an audit trail (ADR-001 A.4)
-                        await client.query(
-                            (
-                                "INSERT INTO admin_audit (_pk,id,created," +
-                                "created_by,updated,updated_by,is_deleted," +
-                                "owner,etag,action,occurred," +
-                                "_target_identity_identity_pk,detail) " +
-                                "VALUES (" + DOC + ",$2,now(),$3,$4)"
-                            ),
-                            [
-                                f.createId(),
-                                "identity.locked",
-                                row._pk,
-                                "Locked after too many failed sign-in " +
-                                "attempts"
-                            ]
-                        );
-                        throw new Error(
-                            "Too many sign in attempts. Account is locked."
-                        );
-                    }
-                    if (attempts === 3) {
-                        throw new Error(
-                            "Invalid sign in credentials. " +
-                            "One more attempt before account is locked."
-                        );
-                    }
-                    throw new Error("Invalid sign in credentials.");
-                }
-
-                /*
-                    A verifier imported from pg_authid is checked once
-                    and replaced with the application's own hash, so the
-                    password-equivalent export does not stay at rest
-                */
-                if (check.needsRehash) {
-                    await client.query(
-                        (
-                            "UPDATE identity SET password_hash = $2, " +
-                            "updated = now(), updated_by = 'system' " +
-                            "WHERE _pk = $1"
-                        ),
-                        [row._pk, identities.hashPassword(pswd)]
-                    );
-                }
 
                 // The access boundary: may this identity enter this
                 // instance?
@@ -390,15 +439,7 @@
                     );
                 }
 
-                await client.query(
-                    (
-                        "UPDATE identity SET failed_attempts = 0, " +
-                        "last_signed_in = now(), " +
-                        "updated = now(), updated_by = 'system' " +
-                        "WHERE _pk = $1"
-                    ),
-                    [row._pk]
-                );
+                await stampSignIn(client, row._pk);
             } finally {
                 obj.done();
             }
@@ -409,6 +450,92 @@
 
             user.isTwoFactorRequired = orgTwoFactor === true;
             return user;
+        }
+
+        /*
+            Sign in against the manager and nothing else, for the
+            instance picker at a URL with no database (tenant plan
+            G.1). There is no instance yet, so no grant is read and no
+            local profile is made: what comes back is the identity, and
+            the caller decides which instances it may reach.
+
+            A username is unique within its organization, not across
+            the installation, so an ambiguous one has to say which
+            organization it means. The organization is never listed to
+            a caller who has not signed in -- that would say where a
+            username exists -- and the password is not tried against
+            each candidate either, since a wrong one would count a
+            failure against every organization and lock them all.
+        */
+        async function authenticateIdentityOnly(username, pswd, orgName) {
+            let obj = await that.connect();
+
+            try {
+                let client = obj.client;
+                let resp = await client.query(
+                    (
+                        "SELECT o._pk, o.id, o.name, " +
+                        "  o.is_two_factor_required " +
+                        "FROM identity i " +
+                        "JOIN organization o " +
+                        "  ON o._pk = i._organization_organization_pk " +
+                        "WHERE lower(i.username) = lower($1) " +
+                        "  AND i.status = 'active' " +
+                        "  AND NOT i.is_deleted " +
+                        "  AND o.is_active AND NOT o.is_deleted " +
+                        "ORDER BY o.name"
+                    ),
+                    [username]
+                );
+                let org;
+                let row;
+
+                if (!resp.rows.length) {
+                    throw new Error("Invalid sign in credentials.");
+                }
+
+                if (orgName) {
+                    org = resp.rows.find(
+                        (r) => (
+                            r.name.toLowerCase() ===
+                            String(orgName).trim().toLowerCase()
+                        )
+                    );
+                    if (!org) {
+                        throw new Error("Invalid sign in credentials.");
+                    }
+                } else if (resp.rows.length > 1) {
+                    let err = new Error(
+                        "More than one organization has this user name. " +
+                        "Which one is yours?"
+                    );
+
+                    err.code = "organization-required";
+                    throw err;
+                } else {
+                    org = resp.rows[0];
+                }
+
+                row = await verifyCredential(
+                    client,
+                    org._pk,
+                    username,
+                    pswd
+                );
+                await stampSignIn(client, row._pk);
+
+                return {
+                    email: row.email || "",
+                    fullName: row.full_name || row.username,
+                    isOrgAdmin: row.is_org_admin === true,
+                    isPlatformAdmin: row.is_platform_admin === true,
+                    isTwoFactorRequired: org.is_two_factor_required === true,
+                    organization: {id: org.id, name: org.name},
+                    username: row.username
+                };
+            } finally {
+                obj.done();
+            }
         }
 
         // ..........................................................
@@ -428,6 +555,27 @@
         */
         that.authenticate = function (req, username, pswd) {
             return authenticateIdentity(req, username, pswd);
+        };
+        /**
+            Authenticates a user against their identity in the manager
+            database with no instance in play, for the picker at a URL
+            that names no database (tenant plan G.1). Resolves to the
+            identity rather than to a
+            {{#crossLink "User"}}{{/crossLink}}: there is no instance
+            yet, so there is no local profile to resolve.
+
+            Rejects with an error whose `code` is
+            "organization-required" when the user name exists in more
+            than one organization and none was named.
+
+            @method authenticateIdentityOnly
+            @param {String} username
+            @param {String} password
+            @param {String} [organization] Organization name
+            @return {Promise}
+        */
+        that.authenticateIdentityOnly = function (username, pswd, org) {
+            return authenticateIdentityOnly(username, pswd, org);
         };
         /**
             Database connection object. This object is requested from a

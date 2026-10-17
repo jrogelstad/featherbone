@@ -957,6 +957,12 @@
 
                 available = await manager.unregisteredDatabases(mclient);
 
+                let unservable = await datasource.unservableName(database);
+
+                if (unservable) {
+                    throw invalid(unservable);
+                }
+
                 if (available.indexOf(database) === -1) {
                     throw invalid(
                         "\"" + database + "\" is not a database in this " +
