@@ -2948,12 +2948,14 @@ button:disabled .fb-ipicon,
   max-height: 40vh;
   margin: 0 8px 12px 8px;
   border: 1px solid var(--fb-border);
+  overflow-y: auto;
 }
 
 /* The rows carry more than a word per cell, so they wrap rather than
    clip -- unlike the fixed grid this styling comes from. */
 .fb-admin-table {
   table-layout: auto;
+  width: 100%;
 }
 
 .fb-admin-table th,
@@ -3098,8 +3100,71 @@ button:disabled .fb-ipicon,
 
 /* The picker and the platform console (tenant plan G.1-G.3), which are
    their own page rather than part of the application bundle. */
+/* The console is a full-height column: its two lists share what the
+   page toolbar, the title and any open form leave, and each scrolls
+   inside itself rather than running off the bottom (John, Oct 2026).
+   A viewport too short for both falls back to scrolling the body. */
+.fb-platform-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
 .fb-platform-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
   padding: 8px 12px 16px 12px;
+}
+
+.fb-platform-panel {
+  flex: 1 1 0;
+  min-height: 15em;
+  display: flex;
+  flex-direction: column;
+}
+
+.fb-platform-panel .fb-admin-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0 0 12px 0;
+  border-top: 0;
+}
+
+/* Each list's own actions, over that list and nothing else. */
+.fb-list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  background-color: var(--fb-surface);
+  border: 1px solid var(--fb-border);
+}
+
+.fb-list-toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--fb-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fb-list-toolbar-check input {
+  margin: 0;
+}
+
+/* The table's own header must stay put while its rows scroll. */
+.fb-platform-panel .fb-admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--fb-surface);
 }
 /* The console's forms carry longer labels than a sign-in box does
    ("Administrator group"), which the 5em sign-in label wraps. */
@@ -3108,7 +3173,12 @@ button:disabled .fb-ipicon,
   text-align: right;
 }
 .fb-platform-section {
-  margin: 16px 0 6px 0;
+  margin: 12px 0 5px 0;
   font-weight: 700;
   color: var(--fb-text);
+  flex: 0 0 auto;
+}
+
+.fb-platform-panel:first-of-type .fb-platform-section {
+  margin-top: 4px;
 }

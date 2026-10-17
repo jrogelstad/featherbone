@@ -191,9 +191,13 @@ It holds two lists. **Organizations** says what each one owns -- its
 instances, its people, how many can administer it, and how it signs in
 -- and carries the actions: create one, rename it or change its
 sign-in, appoint its administrator, close it or open it again, and
-build it an instance. **Every instance on this installation** is the
-Instances screen without the organization boundary: each database with
-its owner, its state and the connection it is reached through.
+build it an instance. **Instances** is the Instances screen without
+the organization boundary: every database on the installation with its
+owner, its state and the connection it is reached through. Each list
+carries its own toolbar, so the actions on an organization are never
+mixed with the actions on an instance, and **Show selected
+organization's instances** narrows the second list to the organization
+selected in the first.
 
 Onboarding a new organization is those actions in order:
 
@@ -336,8 +340,10 @@ it as a wall would mean a package per edition. What is a boundary is
 
 Deploy from the Instances screen applies one package version to one
 instance. The platform console (`/platform`) does the same across a
-group: tick the instances in **Every instance on this installation**,
-press **Deploy**, and choose the package.
+group: tick the instances in **Instances**, press **Deploy**, and
+choose the package. A tick the organization filter has hidden drops out
+of the deployment, so Deploy never acts on an instance that is not on
+show.
 
 A group is a sequence of single deployments, not a second way of
 deploying: each instance is held, applied to and let go in turn, so
