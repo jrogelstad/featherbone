@@ -40,6 +40,8 @@
     const {Admin} = require("./server/services/admin");
     const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
+    const {Platform} = require("./server/services/platform");
+    const platform = new Platform();
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
@@ -1874,6 +1876,131 @@
         });
     }
 
+    /*
+        The picker, at a URL that names no database (tenant plan G.1).
+
+        Sign-in here is against the manager alone: it proves the
+        identity and nothing more, and the instances it may reach come
+        from its grants. Choosing one is what proves access to that
+        instance, in deserializeUser above.
+
+        A second factor is an instance's to ask for, since the code is
+        sent by the instance's own mail service: an organization that
+        requires one can pick here but signs in at the instance.
+    */
+    function doGetPickerFile(ignore, res) {
+        fs.readFile("./picker.html", function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, {
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html"
+            });
+            res.write(resp);
+            res.end();
+        });
+    }
+
+    async function doPickerSignIn(req, res) {
+        let identity;
+
+        try {
+            identity = await datasource.authenticateIdentityOnly(
+                req.body.username,
+                req.body.password,
+                req.body.organization
+            );
+        } catch (err) {
+            if (err.code === "organization-required") {
+                res.status(409).json({
+                    code: err.code,
+                    message: err.message
+                });
+                return;
+            }
+            logger.error("/sign-in: " + err);
+            res.status(401).json({message: signInMessage(err)});
+            return;
+        }
+
+        function answer() {
+            req.session.identity = identity;
+            delete req.session.database;
+            req.session.save(function () {
+                res.json(identity);
+            });
+        }
+
+        /*
+            An organization that requires a second factor gets no
+            passport session here: the factor is sent by an instance's
+            own mail service, which the manager has none of. The
+            identity still rides on the session, so the picker can list
+            the instances; without a passport user, opening one lands
+            on that instance's own sign-in, which asks for the factor.
+            Nothing is admitted on a half-proved identity.
+        */
+        if (identity.isTwoFactorRequired) {
+            answer();
+            return;
+        }
+
+        /*
+            Passport holds the user name, as it does for an instance
+            sign-in, so every request afterwards resolves the same way.
+            The identity rides on the session beside it: it is what the
+            picker knows before an instance is chosen.
+        */
+        req.login({name: identity.username}, function (err) {
+            if (err) {
+                error.bind(res)(err);
+                return;
+            }
+            answer();
+        });
+    }
+
+    async function doMyInstances(req, res) {
+        let identity = (
+            req.session
+            ? req.session.identity
+            : undefined
+        );
+
+        if (!identity) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
+
+        try {
+            let instances = await platform.run(
+                (mclient) => platform.instancesFor(
+                    mclient,
+                    identity.username,
+                    identity.organization.id
+                )
+            );
+
+            res.json({
+                identity: {
+                    fullName: identity.fullName,
+                    isOrgAdmin: identity.isOrgAdmin === true,
+                    isPlatformAdmin: identity.isPlatformAdmin === true,
+                    isTwoFactorRequired: (
+                        identity.isTwoFactorRequired === true
+                    ),
+                    organization: identity.organization,
+                    username: identity.username
+                },
+                instances
+            });
+        } catch (err) {
+            error.bind(res)(err);
+        }
+    }
+
     // Session lists and disconnects are an administrator's tool
     function requireSuper(req, res) {
         if (req.user && req.user.isSuper) {
@@ -2616,6 +2743,94 @@
         "/node_modules/gantt/dist/gantt.min.js"
     ];
 
+    /*
+        Paths that belong to the picker rather than to any instance
+        (tenant plan G.1). Every other path names a database in its
+        first element, so these have to be known by name or the first
+        element of "/my/instances" would be read as a database.
+    */
+    const platformPaths = [
+        "/my/",
+        "/platform",
+        "/sign-in",
+        "/sign-out"
+    ];
+
+    function isPlatformPath(url) {
+        let path = String(url || "").split("?")[0];
+
+        if (path === "/" || path === "") {
+            return true;
+        }
+        return platformPaths.some(function (p) {
+            return (
+                p.endsWith("/")
+                ? path.startsWith(p)
+                : path === p || path.startsWith(p + "/")
+            );
+        });
+    }
+
+    /*
+        The user of a session that has not chosen an instance: the
+        identity itself, with none of the local profile an instance
+        would add (tenant plan G.1).
+    */
+    function identityUser(req, name) {
+        let identity = (
+            req.session
+            ? req.session.identity
+            : undefined
+        );
+
+        if (!identity) {
+            return {};
+        }
+
+        return {
+            email: identity.email,
+            fullName: identity.fullName,
+            isOrgAdmin: identity.isOrgAdmin === true,
+            isPlatformAdmin: identity.isPlatformAdmin === true,
+            isSuper: false,
+            name: identity.username || name,
+            organization: identity.organization
+        };
+    }
+
+    /*
+        Let an identity session into the instance it is asking for,
+        once the manager says the grant is still live (tenant plan
+        G.1). Admission is recorded on the session, so the manager is
+        asked when an instance is entered rather than on every request
+        inside it.
+    */
+    async function admitToInstance(req) {
+        let identity = req.session.identity;
+
+        if (req.session.database === req.database) {
+            return {ok: true};
+        }
+        if (!req.tenant) {
+            return {ok: false, reason: "Not a registered instance"};
+        }
+
+        return await platform.run(async function (mclient) {
+            let entry = await platform.mayEnter(
+                mclient,
+                identity.username,
+                identity.organization.id,
+                req.tenant.id,
+                identity.isPlatformAdmin === true
+            );
+
+            if (entry.ok) {
+                req.session.database = req.database;
+            }
+            return entry;
+        });
+    }
+
     async function deserializeUser(req, name, done) {
         try {
             if (files.indexOf(req.url) !== -1) {
@@ -2629,7 +2844,10 @@
                 return;
             }
 
-            if (!req.tenant) {
+            if (!req.tenant && isPlatformPath(req.url)) {
+                // The picker's own paths name no instance
+                req.database = undefined;
+            } else if (!req.tenant) {
                 let db = req.url.slice(1);
                 if (db.indexOf("/") !== -1) {
                     db = db.slice(0, db.indexOf("/"));
@@ -2649,6 +2867,36 @@
                         req.protocol + "://" + req.get("host") + "/" +
                         req.database
                     );
+                }
+            }
+
+            /*
+                A request that names no database is the picker (tenant
+                plan G.1). There is no instance to resolve a profile
+                in, so the identity the session was signed in with is
+                the user.
+            */
+            if (!req.database) {
+                done(null, identityUser(req, name));
+                return;
+            }
+
+            /*
+                A session made at the picker proves itself against each
+                instance it enters. Sign-in checked the grant once, for
+                one instance; one sign-in now reaches several, so the
+                grant is read again at the door. A refusal is not an
+                error: the session stands and the picker says why.
+            */
+            if (req.session && req.session.identity) {
+                let entry = await admitToInstance(req);
+
+                if (!entry.ok) {
+                    let user = identityUser(req, name);
+
+                    user.enterDenied = entry.reason;
+                    done(null, user);
+                    return;
                 }
             }
 
@@ -3068,10 +3316,40 @@
                 return;
             }
 
+            /*
+                An identity session asked for an instance the manager
+                will not let it into (tenant plan G.1). The session
+                stands -- it was signed in against the manager, not
+                against this instance -- so the answer is the picker
+                and the reason, not a sign-out.
+            */
+            if (req.user && req.user.enterDenied) {
+                let reason = req.user.enterDenied;
+
+                if (
+                    req.method === "GET" &&
+                    String(req.headers.accept || "").includes("text/html")
+                ) {
+                    res.redirect(
+                        "/#denied=" + encodeURIComponent(reason)
+                    );
+                    return;
+                }
+                res.status(403).json(reason);
+                return;
+            }
+
+            /*
+                An identity session may move between the instances it
+                is granted, since each entry is checked (G.1). The
+                rule below is for a session signed in to one instance,
+                which has proved nothing about any other.
+            */
             if (
                 req.session &&
                 req.session.database &&
                 req.database &&
+                !req.session.identity &&
                 req.session.database !== req.database
             ) {
                 doSignOut(req, undefined, function () {
@@ -3116,6 +3394,17 @@
         // File upload
         dbRouter.use(expressFileUpload());
         dbRouter.get("/:db/", doGetIndexFile);
+
+        /*
+            The picker: a URL with no database in it (tenant plan
+            G.1). Registered before the database router, which only
+            ever matches a path whose first element names an instance.
+        */
+        app.get("/", doGetPickerFile);
+        app.post("/sign-in", doPickerSignIn);
+        app.post("/sign-out", doSignOut);
+        app.get("/my/instances", doMyInstances);
+
         app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
         files.forEach((filename) => app.get(filename, doGetFile));

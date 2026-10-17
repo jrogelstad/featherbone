@@ -905,6 +905,15 @@
     }
 
     /*
+        Paths the server answers itself, with no database in them: the
+        picker and the platform console (tenant plan G.1, G.2). An
+        instance whose database had one of these names would be
+        shadowed by them and could never be opened, so the name is
+        refused rather than allowed and then found wanting.
+    */
+    const SERVED_PATHS = ["auth", "my", "platform"];
+
+    /*
         The cluster's own databases and the manager are refused
         whatever the caller asks: dropping the manager would take the
         installation's registry, identities and sessions with it.
@@ -916,8 +925,28 @@
             reserved.push(config.managerDatabase(conf));
         }
 
-        return reserved.indexOf(name) !== -1;
+        return (
+            reserved.indexOf(name) !== -1 ||
+            SERVED_PATHS.indexOf(name) !== -1
+        );
     }
+
+    /**
+        Why this name cannot be an instance of this installation, or
+        undefined when it can. The guarded create and drop apply it
+        through `writableName`; registering a database that already
+        exists has no such path of its own and asks here.
+
+        @method unservableName
+        @param {String} name Database name
+        @return {Promise} String or undefined
+    */
+    that.unservableName = async function (name) {
+        let conf = await config.read();
+        let checked = writableName(name, conf);
+
+        return checked.message;
+    };
 
     function reservedMessage(name) {
         return (
@@ -2362,6 +2391,21 @@
         @return {Object} Promise
     */
     that.authenticate = db.authenticate;
+
+    /**
+        Authenticate against an identity in the manager with no
+        instance in play, for the picker at a URL that names no
+        database (tenant plan G.1). Exposes
+        {{#crossLink "Database/authenticateIdentityOnly:method"}}
+        {{/crossLink}} via datasource.
+
+        @method authenticateIdentityOnly
+        @param {String} username
+        @param {String} password
+        @param {String} [organization] Organization name
+        @return {Promise}
+    */
+    that.authenticateIdentityOnly = db.authenticateIdentityOnly;
 
     /**
         Resolves to {{#crossLink "User"}}{{/crossLink}} for passport
