@@ -515,6 +515,45 @@ WHERE NOT is_deleted
   AND module NOT IN (SELECT name FROM module WHERE NOT is_deleted);
 ```
 
+### Which half a module is on
+
+A module runs from its package when this server holds that module at
+the version the database says it carries, and from the database's own
+rows otherwise. It is decided per module and per database, so an
+instance can have one of each, and the rows are not deleted when a
+package takes over: they are the fallback for a module with no
+package, and the record of what a database carried before it was
+packaged.
+
+They are no longer what runs, though, and they used to say nothing
+about it. Two things now do.
+
+**The rows refuse to be changed.** A change to `module.script` or to a
+`data_service` row of a module this server serves from a package is
+refused with a 405 naming the module and version, because the save
+would look like it took and change nothing. The refusal is by where
+the call came from rather than by who made it: Install and Deploy
+write those rows as part of their work and arrive with a client of
+their own, so they are unaffected, while a person at the Develop
+workbook is refused -- including a super user, who is exactly who gets
+past every other check.
+
+**The screens say which.** The Instances screen and the platform
+console mark each instance:
+
+* **`N behind`** -- it carries a version older than one this server
+  holds. Deploy it.
+* **`N adrift`** -- it names a version this server does **not** hold,
+  so it has quietly fallen back to running the code in its own tables.
+  Nothing else tells you this. It happens when a server is rebuilt
+  without its packages, or when a second node was never installed to,
+  and it means two nodes can run different code for the same database.
+  Install the package, or deploy a version this server has.
+* **`N from rows`** -- modules with no package on this server at all.
+  Core is one of these today: it is installed from the repository
+  rather than as a package, so every instance says so until that
+  changes.
+
 ### Install, and Deploy
 
 These are two acts, and `install.js` does them separately.
