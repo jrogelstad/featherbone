@@ -60,7 +60,11 @@
         note: "",
         organizations: [],
         onlyOrg: false,
+        packages: [],
+        packagesUnknown: [],
         picked: {},
+        pkgSelection: undefined,
+        screen: undefined,
         providers: [],
         ready: false,
         selection: undefined,
@@ -193,7 +197,21 @@
         }).then(m.redraw);
     }
 
+    function loadPackages() {
+        return request("GET", "/platform/packages").then(function (data) {
+            vm.packages = data.packages || [];
+            vm.packagesUnknown = data.unknown || [];
+            vm.ready = true;
+        }).catch(function (err) {
+            vm.error = reason(err);
+            vm.ready = true;
+        }).then(m.redraw);
+    }
+
     function load() {
+        if (vm.view === "platform" && vm.screen === "packages") {
+            return loadPackages();
+        }
         return (
             vm.view === "platform"
             ? loadPlatform()
@@ -207,6 +225,7 @@
         vm.note = "";
         vm.form = undefined;
         vm.selection = undefined;
+        vm.screen = undefined;
         window.history.pushState(
             undefined,
             "",
@@ -1230,6 +1249,232 @@
         ]);
     }
 
+    function selectedPackage() {
+        return vm.packages.find(
+            (one) => one.name + "@" + one.version === vm.pkgSelection
+        );
+    }
+
+    /*
+        Install from here is the server half of ADR-002's two acts: the
+        file is put where the server looks for packages, and no
+        database changes. Deploy, on the instances list, is what
+        reaches one.
+    */
+    function addPackage(file) {
+        let body = new FormData();
+
+        if (!file) {
+            return;
+        }
+
+        vm.isBusy = true;
+        vm.error = "";
+        vm.note = "";
+        body.append("package", file);
+
+        m.request({
+            background: true,
+            body,
+            extract: function (xhr) {
+                let data;
+
+                try {
+                    data = JSON.parse(xhr.responseText);
+                } catch (ignore) {
+                    data = xhr.responseText;
+                }
+                if (xhr.status >= 400) {
+                    throw {data, status: xhr.status};
+                }
+                return data;
+            },
+            method: "POST",
+            url: "/platform/packages/install"
+        }).then(function (done) {
+            vm.isBusy = false;
+            vm.note = (
+                "Installed " + done.name + " " + done.version + (
+                    done.libraries
+                    ? " with its libraries"
+                    : ""
+                ) + ". Nothing is deployed yet."
+            );
+            vm.pkgSelection = done.name + "@" + done.version;
+            return loadPackages();
+        }).catch(function (err) {
+            vm.isBusy = false;
+            vm.error = reason(err);
+            m.redraw();
+        });
+    }
+
+    function removePackage() {
+        let one = selectedPackage();
+
+        if (!one) {
+            return;
+        }
+
+        vm.isBusy = true;
+        vm.error = "";
+        vm.note = "";
+
+        request("POST", "/platform/packages/remove", {
+            name: one.name,
+            version: one.version
+        }).then(function () {
+            vm.isBusy = false;
+            vm.note = one.name + " " + one.version + " is off this server";
+            vm.pkgSelection = undefined;
+            return loadPackages();
+        }).catch(function (err) {
+            vm.isBusy = false;
+            vm.error = reason(err);
+            m.redraw();
+        });
+    }
+
+    function packageRow(one) {
+        let key = one.name + "@" + one.version;
+
+        return m("tr", {
+            class: (
+                "fb-admin-row" + (
+                    vm.pkgSelection === key
+                    ? " fb-table-row-selected"
+                    : ""
+                )
+            ),
+            onclick: function () {
+                vm.pkgSelection = key;
+            }
+        }, [
+            m("td", {class: "fb-admin-col-name"}, one.name),
+            m("td", one.version),
+            m("td", {class: "fb-admin-col-status"}, (
+                one.isNewest
+                ? "newest"
+                : m("span", {
+                    class: "fb-admin-muted",
+                    title: (
+                        "This server also holds " + one.newest +
+                        ", which is newer"
+                    )
+                }, one.newest + " is newer")
+            )),
+            m("td", (
+                one.instances.length
+                ? one.instances.join(", ")
+                : m("span", {class: "fb-admin-muted"}, "nothing")
+            ))
+        ]);
+    }
+
+    function packagesScreen() {
+        let one = selectedPackage();
+        let why = "";
+
+        if (!one) {
+            why = "Select a package";
+        } else if (one.isUsed) {
+            why = (
+                one.name + " " + one.version + " is deployed to " +
+                one.instances.join(", ") + ". Deploy those instances " +
+                "onto another version first."
+            );
+        } else if (one.isUncertain) {
+            why = (
+                "Cannot tell what " + vm.packagesUnknown.join(", ") +
+                " carries, so nothing can be removed safely"
+            );
+        } else {
+            why = "Take " + one.name + " " + one.version + " off this " +
+                "server. No database changes.";
+        }
+
+        return m("div", {class: "fb-platform-panel"}, [
+            m("div", {class: "fb-platform-section"}, (
+                "Packages on this server"
+            )),
+            m("div", {class: "fb-list-toolbar"}, [
+                m("input", {
+                    id: "fb-package-file",
+                    onchange: function (e) {
+                        addPackage(e.target.files[0]);
+                        e.target.value = "";
+                    },
+                    style: {display: "none"},
+                    type: "file"
+                }),
+                toolbarButton({
+                    disabled: vm.isBusy,
+                    key: "add",
+                    label: "Add package",
+                    run: function () {
+                        document.getElementById("fb-package-file").click();
+                    },
+                    title: (
+                        "Put a package on this server. A zip, or an " +
+                        "npm pack tarball."
+                    )
+                }),
+                toolbarButton({
+                    disabled: (
+                        vm.isBusy || !one || one.isUsed || one.isUncertain
+                    ),
+                    key: "remove",
+                    label: "Remove",
+                    run: removePackage,
+                    title: why
+                }),
+                m("div", {class: "fb-toolbar-fill"}),
+                m("div", {class: "fb-admin-muted"}, (
+                    vm.packages.length + " installed"
+                ))
+            ]),
+            (
+                vm.packagesUnknown.length
+                ? m("div", {class: "fb-admin-note"}, (
+                    "Nothing can be removed while " +
+                    vm.packagesUnknown.join(", ") + " cannot be asked " +
+                    "what " + (
+                        vm.packagesUnknown.length === 1
+                        ? "it carries"
+                        : "they carry"
+                    ) + ": an instance that cannot be seen may be " +
+                    "running the version being removed."
+                ))
+                : undefined
+            ),
+            m("div", {class: "fb-admin-scroll"}, m("table", {
+                class: "pure-table fb-admin-table"
+            }, [
+                m("thead", m("tr", [
+                    m("th", "Module"),
+                    m("th", "Version"),
+                    m("th", "Standing"),
+                    m("th", {
+                        title: (
+                            "The instances running this version. One " +
+                            "that is in use cannot be removed."
+                        )
+                    }, "Used by")
+                ])),
+                m("tbody", vm.packages.map(packageRow))
+            ])),
+            (
+                vm.packages.length
+                ? undefined
+                : m("div", {class: "fb-admin-note"}, (
+                    "No packages are installed on this server, so " +
+                    "Deploy has nothing to offer. Add one above, or " +
+                    "run node install.js --package <file>."
+                ))
+            )
+        ]);
+    }
+
     function console_() {
         let actions = organizationActions();
 
@@ -1255,6 +1500,30 @@
                     class: "pure-button",
                     onclick: load
                 }, "Refresh"),
+                m("button", {
+                    class: "pure-button",
+                    onclick: function () {
+                        vm.screen = (
+                            vm.screen === "packages"
+                            ? undefined
+                            : "packages"
+                        );
+                        vm.error = "";
+                        vm.note = "";
+                        vm.form = undefined;
+                        load();
+                    },
+                    title: (
+                        vm.screen === "packages"
+                        ? "Back to the organizations and instances"
+                        : "What this server holds, and which instances " +
+                            "run it"
+                    )
+                }, (
+                    vm.screen === "packages"
+                    ? "Organizations"
+                    : "Manage packages"
+                )),
                 m("div", {class: "fb-toolbar-fill"}),
                 m("button", {
                     class: "pure-button",
@@ -1267,13 +1536,17 @@
                     )
                 }, "Help")
             ]),
-            contextMenu([
+            (
+                vm.screen === "packages"
+                ? undefined
+                : contextMenu([
                 actions.edit,
                 actions.administrator,
                 actions.provider,
                 actions.instance,
                 actions.status
-            ]),
+                ])
+            ),
             m("div", {class: "fb-title"}, m("label", "The platform")),
             m("div", {class: "fb-platform-body"}, [
             (
@@ -1296,7 +1569,15 @@
                 ? organizationForm()
                 : undefined
             ),
-            m("div", {class: "fb-platform-panel"}, [
+            (
+                vm.screen === "packages"
+                ? packagesScreen()
+                : undefined
+            ),
+            (
+                vm.screen === "packages"
+                ? undefined
+                : m("div", {class: "fb-platform-panel"}, [
                 m("div", {class: "fb-platform-section"}, "Organizations"),
                 m("div", {class: "fb-list-toolbar"}, [
                     toolbarButton(actions.organization),
@@ -1319,8 +1600,12 @@
                     ])),
                     m("tbody", vm.organizations.map(organizationRow))
                 ]))
-            ]),
-            m("div", {class: "fb-platform-panel"}, [
+                ])
+            ),
+            (
+                vm.screen === "packages"
+                ? undefined
+                : m("div", {class: "fb-platform-panel"}, [
                 m("div", {class: "fb-platform-section"}, (
                     vm.onlyOrg && organization
                     ? "Instances \u2014 " + organization.name
@@ -1382,7 +1667,8 @@
                     ])),
                     m("tbody", visibleFleet().map(fleetRow))
                 ]))
-            ]),
+                ])
+            ),
             m("div", {class: "fb-admin-meta"}, m("a", {
                 class: "fb-click-text",
                 onclick: signOut
