@@ -192,6 +192,8 @@
             "isMaintenance": {
                 "description": "Instance is down for a deployment (ADR-002 question 7). Sign-in and application requests are refused with an explanation rather than a 404; a platform administrator may still sign in, so an installation with one instance can bring it back. Deploy sets it and clears it",
                 "type": "boolean",
+                "default": false,
+                "isRequired": true,
                 "isAlwaysLoad": true
             }
         }

@@ -60,3 +60,6 @@ server/out
 test/.artifacts
 claude-branches/
 *.log
+
+# Ignore local featherbone modules
+modules

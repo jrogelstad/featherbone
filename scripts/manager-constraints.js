@@ -94,6 +94,26 @@
         }
     ];
 
+    /*
+        Columns added to a table that already existed, which every
+        instance registered before the column was added has as NULL.
+        The feather's own default governs new tables; this is what
+        brings the rows already there into line, and fixes the column
+        for the inserts that do not name it.
+
+        Every reader tests `=== true`, so a NULL reads as false today
+        -- but "down for maintenance is unknown" is not a state the
+        design has, and anybody writing the obvious `WHERE NOT
+        is_maintenance` would quietly skip those rows (John, Oct 2026).
+    */
+    const BACKFILL = [
+        {
+            column: "is_maintenance",
+            table: "tenant",
+            value: "false"
+        }
+    ];
+
     exports.execute = function (obj) {
         async function build() {
             let i = 0;
@@ -108,6 +128,34 @@
                 await obj.client.query(
                     "COMMENT ON INDEX " + idx.name + " IS '" +
                     idx.comment.replace(/'/g, "''") + "'"
+                );
+            }
+
+            let n = 0;
+
+            while (n < BACKFILL.length) {
+                let one = BACKFILL[n];
+                n += 1;
+
+                let there = await obj.client.query(
+                    (
+                        "SELECT 1 FROM information_schema.columns " +
+                        "WHERE table_name = $1 AND column_name = $2"
+                    ),
+                    [one.table, one.column]
+                );
+
+                if (!there.rows.length) {
+                    continue;
+                }
+
+                await obj.client.query(
+                    "ALTER TABLE " + one.table + " ALTER COLUMN " +
+                    one.column + " SET DEFAULT " + one.value
+                );
+                await obj.client.query(
+                    "UPDATE " + one.table + " SET " + one.column + " = " +
+                    one.value + " WHERE " + one.column + " IS NULL"
                 );
             }
         }
