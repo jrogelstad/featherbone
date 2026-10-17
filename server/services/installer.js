@@ -247,6 +247,51 @@
                     let len = data.length;
                     let b = 0;
 
+                    /*
+                        A package's data is the package's to assert.
+                        Where a record it carries collides with one
+                        already here on a natural key, the two are the
+                        same record under two ids -- the package's own
+                        id is derived from its contents, so a database
+                        that acquired the record another way has a
+                        different one. The package wins: the write is
+                        aimed at the record already there, which POST
+                        with an id applies over the top of.
+
+                        Refusing instead left the install half applied
+                        and the operator with nothing to do but delete
+                        rows by hand (John, Oct 2026).
+                    */
+                    function overwrite(payload, err) {
+                        if (
+                            (err || {}).code !== "natural_key_conflict" ||
+                            !err.heldBy || payload.id === err.heldBy
+                        ) {
+                            rollback(err);
+                            return;
+                        }
+
+                        console.log(
+                            "  " + payload.name + " " +
+                            err.naturalKey.property + " \"" +
+                            err.naturalKey.value + "\" is already here " +
+                            "under another id; the package's record " +
+                            "replaces it"
+                        );
+
+                        let again = Object.assign({}, payload, {
+                            id: err.heldBy
+                        });
+
+                        again.data = Object.assign({}, payload.data, {
+                            id: err.heldBy
+                        });
+
+                        pDatasource.request(again, true).then(
+                            nextItem
+                        ).catch(rollback);
+                    }
+
                     // Iterate recursively
                     nextItem = function () {
                         let payload;
@@ -258,7 +303,9 @@
                             b += 1;
                             pDatasource.request(payload, true).then(
                                 nextItem
-                            ).catch(rollback);
+                            ).catch(function (err) {
+                                overwrite(payload, err);
+                            });
                             return;
                         }
 

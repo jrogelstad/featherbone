@@ -1,0 +1,16 @@
+[
+    {
+        "name": "HelpLink",
+        "method": "POST",
+        "module": "fbtbatch",
+        "id": "fbtbatchhelp1",
+        "data": {
+            "id": "fbtbatchhelp1",
+            "module": "fbtbatch",
+            "icon": "article",
+            "displayValue": "FBT Collide",
+            "label": "FBT Collide",
+            "resource": "/help/fbtbatch.html#from-the-package"
+        }
+    }
+]
