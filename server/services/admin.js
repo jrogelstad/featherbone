@@ -1327,9 +1327,27 @@
                 });
 
                 try {
+                    /*
+                        The target's registry entry, not the caller's.
+                        It is the connection the installer writes
+                        through, so the caller's sent a deployment at
+                        the database the operator happened to be signed
+                        in to -- and from the platform console, where
+                        there is no instance at all, at the manager.
+                        The resolution above was already looking this
+                        up and refusing when the server does not serve
+                        it; it simply was not the value passed.
+
+                        What it looked like: a module whose install
+                        starts a ServerProcess failed on "Either a
+                        client or tenant value must be included", and
+                        the failed deployment left the instance held
+                        (John, Oct 2026).
+                    */
                     await datasource.install(dir, obj.user, {
                         databases: [target.pg_database],
-                        tenant: obj.tenant
+                        isSuper: true,
+                        tenant
                     });
                     await datasource.recordDeployed(
                         target.pg_database,
@@ -1562,6 +1580,173 @@
                 ")"
             );
         }
+
+        /**
+            What this server holds, and which instances run it.
+
+            The usage is what makes a package safe to take off: a
+            version an instance is running is the code that instance
+            executes, and removing it drops that instance back to the
+            rows in its own database without anything saying so --
+            which is the "adrift" state the fleet view exists to make
+            visible. So the screen that removes packages has to show
+            the same thing first.
+
+            @method packages
+            @param {Object} payload
+            @return {Promise} [{name, version, isNewest, instances,
+                               isUsed, isUncertain}]
+        */
+        that.packages = async function (obj) {
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "manage the packages on this server");
+            });
+
+            let installed = await datasource.installedPackages();
+            let seen = await datasource.packageUsage();
+
+            return {
+                packages: installed.map(function (one) {
+                    let instances = seen.usage[
+                        one.name + "@" + one.version
+                    ] || [];
+
+                    return Object.assign({}, one, {
+                        instances,
+                        isUncertain: seen.unknown.length > 0,
+                        isUsed: instances.length > 0
+                    });
+                }),
+                unknown: seen.unknown
+            };
+        };
+
+        /**
+            Put a package on this server (ADR-002 section 6, Install).
+            No database is touched; Deploy is the separate act that
+            reaches one.
+
+            @method installPackage
+            @param {Object} payload
+            @param {String} payload.data.source Uploaded archive
+            @param {Boolean} [payload.data.force] Replace the version
+            @return {Promise} {name, version, libraries}
+        */
+        that.installPackage = async function (obj) {
+            let data = obj.data || {};
+            let done;
+
+            if (!data.source) {
+                throw invalid("No package was uploaded");
+            }
+
+            let who = await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "install a package on this server");
+                return actorPk(ctx);
+            });
+
+            done = await datasource.installPackage(data.source, {
+                force: data.force === true
+            });
+
+            await manager.run((mclient) => manager.audit(mclient, {
+                action: "package.installed",
+                actorPk: who,
+                by: obj.user,
+                detail: done.name + " " + done.version + (
+                    done.libraries
+                    ? " with its libraries"
+                    : ""
+                )
+            }));
+
+            return {
+                libraries: done.libraries,
+                name: done.name,
+                version: done.version
+            };
+        };
+
+        /**
+            Take a package off this server, unless an instance is
+            running it.
+
+            An instance that cannot be asked is not taken for an
+            instance that is not using it: the removal is refused and
+            says which could not be reached, because the alternative
+            is dropping an instance to its rows on the strength of a
+            question nobody managed to ask.
+
+            @method removePackage
+            @param {Object} payload
+            @param {String} payload.data.name
+            @param {String} payload.data.version
+            @return {Promise} {name, version}
+        */
+        that.removePackage = async function (obj) {
+            let data = obj.data || {};
+            let name = String(data.name || "").trim();
+            let version = String(data.version || "").trim();
+
+            if (!name || !version) {
+                throw invalid("Name the module and the version");
+            }
+
+            let who = await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "remove a package from this server");
+                return actorPk(ctx);
+            });
+
+            if (!datasource.packageDir(name, version)) {
+                throw invalid(
+                    name + " " + version + " is not installed on this " +
+                    "server"
+                );
+            }
+
+            let seen = await datasource.packageUsage();
+            let running = seen.usage[name + "@" + version] || [];
+
+            if (running.length) {
+                throw invalid(
+                    name + " " + version + " is deployed to " +
+                    running.join(", ") + ". Deploy " + (
+                        running.length === 1
+                        ? "that instance"
+                        : "those instances"
+                    ) + " onto another version before removing it."
+                );
+            }
+            if (seen.unknown.length) {
+                throw invalid(
+                    "Cannot tell whether " + name + " " + version +
+                    " is in use: " + seen.unknown.join(", ") +
+                    " could not be asked what " + (
+                        seen.unknown.length === 1
+                        ? "it carries"
+                        : "they carry"
+                    ) + ". Removing it would drop any instance running " +
+                    "it back to the code in its own tables."
+                );
+            }
+
+            await datasource.removePackage(name, version);
+
+            await manager.run((mclient) => manager.audit(mclient, {
+                action: "package.removed",
+                actorPk: who,
+                by: obj.user,
+                detail: name + " " + version
+            }));
+
+            return {name, version};
+        };
 
         function requirePlatform(ctx, what) {
             if (ctx.tier !== "platform") {

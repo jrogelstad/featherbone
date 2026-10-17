@@ -191,9 +191,13 @@ It holds two lists. **Organizations** says what each one owns -- its
 instances, its people, how many can administer it, and how it signs in
 -- and carries the actions: create one, rename it or change its
 sign-in, appoint its administrator, close it or open it again, and
-build it an instance. **Every instance on this installation** is the
-Instances screen without the organization boundary: each database with
-its owner, its state and the connection it is reached through.
+build it an instance. **Instances** is the Instances screen without
+the organization boundary: every database on the installation with its
+owner, its state and the connection it is reached through. Each list
+carries its own toolbar, so the actions on an organization are never
+mixed with the actions on an instance, and **Show selected
+organization's instances** narrows the second list to the organization
+selected in the first.
 
 Onboarding a new organization is those actions in order:
 
@@ -336,8 +340,10 @@ it as a wall would mean a package per edition. What is a boundary is
 
 Deploy from the Instances screen applies one package version to one
 instance. The platform console (`/platform`) does the same across a
-group: tick the instances in **Every instance on this installation**,
-press **Deploy**, and choose the package.
+group: tick the instances in **Instances**, press **Deploy**, and
+choose the package. A tick the organization filter has hidden drops out
+of the deployment, so Deploy never acts on an instance that is not on
+show.
 
 A group is a sequence of single deployments, not a second way of
 deploying: each instance is held, applied to and let go in turn, so
@@ -562,12 +568,18 @@ These are two acts, and `install.js` does them separately.
 database at all:
 
 ```bash
-node install.js --package <directory-or-tarball>   # [--force]
-node install.js --packages                         # what is installed
+node install.js --package <zip-tarball-or-directory>   # [--force]
+node install.js --packages                             # what is installed
 ```
 
-The source is a directory or an `npm pack` tarball. Its
-`package.json` and `manifest.json` must agree about the version, and
+The source is a **zip**, an `npm pack` tarball, or an unpacked
+directory. Zip is Featherbone's own format -- it is what the packager
+writes and what every package shipped before this looks like -- and a
+zip made by compressing a folder is read as well as one holding its
+files at the root. The format is taken from the file's own bytes
+rather than its name, so a package that was renamed on the way still
+reads. Where the package carries a `package.json`, that and
+`manifest.json` must agree about the version, and
 the manifest's `module` is the directory name, because that name is
 what a database's `module` row carries and what dispatch matches on. A
 version already installed is left alone unless `--force` says to
@@ -596,6 +608,16 @@ the server holds no package for, with a line in the log saying so, and
 they are read from the instance now rather than from the manager -- the
 one-mode collapse had left that loader pointed at the manager, so an
 instance's rows had quietly stopped being loaded at all.
+
+From the platform console, **Manage packages** on the top toolbar does
+the same from a screen: it lists what this server holds, which
+instances run each version, and whether a newer one is installed. **Add
+package** uploads one; **Remove** takes one off. A version an instance
+is running cannot be removed -- that version is the code the instance
+executes, so removing it would drop the instance back to the rows in
+its own database without anything saying so -- and nor can one while an
+instance cannot be asked what it carries, since an instance that cannot
+be seen may be running it. The refusal names the instances either way.
 
 **Deploy** applies one installed version to one database:
 

@@ -866,6 +866,76 @@
         @param {String} version
         @return {String|undefined}
     */
+    /**
+        Which instances carry each installed package, so a version
+        nothing runs can be told from one something does. The answer
+        is read from the instances themselves rather than from the
+        registry's cached copy, for the same reason the fleet view is
+        (ADR-002 question 2).
+
+        `unknown` names the instances that could not be asked. They
+        are not "not using it": a caller deciding whether a version is
+        safe to remove has to treat an instance it cannot see as one
+        that might be running it.
+
+        @method packageUsage
+        @return {Promise} {usage: {"name@version": [database]}, unknown}
+    */
+    that.packageUsage = async function () {
+        let deployed = await that.deployedModules();
+        let usage = {};
+        let unknown = [];
+
+        Object.keys(deployed).forEach(function (database) {
+            let one = deployed[database] || {};
+
+            if (one.error) {
+                unknown.push(database);
+                return;
+            }
+
+            (one.modules || []).forEach(function (mod) {
+                let key = mod.name + "@" + mod.version;
+
+                usage[key] = usage[key] || [];
+                usage[key].push(database);
+            });
+        });
+
+        return {unknown, usage};
+    };
+
+    /**
+        Take an installed package off this server.
+
+        @method removePackage
+        @param {String} name
+        @param {String} version
+        @return {Promise} {name, version}
+    */
+    that.removePackage = async function (name, version) {
+        let conf = await config.read();
+
+        return packages.remove(name, version, {dir: conf.modulesDir});
+    };
+
+    /**
+        Put a package on this server from a file somebody uploaded.
+
+        @method installPackage
+        @param {String} source Archive or directory
+        @param {Object} [options]
+        @return {Promise} {name, version, dir, libraries}
+    */
+    that.installPackage = async function (source, opts) {
+        let conf = await config.read();
+
+        return packages.install(source, Object.assign(
+            {dir: conf.modulesDir},
+            opts || {}
+        ));
+    };
+
     that.packageDir = function (name, version) {
         let pkg = packages.resolve(name, version);
 
@@ -2244,6 +2314,22 @@
         }
 
         resp = await db.connect(opts.tenant);
+
+        /*
+            A trusted install acts as the service account, which is
+            what the command line has always done (install.js sets the
+            client's user to config's pgUser). The operator who asked
+            is recorded in the audit, not impersonated in the database:
+            a platform administrator deploying to a customer's instance
+            is generally not a user of it at all, and the row-level
+            ownership checks are written for users of the database.
+        */
+        if (opts.isSuper === true) {
+            let conf = await config.read();
+
+            resp.client.currentUser = () => conf.pgUser;
+        }
+
         // Do the work
         while (targets.length) {
             await installer.install(
@@ -2252,7 +2338,17 @@
                 filename,
                 username,
                 {
-                    isSuper: false,
+                    /*
+                        "Super" here means a caller the installer need
+                        not re-check: it skips the per-database super
+                        user lookup and the ServerProcess progress
+                        record, which is what the command line has
+                        always passed. A Deploy has already required a
+                        platform administrator, and the database it is
+                        aimed at is not one the caller has to be a user
+                        of, so it passes it too.
+                    */
+                    isSuper: opts.isSuper === true,
                     subscription: opts.subscription,
                     tenant: targets.shift()
                 }

@@ -22,10 +22,28 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | --- | --- | --- | --- |
 | A Foundations | A.1–A.5 | — | — |
 | B Identity cutover | B.1-B.8 | — | — |
-| C Credentials and SSO | C.1, C.2 | — | C.3, C.4 |
-| D Tenant lifecycle | D.1–D.4 | — | D.5 |
-| E Multi-node readiness | E.2, E.4 | E.1, E.3, E.5 | — |
+| C Credentials and SSO | C.1–C.4 | — | — |
+| D Tenant lifecycle | D.1–D.5 | — | — |
+| E Multi-node readiness | E.2, E.3, E.4 | E.1, E.5 | — |
 | F Verification | F.1–F.4 | — | — |
+| G Platform administration | G.1–G.4 | — | — |
+
+**2026-10-16, the second half of the day: John answered every open
+question in this plan and in ADR-002, and the answers are built.** The
+decisions are recorded where they belong -- D.5 under its own item,
+E.3 under its own, C.3/C.4 under theirs, the demo question under D.4 --
+and the branches are in `featherbone-fix-branches.md`. In short:
+
+| Question | John's answer | Where it went |
+| --- | --- | --- |
+| Platform administration (new, G) | "make the global platform administration an option for a global admin" | `feat/g1-instance-picker`, `feat/g2-platform-console` |
+| E.3, where `$session` lives | the picker settles it: one sign-in against the manager | sessions stay in the manager; (b) and (c) are closed |
+| D.5, are edition limits a boundary | "helps it determine what workbooks to show... I would like the edition setting to only be set or changed by the platform administrator" | `feat/d5-edition-platform-only` |
+| C.3/C.4, SSO and against what | "Azure AD is the most common. Let's start with that" | `feat/c3-azure-ad-sso` |
+| ADR-002, the combined zip install | "I'm going to abandon the admin_console package" | nothing to build; recorded in ADR-002 §10 |
+| ADR-002, fleet upgrade as one action | "one by one or in a group... likely patches I would want to deploy to a fleet" | `feat/fleet-group-deploy` |
+| ADR-002, customer extension | "mainly just an implementation methodology and note" | recorded in ADR-002 §10, nothing to build |
+| D.4, dropping an expired demo | "after more time has passed... if nobody says anything after, say, a month, we'll just completely drop it" | `feat/demo-drop-after-grace` |
 
 **What that means in practice.** Sign-in is by identity and nothing else
 (**B.8**): passwords verified in Node, `access_grant` as the entry boundary,
@@ -48,69 +66,69 @@ claims primitive, bounded pools and `resave: false` (**E**), and the
 isolation, mirror and two-node claims are run rather than asserted
 (**F.1–F.3**), with F.4's rehearsal recorded under B.6.
 
-**What is left is not code to write here; it is John's to decide or other
+**What is left is not code to write here; it is John's to run or other
 repositories' to change:**
 
 1. **Run the migration on each real installation** (improvement-plan 1.1's
    remainder). Since B.8 an unmigrated installation has nobody who can sign
    in. Then `node install.js --instance <name>` on every instance so the
-   installed scripts match the server.
-2. **D.5** — are edition limits a boundary to enforce server-side, or
-   documented as cosmetic? A decision to record, then an afternoon if the
-   answer is "enforce".
-3. **C.3/C.4 (SSO)** — per-organization OIDC and just-in-time provisioning
-   need an identity provider to verify against and a dependency choice
-   (hand-rolling OIDC is a hazard). Whether SSO is wanted, and against what
-   (Azure AD was the reference target), is the decision that starts it.
-4. **E.3's second half** — moving `$session` per tenant (or a stateless
-   cookie) buys surviving a manager outage at the price of cross-instance
-   sign-out, which the README advertises as a feature. `resave: false` is
-   already in; the trade is the decision.
-5. **The modules:** the CronJob module's `initialize-cron-job.js` should
-   call `f.datasource.claimWork(name, interval)` before firing (E.1's last
-   line), and SupplyChain's module-level `pending` guards should become
-   database locks (E.5's second half). Both live in their own repositories.
-6. **Whether an expired demo should eventually be dropped**, not just
-   closed: the sweep closes and audits, dropping stays a human action.
+   installed scripts match the server, and `node install.js --manager`
+   once, which is also what builds the C.3 federation tables.
+2. **Prove the single sign-on round trip against a real directory.**
+   Everything that decides *who a subject is* is tested
+   (`test/api/federation.test.js`); discovery, PKCE, the state and nonce
+   round trip, the id-token signature, issuer and audience checks and the
+   userinfo fallback are `openid-client`'s and have never been run here
+   against Entra ID. One organization pointed at a real directory is the
+   done-when C.3 already asks for.
+3. **The modules.** Both live in their own repositories, and neither was
+   reachable from the session that did the rest of this work:
+    - The **CronJob** module's `initialize-cron-job.js` should claim the
+      job before firing it (E.1's last line), so one node runs each job
+      and not every node:
 
-**Added 2026-10-16 -- not built, and not previously on this list (John's
-find):** platform administration has no front door.
+      ```js
+      // Before firing, where `name` is the job and `interval` its
+      // period in seconds
+      if (!await f.datasource.claimWork(name, interval)) {
+          return;   // another node has this one
+      }
+      ```
 
-7. **G.1 The instance picker.** A URL with no database in it fails today.
-   The plan says (sign-in section of section 9) that with no database in
-   the URL the user signs in once against the manager, is shown the
-   instances their grants reach, and selecting one redirects there. This
-   is what makes E.3's session question a constraint rather than an open
-   choice: sessions stay in the manager. Needs a manager-served sign-in
-   page and a list-my-instances route; nothing else in the plan builds it.
-8. **G.2 Organizations on screen.** Creating an organization, naming its
-   first administrator, deactivating it, and seeing all of them is
-   command-line only (`install.js --instance <n> --organization "<name>"`,
-   which also makes the service account its administrator). The Users
-   screen's organization picker is break-glass only. A platform page
-   (organization list with create, rename, deactivate, appoint first
-   administrator) in the row-action pattern.
-9. **G.3 The fleet across organizations.** The Instances screen shows the
-   signed-in organization's instances. A platform administrator has no
-   view of every instance with its owner, state and version. Depends on
-   G.2's page; reuses the fleet view's data.
-10. **G.4 Signing in to the manager itself.** Whether a platform
-    administrator signs in at the manager (no instance) and administers
-    from there, instead of borrowing an instance's session. The picker
-    (G.1) is the natural place: a platform administrator who picks "the
-    platform" lands on G.2/G.3. The manager is deliberately not routable
-    today (section 9), so this is a decision before it is work.
+      `claimWork` is in the framework and tested (`test/api/multinode.js`,
+      F.3); nothing else is needed on this side.
+    - **SupplyChain**'s module-level `pending` guards should become
+      database locks (E.5's second half).
+4. **Whether SupplyChain's five print services are ported** off `pdfjs`
+   and `table-layout`, which master left behind for `pdfmake`.
 
-**ADR-002's own remainder moved the same way, 2026-10-16.** The
-packages-on-disk work is implemented (that ADR's section 10 is its
-tally): Install and Deploy are separate acts, the maintenance state
+**Added and built 2026-10-16 (John's find):** platform administration
+had no front door. The four items are Tier G below; all four are done.
+
+**ADR-002's own remainder, answered the same day.** The
+packages-on-disk work was already implemented (that ADR's section 10 is
+its tally): Install and Deploy are separate acts, the maintenance state
 exists, the fleet view says which instance is behind, both halves of
 "source code in a table" come from packages, `ModuleNpm` is retired and
-module-less service rows are reported. What is left there is also
-John's: whether to retire the Admin Console's combined zip install in
-favour of Install then Deploy, whether a fleet upgrade should be one
-action, and whether customers get extension by package and spare user
-columns -- which improvement item 0.14 gates.
+module-less service rows are reported. What was left there was John's,
+and he answered it:
+
+* **The Admin Console's combined zip install** -- "I'm going to abandon
+  the admin_console package." Nothing to build: Install then Deploy on
+  the command line and the screen is the path, and the combined one
+  goes with the package.
+* **A fleet upgrade as one action** -- "I'd like the option to upgrade
+  the fleet one by one or in a group. For example, if I want to test in
+  a test database before going to production, I would need to do that
+  individually. But likely patches I would want to deploy to a fleet,
+  especially if urgent." Built on `feat/fleet-group-deploy`: a group is
+  a sequence of single deployments, each instance held and let go in
+  turn, named rather than implied.
+* **Customer extension by package and spare user columns** -- "either
+  way I don't think that fundamentally changes anything we've done or
+  are going to do here. It's mainly just an implementation methodology
+  and note." Recorded as such; improvement item 0.14 still gates the
+  user-column half.
 
 ## How to use this plan
 
@@ -125,6 +143,7 @@ mostly independent.
 | D | Tenant lifecycle into the framework | 5 | Needs A; independent of B |
 | E | Multi-node readiness | 5 | A.2 first; rest independent |
 | F | Verification | 4 | Proves A–E |
+| G | Platform administration | 4 | Needs B and D |
 
 **Two things do not wait for any of this.** Improvement-plan Tier 2
 (SupplyChain money and inventory: tax rounding, mid-transaction `COMMIT`s,
@@ -622,23 +641,45 @@ Where requirements 1 and 7 finally hold for everything, not just passwords.
   names its organization. Fixed on the way: a failed magic-link send turned
   the two-factor envelope into a 500, because the response stand-in handed
   to the strategy only had json().*
-- [ ] **C.3 Per-organization authentication policy and SSO.** (L) *Not
-  started 2026-10-16, deliberately: it needs an identity provider to verify
-  against and a dependency decision (hand-rolling OIDC is a hazard), so
-  whether SSO is wanted and against what starts it -- see the status block's
-  decision list.*
-    - `identity_federation`: `(provider, issuer, subject) → identity`, plus
-      per-organization IdP configuration. OIDC first; Azure AD as the
-      reference target.
-    - Policy per organization: local password, SSO only, or both; MFA required
-      or not.
-    - Done when: one organization signs in through Azure AD while another uses
-      local passwords, on the same installation.
-- [ ] **C.4 Just-in-time provisioning from IdP claims.** (M, optional)
-    - Create the identity and its grants on first SSO sign-in, from group
-      claims mapped to tenant roles.
-    - Done when: a new employee at an SSO organization gets access without an
-      administrator creating the account by hand.
+- [x] **C.3 Per-organization authentication policy and SSO.** (L) *Done
+  2026-10-16 on `feat/c3-azure-ad-sso`, after John's answer: "Sure. Azure
+  AD is the most common. Let's start with that."*
+    - `identity_federation`: `(issuer, subject) → identity`, unique, plus
+      `identity_provider` per organization (issuer, client id, client
+      secret encrypted with the installation's key, and what to do with
+      claims). Both arrive with `node install.js --manager`.
+    - The protocol is `openid-client` 6.8.8, not hand-rolled: discovery,
+      PKCE, state, nonce, signature, issuer and audience are its. What is
+      ours is in `server/services/federation.js`, and the seam exists so
+      the deciding half can be tested without a directory.
+    - Policy per organization: `organization.authentication` is finally
+      read. `sso` refuses a local password **without checking it** --
+      there is nothing to learn from the answer, and a password that
+      still works is a way round the policy. MFA is the provider's: it
+      applied its own policy before it vouched for anyone.
+    - Done when: one organization signs in through Azure AD while another
+      uses local passwords, on the same installation. *The code is there
+      and the deciding half is tested; the round trip itself is John's to
+      prove against a real directory, which is item 2 of the status
+      block's list.*
+- [x] **C.4 Just-in-time provisioning from IdP claims.** (M, optional)
+  *Done on the same branch.*
+    - A subject nobody has seen is one of three things: already linked;
+      a user name that is already an identity here, which is linked
+      rather than duplicated (the person who was here before the
+      organization moved to single sign-on keeps their account and its
+      grants); or somebody to make an account for, if the provider is
+      set to make them. A made account is granted the databases the
+      provider names **and nothing else** -- an account that reaches
+      nothing is a safer default than one that reaches everything.
+    - A group claim carries the organization-administrator flag and is
+      applied on **every** sign-in, so a group taken away at the
+      provider is taken away here. Platform administration is never a
+      claim: a provider speaks for one organization, and that flag
+      crosses all of them.
+    - Done when: a new employee at an SSO organization gets access
+      without an administrator creating the account by hand. *Proven in
+      `test/api/federation.test.js` from the claims inward.*
 
 ## Tier D: Tenant lifecycle into the framework
 
@@ -723,8 +764,20 @@ Tier 5.
   from, in place, audited; the service account does it, since only the
   pg_database mark needs a superuser and that mark is best effort) and the
   expired-demo sweep (an is_demo instance past its expiration is closed to
-  sign-in and audited, hourly and on demand; nothing is dropped -- see the
-  status block's decision list). With D.1 the "generic parts" list is done:
+  sign-in and audited, hourly and on demand).
+  **Dropping settled 2026-10-16** on `feat/demo-drop-after-grace`, John's
+  answer: "I would eventually like demos to be dropped, but after more
+  time has passed because somebody might notice and say 'hey, I want to
+  turn that back on', but if nobody says anything after, say, a month,
+  we'll just completely drop it." So the sweep closes at the expiration
+  and drops once it has been expired longer than `demoGraceDays`
+  (config.json, 30 by default, 0 never). Keeping one is moving its
+  expiration forward -- reopening without moving it is closed again on
+  the next pass. The database and its data go; the registry row stays,
+  marked deleted, so what was there and when it went outlives the
+  instance. The drop is given no actor and needs none: it reads the
+  registry and refuses anything that is not a demo, closed and past the
+  grace, so the policy is the authority rather than a caller. With D.1 the "generic parts" list is done:
   registry UI, provisioning, templates, sweep. The module keeps commerce --
   the WooCommerce webhook and edition pricing -- and its bugs are its own
   repository's. `test/api/lifecycle.test.js`. Earlier progress below.*
@@ -763,11 +816,40 @@ Tier 5.
       **Absorbs 5.5.**
     - Done when: a new installation can create and manage tenants with no
       module installed, and the module only adds commerce.
-- [ ] **D.5 Decide whether edition limits are a real boundary.** (S)
+- [x] **D.5 Decide whether edition limits are a real boundary.** (S)
+  *Settled and built 2026-10-16 on `feat/d5-edition-platform-only`.*
     - Every feather and route is installed in every edition, so a Standard
       tenant can call Professional routes directly. **Absorbs 5.6.**
-    - Decide: enforce server-side, or document editions as cosmetic.
-    - Done when: the decision is recorded, and enforced if that is the answer.
+    - **John's answer:** an edition "helps it determine what workbooks to
+      show without having to create a proliferation of packages for each
+      of those options", and "eventually in this new structure I would
+      like the edition setting to only be set or changed by the platform
+      administrator". So an edition is **not** a security boundary: it
+      decides what is offered, not what is possible, and a package per
+      edition is exactly what it exists to avoid. **Who may change it
+      is** a boundary, and that is the platform administrator -- not the
+      instance's super user, who is the customer's own administrator.
+    - How it works today, for the record (JobShop 2.3.0-alpha2, read out
+      of the installed package): the edition is a module settings row
+      (`jobShopSettings.edition`, "Standard"/"Professional"/
+      "Enterprise"); worksheets are hidden by `f.hiddenFeathers()` in the
+      browser, which the server never consults; whole workbooks are
+      hidden for real by stripping their `$auth` rows, since
+      `getWorkbooks` filters on `can_read`.
+    - **Built:** a settings row is the platform's when its definition says
+      `isPlatformOnly` or when `config.json`'s `platformOnlySettings`
+      names it -- the second so `jobShopSettings` can be locked down
+      without touching that repository. The check runs before the
+      instance's own authorization, because an instance super user passes
+      that one. Reading is unchanged.
+    - **Left to the module:** JobShop's own `/job-shop/do-configure/`
+      route has no role check (the Develop workbook having no `$auth`
+      rows is all that keeps the button out of reach) and its service
+      passes the super-user bypass to every inner request. The settings
+      write is now refused, which is what the edition actually is, but
+      the route should refuse too.
+    - Done when: the decision is recorded, and enforced if that is the
+      answer. *Both hold.*
 
 ## Tier E: Multi-node readiness
 
@@ -788,13 +870,23 @@ locks and advisory locks are all already database-backed. These are the gaps.
 - [x] **E.2 Store WebAuthn challenges.** (S) *Done 2026-10-16 with C.1:
   challenges are manager rows, single use with expiry, and a ceremony begun
   on one node finishing on another is run in `test/api/multinode.test.js`.*
-- [~] **E.3 Session strategy.** (M) *The unambiguous half done 2026-10-16
+- [x] **E.3 Session strategy.** (M) *The unambiguous half done 2026-10-16
   on `feat/e-multinode-readiness`: `resave: false` (improvement plan 4.4),
   so a request no longer rewrites its whole session row; rolling stays and
-  slides the expiry with the store's cheap touch. The choice -- per-tenant
-  `$session` or a stateless cookie -- is on the status block's decision
-  list, because per-tenant sessions trade away cross-instance sign-out,
-  which the README advertises as a feature.*
+  slides the expiry with the store's cheap touch.*
+
+  ***Settled 2026-10-16 by the picker (G.1), which John asked for: the
+  session stays in the manager.*** The picker is a sign-in that happens
+  before any instance is chosen, so there is no instance to read a
+  session from; moving `$session` into the tenant database (option b)
+  would make the front door impossible, and a stateless cookie (option
+  c) would buy the same outage tolerance at the price of revocation.
+  What the manager's outage costs is therefore accepted on the record:
+  **no new sign-ins, and sessions already established keep working**
+  only so far as the instance does not need the manager -- which it
+  does, for the session store itself. The compensation is that one
+  sign-in reaches every instance and a sign-out ends it everywhere,
+  which is what the README advertises.
     - `$session` is in the control-plane database with `resave: true` and
       `rolling: true` (`server.js` ~2349), so **every request on every tenant
       writes a row in the control plane.**
@@ -804,6 +896,8 @@ locks and advisory locks are all already database-backed. These are the gaps.
       former, for the better failure mode: no new sign-ins, rather than
       everything down.
     - Done when: a control-plane outage leaves signed-in users working.
+      *Not met, and deliberately so: the picker needs the manager, and
+      the trade was made the other way.*
 - [x] **E.4 Pool sizing and a connection proxy.** (M) *Done 2026-10-16 on
   the same branch: instance pools are capped by `pgTenantPoolSize` (default
   10) with `pgTenantIdleTimeout` (default 60s) closing idle clients, so a
@@ -884,6 +978,69 @@ scratch cluster, not `demo`.
   item was removed by John's decision that the migration is one way (B.6's
   note). What remains is the real run per installation, which is operations,
   not rehearsal.*
+
+## Tier G: Platform administration
+
+*Added 2026-10-16. John: "I don't see the option yet to log in without
+a db in our url where, after authentication, I am prompted to pick
+one", and "Managing orgs is obviously essential". The plan described
+the picker in section 9 and never made it an item; organizations were
+the command line's alone. All four are done.*
+
+- [x] **G.1 The instance picker.** (M) *Done 2026-10-16 on
+  `feat/g1-instance-picker`.* A URL with no database answers with a
+  sign-in against the manager alone and the instances the identity's
+  grants reach; choosing one redirects there. Its own page rather than
+  part of the application bundle, which is built rather than read.
+    - **Entering an instance is where access to it is proven.** One
+      sign-in now reaches several instances, which it never did when a
+      session belonged to one instance from the start, so the grant is
+      read again at the door and recorded on the session. A revoked
+      grant shuts the door at the next entry rather than at expiry.
+    - A user name is unique within its organization, so an ambiguous
+      one is asked which organization it means -- without the
+      organizations being listed to someone who has not signed in, and
+      without trying the password against each, which would count a
+      failure against every one of them and lock them all.
+    - An organization that requires a second factor picks here and
+      signs in at the instance: the code is sent by the instance's own
+      mail service, which the manager has none of. No passport session
+      is made, so nothing is admitted on a half-proved identity.
+    - Done when: a bare URL signs somebody in and lands them in an
+      instance they are granted, and refuses one they are not.
+      *`test/api/picker.test.js`, 12 claims.*
+- [x] **G.2 Organizations on screen.** (M) *Done 2026-10-16 on
+  `feat/g2-platform-console`.* `/platform`, reached from the picker:
+  the organization list with what each owns, and the actions --
+  create, rename or change its sign-in, appoint its first
+  administrator, close or open it, build it an instance. Onboarding is
+  those in order, where it used to be `install.js --instance <name>
+  --organization "<name>"` leaving the service account as the
+  organization's administrator.
+    - The console runs with no instance of its own, so `contextFor`
+      works without one: the actor comes from the session identity and
+      must be a platform administrator, and every method names what it
+      acts on. **The authority is read from the identity each time,
+      never taken from the session.**
+    - Done when: a new organization is created, given an administrator
+      and given an instance, without a command line.
+      *`test/api/platform.test.js`, 13 claims.*
+- [x] **G.3 The fleet across organizations.** (S) *Done on the same
+  branch.* Every instance on the installation with its owner, state,
+  what it carries and how much of that is behind -- the Instances
+  screen without the organization boundary, which only a platform
+  administrator is given.
+- [x] **G.4 Platform administration as its own place.** (S) *Done on
+  the same branch, answering John's "make the global platform
+  administration an option for a global admin".* The manager stays
+  unrouted; the console is served where no database is named and the
+  picker is its door, so a platform administrator administers from
+  there rather than borrowing an instance's session.
+    - *Not done: an entry from inside an instance, for a platform
+      administrator already signed in to one. It is a button in
+      `client/components/admin-page.js` and would only appear in debug
+      mode until `client/clientmin.js` is rebuilt, which is why it was
+      left out rather than shipped half-visible.*
 
 ## 7. What the improvement plan loses to this plan
 

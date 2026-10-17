@@ -41,6 +41,7 @@
 (function (exports) {
     "use strict";
 
+    const AdmZip = require("adm-zip");
     const child = require("child_process");
     const fs = require("fs");
     const os = require("os");
@@ -386,20 +387,113 @@
             return loaded;
         };
 
+    /*
+        Zip is Featherbone's own package format -- `packager.js` writes
+        one with AdmZip, and every package shipped before packages moved
+        to disk is a zip. An `npm pack` tarball is read as well, since
+        that is what a module built as an npm package produces.
+
+        Sniffed rather than taken from the extension: a package that has
+        been renamed, or saved by a browser that chose its own suffix,
+        is still the archive it is.
+    */
+    function archiveKind(source) {
+        let head = Buffer.alloc(4);
+        let fd = fs.openSync(source, "r");
+        let read;
+
+        try {
+            read = fs.readSync(fd, head, 0, 4, 0);
+        } finally {
+            fs.closeSync(fd);
+        }
+
+        if (read >= 2 && head[0] === 0x1f && head[1] === 0x8b) {
+            return "tgz";
+        }
+        if (
+            read >= 4 && head[0] === 0x50 && head[1] === 0x4b &&
+            (head[2] === 0x03 || head[2] === 0x05 || head[2] === 0x07)
+        ) {
+            return "zip";
+        }
+        return "unknown";
+    }
+
+    /*
+        An archive is somebody else's file, so its entry names are not
+        trusted: a name containing ".." or an absolute path would write
+        outside the directory being unpacked into. Each one is resolved
+        against the target and refused if it lands anywhere else.
+    */
+    function unzip(source, into) {
+        let zip = new AdmZip(source);
+        let base = path.resolve(into) + path.sep;
+
+        zip.getEntries().forEach(function (entry) {
+            let to = path.resolve(into, entry.entryName);
+
+            if (!(to + path.sep).startsWith(base)) {
+                throw new Error(
+                    "The package holds an entry that would be written " +
+                    "outside it: " + entry.entryName
+                );
+            }
+            if (entry.isDirectory) {
+                fs.mkdirSync(to, {recursive: true});
+                return;
+            }
+            fs.mkdirSync(path.dirname(to), {recursive: true});
+            fs.writeFileSync(to, entry.getData());
+        });
+    }
+
+    /*
+        Where the package actually is once it is unpacked. A Featherbone
+        zip holds its files at the root; an npm tarball wraps them in
+        "package/"; and a zip made by compressing a folder wraps them in
+        a folder named after it, which is what most people hand you.
+    */
+    function rootOf(dir, source) {
+        if (fs.existsSync(path.join(dir, "manifest.json"))) {
+            return dir;
+        }
+
+        let dirs = fs.readdirSync(dir, {withFileTypes: true}).filter(
+            (one) => one.isDirectory() && !one.name.startsWith("__MACOSX")
+        ).filter(
+            (one) => fs.existsSync(
+                path.join(dir, one.name, "manifest.json")
+            )
+        );
+
+        if (dirs.length === 1) {
+            return path.join(dir, dirs[0].name);
+        }
+        if (dirs.length > 1) {
+            throw new Error(
+                source + " holds more than one package (" +
+                dirs.map((one) => one.name).join(", ") +
+                "). Install them one at a time."
+            );
+        }
+        throw new Error("No readable manifest.json in " + source);
+    }
+
         /**
             Install a package on this server (ADR-002 section 6).
             Nothing about any database changes: the files are unpacked
             where the server looks for them, and Deploy is a separate
             act.
 
-            The source is a directory, or an `npm pack` tarball, whose
-            `package.json` and `manifest.json` must agree about the
-            name and the version -- the manifest's module name is the
-            directory, and a package that disagrees with itself would
-            be dispatched under a name it does not answer to.
+            The source is a directory, a zip, or an `npm pack` tarball.
+            Where it carries a `package.json`, that and `manifest.json`
+            must agree about the version -- the manifest's module name
+            is the directory, and a package that disagrees with itself
+            would be dispatched under a name it does not answer to.
 
             @method install
-            @param {String} source Directory or .tgz
+            @param {String} source Directory, .zip or .tgz
             @param {Object} [options]
             @param {String} [options.dir] Modules directory
             @param {Boolean} [options.force] Replace the version
@@ -422,20 +516,30 @@
             }
 
             if (!fs.statSync(source).isDirectory()) {
-                /*
-                    An npm tarball holds everything under "package/".
-                    tar is used rather than a dependency: npm itself
-                    needs it, and Windows has shipped it since 10.
-                */
+                let kind = archiveKind(source);
+
+                if (kind === "unknown") {
+                    throw new Error(
+                        source + " is neither a directory nor an " +
+                        "archive this reads. A package is a zip, an " +
+                        "`npm pack` tarball, or an unpacked directory."
+                    );
+                }
+
                 work = fs.mkdtempSync(
                     path.join(os.tmpdir(), "fb-package-")
                 );
-                child.execFileSync("tar", ["-xzf", source, "-C", work]);
-                from = (
-                    fs.existsSync(path.join(work, "package"))
-                    ? path.join(work, "package")
-                    : work
-                );
+
+                if (kind === "zip") {
+                    unzip(source, work);
+                } else {
+                    /*
+                        tar is used rather than a dependency: npm itself
+                        needs it, and Windows has shipped it since 10.
+                    */
+                    child.execFileSync("tar", ["-xzf", source, "-C", work]);
+                }
+                from = rootOf(work, source);
             }
 
             try {
@@ -552,6 +656,53 @@
             @param {String} b
             @return {Number}
         */
+        /**
+            Take a version off this server. The files go; no database
+            is touched, which is the same division Install keeps --
+            whether any database still wants this version is the
+            caller's to settle before asking (ADR-002 section 6).
+
+            @method remove
+            @param {String} name
+            @param {String} version
+            @param {Object} [options]
+            @param {String} [options.dir] Modules directory
+            @return {Object} {name, version, dir}
+        */
+        that.remove = function (name, version, opts) {
+            opts = opts || {};
+
+            let into = opts.dir || root;
+            let place = path.join(into, name, version);
+
+            if (!fs.existsSync(path.join(place, "manifest.json"))) {
+                throw new Error(
+                    name + " " + version + " is not installed on this " +
+                    "server"
+                );
+            }
+
+            fs.rmSync(place, {recursive: true, force: true});
+
+            /*
+                The module's directory goes too once its last version
+                has, so the modules directory lists what is there
+                rather than the shape of what used to be.
+            */
+            let holder = path.join(into, name);
+
+            if (
+                fs.existsSync(holder) &&
+                !fs.readdirSync(holder).length
+            ) {
+                fs.rmdirSync(holder);
+            }
+
+            that.scan(into);
+
+            return {dir: place, name, version};
+        };
+
         that.compareVersions = function (a, b) {
             let one = parts(a);
             let two = parts(b);
