@@ -59,6 +59,7 @@
         needOrganization: false,
         note: "",
         organizations: [],
+        onlyOrg: false,
         picked: {},
         providers: [],
         ready: false,
@@ -1028,7 +1029,7 @@
         let modules = (instance.modules || {}).modules;
 
         if (!modules || !modules.length) {
-            return {adrift: 0, behind: 0, fromRows: 0, text: "—"};
+            return {adrift: 0, behind: 0, fromRows: 0, onDisk: 0, text: "—"};
         }
 
         return {
@@ -1040,6 +1041,7 @@
             adrift: modules.filter((one) => one.isVersionMissing).length,
             behind: modules.filter((one) => one.isBehind).length,
             fromRows: modules.filter((one) => !one.isOnDisk).length,
+            onDisk: modules.filter((one) => one.isOnDisk).length,
             text: modules.map(function (one) {
                 return one.name + " " + one.version + " (" + (
                     one.isOnDisk
@@ -1084,6 +1086,41 @@
                 ),
                 title: what.text
             }, [
+                /*
+                    Where the code runs from, said plainly. It used to
+                    be in the tooltip only, and the tooltip is also
+                    where the per-module list goes -- so on exactly the
+                    instances that had something wrong, the thing you
+                    most want to know was the thing hidden behind a
+                    hover (John, Oct 2026).
+                */
+                (
+                    what.onDisk
+                    ? m("span", {
+                        title: what.onDisk + " module(s) run from a " +
+                            "package on this server"
+                    }, what.onDisk + " disk")
+                    : undefined
+                ),
+                (
+                    what.onDisk && what.fromRows
+                    ? " / "
+                    : undefined
+                ),
+                (
+                    what.fromRows
+                    ? m("span", {
+                        title: what.fromRows + " module(s) have no " +
+                            "package on this server and run the code " +
+                            "in the database's own rows"
+                    }, what.fromRows + " rows")
+                    : undefined
+                ),
+                (
+                    what.onDisk || what.fromRows
+                    ? m("br")
+                    : undefined
+                ),
                 (
                     what.adrift
                     ? m("span", {
@@ -1102,15 +1139,9 @@
                     : undefined
                 ),
                 (
-                    !what.behind && !what.adrift
+                    !what.behind && !what.adrift && !what.onDisk &&
+                    !what.fromRows
                     ? what.text
-                    : undefined
-                ),
-                (
-                    what.fromRows && !what.adrift
-                    ? m("span", {
-                        class: "fb-admin-muted"
-                    }, " " + what.fromRows + " from rows")
                     : undefined
                 )
             ]),
@@ -1118,8 +1149,24 @@
         ]);
     }
 
+    function visibleFleet() {
+        let organization = selectedOrganization();
+
+        if (!vm.onlyOrg || !organization) {
+            return vm.fleet;
+        }
+        return vm.fleet.filter(
+            (one) => one.organizationId === organization.id
+        );
+    }
+
+    /*
+        Only what is on show. Ticking an instance and then narrowing the
+        list to one organization must not leave the hidden ticks in the
+        deployment.
+    */
     function pickedInstances() {
-        return vm.fleet.filter((i) => vm.picked[i.id] === true);
+        return visibleFleet().filter((i) => vm.picked[i.id] === true);
     }
 
     function deployForm() {
@@ -1203,18 +1250,29 @@
     function console_() {
         let actions = organizationActions();
 
+        let organization = selectedOrganization();
+
         return [
+            /*
+                The page's own toolbar carries only what belongs to the
+                page. Each list keeps its own actions over its own
+                heading, because one shared toolbar gave no way to tell
+                which buttons acted on an organization and which on an
+                instance (John, Oct 2026).
+            */
             m("div", {class: "fb-toolbar"}, [
                 m("button", {
                     class: "pure-button",
                     onclick: function () {
                         go("picker");
-                    }
-                }, "Instances"),
+                    },
+                    title: "Back to the instances you can open"
+                }, "My instances"),
                 m("button", {
                     class: "pure-button",
                     onclick: load
                 }, "Refresh"),
+                m("div", {class: "fb-toolbar-fill"}),
                 m("button", {
                     class: "pure-button",
                     onclick: function () {
@@ -1224,29 +1282,7 @@
                         "How platform administration works, in a page " +
                         "made to be read or printed"
                     )
-                }, "Help"),
-                m("div", {class: "fb-toolbar-fill"}),
-                toolbarButton(actions.organization),
-                toolbarButton(actions.edit),
-                toolbarButton(actions.administrator),
-                toolbarButton(actions.provider),
-                toolbarButton(actions.instance),
-                toolbarButton(actions.status),
-                toolbarButton({
-                    disabled: !pickedInstances().length,
-                    key: "deploy",
-                    label: "Deploy",
-                    run: function () {
-                        vm.form = {kind: "deploy"};
-                        vm.menu = undefined;
-                    },
-                    title: (
-                        pickedInstances().length
-                        ? "Deploy a package into the instances ticked " +
-                            "below, one after another"
-                        : "Tick the instances to deploy to"
-                    )
-                })
+                }, "Help")
             ]),
             contextMenu([
                 actions.edit,
@@ -1277,42 +1313,93 @@
                 ? organizationForm()
                 : undefined
             ),
-            m("div", {class: "fb-platform-section"}, "Organizations"),
-            m("div", {class: "fb-admin-scroll"}, m("table", {
-                class: "pure-table fb-admin-table"
-            }, [
-                m("thead", m("tr", [
-                    m("th", "Organization"),
-                    m("th", "State"),
-                    m("th", "Instances"),
-                    m("th", "People"),
-                    m("th", "Administrators"),
-                    m("th", "Sign-in")
-                ])),
-                m("tbody", vm.organizations.map(organizationRow))
-            ])),
-            m("div", {class: "fb-platform-section"}, (
-                "Every instance on this installation"
-            )),
-            m("div", {class: "fb-admin-scroll"}, m("table", {
-                class: "pure-table fb-admin-table"
-            }, [
-                m("thead", m("tr", [
-                    m("th", {
+            m("div", {class: "fb-platform-panel"}, [
+                m("div", {class: "fb-platform-section"}, "Organizations"),
+                m("div", {class: "fb-list-toolbar"}, [
+                    toolbarButton(actions.organization),
+                    toolbarButton(actions.edit),
+                    toolbarButton(actions.administrator),
+                    toolbarButton(actions.provider),
+                    toolbarButton(actions.instance),
+                    toolbarButton(actions.status)
+                ]),
+                m("div", {class: "fb-admin-scroll"}, m("table", {
+                    class: "pure-table fb-admin-table"
+                }, [
+                    m("thead", m("tr", [
+                        m("th", "Organization"),
+                        m("th", "State"),
+                        m("th", "Instances"),
+                        m("th", "People"),
+                        m("th", "Administrators"),
+                        m("th", "Sign-in")
+                    ])),
+                    m("tbody", vm.organizations.map(organizationRow))
+                ]))
+            ]),
+            m("div", {class: "fb-platform-panel"}, [
+                m("div", {class: "fb-platform-section"}, (
+                    vm.onlyOrg && organization
+                    ? "Instances \u2014 " + organization.name
+                    : "Instances"
+                )),
+                m("div", {class: "fb-list-toolbar"}, [
+                    toolbarButton({
+                        disabled: !pickedInstances().length,
+                        key: "deploy",
+                        label: "Deploy",
+                        run: function () {
+                            vm.form = {kind: "deploy"};
+                            vm.menu = undefined;
+                        },
                         title: (
-                            "Tick the instances to deploy a package to, " +
-                            "then press Deploy"
+                            pickedInstances().length
+                            ? "Deploy a package into the instances " +
+                                "ticked below, one after another"
+                            : "Tick the instances to deploy to"
                         )
-                    }, "Deploy"),
-                    m("th", "Organization"),
-                    m("th", "Instance"),
-                    m("th", "Database"),
-                    m("th", "State"),
-                    m("th", "Carries"),
-                    m("th", "People")
-                ])),
-                m("tbody", vm.fleet.map(fleetRow))
-            ])),
+                    }),
+                    m("div", {class: "fb-toolbar-fill"}),
+                    m("label", {
+                        class: "fb-list-toolbar-check",
+                        title: (
+                            organization
+                            ? "Show only the instances belonging to " +
+                                organization.name
+                            : "Select an organization above, and this " +
+                                "narrows the list to its instances"
+                        )
+                    }, [
+                        m("input", {
+                            checked: vm.onlyOrg === true,
+                            onclick: function (e) {
+                                vm.onlyOrg = e.target.checked;
+                            },
+                            type: "checkbox"
+                        }),
+                        "Show selected organization's instances"
+                    ])
+                ]),
+                m("div", {class: "fb-admin-scroll"}, m("table", {
+                    class: "pure-table fb-admin-table"
+                }, [
+                    m("thead", m("tr", [
+                        m("th", {
+                            title: (
+                                "Tick the instances to deploy a package " +
+                                "to, then press Deploy"
+                            )
+                        }, "Deploy"),
+                        m("th", "Organization"),
+                        m("th", "Instance"),
+                        m("th", "Database"),
+                        m("th", "State"),
+                        m("th", "Carries"),
+                        m("th", "People")
+                    ])),
+                    m("tbody", visibleFleet().map(fleetRow))
+                ]))
+            ]),
             m("div", {class: "fb-admin-meta"}, m("a", {
                 class: "fb-click-text",
                 onclick: signOut
@@ -1353,7 +1440,7 @@
                 }, signInForm());
             }
             if (vm.view === "platform") {
-                return m("div", console_());
+                return m("div", {class: "fb-platform-page"}, console_());
             }
 
             return m("div", {
