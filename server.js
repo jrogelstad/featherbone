@@ -3495,6 +3495,8 @@
         app.get("/platform/overview", doPlatform(
             async function (mclient, obj) {
                 let options = await platform.buildOptions(mclient);
+                let fleet = await platform.fleet(mclient);
+                let deployed = await datasource.deployedModules();
 
                 return {
                     actor: {
@@ -3502,7 +3504,18 @@
                         organization: obj.identity.organization,
                         username: obj.identity.username
                     },
-                    fleet: await platform.fleet(mclient),
+                    /*
+                        What each instance carries and what this server
+                        holds, so the console can say which instances
+                        are behind before anyone starts a rolling
+                        outage (ADR-002 question 7).
+                    */
+                    fleet: fleet.map(function (instance) {
+                        return Object.assign({}, instance, {
+                            modules: deployed[instance.database]
+                        });
+                    }),
+                    installed: await datasource.installedPackages(),
                     organizations: await platform.organizations(mclient),
                     services: options.services,
                     templates: options.templates
@@ -3556,6 +3569,10 @@
         );
         app.post("/platform/instance/drop", doAdminInstance("dropInstance"));
         app.post("/platform/template", doAdminInstance("buildTemplate"));
+        app.post(
+            "/platform/instances/deploy",
+            doAdminInstance("deployFleet")
+        );
         app.post(
             "/platform/instances/sweep",
             doAdminInstance("sweepDemosGuarded")
@@ -3643,6 +3660,10 @@
         dbRouter.post(
             "/:db/admin/template",
             doAdminInstance("buildTemplate")
+        );
+        dbRouter.post(
+            "/:db/admin/instances/deploy",
+            doAdminInstance("deployFleet")
         );
         dbRouter.post(
             "/:db/admin/instances/sweep",

@@ -47,12 +47,14 @@
         fleet: [],
         form: undefined,
         identity: undefined,
+        installed: [],
         instances: [],
         isBusy: false,
         menu: undefined,
         needOrganization: false,
         note: "",
         organizations: [],
+        picked: {},
         ready: false,
         selection: undefined,
         services: [],
@@ -163,6 +165,7 @@
             vm.organizations = data.organizations;
             vm.services = data.services;
             vm.templates = data.templates;
+            vm.installed = data.installed || [];
             vm.ready = true;
         }).catch(function (err) {
             /*
@@ -821,16 +824,141 @@
         ]);
     }
 
+    // What an instance carries, and whether anything it carries is
+    // behind a version this server holds (ADR-002 question 2)
+    function carries(instance) {
+        let modules = (instance.modules || {}).modules;
+
+        if (!modules || !modules.length) {
+            return {behind: 0, text: "—"};
+        }
+
+        let behind = modules.filter(function (one) {
+            let held = vm.installed.filter((p) => p.name === one.name);
+
+            return held.some((p) => p.version !== one.version && p.isNewest);
+        }).length;
+
+        return {
+            behind,
+            text: modules.map(
+                (one) => one.name + " " + one.version
+            ).join(", ")
+        };
+    }
+
     function fleetRow(instance) {
+        let what = carries(instance);
+
         return m("tr", {class: "fb-admin-row"}, [
+            m("td", m("input", {
+                checked: vm.picked[instance.id] === true,
+                onclick: function (e) {
+                    vm.picked[instance.id] = e.target.checked;
+                },
+                type: "checkbox"
+            })),
             m("td", {class: "fb-admin-col-name"}, (
                 instance.organization || "—"
             )),
             m("td", instance.name),
             m("td", {class: "fb-admin-muted"}, instance.database),
             m("td", {class: "fb-admin-col-status"}, state(instance)),
-            m("td", instance.users),
-            m("td", {class: "fb-admin-muted"}, instance.service || "—")
+            m("td", {
+                class: (
+                    what.behind
+                    ? undefined
+                    : "fb-admin-muted"
+                ),
+                title: what.text
+            }, (
+                what.behind
+                ? what.behind + " behind"
+                : what.text
+            )),
+            m("td", instance.users)
+        ]);
+    }
+
+    function pickedInstances() {
+        return vm.fleet.filter((i) => vm.picked[i.id] === true);
+    }
+
+    function deployForm() {
+        let chosen = pickedInstances();
+        let versions = vm.installed.map(function (one) {
+            return {
+                label: one.name + " " + one.version,
+                value: one.name + "@" + one.version
+            };
+        });
+
+        function submit() {
+            let pick = fieldValue("package").split("@");
+
+            send("/platform/instances/deploy", {
+                instances: chosen.map((i) => i.id),
+                module: pick[0],
+                stopOnError: !document.getElementById("carry-on").checked,
+                version: pick[1]
+            }, "Deployed");
+        }
+
+        return m("form", {
+            class: "pure-form pure-form-aligned",
+            style: {
+                background: "var(--fb-surface)",
+                borderBottom: "1px solid var(--fb-border)",
+                padding: "0.5em 0 1em 0"
+            }
+        }, [
+            m("div", {class: "fb-sign-in fb-sign-in-header"}, (
+                "Deploy to " + chosen.length + " instance" + (
+                    chosen.length === 1
+                    ? ""
+                    : "s"
+                )
+            )),
+            m("div", {class: "fb-admin-note"}, (
+                "One at a time, each held while it runs and let go " +
+                "afterwards: " + chosen.map((i) => i.name).join(", ") +
+                ". They are down in turn, not together."
+            )),
+            selector("package", "Package", versions),
+            m("div", {class: "pure-control-group fb-sign-in"}, [
+                m("label", {
+                    class: "fb-sign-in-label",
+                    for: "carry-on"
+                }, "Carry on"),
+                m("input", {
+                    id: "carry-on",
+                    type: "checkbox"
+                })
+            ]),
+            m("div", {class: "fb-admin-note"}, (
+                "Left off, the first failure stops the rest and leaves " +
+                "that instance held. On, the ones that can take it do."
+            )),
+            m("div", {class: "pure-control-group fb-sign-in"}, [
+                m("label", {class: "fb-sign-in-label"}, ""),
+                m("button", {
+                    class: "pure-button pure-button-primary",
+                    disabled: vm.isBusy || !versions.length,
+                    onclick: function () {
+                        submit();
+                        return false;
+                    },
+                    style: {width: "110px"}
+                }, "Deploy"),
+                m("button", {
+                    class: "pure-button",
+                    onclick: function () {
+                        vm.form = undefined;
+                        return false;
+                    },
+                    style: {marginLeft: "6px", width: "110px"}
+                }, "Cancel")
+            ])
         ]);
     }
 
@@ -854,7 +982,22 @@
                 toolbarButton(actions.edit),
                 toolbarButton(actions.administrator),
                 toolbarButton(actions.instance),
-                toolbarButton(actions.status)
+                toolbarButton(actions.status),
+                toolbarButton({
+                    disabled: !pickedInstances().length,
+                    key: "deploy",
+                    label: "Deploy",
+                    run: function () {
+                        vm.form = {kind: "deploy"};
+                        vm.menu = undefined;
+                    },
+                    title: (
+                        pickedInstances().length
+                        ? "Deploy a package into the instances ticked " +
+                            "below, one after another"
+                        : "Tick the instances to deploy to"
+                    )
+                })
             ]),
             contextMenu([
                 actions.edit,
@@ -875,7 +1018,12 @@
                 : undefined
             ),
             (
-                vm.form
+                vm.form && vm.form.kind === "deploy"
+                ? deployForm()
+                : undefined
+            ),
+            (
+                vm.form && vm.form.kind !== "deploy"
                 ? organizationForm()
                 : undefined
             ),
@@ -900,12 +1048,13 @@
                 class: "pure-table fb-admin-table"
             }, [
                 m("thead", m("tr", [
+                    m("th", ""),
                     m("th", "Organization"),
                     m("th", "Instance"),
                     m("th", "Database"),
                     m("th", "State"),
-                    m("th", "People"),
-                    m("th", "Connection")
+                    m("th", "Carries"),
+                    m("th", "People")
                 ])),
                 m("tbody", vm.fleet.map(fleetRow))
             ])),

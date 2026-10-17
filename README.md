@@ -256,6 +256,27 @@ unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
 
+### Upgrading a fleet
+
+Deploy from the Instances screen applies one package version to one
+instance. The platform console (`/platform`) does the same across a
+group: tick the instances in **Every instance on this installation**,
+press **Deploy**, and choose the package.
+
+A group is a sequence of single deployments, not a second way of
+deploying: each instance is held, applied to and let go in turn, so
+one is down at a time rather than all of them. That is why the
+instances are named rather than implied -- trying a version in a test
+database before production is the same action with one name in the
+list, and an urgent patch is the same action with several.
+
+By default the first failure stops the rest, leaving that instance
+held and the ones after it untouched; the answer says how many were
+deployed, which failed and how many were not attempted. Tick **Carry
+on** and the instances that can take the deployment get it while the
+one that could not stays held for someone to look at. Both the group
+and each instance in it are audited.
+
 ### Expired demos
 
 A demo instance (`isDemo` with an `expiration`) is closed by the sweep
