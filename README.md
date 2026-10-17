@@ -190,13 +190,21 @@ before the page appears outside debug mode.
 
 ### Connection budget
 
-Each instance the server loads gets its own connection pool, capped by
+Each instance the server loads gets **one** connection pool for the
+whole process, capped by
 `pgTenantPoolSize` (default 10) with idle clients closed after
 `pgTenantIdleTimeout` milliseconds (default 60000), plus one held
 connection listening for events. The manager's own pool is capped by
 `pgMaxConnections` (default 10). The worst case for one node is
 
     instances x (pgTenantPoolSize + 1) + pgMaxConnections
+
+One pool per database, not one per service: a dozen services each ask
+for a connection pool, and until 2026-10-16 each got its own, so the
+real figure was that budget times the number of services. Sharing them
+is also what lets the server give a database up -- releasing an
+instance before a template copy or a drop ends the pool everyone was
+using, rather than one service's and nobody else's.
 
 but a quiet instance holds only its listener, so the practical floor is
 `instances + pgMaxConnections`. Size `max_connections` on the cluster
