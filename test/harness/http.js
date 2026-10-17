@@ -92,8 +92,14 @@ class Session {
         return resp.body;
     }
 
-    async signIn(username, password) {
+    /*
+        The picker's sign-in takes an organization too, for a user name
+        that exists in more than one (tenant plan G.1). An instance's
+        sign-in ignores it: the instance says which organization.
+    */
+    async signIn(username, password, organization) {
         let resp = await this.raw("POST", "/sign-in", {
+            organization,
             username: username || settings.adminUser,
             password: (
                 password === undefined

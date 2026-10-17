@@ -3002,6 +3002,19 @@ button:disabled .fb-ipicon,
   cursor: default;
 }
 
+/* The selected row looks the way it does in the table widget. The
+   tint is on the cells because the table's own cell backgrounds sit
+   over a tint put on the row. The widget's rule is scoped to
+   .fb-table, which these tables are not, so without this a selected
+   row was indistinguishable from the rest. */
+.fb-admin-table tbody tr.fb-table-row-selected td {
+  background-color: var(--fb-selected-bg);
+}
+
+.fb-admin-table tbody tr.fb-table-row-selected:hover td {
+  background-color: var(--fb-selected-hover-bg);
+}
+
 .fb-admin-status {
   display: inline-flex;
   align-items: center;
@@ -3081,4 +3094,21 @@ button:disabled .fb-ipicon,
 
 .fb-admin-subtitle {
   margin-top: 4px;
+}
+
+/* The picker and the platform console (tenant plan G.1-G.3), which are
+   their own page rather than part of the application bundle. */
+.fb-platform-body {
+  padding: 8px 12px 16px 12px;
+}
+/* The console's forms carry longer labels than a sign-in box does
+   ("Administrator group"), which the 5em sign-in label wraps. */
+.fb-platform-body .fb-sign-in-label {
+  width: 10em !important;
+  text-align: right;
+}
+.fb-platform-section {
+  margin: 16px 0 6px 0;
+  font-weight: 700;
+  color: var(--fb-text);
 }

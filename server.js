@@ -40,6 +40,14 @@
     const {Admin} = require("./server/services/admin");
     const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
+    const {Platform} = require("./server/services/platform");
+    const {Federation} = require("./server/services/federation");
+    const {Manager} = require("./server/services/manager");
+    const {Oidc} = require("./server/services/oidc");
+    const platform = new Platform();
+    const federation = new Federation();
+    const manager = new Manager();
+    const oidc = new Oidc();
     const WebSocket = require("ws");
     const wss = new WebSocket.Server({noServer: true});
     const pdf = require("./server/services/pdf.js");
@@ -162,6 +170,7 @@
     let googleOauth2ClientId;
     let googleOauth2ClientSecret;
     let googleOauth2CallbackUrl;
+    let ssoCallbackUrl;
     let splashUrl;
     let splashTitle;
     let webhookSecret;
@@ -439,6 +448,7 @@
             googleOauth2ClientId = resp.googleOauth2ClientId;
             googleOauth2ClientSecret = resp.googleOauth2ClientSecret;
             googleOauth2CallbackUrl = resp.googleOauth2CallbackUrl;
+            ssoCallbackUrl = resp.ssoCallbackUrl;
 
             webauthn.loadCipher(process.env.CIPHER || resp.cipher);
             webauthn.init(
@@ -472,7 +482,13 @@
             the point: the alternative is a generic refusal while
             everything looks fine.
         */
-        "Down for maintenance"
+        "Down for maintenance",
+        /*
+            An organization that has moved to single sign-on (ADR-001
+            C.3). Also not about the account, and also a refusal that
+            is useless unless it says what to do instead.
+        */
+        "Sign in with single sign-on."
     ];
 
     function signInMessage(err) {
@@ -1874,6 +1890,374 @@
         });
     }
 
+    /*
+        The picker, at a URL that names no database (tenant plan G.1).
+
+        Sign-in here is against the manager alone: it proves the
+        identity and nothing more, and the instances it may reach come
+        from its grants. Choosing one is what proves access to that
+        instance, in deserializeUser above.
+
+        A second factor is an instance's to ask for, since the code is
+        sent by the instance's own mail service: an organization that
+        requires one can pick here but signs in at the instance.
+    */
+    function doGetPickerFile(ignore, res) {
+        fs.readFile("./picker.html", function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, {
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html"
+            });
+            res.write(resp);
+            res.end();
+        });
+    }
+
+    async function doPickerSignIn(req, res) {
+        let identity;
+
+        try {
+            identity = await datasource.authenticateIdentityOnly(
+                req.body.username,
+                req.body.password,
+                req.body.organization
+            );
+        } catch (err) {
+            if (err.code === "organization-required") {
+                res.status(409).json({
+                    code: err.code,
+                    message: err.message
+                });
+                return;
+            }
+            logger.error("/sign-in: " + err);
+            res.status(401).json({message: signInMessage(err)});
+            return;
+        }
+
+        startIdentitySession(req, identity, function (err) {
+            if (err) {
+                error.bind(res)(err);
+                return;
+            }
+            res.json(identity);
+        });
+    }
+
+    /*
+        Put a signed-in identity on the session (tenant plan G.1).
+
+        An organization that requires a second factor gets no passport
+        session from a password sign-in here: the factor is sent by an
+        instance's own mail service, which the manager has none of. The
+        identity still rides on the session, so the picker can list the
+        instances; without a passport user, opening one lands on that
+        instance's own sign-in, which asks for the factor. Nothing is
+        admitted on a half-proved identity.
+
+        A sign-in through an identity provider is different: the
+        provider applied its own policy, multi-factor included, before
+        it vouched for anyone (ADR-001 C.3). `factorDone` says so.
+    */
+    function startIdentitySession(req, identity, done) {
+        function answer(err) {
+            if (err) {
+                done(err);
+                return;
+            }
+            req.session.identity = identity;
+            delete req.session.database;
+            req.session.save(() => done());
+        }
+
+        if (identity.isTwoFactorRequired && !identity.factorDone) {
+            answer();
+            return;
+        }
+
+        /*
+            Passport holds the user name, as it does for an instance
+            sign-in, so every request afterwards resolves the same way.
+            The identity rides on the session beside it: it is what the
+            picker knows before an instance is chosen.
+        */
+        req.login({name: identity.username}, answer);
+    }
+
+    /*
+        Single sign-on (ADR-001 C.3). The organization is named first,
+        because its provider is what decides where the browser goes;
+        the protocol itself is server/services/oidc.js, and who the
+        subject turns out to be is server/services/federation.js.
+    */
+    function ssoRedirectUri(req) {
+        /*
+            Configured rather than derived where it can be: the
+            provider matches the redirect against what was registered
+            with it, and a host header is the client's to set.
+        */
+        return (
+            ssoCallbackUrl ||
+            req.protocol + "://" + req.get("host") + "/auth/sso/callback"
+        );
+    }
+
+    async function withProvider(organizationName) {
+        return await platform.run(async function (mclient) {
+            let resp = await mclient.query(
+                (
+                    "SELECT _pk, id, name FROM organization " +
+                    "WHERE lower(name) = lower($1) " +
+                    "  AND is_active AND NOT is_deleted"
+                ),
+                [String(organizationName || "").trim()]
+            );
+
+            if (!resp.rows.length) {
+                return {};
+            }
+
+            return {
+                organization: resp.rows[0],
+                provider: await federation.providerFor(
+                    mclient,
+                    resp.rows[0]._pk
+                )
+            };
+        });
+    }
+
+    async function doSsoStart(req, res) {
+        try {
+            let found = await withProvider((req.body || {}).organization);
+
+            if (!found.provider) {
+                /*
+                    The same answer whether the organization is not
+                    there or has no provider: which organizations exist
+                    is not a question an unauthenticated caller gets
+                    answered (G.1).
+                */
+                res.status(404).json({
+                    message: (
+                        "That organization does not sign in through an " +
+                        "identity provider here."
+                    )
+                });
+                return;
+            }
+
+            let begun = await oidc.begin(
+                found.provider,
+                ssoRedirectUri(req)
+            );
+
+            req.session.sso = {
+                nonce: begun.nonce,
+                organization: found.organization.id,
+                state: begun.state,
+                verifier: begun.verifier
+            };
+            req.session.save(function () {
+                res.json({url: begun.url});
+            });
+        } catch (err) {
+            logger.error("/auth/sso/start: " + (err.message || err));
+            error.bind(res)(err);
+        }
+    }
+
+    async function doSsoCallback(req, res) {
+        let pending = (
+            req.session
+            ? req.session.sso
+            : undefined
+        );
+
+        function refuse(message) {
+            res.redirect("/#denied=" + encodeURIComponent(message));
+        }
+
+        if (!pending) {
+            refuse("There is no sign-in waiting. Start again.");
+            return;
+        }
+        delete req.session.sso;
+
+        try {
+            let identity = await platform.run(async function (mclient) {
+                let organization = await manager.organizationById(
+                    mclient,
+                    pending.organization
+                );
+
+                if (!organization) {
+                    throw new Error("That organization is gone");
+                }
+
+                let provider = await federation.providerFor(
+                    mclient,
+                    organization._pk
+                );
+
+                if (!provider) {
+                    throw new Error(
+                        "That organization has no identity provider"
+                    );
+                }
+
+                /*
+                    The callback as the provider sent it, rebuilt on
+                    the redirect URI that was registered with them
+                    rather than on the host header. A callback with no
+                    query string at all is not one of theirs.
+                */
+                let query = String(req.originalUrl || "").split("?")[1];
+
+                if (!query) {
+                    throw new Error("That sign-in did not come back");
+                }
+
+                let said = await oidc.finish(
+                    provider,
+                    ssoRedirectUri(req) + "?" + query,
+                    pending
+                );
+                let who = await federation.resolve(mclient, {
+                    claims: said.claims,
+                    organizationPk: organization._pk,
+                    provider,
+                    subject: said.subject
+                });
+                let full = await manager.organization(
+                    mclient,
+                    organization._pk
+                );
+
+                return {
+                    email: who.identity.email || "",
+                    /*
+                        The provider applied its own policy before it
+                        vouched for them, so the factor is done.
+                    */
+                    factorDone: true,
+                    fullName: (
+                        who.identity.full_name || who.identity.username
+                    ),
+                    isOrgAdmin: who.identity.is_org_admin === true,
+                    isPlatformAdmin: (
+                        who.identity.is_platform_admin === true
+                    ),
+                    isTwoFactorRequired: (
+                        full.is_two_factor_required === true
+                    ),
+                    organization: {
+                        id: organization.id,
+                        name: organization.name
+                    },
+                    username: who.identity.username
+                };
+            });
+
+            startIdentitySession(req, identity, function (err) {
+                if (err) {
+                    refuse(err.message || String(err));
+                    return;
+                }
+                res.redirect("/");
+            });
+        } catch (err) {
+            logger.error("/auth/sso/callback: " + (err.message || err));
+            refuse(err.message || String(err));
+        }
+    }
+
+    async function doMyInstances(req, res) {
+        let identity = (
+            req.session
+            ? req.session.identity
+            : undefined
+        );
+
+        if (!identity) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
+
+        try {
+            let instances = await platform.run(
+                (mclient) => platform.instancesFor(
+                    mclient,
+                    identity.username,
+                    identity.organization.id
+                )
+            );
+
+            res.json({
+                identity: {
+                    fullName: identity.fullName,
+                    isOrgAdmin: identity.isOrgAdmin === true,
+                    isPlatformAdmin: identity.isPlatformAdmin === true,
+                    isTwoFactorRequired: (
+                        identity.isTwoFactorRequired === true
+                    ),
+                    organization: identity.organization,
+                    username: identity.username
+                },
+                instances
+            });
+        } catch (err) {
+            error.bind(res)(err);
+        }
+    }
+
+    /*
+        The platform console (tenant plan G.2, G.3): organizations and
+        every instance on the installation, for a platform
+        administrator with no instance in play. Who may do what is
+        decided in server/services/platform.js, which reads the
+        identity rather than believing the session about it.
+    */
+    function doPlatform(fn) {
+        return async function (req, res) {
+            let identity = (
+                req.session
+                ? req.session.identity
+                : undefined
+            );
+
+            if (!identity) {
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+
+            try {
+                respond.bind(res)(await platform.run(
+                    async function (mclient) {
+                        let actor = await platform.actor(mclient, identity);
+
+                        return await fn(mclient, {
+                            actor,
+                            by: identity.username,
+                            data: req.body || {},
+                            identity
+                        });
+                    }
+                ));
+            } catch (e) {
+                error.bind(res)(e);
+            }
+        };
+    }
+
+    function platformData(obj) {
+        return Object.assign({}, obj.data, {by: obj.by});
+    }
+
     // Session lists and disconnects are an administrator's tool
     function requireSuper(req, res) {
         if (req.user && req.user.isSuper) {
@@ -1907,7 +2291,22 @@
                 Reads carry it in the query string, writes in the body;
                 admin.js refuses it for everyone else.
             */
-            organization: req.query.organization || undefined,
+            organization: (
+                req.query.organization ||
+                (req.body || {}).organization ||
+                undefined
+            ),
+            /*
+                Who the session says is calling, for a call that names
+                no instance (the platform console, tenant plan G.2).
+                admin.js reads the authority from the identity itself;
+                this only says which identity to read.
+            */
+            identity: (
+                req.session
+                ? req.session.identity
+                : undefined
+            ),
             registry: datasource.registeredTenants(),
             tenant: req.tenant,
             user: req.user.name
@@ -1951,6 +2350,27 @@
         } catch (err) {
             logger.error(
                 "Could not sweep expired demos: " + (err.message || err)
+            );
+        }
+
+        /*
+            And the ones that ran out long enough ago that nobody is
+            coming back for them (tenant plan D.4). Separate from the
+            close above: a failure to drop must not stop instances
+            being closed, which is the part that matters for sign-in.
+        */
+        try {
+            let dropped = await admin.sweepDemoDrops();
+
+            if (dropped.length) {
+                logger.warn(
+                    "Expired demo instance(s) dropped: " +
+                    dropped.join(", ")
+                );
+            }
+        } catch (err) {
+            logger.error(
+                "Could not drop expired demos: " + (err.message || err)
             );
         }
     }
@@ -2616,6 +3036,95 @@
         "/node_modules/gantt/dist/gantt.min.js"
     ];
 
+    /*
+        Paths that belong to the picker rather than to any instance
+        (tenant plan G.1). Every other path names a database in its
+        first element, so these have to be known by name or the first
+        element of "/my/instances" would be read as a database.
+    */
+    const platformPaths = [
+        "/auth/sso",
+        "/my/",
+        "/platform",
+        "/sign-in",
+        "/sign-out"
+    ];
+
+    function isPlatformPath(url) {
+        let path = String(url || "").split("?")[0];
+
+        if (path === "/" || path === "") {
+            return true;
+        }
+        return platformPaths.some(function (p) {
+            return (
+                p.endsWith("/")
+                ? path.startsWith(p)
+                : path === p || path.startsWith(p + "/")
+            );
+        });
+    }
+
+    /*
+        The user of a session that has not chosen an instance: the
+        identity itself, with none of the local profile an instance
+        would add (tenant plan G.1).
+    */
+    function identityUser(req, name) {
+        let identity = (
+            req.session
+            ? req.session.identity
+            : undefined
+        );
+
+        if (!identity) {
+            return {};
+        }
+
+        return {
+            email: identity.email,
+            fullName: identity.fullName,
+            isOrgAdmin: identity.isOrgAdmin === true,
+            isPlatformAdmin: identity.isPlatformAdmin === true,
+            isSuper: false,
+            name: identity.username || name,
+            organization: identity.organization
+        };
+    }
+
+    /*
+        Let an identity session into the instance it is asking for,
+        once the manager says the grant is still live (tenant plan
+        G.1). Admission is recorded on the session, so the manager is
+        asked when an instance is entered rather than on every request
+        inside it.
+    */
+    async function admitToInstance(req) {
+        let identity = req.session.identity;
+
+        if (req.session.database === req.database) {
+            return {ok: true};
+        }
+        if (!req.tenant) {
+            return {ok: false, reason: "Not a registered instance"};
+        }
+
+        return await platform.run(async function (mclient) {
+            let entry = await platform.mayEnter(
+                mclient,
+                identity.username,
+                identity.organization.id,
+                req.tenant.id,
+                identity.isPlatformAdmin === true
+            );
+
+            if (entry.ok) {
+                req.session.database = req.database;
+            }
+            return entry;
+        });
+    }
+
     async function deserializeUser(req, name, done) {
         try {
             if (files.indexOf(req.url) !== -1) {
@@ -2629,7 +3138,10 @@
                 return;
             }
 
-            if (!req.tenant) {
+            if (!req.tenant && isPlatformPath(req.url)) {
+                // The picker's own paths name no instance
+                req.database = undefined;
+            } else if (!req.tenant) {
                 let db = req.url.slice(1);
                 if (db.indexOf("/") !== -1) {
                     db = db.slice(0, db.indexOf("/"));
@@ -2649,6 +3161,36 @@
                         req.protocol + "://" + req.get("host") + "/" +
                         req.database
                     );
+                }
+            }
+
+            /*
+                A request that names no database is the picker (tenant
+                plan G.1). There is no instance to resolve a profile
+                in, so the identity the session was signed in with is
+                the user.
+            */
+            if (!req.database) {
+                done(null, identityUser(req, name));
+                return;
+            }
+
+            /*
+                A session made at the picker proves itself against each
+                instance it enters. Sign-in checked the grant once, for
+                one instance; one sign-in now reaches several, so the
+                grant is read again at the door. A refusal is not an
+                error: the session stands and the picker says why.
+            */
+            if (req.session && req.session.identity) {
+                let entry = await admitToInstance(req);
+
+                if (!entry.ok) {
+                    let user = identityUser(req, name);
+
+                    user.enterDenied = entry.reason;
+                    done(null, user);
+                    return;
                 }
             }
 
@@ -3068,10 +3610,40 @@
                 return;
             }
 
+            /*
+                An identity session asked for an instance the manager
+                will not let it into (tenant plan G.1). The session
+                stands -- it was signed in against the manager, not
+                against this instance -- so the answer is the picker
+                and the reason, not a sign-out.
+            */
+            if (req.user && req.user.enterDenied) {
+                let reason = req.user.enterDenied;
+
+                if (
+                    req.method === "GET" &&
+                    String(req.headers.accept || "").includes("text/html")
+                ) {
+                    res.redirect(
+                        "/#denied=" + encodeURIComponent(reason)
+                    );
+                    return;
+                }
+                res.status(403).json(reason);
+                return;
+            }
+
+            /*
+                An identity session may move between the instances it
+                is granted, since each entry is checked (G.1). The
+                rule below is for a session signed in to one instance,
+                which has proved nothing about any other.
+            */
             if (
                 req.session &&
                 req.session.database &&
                 req.database &&
+                !req.session.identity &&
                 req.session.database !== req.database
             ) {
                 doSignOut(req, undefined, function () {
@@ -3116,6 +3688,126 @@
         // File upload
         dbRouter.use(expressFileUpload());
         dbRouter.get("/:db/", doGetIndexFile);
+
+        /*
+            The picker: a URL with no database in it (tenant plan
+            G.1). Registered before the database router, which only
+            ever matches a path whose first element names an instance.
+        */
+        app.get("/", doGetPickerFile);
+        app.post("/sign-in", doPickerSignIn);
+        app.post("/sign-out", doSignOut);
+        app.get("/my/instances", doMyInstances);
+        app.post("/auth/sso/start", doSsoStart);
+        app.get("/auth/sso/callback", doSsoCallback);
+
+        /*
+            The platform console, on the same page and the same
+            session (tenant plan G.2, G.3). Instance actions are the
+            Instances screen's own, reached with no instance of their
+            own: admin.js takes the organization from the body and
+            refuses it for anyone below platform.
+        */
+        app.get("/platform", doGetPickerFile);
+        app.get("/platform/overview", doPlatform(
+            async function (mclient, obj) {
+                let options = await platform.buildOptions(mclient);
+                let fleet = await platform.fleet(mclient);
+                let deployed = await datasource.deployedModules();
+
+                return {
+                    actor: {
+                        isPlatformAdmin: true,
+                        organization: obj.identity.organization,
+                        username: obj.identity.username
+                    },
+                    /*
+                        What each instance carries and what this server
+                        holds, so the console can say which instances
+                        are behind before anyone starts a rolling
+                        outage (ADR-002 question 7).
+                    */
+                    fleet: fleet.map(function (instance) {
+                        return Object.assign({}, instance, {
+                            modules: deployed[instance.database]
+                        });
+                    }),
+                    installed: await datasource.installedPackages(),
+                    organizations: await platform.organizations(mclient),
+                    providers: await platform.providers(mclient),
+                    services: options.services,
+                    templates: options.templates
+                };
+            }
+        ));
+        app.post("/platform/organization", doPlatform(
+            (mclient, obj) => platform.addOrganization(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/organization/update", doPlatform(
+            (mclient, obj) => platform.updateOrganization(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/organization/status", doPlatform(
+            (mclient, obj) => platform.setOrganizationActive(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/organization/provider", doPlatform(
+            async function (mclient, obj) {
+                let saved = await platform.saveProvider(
+                    mclient,
+                    platformData(obj)
+                );
+
+                // Discovery is cached per issuer and client
+                oidc.forget();
+                return saved;
+            }
+        ));
+        app.post("/platform/organization/administrator", doPlatform(
+            (mclient, obj) => platform.appointAdministrator(
+                mclient,
+                platformData(obj)
+            )
+        ));
+        app.post("/platform/instance", doAdminInstance("registerInstance"));
+        app.post(
+            "/platform/instance/status",
+            doAdminInstance("setInstanceActive")
+        );
+        app.post(
+            "/platform/instance/maintenance",
+            doAdminInstance("setInstanceMaintenance")
+        );
+        app.post(
+            "/platform/instance/provision",
+            doAdminInstance("provisionInstance")
+        );
+        app.post(
+            "/platform/instance/provision/resume",
+            doAdminInstance("provisionResume")
+        );
+        app.post(
+            "/platform/instance/deploy",
+            doAdminInstance("deployPackage")
+        );
+        app.post("/platform/instance/drop", doAdminInstance("dropInstance"));
+        app.post("/platform/template", doAdminInstance("buildTemplate"));
+        app.post(
+            "/platform/instances/deploy",
+            doAdminInstance("deployFleet")
+        );
+        app.post(
+            "/platform/instances/sweep",
+            doAdminInstance("sweepDemosGuarded")
+        );
+
         app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
         files.forEach((filename) => app.get(filename, doGetFile));
@@ -3198,6 +3890,10 @@
         dbRouter.post(
             "/:db/admin/template",
             doAdminInstance("buildTemplate")
+        );
+        dbRouter.post(
+            "/:db/admin/instances/deploy",
+            doAdminInstance("deployFleet")
         );
         dbRouter.post(
             "/:db/admin/instances/sweep",

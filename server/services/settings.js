@@ -17,12 +17,16 @@
 */
 /*jslint node*/
 const settings = {};
+const {Config} = require("../config");
 const {Database} = require("../database");
 const {Events} = require("./events");
+const {Platform} = require("./platform");
 const {Tools} = require("./tools");
 const f = require("../../common/core");
+const config = new Config();
 const events = new Events();
 const pgdb = new Database();
+const platform = new Platform();
 const tools = new Tools();
 const dbsettings = {};
 const dbencrypted = {};
@@ -406,6 +410,73 @@ settings.settingIsAuthorized = async function (obj) {
     return resp.rows.length > 0;
 };
 
+/*
+    Settings the platform owns rather than the instance (tenant plan
+    D.5). A setting is one of these when its own definition says
+    `isPlatformOnly`, or when config.json's `platformOnlySettings`
+    names it -- the second so an installation can lock down a module's
+    setting without waiting for the module to declare it.
+
+    The edition is the case this exists for: it decides what an
+    instance offers, which is the platform's to say and not the
+    customer's, even though the customer's own administrator is super
+    user in their instance.
+*/
+async function isPlatformOnly(client, name) {
+    let conf = await config.read();
+    let named = conf.platformOnlySettings;
+
+    if (Array.isArray(named) && named.indexOf(name) !== -1) {
+        return true;
+    }
+
+    let resp = await client.query(
+        "SELECT definition FROM \"$settings\" WHERE name = $1",
+        [name]
+    );
+
+    return Boolean(
+        resp.rows.length &&
+        resp.rows[0].definition &&
+        resp.rows[0].definition.isPlatformOnly === true
+    );
+}
+
+/**
+    Whether a setting belongs to the platform, and if so whether this
+    user may change it. Resolves to a message when they may not, and to
+    undefined when the question does not arise.
+
+    @method platformRefusal
+    @for Services.Settings
+    @param {Object} client Database client
+    @param {String} name Settings name
+    @param {String} user
+    @return {Promise} String or undefined
+*/
+settings.platformRefusal = async function (client, name, user) {
+    if (!await isPlatformOnly(client, name)) {
+        return;
+    }
+
+    let allowed = await platform.run(
+        (mclient) => platform.isPlatformAdminOf(
+            mclient,
+            client.database,
+            user
+        )
+    );
+
+    if (allowed) {
+        return;
+    }
+
+    return (
+        "Settings \"" + name + "\" are the platform's to set. Ask a " +
+        "platform administrator."
+    );
+};
+
 /**
     Create or upate settings.
     @method saveSettings
@@ -458,6 +529,27 @@ settings.saveSettings = async function (obj) {
     }
 
     try {
+        /*
+            Before the instance's own authorization: a super user of
+            the instance passes that check, and the point of a
+            platform setting is that they should not pass this one
+            (tenant plan D.5).
+        */
+        if (!obj.isInternal) {
+            let refusal = await settings.platformRefusal(
+                client,
+                name,
+                obj.user || client.currentUser()
+            );
+
+            if (refusal) {
+                return Promise.reject({
+                    message: refusal,
+                    statusCode: 401
+                });
+            }
+        }
+
         if (!obj.isInternal && !await settings.settingIsAuthorized({
             client: client,
             data: {

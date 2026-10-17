@@ -751,6 +751,19 @@
                             isOnDisk: Boolean(
                                 packages.resolve(row.name, row.version)
                             ),
+                            /*
+                                The server holds this module, but not
+                                at the version this database carries,
+                                so the database falls back to its rows
+                                without saying so. Worth telling apart
+                                from a module the server holds nothing
+                                of: that one is simply not packaged
+                                yet, this one has drifted.
+                            */
+                            isVersionMissing: Boolean(
+                                newest &&
+                                !packages.resolve(row.name, row.version)
+                            ),
                             name: row.name,
                             newest,
                             version: row.version
@@ -905,6 +918,15 @@
     }
 
     /*
+        Paths the server answers itself, with no database in them: the
+        picker and the platform console (tenant plan G.1, G.2). An
+        instance whose database had one of these names would be
+        shadowed by them and could never be opened, so the name is
+        refused rather than allowed and then found wanting.
+    */
+    const SERVED_PATHS = ["auth", "my", "platform"];
+
+    /*
         The cluster's own databases and the manager are refused
         whatever the caller asks: dropping the manager would take the
         installation's registry, identities and sessions with it.
@@ -916,8 +938,28 @@
             reserved.push(config.managerDatabase(conf));
         }
 
-        return reserved.indexOf(name) !== -1;
+        return (
+            reserved.indexOf(name) !== -1 ||
+            SERVED_PATHS.indexOf(name) !== -1
+        );
     }
+
+    /**
+        Why this name cannot be an instance of this installation, or
+        undefined when it can. The guarded create and drop apply it
+        through `writableName`; registering a database that already
+        exists has no such path of its own and asks here.
+
+        @method unservableName
+        @param {String} name Database name
+        @return {Promise} String or undefined
+    */
+    that.unservableName = async function (name) {
+        let conf = await config.read();
+        let checked = writableName(name, conf);
+
+        return checked.message;
+    };
 
     function reservedMessage(name) {
         return (
@@ -986,16 +1028,45 @@
         let tenant = tenants.find(
             (t) => t.pgDatabase === (pClient && pClient.database)
         );
+        /*
+            The platform console calls these with no instance of its
+            own (tenant plan G.2), so there is no registry row to read
+            the caller's organization from. It says which organization
+            it signed in to instead, and the authority is still read
+            from the identity rather than taken on trust.
+        */
+        let organizationId = (
+            (pClient && typeof pClient.currentOrganization === "function")
+            ? pClient.currentOrganization()
+            : undefined
+        );
         let allowed = await manager.run(async function (mclient) {
             let instance = await manager.instance(
                 mclient,
                 tenant
             ).catch(() => undefined);
+            let organizationPk;
+
+            if (instance) {
+                organizationPk = instance.organizationPk;
+            } else if (organizationId) {
+                let home = await manager.organizationById(
+                    mclient,
+                    organizationId
+                );
+
+                organizationPk = (
+                    home
+                    ? home._pk
+                    : undefined
+                );
+            }
+
             let actor = (
-                instance
+                organizationPk
                 ? await manager.identity(
                     mclient,
-                    instance.organizationPk,
+                    organizationPk,
                     user || ""
                 )
                 : undefined
@@ -1203,6 +1274,23 @@
         );
     };
 
+    /*
+        How long an expired demo is kept before the sweep drops it, in
+        days. Closing is immediate; dropping waits, because somebody
+        may yet say they want it back (John, Oct 2026). Zero or absent
+        means it is never dropped, only closed.
+    */
+    function demoGraceDays(conf) {
+        let days = Number((conf || {}).demoGraceDays);
+
+        if (!Number.isFinite(days) || days <= 0) {
+            return 0;
+        }
+        return Math.floor(days);
+    }
+
+    that.demoGraceDays = demoGraceDays;
+
     /**
         Delete an application database, taking its instance out of the
         registry first.
@@ -1215,27 +1303,16 @@
         @param {String} database Target database name
         @return {Object} Promise
     */
-    that.deleteDatabase = async function (pClient, dbName) {
-        let conf = await config.read();
-        let target = writableName(dbName, conf);
-        let name;
-        let user;
-        let actor;
+    /*
+        The drop itself, once something has decided it may happen. Who
+        decided is the caller's to establish: deleteDatabase asks
+        databaseActor, and deleteExpiredDemo reads the registry, where
+        the policy already says the instance is finished (tenant plan
+        D.4).
+    */
+    async function dropDatabaseNow(name, user) {
         let conn1;
         let tenant;
-
-        if (target.message) {
-            return Promise.reject(target.message);
-        }
-
-        name = target.name;
-        actor = await databaseActor(pClient, "drop");
-
-        if (actor.message) {
-            return Promise.reject(actor.message);
-        }
-
-        user = actor.user;
 
         try {
             /*
@@ -1263,6 +1340,73 @@
         }
 
         await auditDatabase("database.dropped", user, name);
+    }
+
+    that.deleteDatabase = async function (pClient, dbName) {
+        let conf = await config.read();
+        let target = writableName(dbName, conf);
+        let actor;
+
+        if (target.message) {
+            return Promise.reject(target.message);
+        }
+
+        actor = await databaseActor(pClient, "drop");
+
+        if (actor.message) {
+            return Promise.reject(actor.message);
+        }
+
+        await dropDatabaseNow(target.name, actor.user);
+    };
+
+    /**
+        Drop a demo that ran out and was never asked for back (tenant
+        plan D.4). Called by the sweep on the server's own clock, with
+        nobody signed in.
+
+        There is no actor to authorize it and none is wanted: the
+        registry decides. The instance has to be a demo, closed, and
+        past its expiration by the grace period, and this reads that
+        for itself rather than taking the caller's word -- so the worst
+        a caller can do by reaching it is drop a demo the policy had
+        already finished with.
+
+        @method deleteExpiredDemo
+        @param {String} database Target database name
+        @return {Promise} Boolean, whether it was dropped
+    */
+    that.deleteExpiredDemo = async function (dbName) {
+        let conf = await config.read();
+        let target = writableName(dbName, conf);
+        let days = demoGraceDays(conf);
+
+        if (target.message) {
+            return Promise.reject(target.message);
+        }
+        if (!days) {
+            return false;
+        }
+
+        let allowed = await manager.run(
+            (mclient) => mclient.query(
+                (
+                    "SELECT 1 FROM tenant " +
+                    "WHERE pg_database = $1 AND is_demo " +
+                    "  AND NOT is_active AND NOT is_deleted " +
+                    "  AND expiration IS NOT NULL " +
+                    "  AND expiration < now() - ($2 || ' days')::interval"
+                ),
+                [target.name, String(days)]
+            )
+        );
+
+        if (!allowed.rows.length) {
+            return false;
+        }
+
+        await dropDatabaseNow(target.name, "system");
+        return true;
     };
 
     /**
@@ -2364,6 +2508,21 @@
     that.authenticate = db.authenticate;
 
     /**
+        Authenticate against an identity in the manager with no
+        instance in play, for the picker at a URL that names no
+        database (tenant plan G.1). Exposes
+        {{#crossLink "Database/authenticateIdentityOnly:method"}}
+        {{/crossLink}} via datasource.
+
+        @method authenticateIdentityOnly
+        @param {String} username
+        @param {String} password
+        @param {String} [organization] Organization name
+        @return {Promise}
+    */
+    that.authenticateIdentityOnly = db.authenticateIdentityOnly;
+
+    /**
         Resolves to {{#crossLink "User"}}{{/crossLink}} for passport
         management. Exposes
         {{#crossLink "Database/deserializeUser:method"}}{{/crossLink}}
@@ -2775,6 +2934,88 @@
         }
 
         /*
+            Which module a write is aimed at, and whether this database
+            is served that module from a package. The name comes from
+            the row being changed rather than from the payload: a PATCH
+            carries a JSON patch, not a record, and a DELETE carries
+            nothing at all.
+        */
+        async function packageWriteRefusal(client, payload) {
+            const OWNED = {
+                DataService: {
+                    column: "module",
+                    table: "data_service",
+                    what: "service script"
+                },
+                Module: {
+                    column: "name",
+                    table: "module",
+                    what: "client script"
+                }
+            };
+            let owned = OWNED[payload.name];
+
+            if (!owned) {
+                return;
+            }
+
+            let name;
+
+            if (payload.id) {
+                let found = await client.query(
+                    (
+                        "SELECT " + owned.column + " AS name FROM " +
+                        owned.table + " WHERE id = $1 AND NOT is_deleted"
+                    ),
+                    [payload.id]
+                ).catch(function () {
+                    return {rows: []};
+                });
+
+                name = (
+                    found.rows.length
+                    ? found.rows[0].name
+                    : undefined
+                );
+            }
+
+            if (!name && payload.data && !Array.isArray(payload.data)) {
+                name = payload.data[owned.column];
+            }
+
+            if (!name) {
+                return;
+            }
+
+            let deployed = await client.query(
+                (
+                    "SELECT version FROM module " +
+                    "WHERE name = $1 AND NOT is_deleted"
+                ),
+                [name]
+            ).catch(function () {
+                return {rows: []};
+            });
+
+            if (!deployed.rows.length) {
+                return;
+            }
+
+            let version = deployed.rows[0].version;
+
+            if (!packages.resolve(name, version)) {
+                return;
+            }
+
+            return (
+                "The " + owned.what + " of " + name + " " + version +
+                " is served from the package this server holds, so " +
+                "changing the row here would change nothing. Change " +
+                "it in the package and deploy it."
+            );
+        }
+
+        /*
             A module's client script comes from the installed package
             when the server holds one (ADR-002 section 2). The browser
             compiles `Module.script`, which is source code in a table
@@ -3030,6 +3271,32 @@
             */
             catalog = await settings.catalogFor(theClient);
             reg = await registryFor(theClient);
+
+            /*
+                The code of a module this server serves from a package
+                is not the database's to change (ADR-002 section 2).
+                The rows are still there and still load for a module
+                with no package, but for one with a package they are
+                not what runs: a save would look like it took and
+                change nothing.
+
+                Refused by where the call came from rather than by who
+                made it. Install and Deploy write these rows as part of
+                their work and arrive with a client of their own; a
+                person at the Develop workbook does not, and is a super
+                user, which is exactly who the read-only check below
+                lets through.
+            */
+            if (!isExternalClient && obj.method !== "GET") {
+                let refusal = await packageWriteRefusal(theClient, obj);
+
+                if (refusal) {
+                    return Promise.reject({
+                        message: refusal,
+                        statusCode: 405
+                    });
+                }
+            }
 
             /*
                 A read-only feather's write protection used to be that no

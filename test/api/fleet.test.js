@@ -239,4 +239,136 @@ describe("the fleet view (ADR-002)", function () {
             "both the beginning and the end are audited"
         );
     });
+
+    /*
+        One at a time or a group, John's answer of 2026-10-16: a test
+        database before production is the same act with one name in the
+        list, and an urgent patch goes to the fleet. A group is a
+        sequence of single deployments, which is what makes it a
+        rolling outage rather than a simultaneous one.
+    */
+    describe("and the same act across a group", function () {
+        before(restore);
+        after(restore);
+
+        it("refuses a group from anyone below platform", async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            let resp = await admin.raw("POST", "/admin/instances/deploy", {
+                instances: [first],
+                module: "fbtest",
+                version: "1.1.0"
+            });
+
+            assert.equal(resp.status, 401, JSON.stringify(resp.body));
+            await flags(settings.adminUser, {
+                isOrgAdmin: true,
+                isPlatformAdmin: true
+            });
+        });
+
+        it("will not start without instances named", async function () {
+            let resp = await admin.raw("POST", "/admin/instances/deploy", {
+                instances: [],
+                module: "fbtest",
+                version: "1.1.0"
+            });
+
+            assert.equal(resp.status, 400, JSON.stringify(resp.body));
+        });
+
+        it("refuses a package the server does not hold before it " +
+                "touches anything", async function () {
+            let resp = await admin.raw("POST", "/admin/instances/deploy", {
+                instances: [first],
+                module: "fbtest",
+                version: "9.9.9"
+            });
+
+            assert.equal(resp.status, 400, JSON.stringify(resp.body));
+            assert.equal(
+                await maintenanceOf(settings.testDb),
+                false,
+                "and nothing was held"
+            );
+        });
+
+        it("deploys to every instance named, and lets each go",
+                async function () {
+            let overview = await admin.get("/admin/instances");
+            let ids = overview.instances.filter(
+                (row) => (
+                    row.database === settings.testDb ||
+                    row.database === settings.testDb2
+                )
+            ).map((row) => row.id);
+
+            assert.equal(ids.length, 2, "both instances are named");
+
+            let resp = await admin.raw("POST", "/admin/instances/deploy", {
+                instances: ids,
+                module: "fbtest",
+                version: "1.1.0"
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.equal(resp.body.deployed, 2);
+            assert.equal(resp.body.failed, 0);
+            assert.ok(resp.body.results.every((one) => one.ok));
+
+            assert.equal(
+                await moduleVersion(settings.testDb, "fbtest"),
+                "1.1.0"
+            );
+            assert.equal(
+                await moduleVersion(settings.testDb2, "fbtest"),
+                "1.1.0"
+            );
+            assert.equal(await maintenanceOf(settings.testDb), false);
+            assert.equal(await maintenanceOf(settings.testDb2), false);
+
+            let trail = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    (
+                        "SELECT action, detail FROM admin_audit " +
+                        "WHERE action IN " +
+                        "  ('fleet.deploy_began', 'fleet.deploy_finished') " +
+                        "ORDER BY created"
+                    )
+                )
+            );
+
+            assert.equal(trail.rows.length, 2, "the group is audited too");
+            assert.match(
+                trail.rows[1].detail,
+                /2 deployed, 0 failed/
+            );
+        });
+
+        it("refuses the whole group when one instance is not there",
+                async function () {
+            let overview = await admin.get("/admin/instances");
+            let real = overview.instances.find(
+                (row) => row.database === settings.testDb
+            ).id;
+            let resp = await admin.raw("POST", "/admin/instances/deploy", {
+                instances: ["fbt-no-such-instance", real],
+                module: "fbtest",
+                version: "1.1.0"
+            });
+
+            /*
+                An instance that is not there is refused before the
+                run begins: a group that cannot be carried out as
+                asked should not be half carried out.
+            */
+            assert.equal(resp.status, 404, JSON.stringify(resp.body));
+            assert.equal(
+                await maintenanceOf(settings.testDb),
+                false,
+                "and nothing was held"
+            );
+        });
+    });
 });

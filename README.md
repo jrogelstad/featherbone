@@ -104,6 +104,117 @@ making of it is audited as `user_account.provisioned`. Nothing is
 created for a failed sign-in. A user who already exists in the
 organization is granted access and keeps the password they already have.
 
+### Choosing an instance
+
+A URL with a database in it signs in to that database, as it always has.
+A URL with **no** database -- the server's own root -- answers with the
+**picker**: sign in once against the manager, see the instances your
+grants reach, and open one. Nothing else is served there, since the
+manager is not routable.
+
+The picker proves the identity and nothing more. Opening an instance is
+what proves access to *that* instance: the grant is read again at the
+door, so a sign-in that now reaches several instances cannot walk into
+one it was never granted, and revoking a grant shuts the door at the
+next entry. An instance that is closed or down for maintenance is
+listed and marked rather than hidden, so somebody who was working in it
+yesterday is told why it will not open.
+
+A username is unique within its organization, not across the
+installation, so a name that exists in two organizations is asked which
+one it means. The picker never lists the organizations to someone who
+has not signed in -- that would say where a username exists -- and it
+does not try the password against each candidate either, since a wrong
+one would count a failure against every one of them and lock them all.
+Type the organization's name and sign in again.
+
+Two-factor organizations (`organization.isTwoFactorRequired`, ADR-001
+C.2) can pick here but sign in at the instance: the code is sent by the
+instance's own mail service, which the manager has none of. The picker
+lists their instances and opening one lands on that instance's sign-in,
+which asks for the factor. Nothing is admitted on a half-proved
+identity.
+
+### Single sign-on
+
+An organization can sign in through an identity provider instead of,
+or as well as, a local password. Microsoft Entra ID -- still called
+Azure AD everywhere -- is the reference target, and any OpenID Connect
+provider works the same way.
+
+Set it up from the platform console: select the organization, press
+**Single sign-on**, and give it the issuer, the client id and the
+client secret. For Entra ID the issuer is
+`https://login.microsoftonline.com/<directory>/v2.0`. Register
+`<your address>/auth/sso/callback` as the redirect URI with the
+provider, and set `ssoCallbackUrl` in `config.json` if the server sits
+behind something that rewrites the host.
+
+The organization's **sign-in** setting then decides what is allowed:
+`password` ignores the provider, `sso` refuses local passwords (the
+password is not even checked -- there is nothing to learn from the
+answer), and `both` takes either. At the picker, **Sign in with single
+sign-on** asks which organization and sends the browser on from there.
+
+**Who somebody is** comes from the provider's subject, never the email:
+an address can be reassigned to a new employee, `sub` at an issuer
+cannot. The first time a subject arrives, one of three things happens.
+It is already linked, and is that identity. Its user name is an
+identity that already exists here, and the two are linked -- the person
+who was here before the organization moved to single sign-on keeps
+their account and everything granted to it. Or neither, and an identity
+is **made** if the provider is set to make them, granted the databases
+the provider names and nothing else. All three are audited.
+
+A group claim can carry the organization-administrator flag, and it is
+applied on every sign-in rather than only the first, so a group taken
+away at the provider is taken away here. Platform administration is
+never a claim: a provider belongs to one organization, and that flag
+crosses all of them.
+
+A suspended or locked identity is refused whatever the provider says --
+it vouches for who somebody is, not for whether they may come in -- and
+an organization that requires a second factor is satisfied by the
+provider's own policy, since it applied that policy before it vouched
+for anyone.
+
+### Administering the platform
+
+The picker's **Administer the platform** opens the platform console, at
+`/platform`, for a platform administrator. It is the only screen that
+crosses organizations, and it is served where no database is named, so
+it runs with no instance of its own: every act on it names what it
+acts on. Authority is read from the identity each time, never taken
+from the session.
+
+It holds two lists. **Organizations** says what each one owns -- its
+instances, its people, how many can administer it, and how it signs in
+-- and carries the actions: create one, rename it or change its
+sign-in, appoint its administrator, close it or open it again, and
+build it an instance. **Every instance on this installation** is the
+Instances screen without the organization boundary: each database with
+its owner, its state and the connection it is reached through.
+
+Onboarding a new organization is those actions in order:
+
+1. **New organization** -- name it, and say whether it signs in by
+   password, single sign-on or either.
+2. **Appoint administrator** -- a username and a password. This makes
+   the identity if there is none by that name, marks it the
+   organization's administrator, and grants it no instance: who reaches
+   what is that administrator's to say from the Users screen.
+3. **New instance** -- build their first database from a template.
+
+Before this, the only way was `node install.js --instance <name>
+--organization "<name>"`, which made the organization and left the
+service account from `config.json` as its administrator. That still
+works, and is still how the first installation is built; what it can no
+longer do is stay the only way.
+
+Closing an organization stops its identities signing in anywhere --
+the picker reads the organization as well as the identity -- and
+touches neither its instances nor their data.
+
 ### Starting a new installation
 
 ```bash
@@ -188,15 +299,97 @@ unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
 loads; the production bundle `client/clientmin.js` has to be rebuilt
 before the page appears outside debug mode.
 
+### Settings the platform owns
+
+A settings row is normally the instance's own: its super user may
+change it, and `$auth` can grant others the same. Some settings are not
+the instance's to decide. The **edition** is the case this exists for
+-- it says what an instance offers, which is the platform's to set and
+not the customer's, even though the customer's administrator is super
+user in their own instance.
+
+A setting becomes the platform's in either of two ways:
+
+* its definition says `"isPlatformOnly": true`, which is how a module
+  declares one of its own settings; or
+* `config.json`'s `platformOnlySettings` names it, which is how an
+  installation locks a module's setting down without waiting for the
+  module to declare it:
+
+```json
+"platformOnlySettings": ["jobShopSettings"]
+```
+
+Changing one then needs a platform administrator -- the identity flag
+in the manager, not the instance's super user -- and anyone else is
+told whose it is. Reading is unchanged: the platform decides who sets
+it, not who sees it. The framework's own saves (the feather catalog
+and the like) are internal and unaffected.
+
+This is the answer to the plan's D.5: an edition is **not** a security
+boundary. Every feather and route is installed whatever the edition, so
+it decides what is offered rather than what is possible, and treating
+it as a wall would mean a package per edition. What is a boundary is
+*who may change it*, and that is here.
+
+### Upgrading a fleet
+
+Deploy from the Instances screen applies one package version to one
+instance. The platform console (`/platform`) does the same across a
+group: tick the instances in **Every instance on this installation**,
+press **Deploy**, and choose the package.
+
+A group is a sequence of single deployments, not a second way of
+deploying: each instance is held, applied to and let go in turn, so
+one is down at a time rather than all of them. That is why the
+instances are named rather than implied -- trying a version in a test
+database before production is the same action with one name in the
+list, and an urgent patch is the same action with several.
+
+By default the first failure stops the rest, leaving that instance
+held and the ones after it untouched; the answer says how many were
+deployed, which failed and how many were not attempted. Tick **Carry
+on** and the instances that can take the deployment get it while the
+one that could not stays held for someone to look at. Both the group
+and each instance in it are audited.
+
+### Expired demos
+
+A demo instance (`isDemo` with an `expiration`) is closed by the sweep
+once its expiration passes: sign-ins stop, the data stays, and the
+close is audited. The server runs the sweep when the registry loads and
+every hour after, and the Instances screen can run it early.
+
+It is **dropped** once it has been expired for `demoGraceDays`, a month
+by default. Closing is immediate and reversible because somebody may
+yet ask for the instance back -- moving the expiration forward is how
+they get it, since reopening one whose expiration is still in the past
+only has it closed again on the next pass. Dropping is neither
+immediate nor reversible, which is why it waits. The database and its
+data go; the registry row stays, marked deleted, so what was there and
+when it went outlives the instance. Set `demoGraceDays` to `0` in
+`config.json` and an expired demo is only ever closed. A `config.json`
+written before this setting existed has no such key, which reads the
+same as zero: an installation being upgraded drops nothing until
+somebody adds the key deliberately.
+
 ### Connection budget
 
-Each instance the server loads gets its own connection pool, capped by
+Each instance the server loads gets **one** connection pool for the
+whole process, capped by
 `pgTenantPoolSize` (default 10) with idle clients closed after
 `pgTenantIdleTimeout` milliseconds (default 60000), plus one held
 connection listening for events. The manager's own pool is capped by
 `pgMaxConnections` (default 10). The worst case for one node is
 
     instances x (pgTenantPoolSize + 1) + pgMaxConnections
+
+One pool per database, not one per service: a dozen services each ask
+for a connection pool, and until 2026-10-16 each got its own, so the
+real figure was that budget times the number of services. Sharing them
+is also what lets the server give a database up -- releasing an
+instance before a template copy or a drop ends the pool everyone was
+using, rather than one service's and nobody else's.
 
 but a quiet instance holds only its listener, so the practical floor is
 `instances + pgMaxConnections`. Size `max_connections` on the cluster
@@ -321,6 +514,45 @@ SELECT name, module FROM data_service
 WHERE NOT is_deleted
   AND module NOT IN (SELECT name FROM module WHERE NOT is_deleted);
 ```
+
+### Which half a module is on
+
+A module runs from its package when this server holds that module at
+the version the database says it carries, and from the database's own
+rows otherwise. It is decided per module and per database, so an
+instance can have one of each, and the rows are not deleted when a
+package takes over: they are the fallback for a module with no
+package, and the record of what a database carried before it was
+packaged.
+
+They are no longer what runs, though, and they used to say nothing
+about it. Two things now do.
+
+**The rows refuse to be changed.** A change to `module.script` or to a
+`data_service` row of a module this server serves from a package is
+refused with a 405 naming the module and version, because the save
+would look like it took and change nothing. The refusal is by where
+the call came from rather than by who made it: Install and Deploy
+write those rows as part of their work and arrive with a client of
+their own, so they are unaffected, while a person at the Develop
+workbook is refused -- including a super user, who is exactly who gets
+past every other check.
+
+**The screens say which.** The Instances screen and the platform
+console mark each instance:
+
+* **`N behind`** -- it carries a version older than one this server
+  holds. Deploy it.
+* **`N adrift`** -- it names a version this server does **not** hold,
+  so it has quietly fallen back to running the code in its own tables.
+  Nothing else tells you this. It happens when a server is rebuilt
+  without its packages, or when a second node was never installed to,
+  and it means two nodes can run different code for the same database.
+  Install the package, or deploy a version this server has.
+* **`N from rows`** -- modules with no package on this server at all.
+  Core is one of these today: it is installed from the repository
+  rather than as a package, so every instance says so until that
+  changes.
 
 ### Install, and Deploy
 
