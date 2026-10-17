@@ -283,6 +283,45 @@
         };
 
         /**
+            Whether this identity is a platform administrator of the
+            installation, asked from inside an instance: the database
+            says which organization, and the organization says which
+            identity (tenant plan D.5).
+
+            Used where a decision belongs to the platform rather than
+            to the instance it is being made in -- the edition an
+            instance runs, for one.
+
+            @method isPlatformAdminOf
+            @param {Client} client Manager client
+            @param {String} database Instance database name
+            @param {String} username
+            @return {Promise} Boolean
+        */
+        that.isPlatformAdminOf = async function (client, database, username) {
+            let resp = await client.query(
+                (
+                    "SELECT _organization_organization_pk AS org " +
+                    "FROM tenant " +
+                    "WHERE pg_database = $1 AND NOT is_deleted"
+                ),
+                [database]
+            );
+
+            if (!resp.rows.length || resp.rows[0].org === null) {
+                return false;
+            }
+
+            let actor = await manager.identity(
+                client,
+                resp.rows[0].org,
+                username || ""
+            );
+
+            return Boolean(actor && actor.is_platform_admin);
+        };
+
+        /**
             Every organization, with what it owns: how many instances
             and identities, and whether anybody can administer it. An
             organization with no administrator is the state onboarding

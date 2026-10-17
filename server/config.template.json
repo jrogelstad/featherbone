@@ -17,6 +17,7 @@
     "passwordLength": 0,
     "pgCryptoKey": "",
     "demoGraceDays": 30,
+    "platformOnlySettings": [],
     "managerDatabase": "db_manager",
     "pgHost": "127.0.0.1",
     "pgMaxConnections": 10,
