@@ -135,6 +135,49 @@ lists their instances and opening one lands on that instance's sign-in,
 which asks for the factor. Nothing is admitted on a half-proved
 identity.
 
+### Single sign-on
+
+An organization can sign in through an identity provider instead of,
+or as well as, a local password. Microsoft Entra ID -- still called
+Azure AD everywhere -- is the reference target, and any OpenID Connect
+provider works the same way.
+
+Set it up from the platform console: select the organization, press
+**Single sign-on**, and give it the issuer, the client id and the
+client secret. For Entra ID the issuer is
+`https://login.microsoftonline.com/<directory>/v2.0`. Register
+`<your address>/auth/sso/callback` as the redirect URI with the
+provider, and set `ssoCallbackUrl` in `config.json` if the server sits
+behind something that rewrites the host.
+
+The organization's **sign-in** setting then decides what is allowed:
+`password` ignores the provider, `sso` refuses local passwords (the
+password is not even checked -- there is nothing to learn from the
+answer), and `both` takes either. At the picker, **Sign in with single
+sign-on** asks which organization and sends the browser on from there.
+
+**Who somebody is** comes from the provider's subject, never the email:
+an address can be reassigned to a new employee, `sub` at an issuer
+cannot. The first time a subject arrives, one of three things happens.
+It is already linked, and is that identity. Its user name is an
+identity that already exists here, and the two are linked -- the person
+who was here before the organization moved to single sign-on keeps
+their account and everything granted to it. Or neither, and an identity
+is **made** if the provider is set to make them, granted the databases
+the provider names and nothing else. All three are audited.
+
+A group claim can carry the organization-administrator flag, and it is
+applied on every sign-in rather than only the first, so a group taken
+away at the provider is taken away here. Platform administration is
+never a claim: a provider belongs to one organization, and that flag
+crosses all of them.
+
+A suspended or locked identity is refused whatever the provider says --
+it vouches for who somebody is, not for whether they may come in -- and
+an organization that requires a second factor is satisfied by the
+provider's own policy, since it applied that policy before it vouched
+for anyone.
+
 ### Administering the platform
 
 The picker's **Administer the platform** opens the platform console, at
