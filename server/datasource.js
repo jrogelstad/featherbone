@@ -751,6 +751,19 @@
                             isOnDisk: Boolean(
                                 packages.resolve(row.name, row.version)
                             ),
+                            /*
+                                The server holds this module, but not
+                                at the version this database carries,
+                                so the database falls back to its rows
+                                without saying so. Worth telling apart
+                                from a module the server holds nothing
+                                of: that one is simply not packaged
+                                yet, this one has drifted.
+                            */
+                            isVersionMissing: Boolean(
+                                newest &&
+                                !packages.resolve(row.name, row.version)
+                            ),
                             name: row.name,
                             newest,
                             version: row.version
@@ -2921,6 +2934,88 @@
         }
 
         /*
+            Which module a write is aimed at, and whether this database
+            is served that module from a package. The name comes from
+            the row being changed rather than from the payload: a PATCH
+            carries a JSON patch, not a record, and a DELETE carries
+            nothing at all.
+        */
+        async function packageWriteRefusal(client, payload) {
+            const OWNED = {
+                DataService: {
+                    column: "module",
+                    table: "data_service",
+                    what: "service script"
+                },
+                Module: {
+                    column: "name",
+                    table: "module",
+                    what: "client script"
+                }
+            };
+            let owned = OWNED[payload.name];
+
+            if (!owned) {
+                return;
+            }
+
+            let name;
+
+            if (payload.id) {
+                let found = await client.query(
+                    (
+                        "SELECT " + owned.column + " AS name FROM " +
+                        owned.table + " WHERE id = $1 AND NOT is_deleted"
+                    ),
+                    [payload.id]
+                ).catch(function () {
+                    return {rows: []};
+                });
+
+                name = (
+                    found.rows.length
+                    ? found.rows[0].name
+                    : undefined
+                );
+            }
+
+            if (!name && payload.data && !Array.isArray(payload.data)) {
+                name = payload.data[owned.column];
+            }
+
+            if (!name) {
+                return;
+            }
+
+            let deployed = await client.query(
+                (
+                    "SELECT version FROM module " +
+                    "WHERE name = $1 AND NOT is_deleted"
+                ),
+                [name]
+            ).catch(function () {
+                return {rows: []};
+            });
+
+            if (!deployed.rows.length) {
+                return;
+            }
+
+            let version = deployed.rows[0].version;
+
+            if (!packages.resolve(name, version)) {
+                return;
+            }
+
+            return (
+                "The " + owned.what + " of " + name + " " + version +
+                " is served from the package this server holds, so " +
+                "changing the row here would change nothing. Change " +
+                "it in the package and deploy it."
+            );
+        }
+
+        /*
             A module's client script comes from the installed package
             when the server holds one (ADR-002 section 2). The browser
             compiles `Module.script`, which is source code in a table
@@ -3176,6 +3271,32 @@
             */
             catalog = await settings.catalogFor(theClient);
             reg = await registryFor(theClient);
+
+            /*
+                The code of a module this server serves from a package
+                is not the database's to change (ADR-002 section 2).
+                The rows are still there and still load for a module
+                with no package, but for one with a package they are
+                not what runs: a save would look like it took and
+                change nothing.
+
+                Refused by where the call came from rather than by who
+                made it. Install and Deploy write these rows as part of
+                their work and arrive with a client of their own; a
+                person at the Develop workbook does not, and is a super
+                user, which is exactly who the read-only check below
+                lets through.
+            */
+            if (!isExternalClient && obj.method !== "GET") {
+                let refusal = await packageWriteRefusal(theClient, obj);
+
+                if (refusal) {
+                    return Promise.reject({
+                        message: refusal,
+                        statusCode: 405
+                    });
+                }
+            }
 
             /*
                 A read-only feather's write protection used to be that no
