@@ -305,16 +305,23 @@ Options:
   the cost of revocation complexity.
 
 **Where this landed (2026-10-16): (a) is done** (`resave: false`; rolling
-stays and slides the expiry with the store's cheap touch). **(b) and (c) are
-still open, and one thing narrows the choice:** the instance picker and the
-single sign-in against the manager mean a user has no instance to read a
-session from before choosing one, and per-instance sessions would end the
-cross-instance sign-out the README advertises. It is a decision for John, not
-code; see the plan's status block, item 4.
+stays and slides the expiry with the store's cheap touch), **and (b) and
+(c) are closed. The session stays in the manager.**
 
-Recommendation (as written): do (a) now regardless, and decide between (b)
-and (c) during the rework. (b) is the smaller change and gives the better failure mode:
-**degrade to "no new sign-ins" rather than "everything down".**
+The instance picker settled it by existing. John asked for a sign-in at
+a URL with no database, which is a sign-in that happens *before* an
+instance is chosen: there is no instance to read a session from, so (b)
+cannot serve the front door, and (c) would buy the same outage
+tolerance at the price of revocation while the manager is needed for
+the picker anyway.
+
+What that costs, on the record: **a manager outage stops everything,
+not just new sign-ins.** The compensation is the thing the README
+advertises -- one sign-in reaches every instance a person is granted,
+and one sign-out ends it everywhere -- plus the grant being re-read
+each time an instance is entered, which per-instance sessions could not
+do. The honest mitigation is making the manager highly available, which
+is the operations question still open in §9.
 
 ## 6. Where tenancy should live
 
@@ -398,13 +405,19 @@ Answered:
 - **Multiple Postgres clusters (requirement 6)** — out of scope, settled
   2026-10-10; revisit only if a deployment needs one.
 
+- **Session strategy** — settled 2026-10-16 by the picker: the session
+  stays in the manager, and (b) and (c) are closed (§5).
+- **SSO (requirement 7)** — settled 2026-10-16. John: "Azure AD is the most
+  common. Let's start with that." Built on `feat/c3-azure-ad-sso`:
+  `identity_provider` per organization and `identity_federation`
+  (`(issuer, subject) → identity`), the protocol through `openid-client`
+  rather than hand-rolled, and just-in-time provisioning from claims
+  (plan C.3, C.4). The round trip itself is still to be proven against a
+  real directory.
+
 Still open:
 
-- **Session strategy** — (b) per-instance sessions or (c) a stateless cookie,
-  against the cross-instance sign-out trade (§5).
 - **Highly-available topology for the manager** — replication or a managed
-  instance. An operations choice.
-- **SSO (requirement 7)** — `identity_federation`, per-organization OIDC and
-  just-in-time provisioning (plan C.3, C.4) need an identity provider and a
-  dependency decision.
+  instance. An operations choice, and a sharper one now that the session
+  strategy has settled on the manager: its outage is everyone's.
 - **API tokens**, next to `identity`, if they are coming.
