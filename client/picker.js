@@ -41,6 +41,9 @@
     // and holds from the console, which is in no instance at all.
     const HELP = "/help/platform-help.html";
 
+    // Forms that act on the selected instance rather than an organization
+    const INSTANCE_FORMS = ["drop", "template"];
+
     const AUTH = [
         {label: "Local password", value: "password"},
         {label: "Single sign-on only", value: "sso"},
@@ -59,6 +62,7 @@
         needOrganization: false,
         note: "",
         organizations: [],
+        instanceSelection: undefined,
         onlyOrg: false,
         packages: [],
         packagesUnknown: [],
@@ -431,7 +435,7 @@
             },
             oncontextmenu: function (e) {
                 vm.selection = id;
-                vm.menu = {left: e.pageX, top: e.pageY};
+                vm.menu = {left: e.pageX, top: e.pageY, of: "organization"};
                 e.preventDefault();
                 return false;
             }
@@ -1031,7 +1035,17 @@
         let modules = (instance.modules || {}).modules;
 
         if (!modules || !modules.length) {
-            return {adrift: 0, behind: 0, fromRows: 0, onDisk: 0, text: "—"};
+            return {
+                adrift: 0,
+                adriftNames: "",
+                behind: 0,
+                behindNames: "",
+                fromRows: 0,
+                fromRowsNames: "",
+                onDisk: 0,
+                onDiskNames: "",
+                text: "—"
+            };
         }
 
         return {
@@ -1041,9 +1055,29 @@
                 says so (ADR-002 section 2).
             */
             adrift: modules.filter((one) => one.isVersionMissing).length,
+            /*
+                Which ones, not just how many. A count alone leaves the
+                operator to work out what is wrong by reading the whole
+                module list in the cell's own tooltip -- and the cell
+                stops showing that list as soon as anything is wrong
+                (John, Oct 2026).
+            */
+            adriftNames: modules.filter(
+                (one) => one.isVersionMissing
+            ).map((one) => one.name + " " + one.version).join(", "),
             behind: modules.filter((one) => one.isBehind).length,
+            behindNames: modules.filter((one) => one.isBehind).map(
+                (one) => one.name + " " + one.version + " (" +
+                one.newest + " is installed)"
+            ).join(", "),
             fromRows: modules.filter((one) => !one.isOnDisk).length,
+            fromRowsNames: modules.filter((one) => !one.isOnDisk).map(
+                (one) => one.name + " " + one.version
+            ).join(", "),
             onDisk: modules.filter((one) => one.isOnDisk).length,
+            onDiskNames: modules.filter((one) => one.isOnDisk).map(
+                (one) => one.name + " " + one.version
+            ).join(", "),
             text: modules.map(function (one) {
                 return one.name + " " + one.version + " (" + (
                     one.isOnDisk
@@ -1060,17 +1094,34 @@
         return m("tr", {
             class: (
                 "fb-admin-row" + (
+                    vm.instanceSelection === instance.id ||
                     vm.picked[instance.id] === true
                     ? " fb-table-row-selected"
                     : ""
                 )
-            )
+            ),
+            oncontextmenu: function (e) {
+                vm.instanceSelection = instance.id;
+                vm.menu = {left: e.pageX, top: e.pageY, of: "instance"};
+                e.preventDefault();
+                return false;
+            },
+            onclick: function () {
+                vm.instanceSelection = instance.id;
+            }
         }, [
             m("td", m("input", {
                 title: "Tick to deploy a package to this instance",
                 checked: vm.picked[instance.id] === true,
+                /*
+                    The tick is the group deploy's, not the selection:
+                    one ticks several instances, the other points at
+                    one. Stopped here so a tick does not also move the
+                    row the toolbar is acting on.
+                */
                 onclick: function (e) {
                     vm.picked[instance.id] = e.target.checked;
+                    e.stopPropagation();
                 },
                 type: "checkbox"
             })),
@@ -1099,8 +1150,8 @@
                 (
                     what.onDisk
                     ? m("span", {
-                        title: what.onDisk + " module(s) run from a " +
-                            "package on this server"
+                        title: "From a package on this server: " +
+                            what.onDiskNames
                     }, what.onDisk + " disk")
                     : undefined
                 ),
@@ -1112,9 +1163,9 @@
                 (
                     what.fromRows
                     ? m("span", {
-                        title: what.fromRows + " module(s) have no " +
-                            "package on this server and run the code " +
-                            "in the database's own rows"
+                        title: "No package on this server, so the " +
+                            "code in the database's own rows runs: " +
+                            what.fromRowsNames
                     }, what.fromRows + " rows")
                     : undefined
                 ),
@@ -1128,16 +1179,31 @@
                     ? m("span", {
                         style: {color: "var(--fb-danger)"},
                         title: (
-                            what.adrift + " module(s) name a version " +
-                            "this server does not hold, so this " +
-                            "instance runs the code in its own tables"
+                            "Adrift: " + what.adriftNames + ". This " +
+                            "server does not hold " + (
+                                what.adrift === 1
+                                ? "that version"
+                                : "those versions"
+                            ) + ", so the instance runs the code in " +
+                            "its own tables instead. Install the " +
+                            "package, or deploy a version this server " +
+                            "has."
                         )
                     }, what.adrift + " adrift ")
                     : undefined
                 ),
                 (
                     what.behind
-                    ? what.behind + " behind"
+                    ? m("span", {
+                        title: (
+                            "Behind: " + what.behindNames + ". Deploy " +
+                            (
+                                what.behind === 1
+                                ? "it"
+                                : "them"
+                            ) + " to catch up."
+                        )
+                    }, what.behind + " behind")
                     : undefined
                 ),
                 (
@@ -1149,6 +1215,163 @@
             ]),
             m("td", instance.users)
         ]);
+    }
+
+    function selectedInstance() {
+        return vm.fleet.find((one) => one.id === vm.instanceSelection);
+    }
+
+    /*
+        What the toolbar over the instances offers. The same actions
+        the per-instance Instances screen has carried since D.3, on
+        the screen that spans every organization -- which is where an
+        operator is when a build stops or a deployment leaves an
+        instance held, and so the screen that could not do anything
+        about either (John, Oct 2026).
+
+        Nothing here is "the instance you are signed in to": the
+        console is in no instance, which is what lets it close or drop
+        any of them.
+    */
+    function instanceActions() {
+        let one = selectedInstance();
+        let none = one === undefined;
+        let pending = !none && one.pending !== undefined;
+
+        function entry(key, label, title, disabled, run) {
+            return {disabled, key, label, run, title};
+        }
+
+        function act(path, body, said) {
+            return function () {
+                vm.menu = undefined;
+                send(path, body, said);
+            };
+        }
+
+        return {
+            drop: entry(
+                "drop",
+                "Drop",
+                (
+                    none
+                    ? "Select an instance"
+                    : "Drop " + one.database + " and take it out of " +
+                        "the registry. There is no undo."
+                ),
+                none,
+                function () {
+                    vm.menu = undefined;
+                    vm.form = {kind: "drop"};
+                }
+            ),
+            maintenance: entry(
+                "maintenance",
+                (
+                    !none && one.isMaintenance
+                    ? "End maintenance"
+                    : "Maintenance"
+                ),
+                (
+                    none
+                    ? "Select an instance"
+                    : (
+                        one.isMaintenance
+                        ? "Let " + one.name + " answer requests again. " +
+                            "A deployment that failed leaves this on " +
+                            "until somebody has checked the schema."
+                        : "Hold " + one.name + " for a deployment: it " +
+                            "answers 503 with an explanation, and only " +
+                            "a platform administrator can sign in"
+                    )
+                ),
+                none,
+                act(
+                    "/platform/instance/maintenance",
+                    (
+                        none
+                        ? {}
+                        : {id: one.id, isMaintenance: !one.isMaintenance}
+                    ),
+                    (
+                        !none && one.isMaintenance
+                        ? "Maintenance ended"
+                        : "Held for maintenance"
+                    )
+                )
+            ),
+            resume: entry(
+                "resume",
+                "Resume",
+                (
+                    none
+                    ? "Select an instance"
+                    : (
+                        pending
+                        ? "Pick the build up from " + one.pending.state
+                        : "Only a build that stopped can be resumed"
+                    )
+                ),
+                none || !pending,
+                act(
+                    "/platform/instance/provision/resume",
+                    (
+                        none
+                        ? {}
+                        : {id: one.id}
+                    ),
+                    "Build resumed"
+                )
+            ),
+            status: entry(
+                "status",
+                (
+                    none || one.isActive
+                    ? "Close"
+                    : "Open"
+                ),
+                (
+                    none
+                    ? "Select an instance"
+                    : (
+                        one.isActive
+                        ? "Stop anyone signing in to " + one.name +
+                            ". The database and its data stay."
+                        : "Let people sign in to " + one.name + " again"
+                    )
+                ),
+                none || pending,
+                act(
+                    "/platform/instance/status",
+                    (
+                        none
+                        ? {}
+                        : {id: one.id, isActive: !one.isActive}
+                    ),
+                    (
+                        !none && one.isActive
+                        ? "Closed"
+                        : "Open"
+                    )
+                )
+            ),
+            template: entry(
+                "template",
+                "Template",
+                (
+                    none
+                    ? "Select an instance"
+                    : "Copy " + one.name + " into the template new " +
+                        "instances are built from. It must be quiet: " +
+                        "anyone else's connections make the copy refuse."
+                ),
+                none,
+                function () {
+                    vm.menu = undefined;
+                    vm.form = {kind: "template"};
+                }
+            )
+        };
     }
 
     function visibleFleet() {
@@ -1475,9 +1698,127 @@
         ]);
     }
 
+    /*
+        Drop asks before it acts and Template asks what to call the
+        copy. Neither is a dialog: the console has none, and a band
+        above the list it belongs to says what is about to happen
+        without taking the list off the screen.
+    */
+    function instanceForm() {
+        let one = selectedInstance();
+        let kind = vm.form.kind;
+
+        function cancel() {
+            vm.form = undefined;
+            vm.error = "";
+        }
+
+        function submit() {
+            if (!one) {
+                cancel();
+                return;
+            }
+            if (kind === "drop") {
+                if (fieldValue("confirm") !== one.database) {
+                    vm.error = (
+                        "Type " + one.database + " to confirm the drop"
+                    );
+                    return;
+                }
+                send(
+                    "/platform/instance/drop",
+                    {id: one.id},
+                    one.name + " is dropped"
+                );
+                return;
+            }
+            send("/platform/template", {
+                name: fieldValue("template-name"),
+                source: one.database
+            }, "Template built from " + one.name);
+        }
+
+        if (!one) {
+            return;
+        }
+
+        return m("form", {
+            class: "pure-form pure-form-aligned",
+            style: {
+                background: "var(--fb-surface)",
+                borderBottom: "1px solid var(--fb-border)",
+                padding: "0.5em 0 1em 0"
+            }
+        }, [
+            m("div", {class: "fb-sign-in fb-sign-in-header"}, (
+                kind === "drop"
+                ? "Drop " + one.name
+                : "Copy " + one.name + " into a template"
+            )),
+            m("div", {class: "fb-admin-note"}, (
+                kind === "drop"
+                ? "The database " + one.database + " and everything in " +
+                    "it goes, and the instance leaves the registry. " +
+                    "There is no undo, and nothing here takes a backup."
+                : "The source must be quiet while the copy runs. This " +
+                    "server lets go of its own connections to it; " +
+                    "anyone else's make the copy refuse rather than " +
+                    "produce a torn clone."
+            )),
+            (
+                kind === "drop"
+                ? field(
+                    "confirm",
+                    "Type " + one.database,
+                    "text",
+                    submit
+                )
+                : field("template-name", "Template", "text", submit)
+            ),
+            m("div", {class: "pure-control-group fb-sign-in"}, [
+                m("label", {class: "fb-sign-in-label"}, ""),
+                m("button", {
+                    class: (
+                        "pure-button" + (
+                            kind === "drop"
+                            ? ""
+                            : " pure-button-primary"
+                        )
+                    ),
+                    disabled: vm.isBusy,
+                    onclick: function () {
+                        submit();
+                        return false;
+                    },
+                    style: (
+                        kind === "drop"
+                        ? {
+                            background: "var(--fb-danger)",
+                            color: "white",
+                            width: "110px"
+                        }
+                        : {width: "110px"}
+                    )
+                }, (
+                    kind === "drop"
+                    ? "Drop"
+                    : "Build"
+                )),
+                m("button", {
+                    class: "pure-button",
+                    onclick: function () {
+                        cancel();
+                        return false;
+                    },
+                    style: {marginLeft: "6px", width: "110px"}
+                }, "Cancel")
+            ])
+        ]);
+    }
+
     function console_() {
         let actions = organizationActions();
-
+        let rows = instanceActions();
         let organization = selectedOrganization();
 
         return [
@@ -1539,13 +1880,23 @@
             (
                 vm.screen === "packages"
                 ? undefined
-                : contextMenu([
-                actions.edit,
-                actions.administrator,
-                actions.provider,
-                actions.instance,
-                actions.status
-                ])
+                : contextMenu(
+                    (vm.menu || {}).of === "instance"
+                    ? [
+                        rows.status,
+                        rows.maintenance,
+                        rows.resume,
+                        rows.template,
+                        rows.drop
+                    ]
+                    : [
+                        actions.edit,
+                        actions.administrator,
+                        actions.provider,
+                        actions.instance,
+                        actions.status
+                    ]
+                )
             ),
             m("div", {class: "fb-title"}, m("label", "The platform")),
             m("div", {class: "fb-platform-body"}, [
@@ -1565,7 +1916,13 @@
                 : undefined
             ),
             (
-                vm.form && vm.form.kind !== "deploy"
+                vm.form && INSTANCE_FORMS.indexOf(vm.form.kind) !== -1
+                ? instanceForm()
+                : undefined
+            ),
+            (
+                vm.form && vm.form.kind !== "deploy" &&
+                INSTANCE_FORMS.indexOf(vm.form.kind) === -1
                 ? organizationForm()
                 : undefined
             ),
@@ -1627,6 +1984,11 @@
                             : "Tick the instances to deploy to"
                         )
                     }),
+                    toolbarButton(rows.status),
+                    toolbarButton(rows.maintenance),
+                    toolbarButton(rows.resume),
+                    toolbarButton(rows.template),
+                    toolbarButton(rows.drop),
                     m("div", {class: "fb-toolbar-fill"}),
                     m("label", {
                         class: "fb-list-toolbar-check",

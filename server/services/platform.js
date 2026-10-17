@@ -406,6 +406,36 @@
                 )
             );
 
+            /*
+                Builds that stopped partway, so the console can offer
+                to pick them up. The per-instance screen has had this
+                since D.1; without it the console shows a half-built
+                instance as an ordinary closed one and nothing says
+                there is a build waiting.
+            */
+            let pending = {};
+            let hasProv = await client.query(
+                "SELECT to_regclass('\"$provision\"') AS t"
+            );
+
+            if (hasProv.rows[0].t) {
+                let stopped = await client.query(
+                    (
+                        "SELECT t.id, p.state, p.detail " +
+                        "FROM \"$provision\" p " +
+                        "JOIN tenant t ON t._pk = p.tenant_pk " +
+                        "WHERE NOT t.is_deleted AND p.state <> 'active'"
+                    )
+                );
+
+                stopped.rows.forEach(function (row) {
+                    pending[row.id] = {
+                        detail: row.detail,
+                        state: row.state
+                    };
+                });
+            }
+
             return resp.rows.map(function (row) {
                 return {
                     database: row.pg_database,
@@ -417,6 +447,7 @@
                     name: row.name,
                     organization: row.organization,
                     organizationId: row.organization_id,
+                    pending: pending[row.id],
                     service: row.service_name,
                     users: row.users
                 };
