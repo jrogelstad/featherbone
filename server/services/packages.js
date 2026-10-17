@@ -656,6 +656,53 @@
             @param {String} b
             @return {Number}
         */
+        /**
+            Take a version off this server. The files go; no database
+            is touched, which is the same division Install keeps --
+            whether any database still wants this version is the
+            caller's to settle before asking (ADR-002 section 6).
+
+            @method remove
+            @param {String} name
+            @param {String} version
+            @param {Object} [options]
+            @param {String} [options.dir] Modules directory
+            @return {Object} {name, version, dir}
+        */
+        that.remove = function (name, version, opts) {
+            opts = opts || {};
+
+            let into = opts.dir || root;
+            let place = path.join(into, name, version);
+
+            if (!fs.existsSync(path.join(place, "manifest.json"))) {
+                throw new Error(
+                    name + " " + version + " is not installed on this " +
+                    "server"
+                );
+            }
+
+            fs.rmSync(place, {recursive: true, force: true});
+
+            /*
+                The module's directory goes too once its last version
+                has, so the modules directory lists what is there
+                rather than the shape of what used to be.
+            */
+            let holder = path.join(into, name);
+
+            if (
+                fs.existsSync(holder) &&
+                !fs.readdirSync(holder).length
+            ) {
+                fs.rmdirSync(holder);
+            }
+
+            that.scan(into);
+
+            return {dir: place, name, version};
+        };
+
         that.compareVersions = function (a, b) {
             let one = parts(a);
             let two = parts(b);

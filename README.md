@@ -609,6 +609,16 @@ they are read from the instance now rather than from the manager -- the
 one-mode collapse had left that loader pointed at the manager, so an
 instance's rows had quietly stopped being loaded at all.
 
+From the platform console, **Manage packages** on the top toolbar does
+the same from a screen: it lists what this server holds, which
+instances run each version, and whether a newer one is installed. **Add
+package** uploads one; **Remove** takes one off. A version an instance
+is running cannot be removed -- that version is the code the instance
+executes, so removing it would drop the instance back to the rows in
+its own database without anything saying so -- and nor can one while an
+instance cannot be asked what it carries, since an instance that cannot
+be seen may be running it. The refusal names the instances either way.
+
 **Deploy** applies one installed version to one database:
 
 ```bash
