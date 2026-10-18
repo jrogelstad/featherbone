@@ -2206,6 +2206,18 @@ button:disabled .fb-ipicon,
   color: var(--fb-danger);
 }
 
+/* The plain IconPark icons (close, and anything else nobody has toned)
+   are drawn with a near-black stroke (#333) that only lightens under
+   the SVG's own embedded `prefers-color-scheme: dark` media query --
+   which answers the browser's theme, not this element's background.
+   The snackbar is dark always, light mode included, so that default
+   stroke landed on a background of the same #333 and vanished. Icons
+   already toned for error/warning/success (the stop icon among them)
+   read fine as-is and are left alone. */
+#snackbar .fb-ipicon:not(.fb-ip-error):not(.fb-ip-warning):not(.fb-ip-success) {
+  --fb-icon-tone: invert(1);
+}
+
 /* The snackbar - position it at the bottom and in the middle of the screen */
 #snackbar {
   visibility: hidden; /* Hidden by default. Visible on click */
