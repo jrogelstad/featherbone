@@ -301,6 +301,39 @@
             @param {String} username
             @return {Promise} Boolean
         */
+        /**
+            Which organization owns an instance database, as its
+            primary key, or undefined when the database is not a
+            registered instance or belongs to nobody.
+
+            The organization is where anything shared by every
+            instance a customer owns belongs -- their letterhead and
+            their mail account, for two (John, 2026-10-18: "move the
+            global settings from the database to the ... organization
+            record that manages all the instances").
+
+            @method organizationOf
+            @param {Client} client Manager client
+            @param {String} database Instance database name
+            @return {Promise} Number or undefined
+        */
+        that.organizationOf = async function (client, database) {
+            let resp = await client.query(
+                (
+                    "SELECT _organization_organization_pk AS org " +
+                    "FROM tenant " +
+                    "WHERE pg_database = $1 AND NOT is_deleted"
+                ),
+                [database]
+            );
+
+            if (!resp.rows.length || resp.rows[0].org === null) {
+                return undefined;
+            }
+
+            return resp.rows[0].org;
+        };
+
         that.isPlatformAdminOf = async function (client, database, username) {
             let resp = await client.query(
                 (

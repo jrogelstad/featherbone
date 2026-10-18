@@ -235,8 +235,7 @@ describe("upgrading an instance's core", function () {
     });
 
     describe("and the same act across a group", function () {
-        it("refuses a group from anyone below platform",
-                async function () {
+        it("refuses a group from anyone below platform", async function () {
             await flags(settings.adminUser, {isOrgAdmin: true});
 
             let resp = await admin.raw("POST", "/admin/instances/upgrade", {
@@ -258,8 +257,7 @@ describe("upgrading an instance's core", function () {
             assert.equal(resp.status, 400, JSON.stringify(resp.body));
         });
 
-        it("refuses the whole group when one is not there",
-                async function () {
+        it("refuses the whole group when one is not there", async function () {
             let resp = await admin.raw("POST", "/admin/instances/upgrade", {
                 instances: [first, "nosuchinstance"]
             });
@@ -272,8 +270,7 @@ describe("upgrading an instance's core", function () {
             );
         });
 
-        it("upgrades every instance named, and lets each go",
-                async function () {
+        it("upgrades each instance named, and lets it go", async function () {
             await setCore(settings.testDb, "2.2.0");
             await setCore(settings.testDb2, "2.2.0");
 
