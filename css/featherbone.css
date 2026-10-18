@@ -541,24 +541,36 @@ button:disabled .fb-ipicon,
     font-size: 20px;
 }
 
-/* formats.image.editor: a drop-click box showing the image in use
-   (the caller's fallback when the property is empty), plus Clear and
-   a secondary field for a pasted web address. */
+/* formats.image.editor: ddom's Import/Export drop box (its app.css
+   `.fb-dropzone`, used by knowledge-transfer-page.js) applied to an
+   image -- a dashed box to drop on, with the file input visible inside
+   it as the thing to click, and the image actually in use standing in
+   for the icon once there is one. Clear and a field for a pasted web
+   address sit below it. */
 .fb-image-upload-dropzone {
-    width: 160px;
-    height: 160px;
+    box-sizing: border-box;
+    width: 320px;
+    min-height: 180px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     position: relative;
-    overflow: hidden;
+    padding: 24px;
     border: 2px dashed var(--fb-border);
-    border-radius: 6px;
-    background: var(--fb-surface-alt);
+    border-radius: 8px;
+    background: var(--fb-surface);
+    color: var(--fb-text-muted);
+    font-size: 12px;
+    text-align: center;
     cursor: pointer;
 }
 
-.fb-image-upload-dropzone:hover,
+.fb-image-upload-dropzone:hover {
+    border-color: var(--fb-accent);
+}
+
 .fb-image-upload-dropzone-active {
     border-color: var(--fb-accent);
     background: var(--fb-hover-accent-tint);
@@ -566,22 +578,23 @@ button:disabled .fb-ipicon,
 
 .fb-image-upload-dropzone img {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 120px;
     object-fit: contain;
 }
 
-.fb-image-upload-placeholder {
-    padding: 8px;
-    color: var(--fb-text-muted);
-    font-size: 12px;
-    text-align: center;
+.fb-image-upload-icon {
+    font-size: 32px;
+    color: var(--fb-muted-icon);
 }
 
-.fb-image-upload-icon {
-    display: block;
-    margin: 0 auto 4px;
-    font-size: 28px;
-    color: var(--fb-muted-icon);
+.fb-image-upload-hint {
+    line-height: 1.3;
+}
+
+.fb-image-upload-input {
+    max-width: 100%;
+    font-size: 12px;
+    cursor: pointer;
 }
 
 .fb-image-upload-busy {

@@ -464,7 +464,13 @@ describe("client components", function () {
             });
             assert.equal(R.find(tree, R.byTag("img")).attrs.src,
                     "/files/upload/letterhead.png");
-            assert.equal(R.find(tree, R.byTag("input")).attrs.value, "");
+            assert.equal(R.find(tree, R.byClass("fb-input")).attrs.value,
+                    "");
+            // ddom's dropzone keeps a real file input visible inside the
+            // box, so there is always something to click (John,
+            // 2026-10-18: "No controls to interact").
+            assert.equal(R.find(tree,
+                    R.byClass("fb-image-upload-input")).attrs.type, "file");
             clearBtn = R.find(tree, R.byTag("button"));
             assert.equal(R.text(clearBtn), "Clear");
             assert.equal(Boolean(clearBtn.attrs.disabled), false);
@@ -495,7 +501,7 @@ describe("client components", function () {
             });
             assert.equal(R.find(tree, R.byTag("img")).attrs.src,
                     "https://example.com/logo.png");
-            assert.equal(R.find(tree, R.byTag("input")).attrs.value,
+            assert.equal(R.find(tree, R.byClass("fb-input")).attrs.value,
                     "https://example.com/logo.png");
         });
 
