@@ -4,50 +4,51 @@
     "description": "Global settings",
     "properties": {
         "logo": {
-            "description": "User defined logo",
-            "type": {
-                "relation": "ResourceLink",
-                "properties": [
-                    "icon",
-                    "label",
-                    "resource",
-                    "displayValue"
-                ]
-            }
+            "description": "Logo on printed forms: a URL, or the name of a file uploaded to this server",
+            "type": "string",
+            "isOrganization": true
         },
         "name": {
             "description": "Organization name on printed forms",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "street": {
             "description": "Street address on printed forms",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "unit": {
             "description": "Unit on printed forms",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "city": {
             "description": "City on printed forms",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "state": {
             "description": "State or province on printed forms",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "postalCode": {
             "description": "Postal code on printed forms",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "country": {
             "description": "Country on printed forms",
             "type": "string",
-            "default": "United States"
+            "default": "United States",
+            "isOrganization": true
         },
         "phone": {
             "description": "Phone on printed forms",
             "type": "string",
-            "format": "tel"
+            "format": "tel",
+            "isOrganization": true
         },
         "smtpType": {
             "description": "SMTP connection method",
@@ -64,31 +65,37 @@
             }, {
                 "value": "Gmail",
                 "label": "Google Gmail"
-            }]
+            }],
+            "isOrganization": true
         },
         "smtpHost": {
             "description": "SMTP host address",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "smtpUser": {
             "description": "SMTP email account",
-            "type": "string"
+            "type": "string",
+            "isOrganization": true
         },
         "smtpPassword": {
             "description": "SMTP password",
             "type": "string",
             "format": "password",
-            "isEncrypted": true
+            "isEncrypted": true,
+            "isOrganization": true
         },
         "smtpSecure": {
             "description": "Whether SMTP connection is secure",
             "type": "boolean",
-            "default": true
+            "default": true,
+            "isOrganization": true
         },
         "smtpPort": {
             "description": "SMTP port",
             "type": "integer",
-            "default": 465
+            "default": 465,
+            "isOrganization": true
         }
     }
 }

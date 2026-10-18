@@ -33,6 +33,7 @@
     const writeFileSync = "writeFileSync";
     const f = require("../../common/core");
     const fs = require("fs");
+    const path_ = require("path");
     const {CRUD} = require("./crud");
     const {Tools} = require("./tools");
     const {Feathers} = require("./feathers");
@@ -663,9 +664,43 @@
             let heights;
             let src;
             let res;
-            if (globalSettings && globalSettings.logo) {
-                res = await fetch(globalSettings.logo.resource);
-                src = await res.buffer();
+            /*
+                The logo is a pointer the customer supplies: a URL,
+                or the name of a file they have uploaded to this
+                server (John, 2026-10-18: "Let people simply upload
+                their own logo and point to that. Any request on
+                reports for the logo need to request it from there").
+
+                It used to relate to a `ResourceLink` row, which tied
+                it to one instance and kept it out of the settings
+                that belong to the organization. An object with a
+                `resource` is still read, so an installation that
+                already had one keeps printing it.
+            */
+            let configured = globalSettings || {};
+            let logo = configured.logo;
+
+            if (logo && typeof logo === "object") {
+                logo = logo.resource;
+            }
+
+            let where = String(logo || "");
+
+            if (logo) {
+                if (where.startsWith("http")) {
+                    res = await fetch(logo);
+                    src = await res.buffer();
+                } else {
+                    /*
+                        A name, not a path: the uploaded file is
+                        taken from the upload directory and nowhere
+                        else, so a setting cannot read its way across
+                        the file system.
+                    */
+                    src = fs[readFileSync](
+                        "./files/upload/" + path_.basename(where)
+                    );
+                }
             } else {
                 src = fs[readFileSync]("./files/logo.jpg");
             }
