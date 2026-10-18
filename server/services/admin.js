@@ -50,6 +50,7 @@
     const {Manager} = require("./manager");
     const {Platform} = require("./platform");
     const {Database} = require("../database");
+    const {Upgrade} = require("./upgrade");
     const datasource = require("../datasource");
     const f = require("../../common/core");
 
@@ -57,6 +58,7 @@
     const manager = new Manager();
     const platform = new Platform();
     const db = new Database();
+    const upgrade = new Upgrade();
 
     const STATUSES = ["active", "disabled"];
 
@@ -745,12 +747,39 @@
                 not the same as carrying nothing.
             */
             let carried = (deployed || {})[row.pg_database];
+            /*
+                The framework's own version in this instance, which is
+                not part of the package fleet above: Core is installed
+                from the framework's manifest, not from a package on
+                disk, so "behind" for it means behind this server
+                rather than behind a package it holds. It is what the
+                Upgrade action acts on (John, 2026-10-17).
+            */
+            let core = (
+                carried
+                ? carried.modules.find((mod) => mod.name === "Core")
+                : undefined
+            );
 
             return {
                 behind: (
                     carried
                     ? carried.modules.filter((mod) => mod.isBehind).length
                     : 0
+                ),
+                coreVersion: (
+                    core
+                    ? core.version
+                    : undefined
+                ),
+                isCoreBehind: (
+                    carried
+                    ? upgrade.isBehind(
+                        core
+                        ? core.version
+                        : undefined
+                    )
+                    : false
                 ),
                 database: row.pg_database,
                 /*
@@ -998,6 +1027,12 @@
                     */
                     packages: installed,
                     provisioning,
+                    /*
+                        The framework this server runs, so the screen
+                        can say what an instance would be upgraded to
+                        rather than only that it is behind.
+                    */
+                    serverVersion: upgrade.version(),
                     services,
                     templates,
                     tier: ctx.tier
@@ -1553,6 +1588,286 @@
                 failed,
                 notAttempted: targets.length - results.length,
                 results
+            };
+        };
+
+        /**
+            Bring one instance's core current: apply the framework's
+            own manifest to it, the way `install.js --instance` does
+            from a command line (John, 2026-10-17: "how do I get its
+            db up to 3.0.0 alpha?").
+
+            Deploy is for packages the server holds in `modules/`, and
+            the framework is not one of them, so until now a core
+            upgrade was a shell and nothing else -- which is no use on
+            a hosted installation. This is the same act as the startup
+            self-upgrade's instance step, asked for on purpose instead
+            of on a restart.
+
+            Held, applied, let go, audited at both ends, exactly as a
+            package deployment is: it is the same kind of outage and
+            deserves the same handling. The installer reads the target
+            database's own `"$db"` marker to know it is installing an
+            instance, so nothing here has to say so.
+
+            A database that is behind is the usual reason, but a
+            current one is allowed: re-applying the manifest is how a
+            changed script reaches an instance, and the installer
+            makes nothing twice.
+
+            @method upgradeInstance
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Instance id
+            @return {Promise} {database, version}
+        */
+        that.upgradeInstance = async function (obj) {
+            let data = obj.data || {};
+            let version = upgrade.version();
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let target;
+                let tenant;
+
+                requirePlatform(ctx, "upgrade an instance");
+
+                if (!data.id) {
+                    throw invalid("Name the instance to upgrade");
+                }
+
+                target = await manager.instanceById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such instance in this organization");
+                }
+
+                /*
+                    The target's own registry entry, not the caller's:
+                    it carries the connection the installer writes
+                    through. The same mistake a deployment made once,
+                    and the same fix.
+                */
+                tenant = (obj.registry || []).find(
+                    (entry) => entry.pgDatabase === target.pg_database
+                );
+
+                if (!tenant) {
+                    throw invalid(
+                        target.pg_database + " is registered but this " +
+                        "server is not serving it, so it cannot be " +
+                        "upgraded from here."
+                    );
+                }
+
+                await manager.setInstanceMaintenance(
+                    mclient,
+                    target._pk,
+                    true,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: "instance.upgrade_began",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        "Core " + version + " into " + target.name +
+                        " (" + target.pg_database + ")"
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+
+                try {
+                    await datasource.install(
+                        upgrade.root(),
+                        obj.user,
+                        {
+                            databases: [target.pg_database],
+                            isSuper: true,
+                            tenant
+                        }
+                    );
+                } catch (err) {
+                    await manager.audit(mclient, {
+                        action: "instance.upgrade_failed",
+                        actorPk: actorPk(ctx),
+                        by: obj.user,
+                        detail: (
+                            "Core " + version + " into " +
+                            target.pg_database + ": " +
+                            (err.message || err)
+                        ),
+                        organizationPk: ctx.organizationPk
+                    });
+                    /*
+                        Left held, like a failed deployment: a half
+                        applied manifest is not something to let
+                        traffic back on to without a person looking.
+                    */
+                    throw err;
+                }
+
+                await manager.setInstanceMaintenance(
+                    mclient,
+                    target._pk,
+                    false,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: "instance.upgraded",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        "Core " + version + " into " + target.name +
+                        " (" + target.pg_database + ")"
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+
+                return {
+                    database: target.pg_database,
+                    version
+                };
+            });
+        };
+
+        /**
+            Bring several instances' cores current, one after another.
+
+            The fleet counterpart of `upgradeInstance`, and the same
+            bargain as a group deployment: each instance goes through
+            the single-instance path, held and let go in turn, so the
+            outage rolls rather than landing on the whole fleet at
+            once. The instances are named, so the test database before
+            production is this action with one name in the list.
+
+            Stops at the first failure by default, which leaves that
+            instance held and the rest untouched.
+
+            @method upgradeFleet
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {Array} payload.data.instances Instance ids, in order
+            @param {Boolean} [payload.data.stopOnError] Default true
+            @return {Promise} {upgraded, failed, notAttempted, results}
+        */
+        that.upgradeFleet = async function (obj) {
+            let data = obj.data || {};
+            let ids = data.instances;
+            let stop = data.stopOnError !== false;
+            let version = upgrade.version();
+            let targets = [];
+
+            if (!Array.isArray(ids) || !ids.length) {
+                throw invalid("Name the instances to upgrade");
+            }
+
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "upgrade the fleet");
+
+                let n = 0;
+
+                while (n < ids.length) {
+                    let found = await manager.instanceAnywhereById(
+                        mclient,
+                        ids[n]
+                    );
+
+                    n += 1;
+
+                    if (!found) {
+                        throw notFound("No instance has the id " + ids[n - 1]);
+                    }
+                    targets.push(found);
+                }
+
+                await manager.audit(mclient, {
+                    action: "fleet.upgrade_began",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        "Core " + version + " into " + targets.length +
+                        " instance(s): " +
+                        targets.map((t) => t.pg_database).join(", ")
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+            });
+
+            let results = [];
+            let n = 0;
+
+            while (n < targets.length) {
+                let target = targets[n];
+
+                n += 1;
+
+                try {
+                    // Each in its own organization, so every
+                    // instance's trail says what happened to it.
+                    await that.upgradeInstance(Object.assign({}, obj, {
+                        data: {id: target.id},
+                        organization: target.organization_id
+                    }));
+                    results.push({
+                        database: target.pg_database,
+                        id: target.id,
+                        name: target.name,
+                        ok: true,
+                        organization: target.organization
+                    });
+                } catch (err) {
+                    results.push({
+                        database: target.pg_database,
+                        id: target.id,
+                        message: err.message || String(err),
+                        name: target.name,
+                        ok: false,
+                        organization: target.organization
+                    });
+
+                    if (stop) {
+                        break;
+                    }
+                }
+            }
+
+            let upgraded = results.filter((r) => r.ok).length;
+            let failed = results.filter((r) => !r.ok).length;
+
+            await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                await manager.audit(mclient, {
+                    action: "fleet.upgrade_finished",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        "Core " + version + ": " + upgraded +
+                        " upgraded, " + failed + " failed" + (
+                            (failed && stop)
+                            ? ", stopped at the first failure with " +
+                                (targets.length - results.length) +
+                                " not attempted"
+                            : ""
+                        )
+                    ),
+                    organizationPk: ctx.organizationPk
+                });
+            });
+
+            return {
+                failed,
+                notAttempted: targets.length - results.length,
+                results,
+                upgraded,
+                version
             };
         };
 
