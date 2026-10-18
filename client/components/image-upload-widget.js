@@ -24,10 +24,15 @@
     disassociate logo from resource link altogether. Let people simply
     upload their own logo and point to that.").
 
-    The box itself is the control: click it, or drop a file onto it, to
-    upload through the server's existing `/do/upload` (the same one
-    `ResourceLinkRelation` posts to). It always shows the image actually
-    in use -- the caller's `fallbackSrc` when the property is unset, so
+    The box follows ddom's Import / Export drop box
+    (`knowledge-transfer-page.js`): a dashed target to drop a file on,
+    with a plain file input visible inside it so there is always
+    something to click, rather than a box you have to guess is live
+    (John, 2026-10-18: "No controls to interact... I expected more like
+    that"). Either route uploads through the server's existing
+    `/do/upload` (the same one `ResourceLinkRelation` posts to). What
+    ddom spends on an icon this spends on the image actually in use --
+    the caller's `fallbackSrc` when the property is unset, so
     "nothing chosen yet" reads as the default rather than as broken --
     and Clear reverts to that by clearing the property, rather than the
     widget having to know what a "factory default" is. A property value
@@ -138,6 +143,35 @@ imageUploadWidget.viewModel = function (options) {
             }
         };
         input.click();
+    };
+
+    /**
+        Upload whatever the visible file input was given, then forget it
+        so choosing the same file twice in a row still fires `onchange`.
+
+        @method onFileChange
+        @param {Event} evt
+    */
+    vm.onFileChange = function (evt) {
+        let input = evt.target;
+
+        if (input.files.length) {
+            vm.upload(input.files[0]);
+        }
+
+        input.value = "";
+    };
+
+    /**
+        The box is a drop target and a click target both, but the file
+        input inside it is its own click target: without this, clicking
+        the input would also fire the box and open two pickers.
+
+        @method onInputClick
+        @param {Event} evt
+    */
+    vm.onInputClick = function (evt) {
+        evt.stopPropagation();
     };
 
     /**
@@ -257,6 +291,7 @@ imageUploadWidget.component = {
         let src = resolvedSrc(value, options.fallbackSrc);
         let readonly = Boolean(options.readonly);
         let dropzoneClass = "fb-image-upload-dropzone";
+        let hint;
         let urlValue = (
             value.startsWith("http")
             ? value
@@ -268,6 +303,20 @@ imageUploadWidget.component = {
         }
 
         theStyle.display = theStyle.display || "inline-block";
+
+        if (readonly) {
+            hint = (
+                src
+                ? ""
+                : "No image"
+            );
+        } else {
+            hint = (
+                src
+                ? "Drag a new image here, or"
+                : "Drag an image here, or"
+            );
+        }
 
         return m("div", {
             style: theStyle,
@@ -305,21 +354,30 @@ imageUploadWidget.component = {
             }, [
                 (
                     src
-                    ? m("img", {src})
-                    : m("div", {
-                        class: "fb-image-upload-placeholder"
-                    }, [
-                        (
-                            readonly
-                            ? undefined
-                            : f.icon("upload", "fb-image-upload-icon")
-                        ),
-                        (
-                            readonly
-                            ? "No image"
-                            : "Click or drop an image here"
-                        )
-                    ])
+                    ? m("img", {
+                        src,
+                        alt: "The image in use"
+                    })
+                    : f.icon("upload", "fb-image-upload-icon")
+                ),
+                (
+                    hint
+                    ? m("div", {
+                        class: "fb-image-upload-hint"
+                    }, hint)
+                    : undefined
+                ),
+                (
+                    readonly
+                    ? undefined
+                    : m("input", {
+                        type: "file",
+                        accept: "image/*",
+                        class: "fb-image-upload-input",
+                        disabled: vm.busy(),
+                        onclick: vm.onInputClick,
+                        onchange: vm.onFileChange
+                    })
                 ),
                 (
                     vm.busy()
