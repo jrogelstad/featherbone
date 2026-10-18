@@ -8,6 +8,26 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Open, 2026-10-18 (second round)
+
+Three more, independent of each other and of the stack below (no
+ordering constraint between them):
+
+1. `docs/record-punted-decisions` -- the SSO/HA/API-tokens punts,
+   decided in conversation on 2026-10-18, recorded in the ADR docs
+   rather than left only in a local working copy that was then reset.
+2. `feat/logo-upload` -- the logo setting gets an Upload button, not
+   just a pasted URL (`formats.image`, through the existing
+   `/do/upload`, gated by `fileUpload`).
+3. `fix/fleet-core-column-and-upgrade-button` -- the platform
+   console's fleet table gets a **Core** column (version and whether
+   behind, which used to live only in a tooltip), and the single-row
+   "upgrade" there is gone: it duplicated the group button, which
+   Deploy never had a row counterpart for either.
+
+Each stands on `john/master` after the 2026-10-17/18 stack below, not
+on each other.
+
 ## Merge order, 2026-10-17 and 18
 
 One stack, in this order, each built on the one above it. Merging the
@@ -25,9 +45,9 @@ compare against, and (4) because the `globalSettings` definition is
 stored per instance and the organization-owned properties are only
 recognised once the new definition is installed.
 
-Everything from 2026-10-16 is merged, and the branches are gone from
-`FeatherboneJS/Featherbone`; the rows below are kept as the record of
-what each one was.
+**Merged 2026-10-18** (PRs #241-#244, in that order), and the branches
+are gone from `FeatherboneJS/Featherbone`; the rows below are kept as
+the record of what each one was.
 
 ## Merge order, 2026-10-16
 
