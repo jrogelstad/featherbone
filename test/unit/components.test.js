@@ -448,21 +448,61 @@ describe("client components", function () {
             assert.ok(R.text(tree).includes("launch"));
         });
 
-        it("image-upload-widget.js takes a pasted value and offers upload",
+        it("image-upload-widget.js shows the image in use, and clears",
                 function () {
-            let preview;
+            let tree;
+            let clearBtn;
 
+            // Uploaded: previews from /files/upload/, Clear is live, and
+            // the paste-a-URL field does not echo the stored filename
+            // back -- that was John's complaint about the old always-
+            // visible text box (2026-10-18).
             model.data.logo("letterhead.png");
-            let tree = editor("imageUploadWidget", "logo", {
+            tree = editor("imageUploadWidget", "logo", {
+                fallbackSrc: "/files/logo.jpg",
                 prop: model.data.logo
             });
-            assert.equal(R.find(tree, R.byTag("input")).attrs.value,
-                    "letterhead.png");
+            assert.equal(R.find(tree, R.byTag("img")).attrs.src,
+                    "/files/upload/letterhead.png");
+            assert.equal(R.find(tree, R.byClass("fb-input")).attrs.value,
+                    "");
+            // ddom's dropzone keeps a real file input visible inside the
+            // box, so there is always something to click (John,
+            // 2026-10-18: "No controls to interact").
+            assert.equal(R.find(tree,
+                    R.byClass("fb-image-upload-input")).attrs.type, "file");
+            clearBtn = R.find(tree, R.byTag("button"));
+            assert.equal(R.text(clearBtn), "Clear");
+            assert.equal(Boolean(clearBtn.attrs.disabled), false);
+
+            // Empty, with a fallback: shows the fallback (it is the
+            // image actually in use), and Clear has nothing to do.
+            model.data.logo("");
+            tree = editor("imageUploadWidget", "logo", {
+                fallbackSrc: "/files/logo.jpg",
+                prop: model.data.logo
+            });
+            assert.equal(R.find(tree, R.byTag("img")).attrs.src,
+                    "/files/logo.jpg");
+            assert.equal(Boolean(R.find(tree, R.byTag("button"))
+                    .attrs.disabled), true);
+
+            // Empty, with no fallback either: the upload invitation.
+            tree = editor("imageUploadWidget", "logo", {
+                prop: model.data.logo
+            });
             assert.ok(iconNames(tree).includes("upload"));
-            preview = R.findAll(tree, R.byTag("img")).find(
-                (img) => R.classOf(img).includes("fb-image-upload-preview")
-            );
-            assert.equal(preview.attrs.src, "/files/upload/letterhead.png");
+
+            // A pasted web address is the one value the text field does
+            // show, since it is the one the person typed there.
+            model.data.logo("https://example.com/logo.png");
+            tree = editor("imageUploadWidget", "logo", {
+                prop: model.data.logo
+            });
+            assert.equal(R.find(tree, R.byTag("img")).attrs.src,
+                    "https://example.com/logo.png");
+            assert.equal(R.find(tree, R.byClass("fb-input")).attrs.value,
+                    "https://example.com/logo.png");
         });
 
         it("data-type.js renders the type selector and relation dialog",

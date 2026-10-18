@@ -393,12 +393,12 @@
   },
   {
     "inputs": [
-      "text#logo"
+      "file#",
+      "text#"
     ],
     "label": "Logo:",
     "tags": [
       "#",
-      "[",
       "a",
       "button",
       "div",

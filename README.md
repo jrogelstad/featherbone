@@ -5,26 +5,20 @@ A JavaScript based persistence framework for building object relational database
 
 # Prerequisites
 
-* [PostgreSQL v14.8.0](http://www.postgresql.org/)
-* [NodeJS v16.20.1](https://nodejs.org/en/)
+* [PostgreSQL v14](http://www.postgresql.org/) or newer
+* [NodeJS v20](https://nodejs.org/en/) or newer
 
 # Install
 
-
-
-Copy the config.template.json file under the server folder to config.json and set appropriate credentials.
-
-On the first install you will need to pass credentials of a postgres superuser that can create the database and grant permissions to your adminstrative service user defined [here](https://github.com/FeatherboneJS/featherbone/blob/master/server/config.json).
+Copy the `config.template.json` file under the `server` folder to `config.json` and set appropriate credentials -- `secret` and `pgCryptoKey` in particular; the server refuses to start with either blank.
 
 Either download and unzip the latest release, or clone this repository and from the destination location:
 
 ```text
 $ npm install
-$ node install --username postgres --password <your password>
-$ node server
 ```
 
-From your browser navigate to <http://localhost/demo> to run the application where the last part of the path is the name of your database. Use the same username and password as specified as in your PostgreSQL [configuration](https://github.com/FeatherboneJS/featherbone/blob/master/server/config.json) service user ("admin"/"password" by default) to sign in.
+Every installation is one **manager** database plus one or more **instance** databases holding application data -- there is no single-database mode. "The manager and instances" just below has the build commands, and "Starting a new installation" has the full walkthrough: building the manager, building an instance, and the first sign-in. An installation from before 3.0 is not moved to it by copying files over; see "Moving an existing installation".
 
 A documentation server may be installed from [here](https://github.com/jrogelstad/featherbone-docs)
 
@@ -775,7 +769,7 @@ identity. A failure now exits non-zero, so a script can tell.
 
 # Tests
 
-A regression suite lives under `test/` and needs no extra dependencies (Node 18+ and the PostgreSQL client tools).
+A regression suite lives under `test/` and needs no extra dependencies (Node 20+ and the PostgreSQL client tools).
 
 ```text
 $ npm test                 # unit tests, then API and SupplyChain flows (about 5 minutes)

@@ -165,6 +165,7 @@ function buildFieldset(vm, attrs) {
         }
 
         theOptions.disableCurrency = item.disableCurrency;
+        theOptions.fallbackSrc = item.fallbackSrc;
 
         if (theDataList) {
             // If reference a property, get the property

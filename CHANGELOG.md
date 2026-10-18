@@ -3,7 +3,7 @@
 Notable changes to Featherbone. Dates are the day the work landed on
 `master`.
 
-## 3.0.0-alpha.1 — unreleased
+## 3.0.0-alpha.1 — 2026-10-18
 
 The first alpha of 3.0. Everything an installation is made of changed
 shape: who a user is, where a server's code comes from, and what a
