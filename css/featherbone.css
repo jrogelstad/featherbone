@@ -541,14 +541,87 @@ button:disabled .fb-ipicon,
     font-size: 20px;
 }
 
-/* Thumbnail beside an image field (formats.image.editor) */
-.fb-image-upload-preview {
-    max-width: 28px;
-    max-height: 28px;
-    margin-right: 6px;
-    vertical-align: middle;
-    border: 1px solid var(--fb-border);
-    border-radius: 3px;
+/* formats.image.editor: ddom's Import/Export drop box (its app.css
+   `.fb-dropzone`, used by knowledge-transfer-page.js) applied to an
+   image -- a dashed box to drop on, with the file input visible inside
+   it as the thing to click, and the image actually in use standing in
+   for the icon once there is one. Clear and a field for a pasted web
+   address sit below it. */
+.fb-image-upload-dropzone {
+    box-sizing: border-box;
+    width: 320px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    padding: 24px;
+    border: 2px dashed var(--fb-border);
+    border-radius: 8px;
+    background: var(--fb-surface);
+    color: var(--fb-text-muted);
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.fb-image-upload-dropzone:hover {
+    border-color: var(--fb-accent);
+}
+
+.fb-image-upload-dropzone-active {
+    border-color: var(--fb-accent);
+    background: var(--fb-hover-accent-tint);
+}
+
+.fb-image-upload-dropzone img {
+    max-width: 100%;
+    max-height: 120px;
+    object-fit: contain;
+}
+
+.fb-image-upload-icon {
+    font-size: 32px;
+    color: var(--fb-muted-icon);
+}
+
+.fb-image-upload-hint {
+    line-height: 1.3;
+}
+
+.fb-image-upload-input {
+    max-width: 100%;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.fb-image-upload-busy {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--fb-surface);
+    opacity: 0.85;
+    font-size: 12px;
+    color: var(--fb-text-muted);
+}
+
+.fb-image-upload-actions {
+    margin-top: 6px;
+}
+
+.fb-image-upload-url {
+    margin-top: 6px;
+    color: var(--fb-text-muted);
+    font-size: 12px;
+}
+
+.fb-image-upload-url input {
+    width: 220px;
+    font-size: 12px;
 }
 
 .fb-table-image {
@@ -2204,6 +2277,18 @@ button:disabled .fb-ipicon,
 
 .fb-snackbar-cancel {
   color: var(--fb-danger);
+}
+
+/* The plain IconPark icons (close, and anything else nobody has toned)
+   are drawn with a near-black stroke (#333) that only lightens under
+   the SVG's own embedded `prefers-color-scheme: dark` media query --
+   which answers the browser's theme, not this element's background.
+   The snackbar is dark always, light mode included, so that default
+   stroke landed on a background of the same #333 and vanished. Icons
+   already toned for error/warning/success (the stop icon among them)
+   read fine as-is and are left alone. */
+#snackbar .fb-ipicon:not(.fb-ip-error):not(.fb-ip-warning):not(.fb-ip-success) {
+  --fb-icon-tone: invert(1);
 }
 
 /* The snackbar - position it at the bottom and in the middle of the screen */
