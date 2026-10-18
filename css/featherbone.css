@@ -541,14 +541,74 @@ button:disabled .fb-ipicon,
     font-size: 20px;
 }
 
-/* Thumbnail beside an image field (formats.image.editor) */
-.fb-image-upload-preview {
-    max-width: 28px;
-    max-height: 28px;
-    margin-right: 6px;
-    vertical-align: middle;
-    border: 1px solid var(--fb-border);
-    border-radius: 3px;
+/* formats.image.editor: a drop-click box showing the image in use
+   (the caller's fallback when the property is empty), plus Clear and
+   a secondary field for a pasted web address. */
+.fb-image-upload-dropzone {
+    width: 160px;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border: 2px dashed var(--fb-border);
+    border-radius: 6px;
+    background: var(--fb-surface-alt);
+    cursor: pointer;
+}
+
+.fb-image-upload-dropzone:hover,
+.fb-image-upload-dropzone-active {
+    border-color: var(--fb-accent);
+    background: var(--fb-hover-accent-tint);
+}
+
+.fb-image-upload-dropzone img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.fb-image-upload-placeholder {
+    padding: 8px;
+    color: var(--fb-text-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.fb-image-upload-icon {
+    display: block;
+    margin: 0 auto 4px;
+    font-size: 28px;
+    color: var(--fb-muted-icon);
+}
+
+.fb-image-upload-busy {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--fb-surface);
+    opacity: 0.85;
+    font-size: 12px;
+    color: var(--fb-text-muted);
+}
+
+.fb-image-upload-actions {
+    margin-top: 6px;
+}
+
+.fb-image-upload-url {
+    margin-top: 6px;
+    color: var(--fb-text-muted);
+    font-size: 12px;
+}
+
+.fb-image-upload-url input {
+    width: 220px;
+    font-size: 12px;
 }
 
 .fb-table-image {
