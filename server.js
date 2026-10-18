@@ -1614,8 +1614,16 @@
         });
     }
 
+    /*
+        Uploaded content, unlike the bundled assets in `files` and
+        `dirs`, is somebody's: it needs a signed-in session. A request
+        that names no instance deserializes to the bare identity, and
+        to `{}` when there is no session at all -- truthy either way,
+        so the user has to be asked for by name rather than merely
+        existing.
+    */
     function doRequestFile(req, res) {
-        if (!req.user) {
+        if (!req.user || !req.user.name) {
             res.status(401).json("Unauthorized session");
             return;
         }
@@ -3169,6 +3177,7 @@
     */
     const platformPaths = [
         "/auth/sso",
+        "/files/",
         "/my/",
         "/platform",
         "/sign-in",
@@ -3203,7 +3212,18 @@
         );
 
         if (!identity) {
-            return {};
+            /*
+                A session signed in to an instance rather than at the
+                picker carries no identity record, but passport still
+                holds the name (see startIdentitySession). Keeping it
+                is what lets a path outside any instance -- an uploaded
+                file, say -- tell that someone is signed in at all.
+            */
+            return (
+                name
+                ? {name}
+                : {}
+            );
         }
 
         return {
@@ -4012,9 +4032,10 @@
         files.forEach((filename) => app.get(filename, doGetFile));
 
         // The factory-default logo (formats.image's fallbackSrc for
-        // "logo"): a bundled asset, not uploaded content, so it is
-        // served regardless of fileUpload.
-        app.get("/files/logo.jpg", doRequestFile);
+        // "logo", and what pdf.js prints when nothing is set) is a
+        // bundled asset, not uploaded content: it rides in `files`
+        // above, which both serves it and waves off the session, so
+        // it is public and needs no fileUpload.
 
         // Uploaded files
         if (fileUpload) {
