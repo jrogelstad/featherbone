@@ -207,7 +207,7 @@ describe("client/core.js helpers", function () {
         it("registers the expected format names", function () {
             assert.deepEqual(Object.keys(f.formats()).sort(), [
                 "autonumber", "color", "dataType", "date", "dateTime",
-                "email", "enum", "gantt", "icon", "lock", "money",
+                "email", "enum", "gantt", "icon", "image", "lock", "money",
                 "overloadType", "password", "richText", "role", "script",
                 "string", "tel", "textArea", "url", "userAccount"
             ]);

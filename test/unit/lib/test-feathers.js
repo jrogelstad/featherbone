@@ -187,7 +187,8 @@ const WIDGETS = {
         icon: {type: "string", format: "icon"},
         flag: {type: "boolean"},
         count: {type: "integer"},
-        autonum: {type: "object", format: "autonumber"}
+        autonum: {type: "object", format: "autonumber"},
+        logo: {type: "string", format: "image"}
     }
 };
 

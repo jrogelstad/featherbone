@@ -428,6 +428,10 @@ formats.url = {
     type: "string",
     default: ""
 };
+formats.image = {
+    type: "string",
+    default: ""
+};
 formats.color = {
     type: "string",
     default: "#000000"
@@ -1299,6 +1303,24 @@ formats.url.tableData = function (obj) {
             obj.viewModel.canToggle(false);
         }
     }, obj.value);
+};
+
+formats.image.editor = function (options) {
+    return m(catalog.store().components().imageUploadWidget, options);
+};
+formats.image.tableData = function (obj) {
+    let value = String(obj.value || "");
+    let src = (
+        value.startsWith("http")
+        ? value
+        : "/files/upload/" + value
+    );
+
+    return (
+        value
+        ? m("img", {src, class: "fb-table-image", title: value})
+        : ""
+    );
 };
 
 formats.userAccount = {

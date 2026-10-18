@@ -390,5 +390,21 @@
       "label",
       "span"
     ]
+  },
+  {
+    "inputs": [
+      "text#logo"
+    ],
+    "label": "Logo:",
+    "tags": [
+      "#",
+      "[",
+      "a",
+      "button",
+      "div",
+      "img",
+      "input",
+      "label"
+    ]
   }
 ]

@@ -384,6 +384,13 @@ printing — the old value is still read — and a local file name only
 reaches a server that holds the file, so a multi-node installation wants
 a URL.
 
+Settings still takes a pasted URL in the box, but there is also an
+**Upload** button beside it: choosing a file sends it through the same
+upload the rest of the server already serves files from, and points the
+setting at whatever name it was given. That upload is behind
+`fileUpload`, off by default like the rest of the server's uploads, so
+turn it on for the button to do anything.
+
 ### Administering identities
 
 The manager is not routable, so there is no database to point a browser
