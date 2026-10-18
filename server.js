@@ -45,6 +45,8 @@
     const {Federation} = require("./server/services/federation");
     const {Manager} = require("./server/services/manager");
     const {Oidc} = require("./server/services/oidc");
+    const {Upgrade} = require("./server/services/upgrade");
+    const upgrade = new Upgrade();
     const platform = new Platform();
     const federation = new Federation();
     const manager = new Manager();
@@ -434,6 +436,36 @@
                 failWithError: true,
                 session: !twoFactorAuth
             });
+
+            /*
+                Bring the installation current before anything reads
+                it (John, Oct 2026). This has to run ahead of the
+                datasource: the manager it would connect to is one of
+                the things a first upgrade creates. Off unless
+                `selfUpgrade` says otherwise, and a no-op when
+                everything is already current.
+            */
+            let upgraded = await upgrade.run(resp, logger).catch(
+                function (err) {
+                    /*
+                        This runs on every boot, so it does not get to
+                        be the reason a server that would otherwise
+                        start does not. Whatever it could not do, the
+                        steps below will meet on their own and say so
+                        in their own terms.
+                    */
+                    logger.error("Self upgrade failed: " + err.message);
+                    return {failed: [], fatal: false, ran: []};
+                }
+            );
+
+            if (upgraded.fatal) {
+                console.error(
+                    "Featherbone will not start: the manager database " +
+                    "could not be built. The log above says why."
+                );
+                process.exit(1);
+            }
 
             await datasource.loadCryptoKey();
             await datasource.getCatalog();
@@ -3795,13 +3827,54 @@
                         outage (ADR-002 question 7).
                     */
                     fleet: fleet.map(function (instance) {
+                        let carried = deployed[instance.database];
+                        let core = (
+                            carried
+                            ? carried.modules.find(
+                                (mod) => mod.name === "Core"
+                            )
+                            : undefined
+                        );
+
                         return Object.assign({}, instance, {
-                            modules: deployed[instance.database]
+                            /*
+                                Core is a module row like any other,
+                                but it comes from the framework's own
+                                manifest rather than a package, so the
+                                fleet's "behind" -- measured against
+                                the packages this server holds --
+                                never counts it. Decided here, with
+                                the one comparison the startup
+                                upgrade uses.
+                            */
+                            coreVersion: (
+                                core
+                                ? core.version
+                                : undefined
+                            ),
+                            isCoreBehind: (
+                                carried
+                                ? upgrade.isBehind(
+                                    core
+                                    ? core.version
+                                    : undefined
+                                )
+                                : false
+                            ),
+                            modules: carried
                         });
                     }),
                     installed: await datasource.installedPackages(),
                     organizations: await platform.organizations(mclient),
                     providers: await platform.providers(mclient),
+                    /*
+                        The framework this server runs. Core comes
+                        from the framework's manifest rather than a
+                        package, so "behind" for it is measured
+                        against this, not against what the server
+                        holds in modules/ (John, 2026-10-17).
+                    */
+                    serverVersion: upgrade.version(),
                     services: options.services,
                     templates: options.templates
                 };
@@ -3867,8 +3940,16 @@
         app.post("/platform/instance/drop", doAdminInstance("dropInstance"));
         app.post("/platform/template", doAdminInstance("buildTemplate"));
         app.post(
+            "/platform/instance/upgrade",
+            doAdminInstance("upgradeInstance")
+        );
+        app.post(
             "/platform/instances/deploy",
             doAdminInstance("deployFleet")
+        );
+        app.post(
+            "/platform/instances/upgrade",
+            doAdminInstance("upgradeFleet")
         );
         app.post(
             "/platform/instances/sweep",
@@ -3980,8 +4061,16 @@
             doAdminInstance("buildTemplate")
         );
         dbRouter.post(
+            "/:db/admin/instance/upgrade",
+            doAdminInstance("upgradeInstance")
+        );
+        dbRouter.post(
             "/:db/admin/instances/deploy",
             doAdminInstance("deployFleet")
+        );
+        dbRouter.post(
+            "/:db/admin/instances/upgrade",
+            doAdminInstance("upgradeFleet")
         );
         dbRouter.post(
             "/:db/admin/instances/sweep",

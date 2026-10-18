@@ -271,6 +271,119 @@ The login roles the old users had are left on the cluster; drop them when
 you are satisfied, and revoke `CREATEROLE` from the service account, which
 no longer needs it.
 
+### Upgrading where there is no command line
+
+A hosted installation is deployed by restarting the process, and there is
+often nowhere to type the three acts above. `selfUpgrade` runs them when
+the server starts, before anything reads a database:
+
+```jsonc
+{
+    "selfUpgrade": true,
+    "selfUpgradeInstances": ["acme"],   // empty: every registered instance
+    "selfUpgradeOrganization": "Acme"
+}
+```
+
+It is off by default. On, each step first asks whether it has anything to
+do, so an ordinary restart of a current installation runs nothing and
+costs two queries:
+
+1. **The manager**, when the database named by `managerDatabase` is absent
+   or carries no `manager` marker — `install.js --manager`.
+2. **Each instance** whose Core version is behind this checkout's
+   `manifest.json`, or that carries no version at all because it predates
+   the manager — `install.js --instance <name>`. With
+   `selfUpgradeInstances` empty the list is the registry, which is what
+   every restart after the first one sees; name the instances explicitly
+   for the first upgrade, when there is no registry to read yet.
+3. **The identity backfill**, and only when `selfUpgradeIdentities` is on
+   *and* one of the steps above ran — `migrate-identities.js --apply`.
+   That migration is one way with no rollback tooling, so it has its own
+   switch: turning on `selfUpgrade` does not turn it on.
+   `selfUpgradeOrgAdmin` appoints the first organization administrator,
+   and `selfUpgradeSuperuser`/`selfUpgradeSuperuserPassword` let it copy
+   each user's password verifier out of `pg_authid` so existing passwords
+   keep working. Without them every identity it makes has to be reset.
+
+What runs is the command line itself, as a child process: the same
+`install.js` and `scripts/migrate-identities.js` that would have been
+typed, given the flags these settings name. Every setting can be supplied
+as an environment variable of the same name, which is how a hosted
+installation is usually configured — `selfUpgradeInstances` takes a comma
+separated list there, since an environment variable cannot carry an array.
+
+One upgrade runs at a time across nodes, on an advisory lock taken on the
+cluster's maintenance database; a node that loses waits, and then finds
+nothing left to do. If the service account cannot reach that database the
+upgrade says so and goes ahead without the lock.
+
+A failed instance upgrade **holds that instance** (ADR-002 question 7) and
+lets the server start, so a platform administrator can still sign in and
+read what happened rather than watching a process restart forever. A
+failed *manager* build stops the server: there is nothing to serve
+without one.
+
+#### Upgrading on demand, from the screen
+
+A restart is not the only way. **Upgrade** on the Instances screen and on
+the platform console applies the framework's manifest to the selected
+instance there and then — the same act, asked for on purpose. Deploy
+beside it is for packages the server holds in `modules/`, and the
+framework is not one of them, so Core has its own button: the Modules
+column says which version each instance carries and whether it is behind
+this server, and the button says what it would bring it up to.
+
+The instance is held while the manifest is applied and let go afterwards,
+and both ends are audited. One that fails stays held, like a failed
+deployment. Ticking several instances and pressing **Upgrade** above the
+list does them one after another, so the outage rolls; the first failure
+stops the rest. Both are a platform administrator's alone.
+
+Re-applying to an instance that is already current is allowed and is how
+a changed script reaches it — the installer makes nothing twice.
+
+Note that this upgrades a database that is **already registered**. A
+database that predates the manager has no `"$db"` marker, so the console
+refuses to register it; `install.js --instance <name>` converts and
+registers it in one act, and `selfUpgradeInstances` is how to do that
+without a command line.
+
+### Settings the organization owns
+
+A customer's letterhead and their mail account are the same wherever
+something is printed or sent from, so they belong to the organization
+rather than to each instance: production, test and demo read one copy
+instead of three that drift apart. They are stored against the
+organization in the manager, and the screen that edits them does not
+move — it is still **Settings** in the Home tab's Global group, beside
+the other organization-level data.
+
+A settings property says so for itself, with `"isOrganization": true` in
+its definition, so one document can hold both kinds. In `globalSettings`
+every property is the organization's.
+
+Nothing is migrated. An organization that has never saved these has no
+row of its own, and the instance's own values answer until the first
+save, which is what moves them. Each instance also keeps a full copy of
+what was saved, so a database detached from its organization still has
+something to fall back on.
+
+The mail password is encrypted at rest in the manager with the same
+`pgCryptoKey` as everywhere else. An edit made in one instance is an edit
+to what the organization's other instances read — which is the point, but
+worth knowing before changing the SMTP account from a test database.
+Other nodes pick the change up as their own caches turn over.
+
+**The logo** is a pointer rather than a record: a URL, or the name of a
+file uploaded to this server, which printing reads from `files/upload/`.
+It used to relate to a `ResourceLink`, whose row lived in one instance
+and nowhere else; as a pointer it travels with the rest of the
+letterhead. An installation that already has the old shape keeps
+printing — the old value is still read — and a local file name only
+reaches a server that holds the file, so a multi-node installation wants
+a URL.
+
 ### Administering identities
 
 The manager is not routable, so there is no database to point a browser
