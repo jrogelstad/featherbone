@@ -52,6 +52,60 @@ describe("self upgrade: the instance list", function () {
     });
 });
 
+describe("self upgrade: what counts as behind", function () {
+    /*
+        One definition, shared by the startup path, the Instances
+        screen's Upgrade button and the fleet view's Core column. It
+        is measured against this checkout, so the claims below are
+        written against whatever manifest.json says rather than a
+        version pinned here.
+    */
+    let own = upgrade.version();
+
+    it("reads the framework's own version from the manifest", function () {
+        assert.equal(typeof own, "string");
+        assert.match(own, /^\d+\.\d+\.\d+/);
+    });
+
+    it("counts a database with no Core version as behind", function () {
+        assert.equal(upgrade.isBehind(undefined), true);
+        assert.equal(upgrade.isBehind(null), true);
+    });
+
+    it("counts an older version as behind", function () {
+        assert.equal(upgrade.isBehind("0.0.1"), true);
+        assert.equal(upgrade.isBehind("2.2.0"), true);
+    });
+
+    it("does not count its own version as behind", function () {
+        assert.equal(upgrade.isBehind(own), false);
+    });
+
+    it("does not count a newer version as behind", function () {
+        assert.equal(upgrade.isBehind("999.0.0"), false);
+    });
+
+    it("agrees with the plan, which is the other caller", function () {
+        let steps = upgrade.plan({
+            instances: [
+                {name: "behind", version: "2.2.0"},
+                {name: "current", version: own}
+            ],
+            managerKind: "manager",
+            version: own
+        }, {selfUpgrade: true});
+
+        assert.deepEqual(steps.map((step) => step.name), ["behind"]);
+        assert.equal(upgrade.isBehind("2.2.0"), true);
+        assert.equal(upgrade.isBehind(own), false);
+    });
+
+    it("points at the checkout the manifest lives in", function () {
+        assert.equal(typeof upgrade.root(), "string");
+        assert.equal(upgrade.root().length > 0, true);
+    });
+});
+
 describe("self upgrade: what a boot plans", function () {
     it("plans nothing when everything is current", function () {
         assert.deepEqual(

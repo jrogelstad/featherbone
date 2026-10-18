@@ -324,6 +324,31 @@ read what happened rather than watching a process restart forever. A
 failed *manager* build stops the server: there is nothing to serve
 without one.
 
+#### Upgrading on demand, from the screen
+
+A restart is not the only way. **Upgrade** on the Instances screen and on
+the platform console applies the framework's manifest to the selected
+instance there and then — the same act, asked for on purpose. Deploy
+beside it is for packages the server holds in `modules/`, and the
+framework is not one of them, so Core has its own button: the Modules
+column says which version each instance carries and whether it is behind
+this server, and the button says what it would bring it up to.
+
+The instance is held while the manifest is applied and let go afterwards,
+and both ends are audited. One that fails stays held, like a failed
+deployment. Ticking several instances and pressing **Upgrade** above the
+list does them one after another, so the outage rolls; the first failure
+stops the rest. Both are a platform administrator's alone.
+
+Re-applying to an instance that is already current is allowed and is how
+a changed script reaches it — the installer makes nothing twice.
+
+Note that this upgrades a database that is **already registered**. A
+database that predates the manager has no `"$db"` marker, so the console
+refuses to register it; `install.js --instance <name>` converts and
+registers it in one act, and `selfUpgradeInstances` is how to do that
+without a command line.
+
 ### Administering identities
 
 The manager is not routable, so there is no database to point a browser
