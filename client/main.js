@@ -284,13 +284,11 @@ function goGlobalSettings() {
                 "tabs": [{
                     name: "Address"
                 }, {
+                    name: "Logo"
+                }, {
                     name: "SMTP Credentials"
                 }],
                 "attrs": [
-                    {
-                        "attr": "logo",
-                        "grid": 0
-                    },
                     {
                         "attr": "name",
                         "grid": 1
@@ -324,33 +322,39 @@ function goGlobalSettings() {
                         "grid": 1
                     },
                     {
-                        "attr": "smtpType",
+                        "attr": "logo",
                         "grid": 2,
+                        "showLabel": false,
+                        "fallbackSrc": "/files/logo.jpg"
+                    },
+                    {
+                        "attr": "smtpType",
+                        "grid": 3,
                         "label": "Type"
                     },
                     {
                         "attr": "smtpHost",
-                        "grid": 2,
+                        "grid": 3,
                         "label": "Host"
                     },
                     {
                         "attr": "smtpUser",
-                        "grid": 2,
+                        "grid": 3,
                         "label": "Email"
                     },
                     {
                         "attr": "smtpPassword",
-                        "grid": 2,
+                        "grid": 3,
                         "label": "Password"
                     },
                     {
                         "attr": "smtpSecure",
-                        "grid": 2,
+                        "grid": 3,
                         "label": "Secure"
                     },
                     {
                         "attr": "smtpPort",
-                        "grid": 2,
+                        "grid": 3,
                         "label": "Port"
                     }
                 ]

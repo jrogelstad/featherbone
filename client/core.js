@@ -2006,6 +2006,7 @@ f.createEditor = function (obj) {
             class: obj.options.class,
             readonly: obj.options.readonly || isPath,
             disableCurrency: obj.options.disableCurrency,
+            fallbackSrc: obj.options.fallbackSrc,
             filter: obj.options.filter,
             key: theKey,
             id: obj.options.id,
