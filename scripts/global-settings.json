@@ -6,6 +6,7 @@
         "logo": {
             "description": "Logo on printed forms: a URL, or the name of a file uploaded to this server",
             "type": "string",
+            "format": "image",
             "isOrganization": true
         },
         "name": {

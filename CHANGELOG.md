@@ -137,6 +137,20 @@ visible change in 3.0 and the one an existing user meets first.
   current, and — separately asked for, because it is one way — backfill
   identities. Off by default; a restart of a current installation runs
   nothing. See the README.
+* **Settings an organization owns travel with it, not with one
+  database.** A customer's letterhead and mail account used to drift
+  between production, test and demo; a property marked
+  `isOrganization` in its definition now lives against the
+  organization in the manager instead, read and written through the
+  same `/settings/<name>` every caller already used, with the screen
+  staying put in the Home tab's Global group. Nothing is migrated: an
+  organization with no row yet is answered from the instance's own
+  values, which it still keeps a full copy of. The mail password is
+  encrypted at rest in the manager the same way it was in the
+  instance. **The logo** is a pointer now, not a `ResourceLink`
+  relation -- a URL, or the name of a file uploaded to this server --
+  with its own **Upload** button beside the box, behind the existing
+  `fileUpload` flag.
 * **Every setting can come from the environment,** which is how a hosted
   installation is configured.
 * **The edition is the platform's to set,** not the instance's. An
