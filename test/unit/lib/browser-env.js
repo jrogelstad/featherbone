@@ -49,7 +49,8 @@ const COMPONENT_FILES = [
     "resource-link-relation", "aggregate-dialog", "form-dialog",
     "form-widget", "money-relation", "search-input", "search-page",
     "sort-dialog", "settings-page", "table-dialog", "table-widget",
-    "url-widget", "gantt", "sign-in-page", "form-page", "workbook-page",
+    "url-widget", "image-upload-widget", "gantt", "sign-in-page",
+    "form-page", "workbook-page",
     "account-menu", "navigator-menu", "send-mail-page", "ribbon"
 ];
 

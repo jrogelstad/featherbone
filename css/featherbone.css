@@ -541,6 +541,22 @@ button:disabled .fb-ipicon,
     font-size: 20px;
 }
 
+/* Thumbnail beside an image field (formats.image.editor) */
+.fb-image-upload-preview {
+    max-width: 28px;
+    max-height: 28px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border: 1px solid var(--fb-border);
+    border-radius: 3px;
+}
+
+.fb-table-image {
+    max-width: 20px;
+    max-height: 20px;
+    vertical-align: middle;
+}
+
 .tox-promotion {
    display: none;
 }
