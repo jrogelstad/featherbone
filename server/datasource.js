@@ -397,6 +397,9 @@
         @param {Object} options.client
         @param {Boolean} [options.canStop] Whether process can be stopped.
         @param {Integer} [options.count] Count of items to process. Default 100
+        @param {String} [options.id] Caller-chosen process id, so a client
+        that has no live subscription can poll for it by id instead.
+        Defaults to a generated one.
         @param {Object} [options.subscription] Pass for client progress
         notification
         @param {string} [options.subscription.id] id Subscription id
@@ -414,7 +417,7 @@
 
         let pgProcessId = obj.client.processID;
         let pUser = obj.client.currentUser();
-        let pId = f.createId();
+        let pId = obj.id || f.createId();
         let subscr = obj.subscription;
         let datasource = this;
         let p = {
@@ -2283,6 +2286,8 @@
         @param {String} User name.
         @param {Object} [options]
         @param {Object} [options.subscription] Object for progress tracking
+        @param {String} [options.processId] Caller-chosen ServerProcess id,
+        for a caller with no live subscription to poll for instead
         @param {Object} [options.tenant] Tenant making request
         @param {Object} [options.databases] Target tenant databases
         @return {Object} Promise
@@ -2341,14 +2346,22 @@
                     /*
                         "Super" here means a caller the installer need
                         not re-check: it skips the per-database super
-                        user lookup and the ServerProcess progress
-                        record, which is what the command line has
+                        user lookup, which is what the command line has
                         always passed. A Deploy has already required a
                         platform administrator, and the database it is
                         aimed at is not one the caller has to be a user
-                        of, so it passes it too.
+                        of, so it passes it too. It used to also skip
+                        the ServerProcess progress record, on the
+                        reasoning that nothing was watching -- true for
+                        the command line, false for a platform admin
+                        watching Upgrade or Deploy from the screen, so
+                        that part now turns on progress tracking rather
+                        than off it whenever the caller hands over a
+                        processId to track it by (John, 2026-10-18: "I
+                        get no idea of whether it's working or not").
                     */
                     isSuper: opts.isSuper === true,
+                    processId: opts.processId,
                     subscription: opts.subscription,
                     tenant: targets.shift()
                 }
@@ -2356,6 +2369,41 @@
         }
         resp.done();
         return filename;
+    };
+
+    /**
+        Read one ServerProcess row's progress, for a caller with no
+        live subscription of its own to it -- the platform console
+        and the Instances screen, neither of which carries the SSE
+        wiring the rest of the client uses, so they poll instead
+        (John, 2026-10-18: "I get no idea of whether it's working or
+        not").
+
+        The row lives on the target tenant, not the manager: a Core
+        upgrade or package deploy tracks its own progress on the
+        instance it is changing, the same database `install` already
+        connects to.
+
+        @method processStatus
+        @param {Object} options
+        @param {Object} options.tenant Target tenant
+        @param {Object} options.data
+        @param {String} options.data.id Process id
+        @return {Object} {status, percentComplete, errorMessage}, or
+        undefined if the process has not been created yet (the caller
+        polled before the first write landed)
+    */
+    that.processStatus = async function (obj) {
+        let resp = await db.connect(obj.tenant);
+        let sql = (
+            "SELECT status, percent_complete AS \"percentComplete\", " +
+            "  error_message AS \"errorMessage\" " +
+            "FROM server_process WHERE id=$1;"
+        );
+        let ret = await resp.client.query(sql, [obj.data.id]);
+
+        resp.done();
+        return ret.rows[0];
     };
 
     /**

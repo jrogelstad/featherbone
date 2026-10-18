@@ -292,5 +292,113 @@ describe("upgrading an instance's core", function () {
             assert.equal(await maintenanceOf(settings.testDb), false);
             assert.equal(await maintenanceOf(settings.testDb2), false);
         });
+
+        it("tracks each instance's own progress under its own id",
+                async function () {
+            await setCore(settings.testDb, "2.2.0");
+            await setCore(settings.testDb2, "2.2.0");
+
+            let overview = await admin.get("/admin/instances");
+            let other = overview.instances.find(
+                (row) => row.database === settings.testDb2
+            );
+            let pid1 = "RT-upg-fleet-1-" + Date.now();
+            let pid2 = "RT-upg-fleet-2-" + Date.now();
+
+            let resp = await admin.raw("POST", "/admin/instances/upgrade", {
+                instances: [first, other.id],
+                processIds: [pid1, pid2]
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let poll1 = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first + "&processId=" + pid1
+            );
+            let poll2 = await admin.raw(
+                "GET",
+                (
+                    "/admin/instance/process?id=" + other.id +
+                    "&processId=" + pid2
+                )
+            );
+
+            assert.equal(poll1.body.status, "C", JSON.stringify(poll1.body));
+            assert.equal(poll2.body.status, "C", JSON.stringify(poll2.body));
+        });
+    });
+
+    describe("progress, for the screen to poll", function () {
+        it("writes a row the caller can poll by the id it chose",
+                async function () {
+            await setCore(settings.testDb, "2.2.0");
+
+            let processId = "RT-upg-" + Date.now();
+            let resp = await admin.raw("POST", "/admin/instance/upgrade", {
+                id: first,
+                processId
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let poll = await admin.raw(
+                "GET",
+                (
+                    "/admin/instance/process?id=" + first +
+                    "&processId=" + processId
+                )
+            );
+
+            assert.equal(poll.status, 200, JSON.stringify(poll.body));
+            assert.equal(poll.body.status, "C");
+            assert.equal(poll.body.percentComplete, 100);
+        });
+
+        it("answers null for a process id nobody wrote to",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first + "&processId=RT-nope"
+            );
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.equal(resp.body, null);
+        });
+
+        it("refuses a poll from anyone below platform", async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first + "&processId=RT-nope"
+            );
+
+            assert.equal(resp.status, 401, JSON.stringify(resp.body));
+            await flags(settings.adminUser, {
+                isOrgAdmin: true,
+                isPlatformAdmin: true
+            });
+        });
+
+        it("answers 404 for an instance that is not there",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=nosuchinstance&processId=x"
+            );
+
+            assert.equal(resp.status, 404, JSON.stringify(resp.body));
+        });
+
+        it("will not poll without naming both the instance and the process",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first
+            );
+
+            assert.equal(resp.status, 400, JSON.stringify(resp.body));
+        });
     });
 });

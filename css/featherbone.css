@@ -541,6 +541,22 @@ button:disabled .fb-ipicon,
     font-size: 20px;
 }
 
+/* Thumbnail beside an image field (formats.image.editor) */
+.fb-image-upload-preview {
+    max-width: 28px;
+    max-height: 28px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border: 1px solid var(--fb-border);
+    border-radius: 3px;
+}
+
+.fb-table-image {
+    max-width: 20px;
+    max-height: 20px;
+    vertical-align: middle;
+}
+
 .tox-promotion {
    display: none;
 }
@@ -3092,6 +3108,15 @@ button:disabled .fb-ipicon,
 
 .fb-admin-muted {
   opacity: 0.6;
+}
+
+/* Upgrade/Deploy progress, polled from the platform console and the
+   Instances screen (ADR-002): no SSE wiring of their own, so a plain
+   element rather than the signed-in app's snackbar meter. */
+.fb-admin-progress {
+  width: 100%;
+  height: 10px;
+  margin-top: 4px;
 }
 
 .fb-admin-subtitle {

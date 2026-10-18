@@ -8,6 +8,65 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Open, 2026-10-18 (third round)
+
+Two more, each standing alone on `john/master` (which now carries the
+second round below, merged as PRs #246-#248):
+
+1. `fix/snackbar-close-icon-contrast` -- the snackbar/progress-meter's
+   close (and other) icons had lost their contrast and in some states
+   their click target; restyled. Pushed, not yet a PR.
+2. `feat/upgrade-deploy-progress` -- John: "When I upgrade core or
+   deploy a package I get no idea of whether it's working on not. The
+   original admin console had progress meters for both actions. I'd
+   like to see that." Both the Instances screen and the platform
+   console's fleet view now poll a percent complete while an Upgrade
+   or Deploy runs, against a process id the caller picks before
+   sending the request (there is nothing to hand back until the
+   install is already underway). `installer.js`'s `isSuper` no longer
+   implies "skip the process record too" -- it skips `checkSuper()`
+   alone when a process id rides along. New read-only route,
+   `GET .../admin/instance/process?id=<instance>&processId=<id>`
+   (and the platform equivalent), answers `{status, percentComplete,
+   errorMessage}` or `null`, guarded the same as the write routes.
+   Neither screen carries the client's SSE wiring, so both poll --
+   `picker.js` and `admin-instances-page.js` each get their own small
+   polling function, written to that file's own conventions rather
+   than shared, both on a plain `<progress class="fb-admin-progress">`
+   rather than the signed-in app's snackbar meter. **Also fixes an
+   unrelated, pre-existing defect found along the way:** the
+   Instances screen's **Upgrade** button was fully built underneath
+   (`vm.doUpgrade`, the `entry("upgrade", ...)` definition, disabled
+   reasons and all) but `menuKeys()` and the toolbar render never
+   referenced it, so it appeared in neither the toolbar nor the
+   right-click menu -- confirmed on `john/master` before this branch,
+   not something #248 or this work introduced. Found by actually
+   clicking through the flow in headless Chromium rather than trusting
+   the code read. 10 new claims (5 each in `test/api/upgrade.test.js`
+   and `test/api/fleet.test.js`); verified end to end in headless
+   Chromium against both screens, real incremental `percentComplete`
+   over the wire.
+
+## Open, 2026-10-18 (second round)
+
+**Merged 2026-10-18** (PRs #246-#248, in that order). Three, which
+stood independent of each other and of the stack below:
+
+1. `docs/record-punted-decisions` -- the SSO/HA/API-tokens punts,
+   decided in conversation on 2026-10-18, recorded in the ADR docs
+   rather than left only in a local working copy that was then reset.
+2. `feat/logo-upload` -- the logo setting gets an Upload button, not
+   just a pasted URL (`formats.image`, through the existing
+   `/do/upload`, gated by `fileUpload`).
+3. `fix/fleet-core-column-and-upgrade-button` -- the platform
+   console's fleet table gets a **Core** column (version and whether
+   behind, which used to live only in a tooltip), and the single-row
+   "upgrade" there is gone: it duplicated the group button, which
+   Deploy never had a row counterpart for either.
+
+Each stood on `john/master` after the 2026-10-17/18 stack below, not
+on each other.
+
 ## Merge order, 2026-10-17 and 18
 
 One stack, in this order, each built on the one above it. Merging the
@@ -25,9 +84,9 @@ compare against, and (4) because the `globalSettings` definition is
 stored per instance and the organization-owned properties are only
 recognised once the new definition is installed.
 
-Everything from 2026-10-16 is merged, and the branches are gone from
-`FeatherboneJS/Featherbone`; the rows below are kept as the record of
-what each one was.
+**Merged 2026-10-18** (PRs #241-#244, in that order), and the branches
+are gone from `FeatherboneJS/Featherbone`; the rows below are kept as
+the record of what each one was.
 
 ## Merge order, 2026-10-16
 
