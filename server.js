@@ -45,6 +45,8 @@
     const {Federation} = require("./server/services/federation");
     const {Manager} = require("./server/services/manager");
     const {Oidc} = require("./server/services/oidc");
+    const {Upgrade} = require("./server/services/upgrade");
+    const upgrade = new Upgrade();
     const platform = new Platform();
     const federation = new Federation();
     const manager = new Manager();
@@ -434,6 +436,36 @@
                 failWithError: true,
                 session: !twoFactorAuth
             });
+
+            /*
+                Bring the installation current before anything reads
+                it (John, Oct 2026). This has to run ahead of the
+                datasource: the manager it would connect to is one of
+                the things a first upgrade creates. Off unless
+                `selfUpgrade` says otherwise, and a no-op when
+                everything is already current.
+            */
+            let upgraded = await upgrade.run(resp, logger).catch(
+                function (err) {
+                    /*
+                        This runs on every boot, so it does not get to
+                        be the reason a server that would otherwise
+                        start does not. Whatever it could not do, the
+                        steps below will meet on their own and say so
+                        in their own terms.
+                    */
+                    logger.error("Self upgrade failed: " + err.message);
+                    return {failed: [], fatal: false, ran: []};
+                }
+            );
+
+            if (upgraded.fatal) {
+                console.error(
+                    "Featherbone will not start: the manager database " +
+                    "could not be built. The log above says why."
+                );
+                process.exit(1);
+            }
 
             await datasource.loadCryptoKey();
             await datasource.getCatalog();

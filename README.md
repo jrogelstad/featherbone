@@ -271,6 +271,59 @@ The login roles the old users had are left on the cluster; drop them when
 you are satisfied, and revoke `CREATEROLE` from the service account, which
 no longer needs it.
 
+### Upgrading where there is no command line
+
+A hosted installation is deployed by restarting the process, and there is
+often nowhere to type the three acts above. `selfUpgrade` runs them when
+the server starts, before anything reads a database:
+
+```jsonc
+{
+    "selfUpgrade": true,
+    "selfUpgradeInstances": ["acme"],   // empty: every registered instance
+    "selfUpgradeOrganization": "Acme"
+}
+```
+
+It is off by default. On, each step first asks whether it has anything to
+do, so an ordinary restart of a current installation runs nothing and
+costs two queries:
+
+1. **The manager**, when the database named by `managerDatabase` is absent
+   or carries no `manager` marker — `install.js --manager`.
+2. **Each instance** whose Core version is behind this checkout's
+   `manifest.json`, or that carries no version at all because it predates
+   the manager — `install.js --instance <name>`. With
+   `selfUpgradeInstances` empty the list is the registry, which is what
+   every restart after the first one sees; name the instances explicitly
+   for the first upgrade, when there is no registry to read yet.
+3. **The identity backfill**, and only when `selfUpgradeIdentities` is on
+   *and* one of the steps above ran — `migrate-identities.js --apply`.
+   That migration is one way with no rollback tooling, so it has its own
+   switch: turning on `selfUpgrade` does not turn it on.
+   `selfUpgradeOrgAdmin` appoints the first organization administrator,
+   and `selfUpgradeSuperuser`/`selfUpgradeSuperuserPassword` let it copy
+   each user's password verifier out of `pg_authid` so existing passwords
+   keep working. Without them every identity it makes has to be reset.
+
+What runs is the command line itself, as a child process: the same
+`install.js` and `scripts/migrate-identities.js` that would have been
+typed, given the flags these settings name. Every setting can be supplied
+as an environment variable of the same name, which is how a hosted
+installation is usually configured — `selfUpgradeInstances` takes a comma
+separated list there, since an environment variable cannot carry an array.
+
+One upgrade runs at a time across nodes, on an advisory lock taken on the
+cluster's maintenance database; a node that loses waits, and then finds
+nothing left to do. If the service account cannot reach that database the
+upgrade says so and goes ahead without the lock.
+
+A failed instance upgrade **holds that instance** (ADR-002 question 7) and
+lets the server start, so a platform administrator can still sign in and
+read what happened rather than watching a process restart forever. A
+failed *manager* build stops the server: there is nothing to serve
+without one.
+
 ### Administering identities
 
 The manager is not routable, so there is no database to point a browser
