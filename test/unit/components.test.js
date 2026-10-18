@@ -110,8 +110,9 @@ describe("client components", function () {
             "checkbox", "childFormPage", "childTable", "confirmCodePage",
             "contactRelation", "dataList", "dataType", "dialog",
             "envBanner", "filterDialog", "formDialog", "formPage", "formWidget", "gantt",
-            "helpLinkRelation", "moneyRelation", "navigatorMenu",
-            "relationWidget", "resendCodePage", "resourceLinkRelation",
+            "helpLinkRelation", "imageUploadWidget", "moneyRelation",
+            "navigatorMenu", "relationWidget", "resendCodePage",
+            "resourceLinkRelation",
             "ribbon", "searchInput", "searchPage", "sendMailPage", "settingsPage",
             "signInPage", "sortDialog", "tableDialog", "tableWidget",
             "toolbar", "urlWidget", "workbookPage"
@@ -445,6 +446,23 @@ describe("client components", function () {
             assert.equal(R.find(tree, R.byTag("input")).attrs.value,
                     "https://example.com");
             assert.ok(R.text(tree).includes("launch"));
+        });
+
+        it("image-upload-widget.js takes a pasted value and offers upload",
+                function () {
+            let preview;
+
+            model.data.logo("letterhead.png");
+            let tree = editor("imageUploadWidget", "logo", {
+                prop: model.data.logo
+            });
+            assert.equal(R.find(tree, R.byTag("input")).attrs.value,
+                    "letterhead.png");
+            assert.ok(iconNames(tree).includes("upload"));
+            preview = R.findAll(tree, R.byTag("img")).find(
+                (img) => R.classOf(img).includes("fb-image-upload-preview")
+            );
+            assert.equal(preview.attrs.src, "/files/upload/letterhead.png");
         });
 
         it("data-type.js renders the type selector and relation dialog",
