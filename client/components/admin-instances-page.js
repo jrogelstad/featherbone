@@ -307,6 +307,23 @@ adminInstancesPage.viewModel = function () {
     };
 
     /**
+        Bring an instance's core up to the framework this server
+        runs: the same act as `install.js --instance` from a command
+        line, which a hosted installation does not have (John,
+        2026-10-17). Held while the manifest is applied and let go
+        afterwards; one that fails stays held, because the schema is
+        then in a state nobody has checked.
+
+        @method doUpgrade
+        @param {Object} instance
+    */
+    vm.doUpgrade = function (instance) {
+        request("POST", "/admin/instance/upgrade", {
+            id: instance.id
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
         Pick an unfinished build up from the step it stopped at.
         @method doResume
         @param {Object} instance
@@ -948,6 +965,12 @@ adminInstancesPage.component = {
                 return applies ? "" : why;
             }
 
+            // The framework this server runs, for the Upgrade button's
+            // reason. Absent on a server too old to report it.
+            function serverVersion() {
+                return (vm.overview() || {}).serverVersion || "this server";
+            }
+
             entry(
                 "state",
                 (
@@ -1036,6 +1059,42 @@ adminInstancesPage.component = {
                 ),
                 !instance || !orgWide || !platform,
                 () => vm.doDeploy(instance)
+            );
+
+            /*
+                The framework itself, which Deploy above cannot
+                reach: Core is installed from the manifest in the
+                checkout, not from a package in modules/, so a core
+                upgrade used to be a command line and nothing else
+                (John, 2026-10-17).
+            */
+            entry(
+                "upgrade",
+                "Upgrade",
+                (
+                    reason(Boolean(instance), "Select an instance") || (
+                        !platform
+                        ? "Only a platform administrator may upgrade"
+                        : (
+                            instance.isCoreBehind
+                            ? (
+                                "Bring this instance up to Core " +
+                                serverVersion() + " from " + (
+                                    instance.coreVersion ||
+                                    "an unrecorded version"
+                                ) + ", holding it while that runs"
+                            )
+                            : (
+                                "Re-apply Core " + serverVersion() +
+                                ", which this instance already " +
+                                "carries. Held while it runs; nothing " +
+                                "is made twice."
+                            )
+                        )
+                    )
+                ),
+                !instance || !orgWide || !platform,
+                () => vm.doUpgrade(instance)
             );
 
             entry(
