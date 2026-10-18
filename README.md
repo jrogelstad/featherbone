@@ -326,13 +326,18 @@ without one.
 
 #### Upgrading on demand, from the screen
 
-A restart is not the only way. **Upgrade** on the Instances screen and on
-the platform console applies the framework's manifest to the selected
-instance there and then — the same act, asked for on purpose. Deploy
-beside it is for packages the server holds in `modules/`, and the
-framework is not one of them, so Core has its own button: the Modules
-column says which version each instance carries and whether it is behind
-this server, and the button says what it would bring it up to.
+A restart is not the only way. **Upgrade** on the Instances screen (one
+instance, the one selected) and the same button grouped on the platform
+console (whichever instances are ticked, even just one -- it never got
+a second, single-row button of its own, any more than Deploy did)
+applies the framework's manifest there and then — the same act, asked
+for on purpose. Deploy beside it is for packages the server holds in
+`modules/`, and the framework is not one of them, so Core has its own
+button and, on the platform console's fleet table, its own **Core**
+column -- separate from **Carries**, which is the modules' -- saying
+which version each instance carries and whether it is behind this
+server. The button's own tooltip says what it would bring that
+instance up to.
 
 The instance is held while the manifest is applied and let go afterwards,
 and both ends are audited. One that fails stays held, like a failed
