@@ -160,6 +160,10 @@ visible change in 3.0 and the one an existing user meets first.
   it held rather than retrying. The fleet view's own **Core** column
   says which version each instance carries and whether it is behind,
   separately from **Carries**, which is the modules'.
+* **Upgrade and Deploy show real progress.** Both screens poll a percent
+  complete while the install runs, against a process id the caller
+  chooses up front, so a long upgrade or deploy — fleet-wide ones
+  especially — doesn't sit there looking stalled.
 * **Every setting can come from the environment,** which is how a hosted
   installation is configured.
 * **The edition is the platform's to set,** not the instance's. An
@@ -175,8 +179,11 @@ connection; eleven services each built their own pool for one database,
 so "give up this database" could not work; two nodes creating the claim
 table at the same instant raced; overlapping registry refreshes could
 wait on a lock the same process held; an unauthorized password change
-was applied before being refused; a failed install exited 0; and a
-package's own record now wins over a colliding one on natural key.
+was applied before being refused; a failed install exited 0; a
+package's own record now wins over a colliding one on natural key; and
+the Instances screen's **Upgrade** button, though fully wired up
+underneath, was never added to its toolbar or context menu, so it
+could not be reached.
 
 ### Upgrading from 2.2.0
 

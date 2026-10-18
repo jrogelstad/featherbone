@@ -1291,6 +1291,8 @@
             @param {String} payload.data.id Instance
             @param {String} payload.data.module
             @param {String} payload.data.version
+            @param {String} [payload.data.processId] Caller-chosen id for
+            a ServerProcess row the screen can poll for progress
             @return {Promise}
         */
         that.deployPackage = async function (obj) {
@@ -1382,6 +1384,7 @@
                     await datasource.install(dir, obj.user, {
                         databases: [target.pg_database],
                         isSuper: true,
+                        processId: data.processId,
                         tenant
                     });
                     await datasource.recordDeployed(
@@ -1431,6 +1434,72 @@
         };
 
         /**
+            What a Core upgrade or package deploy has gotten to, for
+            the platform console and the Instances screen to poll:
+            neither carries the subscription wiring the signed-in app
+            uses to watch a process event by event, so they ask
+            instead (John, 2026-10-18: "I get no idea of whether it's
+            working or not").
+
+            The process lives on the instance it is changing, not the
+            manager, so this resolves the same tenant connection
+            `upgradeInstance` and `deployPackage` do before reading it.
+
+            @method processStatus
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Instance
+            @param {String} payload.data.processId
+            @return {Promise} {status, percentComplete, errorMessage},
+            or null if the process has not started writing yet (the
+            screen polled before the first row landed)
+        */
+        that.processStatus = async function (obj) {
+            let data = obj.data || {};
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let target;
+                let tenant;
+
+                requirePlatform(ctx, "watch an instance's progress");
+
+                if (!data.id || !data.processId) {
+                    throw invalid(
+                        "Name the instance and the process to watch"
+                    );
+                }
+
+                target = await manager.instanceById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such instance in this organization");
+                }
+
+                tenant = (obj.registry || []).find(
+                    (entry) => entry.pgDatabase === target.pg_database
+                );
+
+                if (!tenant) {
+                    throw invalid(
+                        target.pg_database + " is registered but this " +
+                        "server is not serving it, so its progress " +
+                        "cannot be read from here."
+                    );
+                }
+
+                return (await datasource.processStatus({
+                    data: {id: data.processId},
+                    tenant
+                })) || null;
+            });
+        };
+
+        /**
             Deploy one package version into several instances, one
             after another (ADR-002's fleet upgrade; John, 2026-10-16:
             "I'd like the option to upgrade the fleet one by one or in
@@ -1457,6 +1526,10 @@
             @param {String} payload.data.module
             @param {String} payload.data.version
             @param {Boolean} [payload.data.stopOnError] Default true
+            @param {Array} [payload.data.processIds] Caller-chosen
+            ServerProcess ids, one per instance, same order as
+            `instances`: each instance runs in its turn, so the screen
+            can poll them the same way, one at a time
             @return {Promise} {deployed, failed, results}
         */
         that.deployFleet = async function (obj) {
@@ -1514,6 +1587,7 @@
             });
 
             let results = [];
+            let processIds = data.processIds || [];
             let n = 0;
 
             while (n < targets.length) {
@@ -1532,6 +1606,7 @@
                         data: {
                             id: target.id,
                             module: data.module,
+                            processId: processIds[n - 1],
                             version: data.version
                         },
                         organization: target.organization_id
@@ -1619,6 +1694,8 @@
             @param {Object} payload
             @param {Object} payload.data
             @param {String} payload.data.id Instance id
+            @param {String} [payload.data.processId] Caller-chosen id for
+            a ServerProcess row the screen can poll for progress
             @return {Promise} {database, version}
         */
         that.upgradeInstance = async function (obj) {
@@ -1688,6 +1765,7 @@
                         {
                             databases: [target.pg_database],
                             isSuper: true,
+                            processId: data.processId,
                             tenant
                         }
                     );
@@ -1753,6 +1831,10 @@
             @param {Object} payload.data
             @param {Array} payload.data.instances Instance ids, in order
             @param {Boolean} [payload.data.stopOnError] Default true
+            @param {Array} [payload.data.processIds] Caller-chosen
+            ServerProcess ids, one per instance, same order as
+            `instances`: each instance runs in its turn, so the screen
+            can poll them the same way, one at a time
             @return {Promise} {upgraded, failed, notAttempted, results}
         */
         that.upgradeFleet = async function (obj) {
@@ -1801,6 +1883,7 @@
             });
 
             let results = [];
+            let processIds = data.processIds || [];
             let n = 0;
 
             while (n < targets.length) {
@@ -1812,7 +1895,10 @@
                     // Each in its own organization, so every
                     // instance's trail says what happened to it.
                     await that.upgradeInstance(Object.assign({}, obj, {
-                        data: {id: target.id},
+                        data: {
+                            id: target.id,
+                            processId: processIds[n - 1]
+                        },
                         organization: target.organization_id
                     }));
                     results.push({

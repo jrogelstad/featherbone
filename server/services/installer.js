@@ -71,6 +71,10 @@
             @param {Boolean} [options.isSuper] Force as super user
             @param {Object} [options.subscription] Subscription for client
             progress bar
+            @param {String} [options.processId] Caller-chosen ServerProcess
+            id. With `isSuper`, this is also what decides whether progress
+            is tracked at all: a command-line install has nobody to track
+            it for and passes neither.
             @param {String} [options.tenant] Target tenant
             @return {Promise}
         */
@@ -96,6 +100,7 @@
                 let pProcess;
                 let pIsSuper = opts.isSuper;
                 let pSubscr = opts.subscription;
+                let pProcessId = opts.processId;
                 /*
                     What the database being installed into is for:
                     "manager" or "instance" (tenant plan section 9). A
@@ -192,6 +197,7 @@
                         canStop: !isRemote,
                         client: reqClient,
                         count: pCount,
+                        id: pProcessId,
                         name: pkgName,
                         subscription: pSubscr
                     });
@@ -1015,13 +1021,35 @@
                     });
                 }
 
-                if (pIsSuper) {
-                    // Run from command line, so ignore process stuff
+                if (pIsSuper && !pProcessId) {
+                    // Run from the command line, so nobody is watching
+                    // and there is nothing to track it by
                     pProcess = {
                         next: () => true,
                         complete: () => true
                     };
                     registerNpmModules(true).then(doInstall);
+                    return;
+                }
+
+                if (pIsSuper) {
+                    /*
+                        A platform operation with someone watching it
+                        from a screen (Core upgrade, Deploy): skip the
+                        super-user re-check -- a platform administrator
+                        already had to pass one to get here, and the
+                        database on the other end is not one the
+                        caller has to be a user of -- but still track
+                        and report progress, same as an ordinary
+                        install.
+                    */
+                    init().then(
+                        () => registerNpmModules(true)
+                    ).then(
+                        doInstall
+                    ).catch(
+                        reject
+                    );
                     return;
                 }
 

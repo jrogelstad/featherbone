@@ -2487,6 +2487,31 @@
         };
     }
 
+    /*
+        A GET that still needs a caller-named instance and process id
+        (the Upgrade/Deploy progress poll): nothing here writes, so
+        there is no registry to refresh, but the ids ride in the query
+        string rather than a body `adminPayload` would otherwise find
+        empty.
+    */
+    function doAdminRead(method) {
+        return async function (req, res) {
+            try {
+                if (!req.user && !(req.session || {}).identity) {
+                    res.status(401).json("Unauthorized session");
+                    return;
+                }
+
+                let payload = adminPayload(req);
+
+                payload.data = req.query;
+                respond.bind(res)(await admin[method](payload));
+            } catch (e) {
+                error.bind(res)(e);
+            }
+        };
+    }
+
     async function doGetSessions(req, res) {
         if (!requireSuper(req, res)) {
             return;
@@ -3943,6 +3968,10 @@
             "/platform/instance/upgrade",
             doAdminInstance("upgradeInstance")
         );
+        app.get(
+            "/platform/instance/process",
+            doAdminRead("processStatus")
+        );
         app.post(
             "/platform/instances/deploy",
             doAdminInstance("deployFleet")
@@ -4063,6 +4092,10 @@
         dbRouter.post(
             "/:db/admin/instance/upgrade",
             doAdminInstance("upgradeInstance")
+        );
+        dbRouter.get(
+            "/:db/admin/instance/process",
+            doAdminRead("processStatus")
         );
         dbRouter.post(
             "/:db/admin/instances/deploy",
