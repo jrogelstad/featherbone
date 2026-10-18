@@ -370,5 +370,115 @@ describe("the fleet view (ADR-002)", function () {
                 "and nothing was held"
             );
         });
+
+        it("tracks each instance's own progress under its own id",
+                async function () {
+            let overview = await admin.get("/admin/instances");
+            let ids = overview.instances.filter(
+                (row) => (
+                    row.database === settings.testDb ||
+                    row.database === settings.testDb2
+                )
+            ).map((row) => row.id);
+            let pid1 = "RT-dep-fleet-1-" + Date.now();
+            let pid2 = "RT-dep-fleet-2-" + Date.now();
+
+            let resp = await admin.raw("POST", "/admin/instances/deploy", {
+                instances: ids,
+                module: "fbtest",
+                processIds: [pid1, pid2],
+                version: "1.1.0"
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let poll1 = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + ids[0] + "&processId=" + pid1
+            );
+            let poll2 = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + ids[1] + "&processId=" + pid2
+            );
+
+            assert.equal(poll1.body.status, "C", JSON.stringify(poll1.body));
+            assert.equal(poll2.body.status, "C", JSON.stringify(poll2.body));
+        });
+    });
+
+    describe("progress, for the screen to poll", function () {
+        before(restore);
+        after(restore);
+
+        it("writes a row the caller can poll by the id it chose",
+                async function () {
+            let processId = "RT-dep-" + Date.now();
+            let resp = await admin.raw("POST", "/admin/instance/deploy", {
+                id: first,
+                module: "fbtest",
+                processId,
+                version: "1.1.0"
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            let poll = await admin.raw(
+                "GET",
+                (
+                    "/admin/instance/process?id=" + first +
+                    "&processId=" + processId
+                )
+            );
+
+            assert.equal(poll.status, 200, JSON.stringify(poll.body));
+            assert.equal(poll.body.status, "C");
+            assert.equal(poll.body.percentComplete, 100);
+        });
+
+        it("answers null for a process id nobody wrote to",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first + "&processId=RT-nope"
+            );
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.equal(resp.body, null);
+        });
+
+        it("refuses a poll from anyone below platform", async function () {
+            await flags(settings.adminUser, {isOrgAdmin: true});
+
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first + "&processId=RT-nope"
+            );
+
+            assert.equal(resp.status, 401, JSON.stringify(resp.body));
+            await flags(settings.adminUser, {
+                isOrgAdmin: true,
+                isPlatformAdmin: true
+            });
+        });
+
+        it("answers 404 for an instance that is not there",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=nosuchinstance&processId=x"
+            );
+
+            assert.equal(resp.status, 404, JSON.stringify(resp.body));
+        });
+
+        it("will not poll without naming both the instance and the process",
+                async function () {
+            let resp = await admin.raw(
+                "GET",
+                "/admin/instance/process?id=" + first
+            );
+
+            assert.equal(resp.status, 400, JSON.stringify(resp.body));
+        });
     });
 });
