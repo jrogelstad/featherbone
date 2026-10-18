@@ -103,15 +103,57 @@
     exports.Upgrade = function () {
         let that = {};
 
-        /*
-            The version this checkout is: what `install.js` would write
-            into a database's Core module row. An instance carrying
-            less than this is behind.
+        /**
+            The version this checkout is: what the installer writes
+            into a database's Core module row, from the framework's
+            own manifest. An instance carrying less than this is
+            behind, which is the whole of "needs upgrading" -- so the
+            startup path and the Upgrade action on the Instances
+            screen read it from here rather than each deciding for
+            itself what current means.
+
+            @method version
+            @return {String}
         */
-        function ownVersion() {
+        that.version = function () {
             let manifest = path.join(ROOT, "manifest.json");
 
             return JSON.parse(fs.readFileSync(manifest, "utf8")).version;
+        };
+
+        /**
+            Where the framework's own manifest lives: the directory an
+            instance upgrade applies.
+
+            @method root
+            @return {String}
+        */
+        that.root = function () {
+            return ROOT;
+        };
+
+        /**
+            Whether a database carrying this Core version is behind
+            the framework this server runs. One definition, so the
+            startup path, the Instances screen and the Upgrade action
+            cannot disagree about what "current" means. A database
+            with no Core version at all predates the module row and
+            is behind by definition.
+
+            @method isBehind
+            @param {String} [version] The Core version a database carries
+            @return {Boolean}
+        */
+        that.isBehind = function (version) {
+            if (version === undefined || version === null) {
+                return true;
+            }
+
+            return packages.compareVersions(version, that.version()) < 0;
+        };
+
+        function ownVersion() {
+            return that.version();
         }
 
         /*
@@ -174,6 +216,7 @@
             state.instances.forEach(function (instance) {
                 let behind = (
                     instance.version === undefined ||
+                    instance.version === null ||
                     packages.compareVersions(
                         instance.version,
                         state.version
