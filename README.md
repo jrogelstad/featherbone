@@ -348,6 +348,11 @@ stops the rest. Both are a platform administrator's alone.
 Re-applying to an instance that is already current is allowed and is how
 a changed script reaches it — the installer makes nothing twice.
 
+Both screens show a progress meter while the install runs, polling a
+percent complete under a process id the screen picked when it sent the
+request -- so a long upgrade (or deploy, which gets the same meter) reads
+as working rather than hung, fleet-wide ones especially.
+
 Note that this upgrades a database that is **already registered**. A
 database that predates the manager has no `"$db"` marker, so the console
 refuses to register it; `install.js --instance <name>` converts and
