@@ -1049,6 +1049,39 @@
 
     // What an instance carries, and whether anything it carries is
     // behind a version this server holds (ADR-002 question 2)
+    /*
+        The framework itself, separate from the modules `carries()`
+        reports on: ADR-002's packages are deployed to an instance one
+        at a time, but Core comes from the manifest in the checkout, so
+        its own column is the only place an operator sees whether an
+        instance is behind it (John, Oct 2026: "I don't see an
+        indicator column of the core version... also shows whether the
+        core is behind").
+    */
+    function core(instance) {
+        let version = instance.coreVersion;
+
+        if (!version) {
+            return {
+                behind: true,
+                text: "—",
+                title: "No Core version recorded for this instance yet. " +
+                    "Upgrade it to find out."
+            };
+        }
+
+        return {
+            behind: Boolean(instance.isCoreBehind),
+            text: version,
+            title: (
+                instance.isCoreBehind
+                ? version + ", behind " + vm.serverVersion + ". Upgrade " +
+                    "to catch up."
+                : version + ", current."
+            )
+        };
+    }
+
     function carries(instance) {
         let modules = (instance.modules || {}).modules;
 
@@ -1108,6 +1141,7 @@
 
     function fleetRow(instance) {
         let what = carries(instance);
+        let is = core(instance);
 
         return m("tr", {
             class: (
@@ -1149,6 +1183,19 @@
             m("td", instance.name),
             m("td", {class: "fb-admin-muted"}, instance.database),
             m("td", {class: "fb-admin-col-status"}, state(instance)),
+            m("td", {
+                class: (
+                    is.behind
+                    ? undefined
+                    : "fb-admin-muted"
+                ),
+                style: (
+                    is.behind
+                    ? {color: "var(--fb-danger)"}
+                    : undefined
+                ),
+                title: is.title
+            }, is.text),
             m("td", {
                 class: (
                     what.behind || what.adrift
@@ -1388,43 +1435,14 @@
                     vm.menu = undefined;
                     vm.form = {kind: "template"};
                 }
-            ),
-            /*
-                The framework itself, which Deploy cannot reach: Core
-                comes from the manifest in the checkout, not from a
-                package in modules/. Until this existed a core upgrade
-                was a command line and nothing else, which is no use
-                on a hosted installation (John, 2026-10-17).
-            */
-            upgrade: entry(
-                "upgrade",
-                "Upgrade",
-                (
-                    none
-                    ? "Select an instance"
-                    : (
-                        one.isCoreBehind
-                        ? "Bring " + one.name + " up to Core " +
-                            vm.serverVersion + " from " + (
-                                one.coreVersion || "an unrecorded version"
-                            ) + ". It is held while the manifest is " +
-                            "applied."
-                        : "Re-apply Core " + vm.serverVersion + " to " +
-                            one.name + ", which already carries it. " +
-                            "Held while it runs; nothing is made twice."
-                    )
-                ),
-                none,
-                act(
-                    "/platform/instance/upgrade",
-                    (
-                        none
-                        ? {}
-                        : {id: one.id}
-                    ),
-                    "Upgraded"
-                )
             )
+            /*
+                No single-instance "upgrade" entry here: Deploy never
+                had one either (tick the one instance and press the
+                group button), and having both put two buttons
+                labelled "Upgrade" in the same toolbar with no way to
+                tell them apart (John, 2026-10-18).
+            */
         };
     }
 
@@ -1940,7 +1958,6 @@
                         rows.status,
                         rows.maintenance,
                         rows.resume,
-                        rows.upgrade,
                         rows.template,
                         rows.drop
                     ]
@@ -2073,7 +2090,6 @@
                     toolbarButton(rows.status),
                     toolbarButton(rows.maintenance),
                     toolbarButton(rows.resume),
-                    toolbarButton(rows.upgrade),
                     toolbarButton(rows.template),
                     toolbarButton(rows.drop),
                     m("div", {class: "fb-toolbar-fill"}),
@@ -2111,6 +2127,7 @@
                         m("th", "Instance"),
                         m("th", "Database"),
                         m("th", "State"),
+                        m("th", "Core"),
                         m("th", "Carries"),
                         m("th", "People")
                     ])),
