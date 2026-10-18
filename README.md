@@ -349,6 +349,41 @@ refuses to register it; `install.js --instance <name>` converts and
 registers it in one act, and `selfUpgradeInstances` is how to do that
 without a command line.
 
+### Settings the organization owns
+
+A customer's letterhead and their mail account are the same wherever
+something is printed or sent from, so they belong to the organization
+rather than to each instance: production, test and demo read one copy
+instead of three that drift apart. They are stored against the
+organization in the manager, and the screen that edits them does not
+move — it is still **Settings** in the Home tab's Global group, beside
+the other organization-level data.
+
+A settings property says so for itself, with `"isOrganization": true` in
+its definition, so one document can hold both kinds. In `globalSettings`
+every property is the organization's.
+
+Nothing is migrated. An organization that has never saved these has no
+row of its own, and the instance's own values answer until the first
+save, which is what moves them. Each instance also keeps a full copy of
+what was saved, so a database detached from its organization still has
+something to fall back on.
+
+The mail password is encrypted at rest in the manager with the same
+`pgCryptoKey` as everywhere else. An edit made in one instance is an edit
+to what the organization's other instances read — which is the point, but
+worth knowing before changing the SMTP account from a test database.
+Other nodes pick the change up as their own caches turn over.
+
+**The logo** is a pointer rather than a record: a URL, or the name of a
+file uploaded to this server, which printing reads from `files/upload/`.
+It used to relate to a `ResourceLink`, whose row lived in one instance
+and nowhere else; as a pointer it travels with the rest of the
+letterhead. An installation that already has the old shape keeps
+printing — the old value is still read — and a local file name only
+reaches a server that holds the file, so a multi-node installation wants
+a URL.
+
 ### Administering identities
 
 The manager is not routable, so there is no database to point a browser

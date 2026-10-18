@@ -90,6 +90,43 @@ because the identity migration is one way.
   `N adrift` — and a write to a disk-served module's code is refused
   rather than silently overwritten on the next load.
 
+### The interface
+
+The application looks and navigates differently. This is the most
+visible change in 3.0 and the one an existing user meets first.
+
+* **A ribbon replaces the vertical navigator.** Navigation is two levels
+  instead of three: a row of category tabs above a ribbon of labelled
+  button groups, in the manner of Office. A tab only changes which
+  buttons show; it does not navigate. **Home** is a tab of its own
+  (Accounts and Workbooks groups); the other tabs are categories of
+  workbooks, because a demo with seventeen of them has far too many for
+  one row. Worksheets become buttons in a contextual group, and the
+  worksheet actions — New, Edit, Save, Delete, Undo, and the Sort,
+  Filter and Aggregate list tools — move out of the toolbar above the
+  grid into groups at the right end of the ribbon. The toolbar above a
+  list keeps only its title and the search box.
+* **A fresh style throughout,** built on CSS custom properties and
+  modelled on the palette and controls of the author's other
+  application, so the two are consistent rather than merely tidy. Grids
+  are one table in one scroll box with a sticky header and footer, which
+  is what makes a long list behave; toolbars, buttons, dialogs and form
+  layout were reworked to match.
+* **Dark mode,** following the operating system's preference.
+* **Icons are IconPark SVGs** served through `f.icon(name, class)` from a
+  name map, rather than an icon font. A name the map does not know is a
+  missing icon rather than the word itself rendered as text.
+* **A connection banner** that says when the server cannot be reached and
+  clears itself when it can, from a lightweight `GET /api/ping` probe. It
+  replaced three stacking blocking dialogs.
+* **Row actions follow one pattern.** Clicking a row selects it; the
+  actions are toolbar buttons at the right, enabled according to the
+  selection, and the same actions appear on right-click. A button that
+  does not apply stays where it is and is disabled, so the toolbar does
+  not jump.
+* **A disabled button says why on hover,** which plain Pure CSS prevents
+  and this does not.
+
 ### Operations
 
 * **Self upgrade at startup** (new in this alpha). A hosted installation
