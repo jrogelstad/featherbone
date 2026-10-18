@@ -151,6 +151,15 @@ visible change in 3.0 and the one an existing user meets first.
   relation -- a URL, or the name of a file uploaded to this server --
   with its own **Upload** button beside the box, behind the existing
   `fileUpload` flag.
+* **Upgrade, on demand, from the screen.** A restart is not the only
+  way to bring Core current: the Instances screen and the platform
+  console's fleet view each carry an **Upgrade** button beside
+  **Deploy**, applying the checkout's own manifest to one instance (or,
+  ticked on the fleet view, several in a row). The instance is held
+  while it runs and let go after, audited both ways; a failure leaves
+  it held rather than retrying. The fleet view's own **Core** column
+  says which version each instance carries and whether it is behind,
+  separately from **Carries**, which is the modules'.
 * **Every setting can come from the environment,** which is how a hosted
   installation is configured.
 * **The edition is the platform's to set,** not the instance's. An
