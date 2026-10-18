@@ -44,6 +44,9 @@
     // Forms that act on the selected instance rather than an organization
     const INSTANCE_FORMS = ["drop", "template"];
 
+    // How often to poll for Upgrade/Deploy progress (sendTracked).
+    const PROGRESS_POLL_MS = 750;
+
     const AUTH = [
         {label: "Local password", value: "password"},
         {label: "Single sign-on only", value: "sso"},
@@ -68,6 +71,7 @@
         packagesUnknown: [],
         picked: {},
         pkgSelection: undefined,
+        progress: undefined,
         screen: undefined,
         providers: [],
         ready: false,
@@ -257,6 +261,95 @@
             return load();
         }).catch(function (err) {
             vm.isBusy = false;
+            vm.error = reason(err);
+            m.redraw();
+        });
+    }
+
+    // No live subscription of its own here (ADR-002's progress plan),
+    // so a process id this page makes up is what the new poll route
+    // reads back by.
+    function newProcessId() {
+        return (
+            Date.now().toString(36) +
+            Math.random().toString(36).slice(2, 10)
+        );
+    }
+
+    /*
+        Like send(), but for Upgrade and Deploy: the server tracks one
+        ServerProcess per instance, in the same order the fleet runs
+        them, so this polls the one in its turn and moves on once it
+        reads a terminal status -- an instance that ran to the end
+        just as fast as this page's own next poll still leaves
+        `vm.progress` to catch up on the following tick, the same way
+        a page that missed a tick on a healthy connection does.
+    */
+    function sendTracked(path, body, instances, said) {
+        let ids = instances.map(newProcessId);
+        let index = 0;
+        let live = true;
+        let timer;
+
+        function poll() {
+            if (!live) {
+                return;
+            }
+            request(
+                "GET",
+                (
+                    "/platform/instance/process?id=" + instances[index] +
+                    "&processId=" + ids[index]
+                )
+            ).then(function (row) {
+                if (!live) {
+                    return;
+                }
+                if (row) {
+                    vm.progress.percentComplete = row.percentComplete || 0;
+                    if (row.status !== "P" && index < ids.length - 1) {
+                        index += 1;
+                        vm.progress.index = index + 1;
+                        vm.progress.percentComplete = 0;
+                    }
+                }
+                m.redraw();
+            }).catch(function () {
+                return;
+            }).then(function () {
+                if (live) {
+                    timer = window.setTimeout(poll, PROGRESS_POLL_MS);
+                }
+            });
+        }
+
+        if (vm.isBusy) {
+            return;
+        }
+
+        vm.isBusy = true;
+        vm.error = "";
+        vm.note = "";
+        vm.progress = {index: 1, percentComplete: 0, total: ids.length};
+        timer = window.setTimeout(poll, PROGRESS_POLL_MS);
+
+        return request(
+            "POST",
+            path,
+            Object.assign({processIds: ids}, body)
+        ).then(function () {
+            live = false;
+            window.clearTimeout(timer);
+            vm.isBusy = false;
+            vm.form = undefined;
+            vm.note = said;
+            vm.progress = undefined;
+            return load();
+        }).catch(function (err) {
+            live = false;
+            window.clearTimeout(timer);
+            vm.isBusy = false;
+            vm.progress = undefined;
             vm.error = reason(err);
             m.redraw();
         });
@@ -1049,6 +1142,39 @@
 
     // What an instance carries, and whether anything it carries is
     // behind a version this server holds (ADR-002 question 2)
+    /*
+        The framework itself, separate from the modules `carries()`
+        reports on: ADR-002's packages are deployed to an instance one
+        at a time, but Core comes from the manifest in the checkout, so
+        its own column is the only place an operator sees whether an
+        instance is behind it (John, Oct 2026: "I don't see an
+        indicator column of the core version... also shows whether the
+        core is behind").
+    */
+    function core(instance) {
+        let version = instance.coreVersion;
+
+        if (!version) {
+            return {
+                behind: true,
+                text: "—",
+                title: "No Core version recorded for this instance yet. " +
+                    "Upgrade it to find out."
+            };
+        }
+
+        return {
+            behind: Boolean(instance.isCoreBehind),
+            text: version,
+            title: (
+                instance.isCoreBehind
+                ? version + ", behind " + vm.serverVersion + ". Upgrade " +
+                    "to catch up."
+                : version + ", current."
+            )
+        };
+    }
+
     function carries(instance) {
         let modules = (instance.modules || {}).modules;
 
@@ -1108,6 +1234,7 @@
 
     function fleetRow(instance) {
         let what = carries(instance);
+        let is = core(instance);
 
         return m("tr", {
             class: (
@@ -1149,6 +1276,19 @@
             m("td", instance.name),
             m("td", {class: "fb-admin-muted"}, instance.database),
             m("td", {class: "fb-admin-col-status"}, state(instance)),
+            m("td", {
+                class: (
+                    is.behind
+                    ? undefined
+                    : "fb-admin-muted"
+                ),
+                style: (
+                    is.behind
+                    ? {color: "var(--fb-danger)"}
+                    : undefined
+                ),
+                title: is.title
+            }, is.text),
             m("td", {
                 class: (
                     what.behind || what.adrift
@@ -1388,43 +1528,14 @@
                     vm.menu = undefined;
                     vm.form = {kind: "template"};
                 }
-            ),
-            /*
-                The framework itself, which Deploy cannot reach: Core
-                comes from the manifest in the checkout, not from a
-                package in modules/. Until this existed a core upgrade
-                was a command line and nothing else, which is no use
-                on a hosted installation (John, 2026-10-17).
-            */
-            upgrade: entry(
-                "upgrade",
-                "Upgrade",
-                (
-                    none
-                    ? "Select an instance"
-                    : (
-                        one.isCoreBehind
-                        ? "Bring " + one.name + " up to Core " +
-                            vm.serverVersion + " from " + (
-                                one.coreVersion || "an unrecorded version"
-                            ) + ". It is held while the manifest is " +
-                            "applied."
-                        : "Re-apply Core " + vm.serverVersion + " to " +
-                            one.name + ", which already carries it. " +
-                            "Held while it runs; nothing is made twice."
-                    )
-                ),
-                none,
-                act(
-                    "/platform/instance/upgrade",
-                    (
-                        none
-                        ? {}
-                        : {id: one.id}
-                    ),
-                    "Upgraded"
-                )
             )
+            /*
+                No single-instance "upgrade" entry here: Deploy never
+                had one either (tick the one instance and press the
+                group button), and having both put two buttons
+                labelled "Upgrade" in the same toolbar with no way to
+                tell them apart (John, 2026-10-18).
+            */
         };
     }
 
@@ -1459,13 +1570,14 @@
 
         function submit() {
             let pick = fieldValue("package").split("@");
+            let ids = chosen.map((i) => i.id);
 
-            send("/platform/instances/deploy", {
-                instances: chosen.map((i) => i.id),
+            sendTracked("/platform/instances/deploy", {
+                instances: ids,
                 module: pick[0],
                 stopOnError: !document.getElementById("carry-on").checked,
                 version: pick[1]
-            }, "Deployed");
+            }, ids, "Deployed");
         }
 
         return m("form", {
@@ -1940,7 +2052,6 @@
                         rows.status,
                         rows.maintenance,
                         rows.resume,
-                        rows.upgrade,
                         rows.template,
                         rows.drop
                     ]
@@ -1963,6 +2074,21 @@
             (
                 vm.note
                 ? m("div", {class: "fb-admin-note"}, vm.note)
+                : undefined
+            ),
+            (
+                vm.progress
+                ? m("div", {class: "fb-admin-note"}, [
+                    m("div", (
+                        "Working: instance " + vm.progress.index + " of " +
+                        vm.progress.total + "…"
+                    )),
+                    m("progress", {
+                        class: "fb-admin-progress",
+                        max: 100,
+                        value: vm.progress.percentComplete
+                    })
+                ])
                 : undefined
             ),
             (
@@ -2049,14 +2175,15 @@
                         key: "upgradeFleet",
                         label: "Upgrade",
                         run: function () {
+                            let ids = pickedInstances().map(
+                                (one) => one.id
+                            );
+
                             vm.menu = undefined;
-                            send(
+                            sendTracked(
                                 "/platform/instances/upgrade",
-                                {
-                                    instances: pickedInstances().map(
-                                        (one) => one.id
-                                    )
-                                },
+                                {instances: ids},
+                                ids,
                                 "Upgraded"
                             );
                         },
@@ -2073,7 +2200,6 @@
                     toolbarButton(rows.status),
                     toolbarButton(rows.maintenance),
                     toolbarButton(rows.resume),
-                    toolbarButton(rows.upgrade),
                     toolbarButton(rows.template),
                     toolbarButton(rows.drop),
                     m("div", {class: "fb-toolbar-fill"}),
@@ -2111,6 +2237,7 @@
                         m("th", "Instance"),
                         m("th", "Database"),
                         m("th", "State"),
+                        m("th", "Core"),
                         m("th", "Carries"),
                         m("th", "People")
                     ])),

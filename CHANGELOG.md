@@ -137,6 +137,33 @@ visible change in 3.0 and the one an existing user meets first.
   current, and — separately asked for, because it is one way — backfill
   identities. Off by default; a restart of a current installation runs
   nothing. See the README.
+* **Settings an organization owns travel with it, not with one
+  database.** A customer's letterhead and mail account used to drift
+  between production, test and demo; a property marked
+  `isOrganization` in its definition now lives against the
+  organization in the manager instead, read and written through the
+  same `/settings/<name>` every caller already used, with the screen
+  staying put in the Home tab's Global group. Nothing is migrated: an
+  organization with no row yet is answered from the instance's own
+  values, which it still keeps a full copy of. The mail password is
+  encrypted at rest in the manager the same way it was in the
+  instance. **The logo** is a pointer now, not a `ResourceLink`
+  relation -- a URL, or the name of a file uploaded to this server --
+  with its own **Upload** button beside the box, behind the existing
+  `fileUpload` flag.
+* **Upgrade, on demand, from the screen.** A restart is not the only
+  way to bring Core current: the Instances screen and the platform
+  console's fleet view each carry an **Upgrade** button beside
+  **Deploy**, applying the checkout's own manifest to one instance (or,
+  ticked on the fleet view, several in a row). The instance is held
+  while it runs and let go after, audited both ways; a failure leaves
+  it held rather than retrying. The fleet view's own **Core** column
+  says which version each instance carries and whether it is behind,
+  separately from **Carries**, which is the modules'.
+* **Upgrade and Deploy show real progress.** Both screens poll a percent
+  complete while the install runs, against a process id the caller
+  chooses up front, so a long upgrade or deploy — fleet-wide ones
+  especially — doesn't sit there looking stalled.
 * **Every setting can come from the environment,** which is how a hosted
   installation is configured.
 * **The edition is the platform's to set,** not the instance's. An
@@ -152,8 +179,11 @@ connection; eleven services each built their own pool for one database,
 so "give up this database" could not work; two nodes creating the claim
 table at the same instant raced; overlapping registry refreshes could
 wait on a lock the same process held; an unauthorized password change
-was applied before being refused; a failed install exited 0; and a
-package's own record now wins over a colliding one on natural key.
+was applied before being refused; a failed install exited 0; a
+package's own record now wins over a colliding one on natural key; and
+the Instances screen's **Upgrade** button, though fully wired up
+underneath, was never added to its toolbar or context menu, so it
+could not be reached.
 
 ### Upgrading from 2.2.0
 

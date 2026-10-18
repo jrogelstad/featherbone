@@ -326,13 +326,18 @@ without one.
 
 #### Upgrading on demand, from the screen
 
-A restart is not the only way. **Upgrade** on the Instances screen and on
-the platform console applies the framework's manifest to the selected
-instance there and then — the same act, asked for on purpose. Deploy
-beside it is for packages the server holds in `modules/`, and the
-framework is not one of them, so Core has its own button: the Modules
-column says which version each instance carries and whether it is behind
-this server, and the button says what it would bring it up to.
+A restart is not the only way. **Upgrade** on the Instances screen (one
+instance, the one selected) and the same button grouped on the platform
+console (whichever instances are ticked, even just one -- it never got
+a second, single-row button of its own, any more than Deploy did)
+applies the framework's manifest there and then — the same act, asked
+for on purpose. Deploy beside it is for packages the server holds in
+`modules/`, and the framework is not one of them, so Core has its own
+button and, on the platform console's fleet table, its own **Core**
+column -- separate from **Carries**, which is the modules' -- saying
+which version each instance carries and whether it is behind this
+server. The button's own tooltip says what it would bring that
+instance up to.
 
 The instance is held while the manifest is applied and let go afterwards,
 and both ends are audited. One that fails stays held, like a failed
@@ -342,6 +347,11 @@ stops the rest. Both are a platform administrator's alone.
 
 Re-applying to an instance that is already current is allowed and is how
 a changed script reaches it — the installer makes nothing twice.
+
+Both screens show a progress meter while the install runs, polling a
+percent complete under a process id the screen picked when it sent the
+request -- so a long upgrade (or deploy, which gets the same meter) reads
+as working rather than hung, fleet-wide ones especially.
 
 Note that this upgrades a database that is **already registered**. A
 database that predates the manager has no `"$db"` marker, so the console
@@ -383,6 +393,13 @@ letterhead. An installation that already has the old shape keeps
 printing — the old value is still read — and a local file name only
 reaches a server that holds the file, so a multi-node installation wants
 a URL.
+
+Settings still takes a pasted URL in the box, but there is also an
+**Upload** button beside it: choosing a file sends it through the same
+upload the rest of the server already serves files from, and points the
+setting at whatever name it was given. That upload is behind
+`fileUpload`, off by default like the rest of the server's uploads, so
+turn it on for the button to do anything.
 
 ### Administering identities
 

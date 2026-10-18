@@ -88,6 +88,75 @@ adminInstancesPage.viewModel = function () {
         vm.errorDialog().show();
     }
 
+    /*
+        How often to poll an Upgrade or Deploy's progress (withProgress).
+    */
+    const PROGRESS_POLL_MS = 750;
+
+    /**
+        Run an Upgrade or Deploy with a process id of this page's own
+        choosing, and poll it while the request is out (ADR-002's
+        progress plan): neither action has a live subscription here
+        to watch instead. `path` and `body` are the same POST this
+        page already sends; a process id just rides along in `body`.
+
+        @method withProgress
+        @param {String} path
+        @param {Object} body
+        @param {Object} instance
+        @return {Promise}
+    */
+    function withProgress(path, body, instance) {
+        let processId = f.createId();
+        let live = true;
+        let timer;
+
+        function poll() {
+            if (!live) {
+                return;
+            }
+            request(
+                "GET",
+                (
+                    "/admin/instance/process?id=" + instance.id +
+                    "&processId=" + processId
+                )
+            ).then(function (row) {
+                if (live && row) {
+                    vm.progress({
+                        instance,
+                        percentComplete: row.percentComplete || 0
+                    });
+                }
+            }).catch(function () {
+                return;
+            }).then(function () {
+                if (live) {
+                    timer = window.setTimeout(poll, PROGRESS_POLL_MS);
+                }
+            });
+        }
+
+        vm.progress({instance, percentComplete: 0});
+        timer = window.setTimeout(poll, PROGRESS_POLL_MS);
+
+        return request(
+            "POST",
+            path,
+            Object.assign({processId}, body)
+        ).then(function (resp) {
+            live = false;
+            window.clearTimeout(timer);
+            vm.progress(undefined);
+            return vm.refresh().then(() => resp);
+        }).catch(function (err) {
+            live = false;
+            window.clearTimeout(timer);
+            vm.progress(undefined);
+            fail(err);
+        });
+    }
+
     /**
         What the server last told us: the organization, its instances,
         what this process is serving, the databases nothing is
@@ -138,6 +207,15 @@ adminInstancesPage.viewModel = function () {
         @return {String}
     */
     vm.loadError = f.prop("");
+    /**
+        An Upgrade or Deploy under way: which instance, and how far
+        the server has gotten, for the screen to poll (ADR-002's
+        progress plan -- this page has no SSE subscription of its
+        own). Undefined between actions.
+        @method progress
+        @return {Object}
+    */
+    vm.progress = f.prop();
     /**
         @method errorDialog
         @return {ViewModels.Dialog}
@@ -318,9 +396,7 @@ adminInstancesPage.viewModel = function () {
         @param {Object} instance
     */
     vm.doUpgrade = function (instance) {
-        request("POST", "/admin/instance/upgrade", {
-            id: instance.id
-        }).then(vm.refresh).catch(fail);
+        withProgress("/admin/instance/upgrade", {id: instance.id}, instance);
     };
 
     /**
@@ -603,11 +679,11 @@ adminInstancesPage.viewModel = function () {
             let pick = String(dep.pick());
             let at = pick.lastIndexOf("@");
 
-            request("POST", "/admin/instance/deploy", {
+            withProgress("/admin/instance/deploy", {
                 id: instance.id,
                 module: pick.slice(0, at),
                 version: pick.slice(at + 1)
-            }).then(vm.refresh).catch(fail);
+            }, instance);
         },
         title: "Deploy a package"
     }));
@@ -1177,8 +1253,14 @@ adminInstancesPage.component = {
 
             return (
                 provisioning[id]
-                ? ["resume", "maintenance", "deploy", "template", "drop"]
-                : ["state", "maintenance", "deploy", "template", "drop"]
+                ? [
+                    "resume", "maintenance", "deploy", "upgrade",
+                    "template", "drop"
+                ]
+                : [
+                    "state", "maintenance", "deploy", "upgrade",
+                    "template", "drop"
+                ]
             );
         }
 
@@ -1329,6 +1411,7 @@ adminInstancesPage.component = {
                 toolbarButton(current.resume),
                 toolbarButton(current.maintenance),
                 toolbarButton(current.deploy),
+                toolbarButton(current.upgrade),
                 toolbarButton(current.template),
                 toolbarButton(current.drop),
                 toolbarButton(current.attach)
@@ -1357,6 +1440,20 @@ adminInstancesPage.component = {
                 ? m("div", {class: "fb-admin-note"}, (
                     "The registry could not be read: " + vm.loadError()
                 ))
+                : undefined
+            ),
+            (
+                vm.progress()
+                ? m("div", {class: "fb-admin-note"}, [
+                    m("div", (
+                        "Working on " + vm.progress().instance.name + "…"
+                    )),
+                    m("progress", {
+                        class: "fb-admin-progress",
+                        max: 100,
+                        value: vm.progress().percentComplete
+                    })
+                ])
                 : undefined
             ),
             (

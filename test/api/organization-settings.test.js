@@ -9,15 +9,22 @@
     against the organization in the manager; the definition, and the
     screen that renders it, stay where they were.
 
-    `logo` is the exception and is here as one: it relates to a
-    `ResourceLink`, whose row exists in one instance and nowhere else,
-    so it stays with the instance.
+    `logo` travels too, now that it is a plain pointer -- a URL, or the
+    name of a file this server holds -- rather than a `ResourceLink`
+    relation (John, 2026-10-18: "Let's just disassociate logo from
+    resource link altogether"). The upload itself goes through the
+    same `/do/upload` the rest of the server already serves files from,
+    gated behind `fileUpload`; the last test here skips rather than
+    fails when that is off, since it is off by default.
 
     globalSettings is put back in after().
 */
 /*jslint node*/
 "use strict";
 
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
 const env = require("../harness/env");
@@ -87,6 +94,21 @@ function clearOrganizationSettings() {
     ).catch(() => undefined);
 }
 
+// A minimal valid 1x1 transparent PNG -- small enough to inline, and
+// real enough that an image tag could actually render it.
+const PNG_1X1 = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk" +
+    "+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64"
+);
+
+function samplePng(dir) {
+    let file = path.join(dir, "letterhead-" + Date.now() + ".png");
+
+    fs.writeFileSync(file, PNG_1X1);
+    return file;
+}
+
 async function save(admin, data) {
     let current = await admin.get("/settings/" + NAME);
 
@@ -100,12 +122,14 @@ describe("settings the organization owns", function () {
     let admin;
     let organization;
     let before_;
+    let work;
 
     before(async function () {
         await clearOrganizationSettings();
         admin = await signedIn();
         before_ = await admin.get("/settings/" + NAME);
         organization = await organizationOf(env.testDb);
+        work = fs.mkdtempSync(path.join(os.tmpdir(), "fbt-logo-"));
 
         assert.ok(organization, "the instance belongs to an organization");
     });
@@ -119,6 +143,7 @@ describe("settings the organization owns", function () {
             data: before_.data,
             etag: current.etag
         });
+        fs.rmSync(work, {recursive: true, force: true});
     });
 
     it("answers from the instance until there is a row", async function () {
@@ -197,6 +222,38 @@ describe("settings the organization owns", function () {
         let stored = await organizationRow(organization);
 
         assert.equal(stored.logo, "letterhead.png");
+    });
+
+    it("actually uploads to the pointer it then saves", async function (t) {
+        /*
+            The widget's own round trip: a real file through the same
+            `/do/upload` the server has always served uploads from,
+            then the name it was given saved as `logo`. Gated behind
+            `fileUpload`, off by default, so this skips rather than
+            fails when the server under test has not turned it on.
+        */
+        let file;
+        let name;
+        let uploaded;
+        let resp;
+        let stored;
+
+        if (!env.config.fileUpload) {
+            t.skip("fileUpload is off for this server; nothing to upload");
+            return;
+        }
+
+        file = samplePng(work);
+        name = path.basename(file);
+        uploaded = await admin.upload("/do/upload", "dataFile", file);
+        assert.equal(uploaded.status, "success", JSON.stringify(uploaded));
+
+        resp = await save(admin, {logo: name});
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        stored = await organizationRow(organization);
+        assert.equal(stored.logo, name);
     });
 
     it("still writes every property to the instance", async function () {
