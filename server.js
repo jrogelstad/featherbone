@@ -3143,6 +3143,7 @@
         "/api.json",
         "/index.html",
         "/media/featherbone.png",
+        "/files/logo.jpg",
         "/css/featherbone.css",
         "/css/print.css",
         "/node_modules/big.js/big.mjs",
@@ -4009,6 +4010,11 @@
         app.use("/", dbRouter);
         dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
         files.forEach((filename) => app.get(filename, doGetFile));
+
+        // The factory-default logo (formats.image's fallbackSrc for
+        // "logo"): a bundled asset, not uploaded content, so it is
+        // served regardless of fileUpload.
+        app.get("/files/logo.jpg", doRequestFile);
 
         // Uploaded files
         if (fileUpload) {
