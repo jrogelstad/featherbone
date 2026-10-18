@@ -8,10 +8,49 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Open, 2026-10-18 (third round)
+
+Two more, each standing alone on `john/master` (which now carries the
+second round below, merged as PRs #246-#248):
+
+1. `fix/snackbar-close-icon-contrast` -- the snackbar/progress-meter's
+   close (and other) icons had lost their contrast and in some states
+   their click target; restyled. Pushed, not yet a PR.
+2. `feat/upgrade-deploy-progress` -- John: "When I upgrade core or
+   deploy a package I get no idea of whether it's working on not. The
+   original admin console had progress meters for both actions. I'd
+   like to see that." Both the Instances screen and the platform
+   console's fleet view now poll a percent complete while an Upgrade
+   or Deploy runs, against a process id the caller picks before
+   sending the request (there is nothing to hand back until the
+   install is already underway). `installer.js`'s `isSuper` no longer
+   implies "skip the process record too" -- it skips `checkSuper()`
+   alone when a process id rides along. New read-only route,
+   `GET .../admin/instance/process?id=<instance>&processId=<id>`
+   (and the platform equivalent), answers `{status, percentComplete,
+   errorMessage}` or `null`, guarded the same as the write routes.
+   Neither screen carries the client's SSE wiring, so both poll --
+   `picker.js` and `admin-instances-page.js` each get their own small
+   polling function, written to that file's own conventions rather
+   than shared, both on a plain `<progress class="fb-admin-progress">`
+   rather than the signed-in app's snackbar meter. **Also fixes an
+   unrelated, pre-existing defect found along the way:** the
+   Instances screen's **Upgrade** button was fully built underneath
+   (`vm.doUpgrade`, the `entry("upgrade", ...)` definition, disabled
+   reasons and all) but `menuKeys()` and the toolbar render never
+   referenced it, so it appeared in neither the toolbar nor the
+   right-click menu -- confirmed on `john/master` before this branch,
+   not something #248 or this work introduced. Found by actually
+   clicking through the flow in headless Chromium rather than trusting
+   the code read. 10 new claims (5 each in `test/api/upgrade.test.js`
+   and `test/api/fleet.test.js`); verified end to end in headless
+   Chromium against both screens, real incremental `percentComplete`
+   over the wire.
+
 ## Open, 2026-10-18 (second round)
 
-Three more, independent of each other and of the stack below (no
-ordering constraint between them):
+**Merged 2026-10-18** (PRs #246-#248, in that order). Three, which
+stood independent of each other and of the stack below:
 
 1. `docs/record-punted-decisions` -- the SSO/HA/API-tokens punts,
    decided in conversation on 2026-10-18, recorded in the ADR docs
@@ -25,7 +64,7 @@ ordering constraint between them):
    "upgrade" there is gone: it duplicated the group button, which
    Deploy never had a row counterpart for either.
 
-Each stands on `john/master` after the 2026-10-17/18 stack below, not
+Each stood on `john/master` after the 2026-10-17/18 stack below, not
 on each other.
 
 ## Merge order, 2026-10-17 and 18
