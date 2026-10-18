@@ -183,6 +183,7 @@
             vm.templates = data.templates;
             vm.installed = data.installed || [];
             vm.providers = data.providers || [];
+            vm.serverVersion = data.serverVersion;
             vm.ready = true;
         }).catch(function (err) {
             /*
@@ -1387,6 +1388,42 @@
                     vm.menu = undefined;
                     vm.form = {kind: "template"};
                 }
+            ),
+            /*
+                The framework itself, which Deploy cannot reach: Core
+                comes from the manifest in the checkout, not from a
+                package in modules/. Until this existed a core upgrade
+                was a command line and nothing else, which is no use
+                on a hosted installation (John, 2026-10-17).
+            */
+            upgrade: entry(
+                "upgrade",
+                "Upgrade",
+                (
+                    none
+                    ? "Select an instance"
+                    : (
+                        one.isCoreBehind
+                        ? "Bring " + one.name + " up to Core " +
+                            vm.serverVersion + " from " + (
+                                one.coreVersion || "an unrecorded version"
+                            ) + ". It is held while the manifest is " +
+                            "applied."
+                        : "Re-apply Core " + vm.serverVersion + " to " +
+                            one.name + ", which already carries it. " +
+                            "Held while it runs; nothing is made twice."
+                    )
+                ),
+                none,
+                act(
+                    "/platform/instance/upgrade",
+                    (
+                        none
+                        ? {}
+                        : {id: one.id}
+                    ),
+                    "Upgraded"
+                )
             )
         };
     }
@@ -1903,6 +1940,7 @@
                         rows.status,
                         rows.maintenance,
                         rows.resume,
+                        rows.upgrade,
                         rows.template,
                         rows.drop
                     ]
@@ -2001,9 +2039,41 @@
                             : "Tick the instances to deploy to"
                         )
                     }),
+                    /*
+                        The framework's counterpart of the group
+                        deploy, and the same bargain: each instance is
+                        held and let go in turn, so the outage rolls.
+                    */
+                    toolbarButton({
+                        disabled: !pickedInstances().length,
+                        key: "upgradeFleet",
+                        label: "Upgrade",
+                        run: function () {
+                            vm.menu = undefined;
+                            send(
+                                "/platform/instances/upgrade",
+                                {
+                                    instances: pickedInstances().map(
+                                        (one) => one.id
+                                    )
+                                },
+                                "Upgraded"
+                            );
+                        },
+                        title: (
+                            pickedInstances().length
+                            ? "Bring the instances ticked below up to " +
+                                "Core " + vm.serverVersion + ", one " +
+                                "after another. Each is held while its " +
+                                "turn runs, and the first failure stops " +
+                                "the rest."
+                            : "Tick the instances to upgrade"
+                        )
+                    }),
                     toolbarButton(rows.status),
                     toolbarButton(rows.maintenance),
                     toolbarButton(rows.resume),
+                    toolbarButton(rows.upgrade),
                     toolbarButton(rows.template),
                     toolbarButton(rows.drop),
                     m("div", {class: "fb-toolbar-fill"}),

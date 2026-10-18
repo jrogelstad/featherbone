@@ -36,6 +36,197 @@ const dbencrypted = {};
 */
 
 /*
+    Settings that belong to the organization rather than to the
+    instance (John, 2026-10-18). A customer's letterhead and their
+    mail account are the same wherever they are printed or sent from,
+    so production, test and demo should not each carry their own copy
+    to be edited three times and drift twice. The organization record
+    in the manager is what owns every instance, so that is where they
+    live.
+
+    Marked a property at a time -- `"isOrganization": true` in the
+    settings definition -- not a document at a time, because one
+    document can hold both kinds. `globalSettings.logo` is the case:
+    it relates to a `ResourceLink`, which is an instance feather, so
+    the row it points at exists in one instance and nowhere else. The
+    address and the SMTP account move; the logo stays where its row
+    is.
+
+    The definition stays in each instance's own `$settings` as before,
+    so the form that renders it is untouched, and only the values of
+    the marked properties come from somewhere else.
+*/
+const ORG_TABLE = "\"$organization_settings\"";
+
+function organizationProperties(definition) {
+    let props = (definition || {}).properties || {};
+
+    return Object.keys(props).filter(
+        (key) => props[key].isOrganization === true
+    );
+}
+
+/*
+    Made on first use, like the manager's other bare tables, so an
+    existing manager needs no reinstall. `CREATE TABLE IF NOT EXISTS`
+    is not safe against itself -- two processes can both pass the
+    existence check and one then dies on the catalog's unique index --
+    so look first, and serialize on an advisory lock when it has to be
+    made (the lesson `claimWork` learned).
+*/
+async function organizationTable(mclient) {
+    let found = await mclient.query(
+        "SELECT to_regclass('\"$organization_settings\"') IS NOT NULL " +
+        "AS found"
+    );
+
+    if (found.rows[0].found) {
+        return;
+    }
+
+    await mclient.query(
+        "SELECT pg_advisory_lock(hashtext('featherbone.orgsettings'))"
+    );
+
+    try {
+        await mclient.query(
+            "CREATE TABLE IF NOT EXISTS " + ORG_TABLE + " (" +
+            "  organization_pk bigint NOT NULL," +
+            "  name text NOT NULL," +
+            "  data jsonb NOT NULL DEFAULT '{}'::jsonb," +
+            "  etag text NOT NULL," +
+            "  updated timestamp with time zone NOT NULL DEFAULT now()," +
+            "  updated_by text NOT NULL DEFAULT ''," +
+            "  PRIMARY KEY (organization_pk, name)" +
+            ")"
+        );
+    } finally {
+        await mclient.query(
+            "SELECT pg_advisory_unlock(hashtext('featherbone.orgsettings'))"
+        );
+    }
+}
+
+/*
+    The organization's values for one settings document, decrypted,
+    or undefined when the organization has none yet -- which is what
+    every organization looks like until the first save, and why the
+    caller falls back to the instance's own values rather than
+    blanking an address and a mail account on upgrade.
+*/
+async function readOrganizationSettings(database, name, definition) {
+    return await platform.run(async function (mclient) {
+        let orgPk = await platform.organizationOf(mclient, database);
+
+        if (orgPk === undefined) {
+            return undefined;
+        }
+
+        await organizationTable(mclient);
+
+        let resp = await mclient.query(
+            "SELECT data FROM " + ORG_TABLE +
+            " WHERE organization_pk = $1 AND name = $2",
+            [orgPk, name]
+        );
+
+        if (!resp.rows.length) {
+            return undefined;
+        }
+
+        let data = resp.rows[0].data || {};
+        let props = (definition || {}).properties || {};
+        let keys = Object.keys(data);
+        let i = 0;
+
+        // Same key, same cipher, in the manager this time
+        while (i < keys.length) {
+            let p = props[keys[i]];
+
+            if (p && (p.isEncrypted && data[keys[i]])) {
+                let got = await mclient.query(
+                    "SELECT pgp_sym_decrypt($1::BYTEA, $2) AS value",
+                    [data[keys[i]], pgdb.cryptoKey()]
+                );
+
+                data[keys[i]] = got.rows[0].value;
+            }
+            i += 1;
+        }
+
+        return data;
+    });
+}
+
+async function writeOrganizationSettings(database, name, data, opts) {
+    let definition = opts.definition;
+    let user = opts.user || "";
+
+    return await platform.run(async function (mclient) {
+        let orgPk = await platform.organizationOf(mclient, database);
+
+        if (orgPk === undefined) {
+            /*
+                An instance that belongs to no organization has
+                nowhere to put these. It cannot be signed in to
+                either, so this is a database being set up rather
+                than one in use; let the instance keep them.
+            */
+            return false;
+        }
+
+        await organizationTable(mclient);
+
+        let props = (definition || {}).properties || {};
+        let store = f.copy(data);
+        let keys = Object.keys(store);
+        let i = 0;
+
+        while (i < keys.length) {
+            let p = props[keys[i]];
+
+            if (p && (p.isEncrypted && store[keys[i]] !== undefined)) {
+                let got = await mclient.query(
+                    "SELECT pgp_sym_encrypt($1, $2)::TEXT AS value",
+                    [store[keys[i]], pgdb.cryptoKey()]
+                );
+
+                store[keys[i]] = got.rows[0].value;
+            }
+            i += 1;
+        }
+
+        await mclient.query(
+            "INSERT INTO " + ORG_TABLE + " (organization_pk, name, " +
+            " data, etag, updated, updated_by) " +
+            "VALUES ($1, $2, $3, $4, now(), $5) " +
+            "ON CONFLICT (organization_pk, name) DO UPDATE SET " +
+            "  data = $3, etag = $4, updated = now(), updated_by = $5",
+            [orgPk, name, store, opts.etag, user]
+        );
+
+        return true;
+    });
+}
+
+/*
+    The other databases' cached copies of this settings document go:
+    the values are the organization's now, so an edit made in one of
+    its instances is an edit to what the others read. The saving
+    database keeps its entry, which the save has just filled in with
+    what was submitted -- callers hold a pointer to that object, and
+    replacing it is what the read path takes care not to do. Other
+    nodes keep their own caches, as they always have.
+*/
+function forgetElsewhere(name, except) {
+    Object.keys(dbsettings).forEach(function (key) {
+        if (key !== except && dbsettings[key].data) {
+            delete dbsettings[key].data[name];
+        }
+    });
+}
+
+/*
     Remember which properties of a settings row are encrypted, so reads
     can keep them away from users who may not see them. Called wherever a
     definition is in hand; a row without a definition has no secrets.
@@ -150,6 +341,32 @@ settings.getSettings = async function (obj) {
                             rec.data[pkeys[i]] = resp.rows[0].value;
                         }
                         i += 1;
+                    }
+                }
+
+                /*
+                    The organization's own values for the properties
+                    marked as its own, laid over the instance's. An
+                    organization that has never saved them has no row,
+                    and the instance's values stand -- so nothing goes
+                    blank on the upgrade that introduced this, and the
+                    first save is what moves them.
+                */
+                let shared = organizationProperties(rec.definition);
+
+                if (shared.length) {
+                    let mine = await readOrganizationSettings(
+                        db,
+                        name,
+                        rec.definition
+                    );
+
+                    if (mine) {
+                        shared.forEach(function (key) {
+                            if (mine[key] !== undefined) {
+                                rec.data[key] = mine[key];
+                            }
+                        });
                     }
                 }
 
@@ -602,6 +819,32 @@ settings.saveSettings = async function (obj) {
                 return Promise.reject(msg);
             }
 
+            /*
+                The organization's share goes to the organization,
+                and the instance keeps the rest. Both are written:
+                the instance's row still carries every property, so a
+                database detached from its organization still has
+                values to fall back on and the definition still
+                matches what is stored beside it.
+            */
+            let shared = organizationProperties(row.definition);
+
+            if (shared.length) {
+                let mine = {};
+
+                shared.forEach(function (key) {
+                    if (d[key] !== undefined) {
+                        mine[key] = d[key];
+                    }
+                });
+
+                await writeOrganizationSettings(db, name, mine, {
+                    definition: row.definition,
+                    etag: tag,
+                    user: obj.user || client.currentUser()
+                });
+            }
+
             sql = (
                 "UPDATE \"$settings\" SET " +
                 " data = $2, etag = $3, " +
@@ -610,6 +853,11 @@ settings.saveSettings = async function (obj) {
             );
             await client.query(sql, params);
             done();
+
+            if (shared.length) {
+                forgetElsewhere(name, db);
+            }
+
             return true;
         }
 

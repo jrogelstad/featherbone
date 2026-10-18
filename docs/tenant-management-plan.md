@@ -80,8 +80,15 @@ repositories' to change:**
    round trip, the id-token signature, issuer and audience checks and the
    userinfo fallback are `openid-client`'s and have never been run here
    against Entra ID. One organization pointed at a real directory is the
-   done-when C.3 already asks for.
-3. **The modules.** Both live in their own repositories, and neither was
+   done-when C.3 already asks for. **Punted for 3.0.0-alpha.1 (John,
+   2026-10-18):** "I have to punt on SSO. Have no way to prove that now."
+   Carried as a known gap in the 3.0.0-alpha.1 release notes instead.
+3. **Highly-available topology for the manager** and **API/identity
+   tokens** are both still unmodelled (ADR §9). **Punted for 3.0.0-alpha.1
+   (John, 2026-10-18):** "HA and identity tokens are out of scope for now.
+   Mark those as punt for now." Carried as a known gap in the release
+   notes.
+4. **The modules.** Both live in their own repositories, and neither was
    reachable from the session that did the rest of this work:
     - The **CronJob** module's `initialize-cron-job.js` should claim the
       job before firing it (E.1's last line), so one node runs each job
@@ -99,7 +106,7 @@ repositories' to change:**
       F.3); nothing else is needed on this side.
     - **SupplyChain**'s module-level `pending` guards should become
       database locks (E.5's second half).
-4. **Whether SupplyChain's five print services are ported** off `pdfjs`
+5. **Whether SupplyChain's five print services are ported** off `pdfjs`
    and `table-layout`, which master left behind for `pdfmake`.
 
 **Added and built 2026-10-16 (John's find):** platform administration
