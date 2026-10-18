@@ -413,11 +413,17 @@ Answered:
   (`(issuer, subject) → identity`), the protocol through `openid-client`
   rather than hand-rolled, and just-in-time provisioning from claims
   (plan C.3, C.4). The round trip itself is still to be proven against a
-  real directory.
+  real directory. **Punted for 3.0.0-alpha.1 (John, 2026-10-18):** "I have
+  to punt on SSO. Have no way to prove that now." Recorded as a known gap
+  in the 3.0.0-alpha.1 release notes rather than held against the release.
 
 Still open:
 
 - **Highly-available topology for the manager** — replication or a managed
   instance. An operations choice, and a sharper one now that the session
-  strategy has settled on the manager: its outage is everyone's.
-- **API tokens**, next to `identity`, if they are coming.
+  strategy has settled on the manager: its outage is everyone's. **Punted
+  for 3.0.0-alpha.1 (John, 2026-10-18):** "HA ... [is] out of scope for
+  now."
+- **API tokens**, next to `identity`, if they are coming. **Punted for
+  3.0.0-alpha.1 (John, 2026-10-18):** "identity tokens are out of scope for
+  now."
