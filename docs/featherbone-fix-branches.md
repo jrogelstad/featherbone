@@ -13,7 +13,7 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 Found by John on the 3.0.0-alpha.1 deployment: an administrator could
 not change a user's name, email or phone (or even see the email and
 phone), a user created on the Users screen was never mailed, and
-"Forgot password" did nothing. Three branches, **stacked, merge in this
+"Forgot password" did nothing. Four branches, **stacked, merge in this
 order**; none needs a reinstall (client and server code only).
 
 1. `feat/users-hide-disabled` -- the Users screen lists only people who
@@ -59,6 +59,30 @@ master, `users` still failing its one Employee/Job Shop test, and the
 Users screen driven in headless Chromium. Check locally: with Job Shop
 installed, a contact there is an `Employee`; `changeUserInfo` creates a
 plain `Contact` for a profile that has none, as it always did.
+
+4. `fix/org-two-factor-session` (on top of 3) -- **a security hole that
+   was already on master, found while testing the sign-in code mail.**
+   When two-factor is required by the *organization* (tenant plan C.2,
+   `organization.is_two_factor_required`) rather than by `config.json`'s
+   `twoFactorAuth`, the password step still opened a session: passport's
+   local strategy was created with `session: !twoFactorAuth`, which is
+   only false for the installation-wide setting. The confirmation code
+   was mailed and asked for, but a password alone already had access (a
+   data request made before entering any code returned 200). The
+   password step now never opens a session; `doSignIn` logs the user in
+   itself when no second factor applies, and the magic-link callback
+   (which checks the code) is the only way in when one does. New
+   `test/api/two-factor-mail.test.js`: with the organization requiring
+   it and SMTP pointed at a throwaway server, a password alone gets
+   nowhere, the code arrives through the organization's account at the
+   user's address, a wrong code is refused and still gets nowhere, and
+   the right code signs the user in. The throwaway SMTP server moved to
+   `test/api/lib/mailsink.js` so both tests use it. Merge it with, or
+   straight after, branch 3.
+
+   The 2FA mail itself was not removed by branch 3: its text, subject,
+   recipient, code and verify step are as they were; only the transport
+   changed to the shared `notify.send`.
 
 Not done: the invitation does not appear in the Users worksheet's own
 "new user" form (a user made there is still mailed by
