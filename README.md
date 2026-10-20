@@ -10,7 +10,7 @@ A JavaScript based persistence framework for building object relational database
 
 # Install
 
-Copy the `config.template.json` file under the `server` folder to `config.json` and set appropriate credentials -- `secret` and `pgCryptoKey` in particular; the server refuses to start with either blank.
+Copy the `config.template.json` file under the `server` folder to `config.json` and set appropriate credentials -- `secret` and `pgCryptoKey` in particular; the server refuses to start with either blank. The file is optional: every setting has a built-in default (the template documents them but is never read), and an environment variable of the same name over-rides both, so a deployment can be configured entirely from its environment. Only `secret` and `pgCryptoKey` have no default.
 
 Either download and unzip the latest release, or clone this repository and from the destination location:
 
