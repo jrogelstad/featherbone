@@ -1385,6 +1385,7 @@
                         databases: [target.pg_database],
                         isSuper: true,
                         processId: data.processId,
+                        subscription: data.subscription,
                         tenant
                     });
                     await datasource.recordDeployed(
@@ -2070,6 +2071,62 @@
                 name: done.name,
                 version: done.version
             };
+        };
+
+        /**
+            Install a package on this server and deploy it into the
+            instance the request came through: what the Modules page's
+            Install button asks for. Two acts (ADR-002 section 6), done
+            one after the other by the same rules each has on its own,
+            so a platform administrator is needed for both and nothing
+            here can do what neither could.
+
+            The version is replaced if this server already holds it. A
+            package being worked on is installed again and again at one
+            version, and the command line's `--force` is the same
+            choice; Install on its own does not make it for you.
+
+            @method installAndDeploy
+            @param {Object} payload
+            @param {String} payload.data.source Uploaded archive
+            @param {Object} [payload.data.subscription] Progress bar
+            @return {Promise} {database, module, version, libraries}
+        */
+        that.installAndDeploy = async function (obj) {
+            let data = obj.data || {};
+            let tenant = obj.tenant;
+
+            if (!tenant || !tenant.id || tenant.id === "-1") {
+                throw invalid(
+                    "This is not an instance, so there is nothing to " +
+                    "deploy into. Use the Admin Console to install a " +
+                    "package on the server."
+                );
+            }
+
+            let installed = await that.installPackage({
+                data: {force: true, source: data.source},
+                identity: obj.identity,
+                organization: obj.organization,
+                registry: obj.registry,
+                tenant: obj.tenant,
+                user: obj.user
+            });
+            let deployed = await that.deployPackage({
+                data: {
+                    id: tenant.id,
+                    module: installed.name,
+                    subscription: data.subscription,
+                    version: installed.version
+                },
+                identity: obj.identity,
+                organization: obj.organization,
+                registry: obj.registry,
+                tenant: obj.tenant,
+                user: obj.user
+            });
+
+            return Object.assign({libraries: installed.libraries}, deployed);
         };
 
         /**
