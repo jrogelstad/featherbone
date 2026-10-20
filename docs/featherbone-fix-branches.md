@@ -13,7 +13,7 @@ Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 Found by John on the 3.0.0-alpha.1 deployment: an administrator could
 not change a user's name, email or phone (or even see the email and
 phone), a user created on the Users screen was never mailed, and
-"Forgot password" did nothing. Four branches, **stacked, merge in this
+"Forgot password" did nothing. Five branches, **stacked, merge in this
 order**; none needs a reinstall (client and server code only).
 
 1. `feat/users-hide-disabled` -- the Users screen lists only people who
@@ -79,6 +79,27 @@ plain `Contact` for a profile that has none, as it always did.
    the right code signs the user in. The throwaway SMTP server moved to
    `test/api/lib/mailsink.js` so both tests use it. Merge it with, or
    straight after, branch 3.
+
+5. `fix/user-contact-employee` (on top of 4) -- **found on John's
+   `tracker`/`demo` after branches 2 and 3**: saving a person's details
+   on the Users screen, and creating a user with an invitation, failed
+   with "Cannot read properties of undefined (reading 'type')". Cause:
+   SupplyChain's Common module keeps a trigger on UserAccount
+   (`triggersUserAccount`) that PATCHes the account's contact *as an
+   Employee*, assuming every user account is backed by one.
+   `changeUserInfo` -- the one place a contact is made for someone who
+   has none, shared by the administrator's edit, the invitation,
+   "Forgot password" and "Edit my contact information" -- made a plain
+   Contact, so linking it to the account tripped that trigger. It now
+   makes an Employee when the instance has an `Employee` feather that
+   inherits `Contact`, with `number` (the required natural key) set to
+   the user name in upper case, suffixed `-2`, `-3` if another employee
+   has it, and `isActive` true; otherwise a Contact as before.
+   `test/api/user-contact-employee.test.js` builds an Employee feather
+   as Common defines it and fails without the change. The user
+   `ncuser_12161`'s contact on `demo` is a plain Contact; anything that
+   saves that account will hit the same trigger -- the real fix for
+   that is in Common (make the trigger create or skip a non-Employee).
 
    The 2FA mail itself was not removed by branch 3: its text, subject,
    recipient, code and verify step are as they were; only the transport
