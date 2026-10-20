@@ -56,6 +56,7 @@ adminPage.viewModel = function () {
         email: f.prop(""),
         fullName: f.prop(""),
         password: f.prop(""),
+        sendInvite: f.prop(true),
         username: f.prop("")
     };
     let pwd = {
@@ -180,6 +181,12 @@ adminPage.viewModel = function () {
     */
     vm.errorDialog = f.prop();
     /**
+        What became of an invitation, when it is not an error.
+        @method noticeDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.noticeDialog = f.prop();
+    /**
         @method addUserDialog
         @return {ViewModels.Dialog}
     */
@@ -263,6 +270,7 @@ adminPage.viewModel = function () {
         newUser.email("");
         newUser.fullName("");
         newUser.password("");
+        newUser.sendInvite(true);
         newUser.username("");
         vm.addUserDialog().show();
     };
@@ -360,15 +368,59 @@ adminPage.viewModel = function () {
         title: "Error"
     }));
 
+    vm.noticeDialog(f.createViewModel("Dialog", {
+        icon: "info",
+        title: "Invitation"
+    }));
+
     vm.addUserDialog(f.createViewModel("Dialog", {
         icon: "person_add",
         onOk: function () {
+            let invite = newUser.sendInvite();
+            let who = newUser.username();
+
+            if (invite && !newUser.email().trim()) {
+                fail(new Error(
+                    "An email address is needed to send an invitation"
+                ));
+                return;
+            }
+
             request("POST", "/admin/identity", {
                 email: newUser.email(),
                 fullName: newUser.fullName(),
-                password: newUser.password(),
-                username: newUser.username()
-            }).then(vm.refresh).catch(fail);
+                password: (
+                    invite
+                    ? ""
+                    : newUser.password()
+                ),
+                sendInvite: invite,
+                username: who
+            }).then(function (resp) {
+                vm.refresh();
+
+                if (resp.mail === "sent") {
+                    vm.noticeDialog().message(
+                        "An email is on its way to " + newUser.email() +
+                        ". Its link signs " + who + " in and asks them " +
+                        "to choose a password."
+                    );
+                    vm.noticeDialog().show();
+                } else if (resp.mail === "existing") {
+                    vm.noticeDialog().message(
+                        who + " already had an account, so no invitation " +
+                        "was sent. They now have access to this instance " +
+                        "and keep their password."
+                    );
+                    vm.noticeDialog().show();
+                } else if (resp.mail === "failed") {
+                    fail(new Error(
+                        who + " was created, but the invitation could " +
+                        "not be sent: " + resp.mailError + " You can set " +
+                        "a password for them instead."
+                    ));
+                }
+            }).catch(fail);
         },
         title: "Add user"
     }));
@@ -400,20 +452,44 @@ adminPage.viewModel = function () {
                     value: newUser.email()
                 })
             ]),
-            m("div", {class: "pure-control-group"}, [
-                m("label", {for: "fbAdminNewPwd"}, "Password:"),
+            m("label", {
+                class: "fb-admin-filter",
+                for: "fbAdminNewInvite"
+            }, [
                 m("input", {
-                    autocomplete: "new-password",
-                    id: "fbAdminNewPwd",
-                    oninput: (e) => newUser.password(e.target.value),
-                    type: "password",
-                    value: newUser.password()
-                })
+                    checked: newUser.sendInvite(),
+                    id: "fbAdminNewInvite",
+                    onchange: (e) => newUser.sendInvite(e.target.checked),
+                    type: "checkbox"
+                }),
+                "Email them a link to sign in and choose their own password"
             ]),
+            (
+                newUser.sendInvite()
+                ? undefined
+                : m("div", {class: "pure-control-group"}, [
+                    m("label", {for: "fbAdminNewPwd"}, "Password:"),
+                    m("input", {
+                        autocomplete: "new-password",
+                        id: "fbAdminNewPwd",
+                        oninput: (e) => newUser.password(e.target.value),
+                        type: "password",
+                        value: newUser.password()
+                    })
+                ])
+            ),
             m("div", {class: "fb-admin-note"}, (
-                "Creates the identity and grants it this instance. The " +
-                "person also needs a user account here before they can " +
-                "sign in, which is what the Users worksheet maintains."
+                newUser.sendInvite()
+                ? (
+                    "Creates the user, grants them this instance and " +
+                    "emails them a link that signs them in and asks " +
+                    "them to choose their own password. Needs an email " +
+                    "address, and mail set up under Settings."
+                )
+                : (
+                    "Creates the user and grants them this instance. " +
+                    "Tell them the password yourself."
+                )
             ))
         ]);
     };
@@ -910,6 +986,7 @@ adminPage.component = {
                 ))
             ]),
             m(f.getComponent("Dialog"), {viewModel: vm.errorDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.noticeDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.addUserDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.editDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.passwordDialog()}),
