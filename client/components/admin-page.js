@@ -116,6 +116,14 @@ adminPage.viewModel = function () {
     */
     vm.reachOrganization = f.prop("");
     /**
+        Whether disabled users are listed. Off by default: someone who
+        has left is not a user the administrator is looking for, and
+        the list is for the people who can sign in.
+        @method showDisabled
+        @return {Boolean}
+    */
+    vm.showDisabled = f.prop(false);
+    /**
         The identity the toolbar and the right-click menu act on.
         @method selection
         @return {String}
@@ -494,6 +502,15 @@ adminPage.component = {
         let instances = data.instances || [];
         let audit = data.audit || [];
         let orgWide = vm.isOrgWide();
+        /*
+            What the table lists. A selection that has been filtered
+            out is no selection (find() looks here), so the toolbar
+            never acts on a row the administrator cannot see.
+        */
+        let listed = identities.filter(
+            (one) => vm.showDisabled() || one.status !== "disabled"
+        );
+        let hidden = identities.length - listed.length;
 
         function status(identity) {
             return m("span", {
@@ -538,7 +555,7 @@ adminPage.component = {
         }
 
         function find(id) {
-            return identities.find((one) => one.id === id);
+            return listed.find((one) => one.id === id);
         }
 
         /*
@@ -878,6 +895,23 @@ adminPage.component = {
                 ])
                 : undefined
             ),
+            m("label", {
+                class: "fb-admin-filter",
+                for: "fb-admin-show-disabled",
+                title: (
+                    hidden
+                    ? hidden + " disabled user(s) not listed"
+                    : "Disabled users are listed when this is checked"
+                )
+            }, [
+                m("input", {
+                    checked: vm.showDisabled(),
+                    id: "fb-admin-show-disabled",
+                    onchange: (e) => vm.showDisabled(e.target.checked),
+                    type: "checkbox"
+                }),
+                "Show disabled users"
+            ]),
             m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
                 m("table", {class: "fb-table fb-admin-table"}, [
                     m("thead", [
@@ -889,7 +923,7 @@ adminPage.component = {
                             m("th", {class: "fb-admin-col-seen"}, "Last sign-in")
                         ])
                     ]),
-                    m("tbody", identities.map(function (identity) {
+                    m("tbody", listed.map(function (identity) {
                         return m("tr", rowEvents(identity.id), [
                             m("td", {title: identity.username}, [
                                 identity.username,
