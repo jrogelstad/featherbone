@@ -3195,6 +3195,16 @@ button:disabled .fb-ipicon,
   opacity: 0.6;
 }
 
+.fb-admin-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 8px 8px 8px;
+  color: var(--fb-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 /* Upgrade/Deploy progress, polled from the platform console and the
    Instances screen (ADR-002): no SSE wiring of their own, so a plain
    element rather than the signed-in app's snackbar meter. */
