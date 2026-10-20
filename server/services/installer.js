@@ -102,6 +102,13 @@
                 let pSubscr = opts.subscription;
                 let pProcessId = opts.processId;
                 /*
+                    Set when the directory is a package this server
+                    holds: its code is served from the files, so the
+                    database is given the module's record and not its
+                    code (datasource.install).
+                */
+                let pIsPackage = opts.isPackage === true;
+                /*
                     What the database being installed into is for:
                     "manager" or "instance" (tenant plan section 9). A
                     manifest entry may name a `target` of its own and is
@@ -942,14 +949,27 @@
                             case "module":
                                 saveModule(
                                     module,
-                                    content,
+                                    (
+                                        pIsPackage
+                                        ? ""
+                                        : content
+                                    ),
                                     version,
                                     dependencies,
                                     npm
                                 );
                                 break;
                             case "service":
-                                saveService(file.name || name, module, content);
+                                if (pIsPackage) {
+                                    // Served from the package's file
+                                    runBatch([]);
+                                } else {
+                                    saveService(
+                                        file.name || name,
+                                        module,
+                                        content
+                                    );
+                                }
                                 break;
                             case "feather":
                                 saveFeathers(

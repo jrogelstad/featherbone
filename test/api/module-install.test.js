@@ -45,12 +45,30 @@ function flags(username, data) {
     ));
 }
 
-function samplePackage(version) {
+function samplePackage(version, withCode) {
     let file = path.join(work, MODULE + "-" + version + ".zip");
     let zip = new AdmZip();
+    let files = [];
+
+    if (withCode) {
+        files = [{
+            name: "fbt-webinstall-service",
+            path: "service.js",
+            type: "service"
+        }, {
+            path: "client.js",
+            type: "module"
+        }];
+        zip.addFile("service.js", Buffer.from(
+            "// service " + version + "\n"
+        ));
+        zip.addFile("client.js", Buffer.from(
+            "// client " + version + "\n"
+        ));
+    }
 
     zip.addFile("manifest.json", Buffer.from(JSON.stringify({
-        files: [],
+        files,
         module: MODULE,
         version
     })));
@@ -160,6 +178,39 @@ describe("Install on the Modules page", function () {
         );
 
         assert.equal(await deployed(), "1.1.0");
+    });
+
+    /*
+        A package's code is served from its files, so the database is
+        given the module's record -- name and version, which is what
+        dispatch and the fleet view read -- and not a second copy of the
+        code in a table, where anyone with write access could change
+        what runs.
+    */
+    it("keeps the package's code out of the database's rows",
+            async function () {
+        let session = await signedIn(PLATFORM);
+
+        await session.upload(
+            "/module/install/x=1",
+            "package",
+            samplePackage("2.0.0", true)
+        );
+
+        assert.equal(onDisk("2.0.0"), true);
+        assert.equal(await deployed(), "2.0.0");
+
+        let services = await db.query(
+            "SELECT count(*)::int AS n FROM data_service WHERE module = $1",
+            [MODULE]
+        );
+        let client = await db.query(
+            "SELECT script FROM module WHERE name = $1",
+            [MODULE]
+        );
+
+        assert.equal(services.rows[0].n, 0, "no service rows");
+        assert.equal(client.rows[0].script, "", "no client script");
     });
 
     it("says what is wrong with an archive that is not a package",
