@@ -26,6 +26,8 @@
     require("../common/number");
     require("../common/date");
 
+    const fs = require("fs");
+    const path = require("path");
     const {Database} = require("./database");
     const {Events} = require("./services/events");
     const {CRUD} = require("./services/crud");
@@ -2344,6 +2346,32 @@
             resp.client.currentUser = () => conf.pgUser;
         }
 
+        /*
+            Code that is on disk is not also stored. A directory this
+            server holds as an installed package is served from there
+            (ADR-002 sections 2 and 6), so Deploy writes the module's
+            row, which records the version, and leaves its code out of
+            it: no `Module.script`, no `DataService` rows. Anything
+            else -- Core, installed from the checkout, and the modules
+            that predate packages -- is still stored as it always was,
+            because rows are all that serves it.
+        */
+        let isPackage = false;
+
+        try {
+            let said = JSON.parse(await fs.promises.readFile(
+                path.join(filename, "manifest.json"),
+                "utf8"
+            ));
+            let held = packages.resolve(said.module, said.version);
+
+            isPackage = Boolean(held) && (
+                path.resolve(held.dir) === path.resolve(filename)
+            );
+        } catch (ignore) {
+            // No readable manifest: the installer will say so
+        }
+
         // Do the work
         while (targets.length) {
             await installer.install(
@@ -2369,6 +2397,7 @@
                         processId to track it by (John, 2026-10-18: "I
                         get no idea of whether it's working or not").
                     */
+                    isPackage,
                     isSuper: opts.isSuper === true,
                     processId: opts.processId,
                     subscription: opts.subscription,

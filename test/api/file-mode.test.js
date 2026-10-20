@@ -114,8 +114,8 @@ describe("a module served from its package (ADR-002)", function () {
         /*
             The fixture state the other files expect: the first
             instance back on its own version, and the fixture's code on
-            disk only -- deploying it here writes a data_service row,
-            which modules.test.js asserts is absent.
+            disk only -- the leftover row the refusal test plants is
+            taken away, which modules.test.js asserts is absent.
         */
         await db.withClient(settings.testDb, async function (client) {
             await client.query(
@@ -158,7 +158,7 @@ describe("a module served from its package (ADR-002)", function () {
         assert.equal(after.script, row.script, "and nothing changed");
     });
 
-    it("lets the deployment itself write them", async function () {
+    it("lets the deployment itself write the record, and no code", async function () {
         /*
             The refusal is by where the call came from, not by who made
             it: Install and Deploy write these rows as part of their
@@ -184,16 +184,35 @@ describe("a module served from its package (ADR-002)", function () {
         });
 
         assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        // And, now that the code is on disk, writes none of it down
+        assert.equal(
+            await serviceRow(settings.testDb),
+            undefined,
+            "a package's services are served from its files"
+        );
     });
 
     it("refuses a change to a service script", async function () {
+        /*
+            Deploying no longer writes one, so the row this guards is a
+            leftover from before: a database that took the package the
+            old way. Put one there the way it would have been.
+        */
+        await db.withClient(settings.testDb, async function (client) {
+            await client.query(
+                (
+                    "INSERT INTO data_service " +
+                    "  (id, name, module, script, is_deleted) " +
+                    "VALUES ('fbtlegacyds', 'fbtest-service', 'fbtest', " +
+                    "  '// leftover', false)"
+                )
+            );
+        });
+
         let row = await serviceRow(settings.testDb);
 
-        assert.ok(
-            row,
-            "the deployment above wrote one, which is what makes this " +
-            "worth refusing"
-        );
+        assert.ok(row, "the leftover row is there");
 
         let resp = await admin.raw(
             "PATCH",
