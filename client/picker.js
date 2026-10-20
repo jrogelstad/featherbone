@@ -259,7 +259,8 @@
         in an organization of its own (John, Oct 2026).
     */
     function organizationOf(instanceId) {
-        let found = (vm.fleet || []).find((one) => one.id === instanceId);
+        let fleet = vm.fleet || [];
+        let found = fleet.find((one) => one.id === instanceId);
 
         return (
             found
