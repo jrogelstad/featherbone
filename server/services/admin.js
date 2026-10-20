@@ -490,17 +490,49 @@
             @param {String} [payload.data.fullName]
             @param {String} [payload.data.email]
             @param {String} [payload.data.password]
+            @param {Boolean} [payload.data.sendInvite] Instead of a
+            password, mail the person a link that signs them in and
+            makes them choose one (needs the email; the signed-in
+            instance only). `mail` in the answer says what became of it:
+            "sent", "failed" (with `mailError`), or "existing" when the
+            person already had an account and so was not mailed.
             @param {String} [payload.data.instance] Instance id to grant
             @return {Promise}
         */
         that.createIdentity = async function (obj) {
             let data = obj.data || {};
+            let invite = data.sendInvite === true;
+            let email = cleaned(data.email) || "";
+            let result;
 
             if (!data.username || !data.username.trim()) {
                 throw invalid("A user name is required");
             }
 
-            return await manager.run(async function (mclient) {
+            if (invite) {
+                if (!email) {
+                    throw invalid(
+                        "An email address is needed to send an invitation"
+                    );
+                }
+                if (data.password) {
+                    throw invalid(
+                        "Give a password or send an invitation, not both: " +
+                        "the person chooses their own from the link"
+                    );
+                }
+                if (data.instance && data.instance !== homeInstanceId(obj)) {
+                    throw invalid(
+                        "An invitation can only be sent for the instance " +
+                        "you are signed in to"
+                    );
+                }
+                if (typeof obj.invite !== "function") {
+                    throw invalid("This request cannot send an invitation");
+                }
+            }
+
+            result = await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
                 let tenantPk = ctx.tenantPk;
 
@@ -535,7 +567,7 @@
 
                 let added = await manager.addIdentity(mclient, {
                     by: obj.user,
-                    email: data.email,
+                    email,
                     fullName: data.fullName,
                     organizationPk: ctx.organizationPk,
                     password: data.password,
@@ -564,6 +596,32 @@
 
                 return {created: added.created};
             });
+
+            /*
+                After the identity and its grant are committed: the
+                link signs them in, which needs both. A mail that does
+                not go is reported, not raised -- the user exists, and
+                the administrator can set a password by hand.
+            */
+            if (invite) {
+                if (!result.created) {
+                    result.mail = "existing";
+                } else {
+                    try {
+                        await obj.invite(
+                            data.username.trim(),
+                            email,
+                            cleaned(data.fullName)
+                        );
+                        result.mail = "sent";
+                    } catch (e) {
+                        result.mail = "failed";
+                        result.mailError = e.message || String(e);
+                    }
+                }
+            }
+
+            return result;
         };
 
         /**
