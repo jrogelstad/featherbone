@@ -249,7 +249,36 @@
 
     // Writing ----------------------------------------------------------
 
+    /*
+        The organization an instance belongs to, from the list the
+        console shows. An action on one instance names it, because the
+        server looks the instance up inside an organization and a
+        platform administrator's own is only one of them (tenant plan
+        A.4). Without it, the console listed an instance it could not
+        close or drop: one made by `node install.js --instance` lands
+        in an organization of its own (John, Oct 2026).
+    */
+    function organizationOf(instanceId) {
+        let found = (vm.fleet || []).find((one) => one.id === instanceId);
+
+        return (
+            found
+            ? found.organizationId
+            : undefined
+        );
+    }
+
     function send(path, body, said) {
+        if (
+            path.startsWith("/platform/instance/") &&
+            body && body.id && !body.organization
+        ) {
+            body = Object.assign(
+                {organization: organizationOf(body.id)},
+                body
+            );
+        }
+
         vm.isBusy = true;
         vm.error = "";
         vm.note = "";
@@ -299,7 +328,11 @@
                 "GET",
                 (
                     "/platform/instance/process?id=" + instances[index] +
-                    "&processId=" + ids[index]
+                    "&processId=" + ids[index] + (
+                        organizationOf(instances[index])
+                        ? "&organization=" + organizationOf(instances[index])
+                        : ""
+                    )
                 )
             ).then(function (row) {
                 if (!live) {
