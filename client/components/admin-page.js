@@ -34,7 +34,7 @@
 const adminPage = {};
 
 // The right-click menu offers what the toolbar does, in that order
-const MENU_KEYS = ["status", "password", "grant", "admin"];
+const MENU_KEYS = ["edit", "status", "password", "grant", "admin"];
 
 const STATUS_ICON = {
     active: "check_circle",
@@ -56,6 +56,7 @@ adminPage.viewModel = function () {
         email: f.prop(""),
         fullName: f.prop(""),
         password: f.prop(""),
+        sendInvite: f.prop(true),
         username: f.prop("")
     };
     let pwd = {
@@ -67,6 +68,16 @@ adminPage.viewModel = function () {
     let grant = {
         id: f.prop(""),
         instance: f.prop(""),
+        username: f.prop("")
+    };
+    let edit = {
+        email: f.prop(""),
+        firstName: f.prop(""),
+        fullName: f.prop(""),
+        hasProfile: f.prop(false),
+        id: f.prop(""),
+        lastName: f.prop(""),
+        phone: f.prop(""),
         username: f.prop("")
     };
 
@@ -116,6 +127,14 @@ adminPage.viewModel = function () {
     */
     vm.reachOrganization = f.prop("");
     /**
+        Whether disabled users are listed. Off by default: someone who
+        has left is not a user the administrator is looking for, and
+        the list is for the people who can sign in.
+        @method showDisabled
+        @return {Boolean}
+    */
+    vm.showDisabled = f.prop(false);
+    /**
         The identity the toolbar and the right-click menu act on.
         @method selection
         @return {String}
@@ -162,10 +181,21 @@ adminPage.viewModel = function () {
     */
     vm.errorDialog = f.prop();
     /**
+        What became of an invitation, when it is not an error.
+        @method noticeDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.noticeDialog = f.prop();
+    /**
         @method addUserDialog
         @return {ViewModels.Dialog}
     */
     vm.addUserDialog = f.prop();
+    /**
+        @method editDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.editDialog = f.prop();
     /**
         @method passwordDialog
         @return {ViewModels.Dialog}
@@ -240,8 +270,26 @@ adminPage.viewModel = function () {
         newUser.email("");
         newUser.fullName("");
         newUser.password("");
+        newUser.sendInvite(true);
         newUser.username("");
         vm.addUserDialog().show();
+    };
+
+    /**
+        Change a person's name, email and phone.
+        @method doEdit
+        @param {Object} identity
+    */
+    vm.doEdit = function (identity) {
+        edit.email(identity.email || "");
+        edit.firstName(identity.firstName || "");
+        edit.fullName(identity.fullName || "");
+        edit.hasProfile(Boolean(identity.hasProfile));
+        edit.id(identity.id);
+        edit.lastName(identity.lastName || "");
+        edit.phone(identity.phone || "");
+        edit.username(identity.username);
+        vm.editDialog().show();
     };
 
     /**
@@ -320,15 +368,59 @@ adminPage.viewModel = function () {
         title: "Error"
     }));
 
+    vm.noticeDialog(f.createViewModel("Dialog", {
+        icon: "info",
+        title: "Invitation"
+    }));
+
     vm.addUserDialog(f.createViewModel("Dialog", {
         icon: "person_add",
         onOk: function () {
+            let invite = newUser.sendInvite();
+            let who = newUser.username();
+
+            if (invite && !newUser.email().trim()) {
+                fail(new Error(
+                    "An email address is needed to send an invitation"
+                ));
+                return;
+            }
+
             request("POST", "/admin/identity", {
                 email: newUser.email(),
                 fullName: newUser.fullName(),
-                password: newUser.password(),
-                username: newUser.username()
-            }).then(vm.refresh).catch(fail);
+                password: (
+                    invite
+                    ? ""
+                    : newUser.password()
+                ),
+                sendInvite: invite,
+                username: who
+            }).then(function (resp) {
+                vm.refresh();
+
+                if (resp.mail === "sent") {
+                    vm.noticeDialog().message(
+                        "An email is on its way to " + newUser.email() +
+                        ". Its link signs " + who + " in and asks them " +
+                        "to choose a password."
+                    );
+                    vm.noticeDialog().show();
+                } else if (resp.mail === "existing") {
+                    vm.noticeDialog().message(
+                        who + " already had an account, so no invitation " +
+                        "was sent. They now have access to this instance " +
+                        "and keep their password."
+                    );
+                    vm.noticeDialog().show();
+                } else if (resp.mail === "failed") {
+                    fail(new Error(
+                        who + " was created, but the invitation could " +
+                        "not be sent: " + resp.mailError + " You can set " +
+                        "a password for them instead."
+                    ));
+                }
+            }).catch(fail);
         },
         title: "Add user"
     }));
@@ -360,20 +452,109 @@ adminPage.viewModel = function () {
                     value: newUser.email()
                 })
             ]),
-            m("div", {class: "pure-control-group"}, [
-                m("label", {for: "fbAdminNewPwd"}, "Password:"),
+            m("label", {
+                class: "fb-admin-filter",
+                for: "fbAdminNewInvite"
+            }, [
                 m("input", {
-                    autocomplete: "new-password",
-                    id: "fbAdminNewPwd",
-                    oninput: (e) => newUser.password(e.target.value),
-                    type: "password",
-                    value: newUser.password()
-                })
+                    checked: newUser.sendInvite(),
+                    id: "fbAdminNewInvite",
+                    onchange: (e) => newUser.sendInvite(e.target.checked),
+                    type: "checkbox"
+                }),
+                "Email them a link to sign in and choose their own password"
             ]),
+            (
+                newUser.sendInvite()
+                ? undefined
+                : m("div", {class: "pure-control-group"}, [
+                    m("label", {for: "fbAdminNewPwd"}, "Password:"),
+                    m("input", {
+                        autocomplete: "new-password",
+                        id: "fbAdminNewPwd",
+                        oninput: (e) => newUser.password(e.target.value),
+                        type: "password",
+                        value: newUser.password()
+                    })
+                ])
+            ),
             m("div", {class: "fb-admin-note"}, (
-                "Creates the identity and grants it this instance. The " +
-                "person also needs a user account here before they can " +
-                "sign in, which is what the Users worksheet maintains."
+                newUser.sendInvite()
+                ? (
+                    "Creates the user, grants them this instance and " +
+                    "emails them a link that signs them in and asks " +
+                    "them to choose their own password. Needs an email " +
+                    "address, and mail set up under Settings."
+                )
+                : (
+                    "Creates the user and grants them this instance. " +
+                    "Tell them the password yourself."
+                )
+            ))
+        ]);
+    };
+
+    vm.editDialog(f.createViewModel("Dialog", {
+        icon: "edit",
+        onOk: function () {
+            let body = {
+                email: edit.email(),
+                id: edit.id()
+            };
+
+            if (edit.hasProfile()) {
+                body.firstName = edit.firstName();
+                body.lastName = edit.lastName();
+                body.phone = edit.phone();
+            } else {
+                body.fullName = edit.fullName();
+            }
+
+            request("POST", "/admin/identity/info", body).then(
+                vm.refresh
+            ).catch(fail);
+        },
+        title: "Edit user"
+    }));
+    vm.editDialog().content = function () {
+        function field(id, label, prop, opts) {
+            return m("div", {class: "pure-control-group"}, [
+                m("label", {for: id}, label),
+                m("input", Object.assign({
+                    id,
+                    oninput: (e) => prop(e.target.value),
+                    value: prop()
+                }, opts))
+            ]);
+        }
+
+        return m("div", {class: "pure-form pure-form-aligned"}, [
+            m("div", {class: "fb-admin-note"}, (
+                "Details for " + edit.username() + ". They can also " +
+                "change their own from the account menu."
+            )),
+            (
+                edit.hasProfile()
+                ? [
+                    field("fbAdminEditFirst", "First name:", edit.firstName),
+                    field("fbAdminEditLast", "Last name:", edit.lastName)
+                ]
+                : field("fbAdminEditFull", "Name:", edit.fullName)
+            ),
+            field("fbAdminEditEmail", "Email:", edit.email, {
+                type: "email"
+            }),
+            field("fbAdminEditPhone", "Phone:", edit.phone, (
+                edit.hasProfile()
+                ? {type: "tel"}
+                : {
+                    disabled: true,
+                    title: (
+                        "Can be entered once " + edit.username() +
+                        " has signed in for the first time"
+                    ),
+                    type: "tel"
+                }
             ))
         ]);
     };
@@ -494,6 +675,15 @@ adminPage.component = {
         let instances = data.instances || [];
         let audit = data.audit || [];
         let orgWide = vm.isOrgWide();
+        /*
+            What the table lists. A selection that has been filtered
+            out is no selection (find() looks here), so the toolbar
+            never acts on a row the administrator cannot see.
+        */
+        let listed = identities.filter(
+            (one) => vm.showDisabled() || one.status !== "disabled"
+        );
+        let hidden = identities.length - listed.length;
 
         function status(identity) {
             return m("span", {
@@ -538,7 +728,7 @@ adminPage.component = {
         }
 
         function find(id) {
-            return identities.find((one) => one.id === id);
+            return listed.find((one) => one.id === id);
         }
 
         /*
@@ -591,6 +781,14 @@ adminPage.component = {
                 none
                 ? ""
                 : identity.status
+            );
+
+            entry(
+                "edit",
+                "Edit",
+                why("Change this person's name, email and phone"),
+                none || !may,
+                () => vm.doEdit(identity)
             );
 
             entry(
@@ -773,6 +971,7 @@ adminPage.component = {
                     title: "Read the registry again"
                 }, "Refresh"),
                 m("div", {class: "fb-toolbar-fill"}),
+                toolbarButton(current.edit),
                 toolbarButton(current.status),
                 toolbarButton(current.password),
                 toolbarButton(current.grant),
@@ -787,7 +986,9 @@ adminPage.component = {
                 ))
             ]),
             m(f.getComponent("Dialog"), {viewModel: vm.errorDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.noticeDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.addUserDialog()}),
+            m(f.getComponent("Dialog"), {viewModel: vm.editDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.passwordDialog()}),
             m(f.getComponent("Dialog"), {viewModel: vm.grantDialog()}),
             (
@@ -878,18 +1079,37 @@ adminPage.component = {
                 ])
                 : undefined
             ),
+            m("label", {
+                class: "fb-admin-filter",
+                for: "fb-admin-show-disabled",
+                title: (
+                    hidden
+                    ? hidden + " disabled user(s) not listed"
+                    : "Disabled users are listed when this is checked"
+                )
+            }, [
+                m("input", {
+                    checked: vm.showDisabled(),
+                    id: "fb-admin-show-disabled",
+                    onchange: (e) => vm.showDisabled(e.target.checked),
+                    type: "checkbox"
+                }),
+                "Show disabled users"
+            ]),
             m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
                 m("table", {class: "fb-table fb-admin-table"}, [
                     m("thead", [
                         m("tr", [
                             m("th", {class: "fb-admin-col-user"}, "User"),
                             m("th", {class: "fb-admin-col-name"}, "Name"),
+                            m("th", {class: "fb-admin-col-email"}, "Email"),
+                            m("th", {class: "fb-admin-col-phone"}, "Phone"),
                             m("th", {class: "fb-admin-col-status"}, "Status"),
                             m("th", {class: "fb-admin-col-grants"}, "Instances"),
                             m("th", {class: "fb-admin-col-seen"}, "Last sign-in")
                         ])
                     ]),
-                    m("tbody", identities.map(function (identity) {
+                    m("tbody", listed.map(function (identity) {
                         return m("tr", rowEvents(identity.id), [
                             m("td", {title: identity.username}, [
                                 identity.username,
@@ -908,9 +1128,19 @@ adminPage.component = {
                                     : undefined
                                 )
                             ]),
-                            m("td", {
-                                title: identity.email || ""
-                            }, identity.fullName),
+                            m("td", identity.fullName),
+                            m("td", {title: identity.email || ""}, (
+                                identity.email ||
+                                m("span", {class: "fb-admin-muted"}, "none")
+                            )),
+                            m("td", (
+                                identity.phone ||
+                                m("span", {class: "fb-admin-muted"}, (
+                                    identity.hasProfile
+                                    ? "none"
+                                    : ""
+                                ))
+                            )),
                             m("td", status(identity)),
                             m("td", grants(identity)),
                             m("td", (
