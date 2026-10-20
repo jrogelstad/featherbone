@@ -4070,6 +4070,10 @@
         dbRouter.get("/:db/admin/overview", doAdmin("overview"));
         dbRouter.post("/:db/admin/identity", doAdmin("createIdentity"));
         dbRouter.post(
+            "/:db/admin/identity/info",
+            doAdmin("updateIdentity")
+        );
+        dbRouter.post(
             "/:db/admin/identity/password",
             doAdmin("setPassword")
         );

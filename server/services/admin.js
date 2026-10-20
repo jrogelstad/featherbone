@@ -286,6 +286,89 @@
             };
         }
 
+        /*
+            The people who have a profile in the instance the caller is
+            signed in to, with the contact details they keep there. A
+            person's phone number, and the first and last name they edit
+            for themselves, live on that profile's Contact rather than
+            on the identity in the manager, which carries one name and
+            one address for the whole organization. Keyed by lower-case
+            user name. Empty when there is no instance (the platform
+            console) or it cannot be read: the screen then shows what
+            the identity holds, as it always did.
+        */
+        async function instanceContacts(obj) {
+            let found = {};
+            let conn;
+
+            if (!obj.tenant) {
+                return found;
+            }
+
+            try {
+                conn = await db.connect(obj.tenant);
+
+                let resp = await conn.client.query(
+                    "SELECT lower(u.name) AS name, c.first_name, " +
+                    "  c.last_name, c.email, c.phone " +
+                    "FROM user_account u " +
+                    "LEFT OUTER JOIN contact c ON " +
+                    "  c._pk = u._contact_contact_pk " +
+                    "WHERE NOT u.is_deleted"
+                );
+
+                resp.rows.forEach(function (row) {
+                    found[row.name] = row;
+                });
+            } catch (e) {
+                console.error(
+                    "Could not read contact details: " + (e.message || e)
+                );
+            } finally {
+                if (conn) {
+                    conn.done();
+                }
+            }
+
+            return found;
+        }
+
+        function withContact(out, contact) {
+            if (!contact) {
+                out.hasProfile = false;
+                return out;
+            }
+
+            let first = contact.first_name || "";
+            let last = contact.last_name || "";
+
+            out.hasProfile = true;
+            out.firstName = first;
+            out.lastName = last;
+            out.phone = contact.phone || "";
+
+            if (contact.email) {
+                out.email = contact.email;
+            }
+            if (joined(first, last)) {
+                out.fullName = joined(first, last);
+            }
+
+            return out;
+        }
+
+        function joined(first, last) {
+            return String(first + " " + last).trim();
+        }
+
+        function cleaned(value) {
+            return (
+                typeof value === "string"
+                ? value.trim()
+                : undefined
+            );
+        }
+
         /**
             Everything one administration screen needs in one request:
             who the caller is, what they may do, the organization, its
@@ -318,6 +401,16 @@
                     ctx.organizationPk,
                     obj.limit
                 );
+                /*
+                    Contact details are the signed-in instance's, so
+                    they are read only for that instance's own
+                    organization, never for one reached by break-glass.
+                */
+                let contacts = (
+                    ctx.organizationPk === ctx.homeOrganizationPk
+                    ? await instanceContacts(obj)
+                    : {}
+                );
 
                 return {
                     actor: (
@@ -335,7 +428,12 @@
                             target: row.target
                         };
                     }),
-                    identities: identities.map(identityOut),
+                    identities: identities.map(function (row) {
+                        return withContact(
+                            identityOut(row),
+                            contacts[row.username.toLowerCase()]
+                        );
+                    }),
                     instance: homeInstanceId(obj),
                     instances: instances.map(function (row) {
                         return {
@@ -465,6 +563,113 @@
                 });
 
                 return {created: added.created};
+            });
+        };
+
+        /**
+            Change a person's name, email address and phone number, for
+            the user who cannot or will not do it themselves (a name
+            that changes with marriage is the plain case).
+
+            The details a person edits for themselves live on their
+            profile in the instance, so for someone who has one they
+            are written there, through the same code that serves "Edit
+            my contact information", and the identity in the manager is
+            brought into step. Someone who has not signed in yet has no
+            profile: only a name and an address can be kept for them,
+            on the identity, and the phone number waits for the profile.
+
+            Same reach as setting a password: a tier-"instance"
+            administrator may only change someone who can already reach
+            their instance, and no one else's administrator.
+
+            @method updateIdentity
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {String} [payload.data.firstName]
+            @param {String} [payload.data.lastName]
+            @param {String} [payload.data.fullName] Used when there is
+            no profile to hold a first and last name
+            @param {String} [payload.data.email]
+            @param {String} [payload.data.phone]
+            @return {Promise}
+        */
+        that.updateIdentity = async function (obj) {
+            let data = obj.data || {};
+            let email = cleaned(data.email);
+
+            if (email && !(/^[^@\s]+@[^@\s]+\.[^@\s]+$/).test(email)) {
+                throw invalid("That does not look like an email address");
+            }
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let target = await targetFor(
+                    mclient,
+                    ctx,
+                    data.id,
+                    obj.tenant
+                );
+                let contact = (
+                    ctx.organizationPk === ctx.homeOrganizationPk
+                    ? (await instanceContacts(obj))[
+                        target.username.toLowerCase()
+                    ]
+                    : undefined
+                );
+                let fullName = cleaned(data.fullName);
+
+                function keep(value, was) {
+                    return (
+                        value === undefined
+                        ? (was || "")
+                        : value
+                    );
+                }
+
+                if (contact) {
+                    let first = keep(
+                        cleaned(data.firstName),
+                        contact.first_name
+                    );
+                    let last = keep(
+                        cleaned(data.lastName),
+                        contact.last_name
+                    );
+
+                    await datasource.changeUserInfo({
+                        by: obj.user,
+                        email: keep(email, contact.email || target.email),
+                        firstName: first,
+                        lastName: last,
+                        name: target.username,
+                        phone: keep(cleaned(data.phone), contact.phone)
+                    }, obj.tenant);
+                    fullName = joined(first, last) || fullName;
+                }
+
+                await manager.setIdentityInfo(mclient, target._pk, {
+                    email,
+                    fullName: fullName || undefined
+                }, obj.user);
+                await manager.audit(mclient, {
+                    action: "identity.info_changed",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        "From the administration screen" + (
+                            contact
+                            ? ""
+                            : "; no profile in this instance yet, so " +
+                                    "name and email only"
+                        )
+                    ),
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: target._pk
+                });
+
+                return true;
             });
         };
 

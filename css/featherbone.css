@@ -3073,6 +3073,15 @@ button:disabled .fb-ipicon,
   width: 15%;
 }
 
+.fb-admin-col-email {
+  width: 18%;
+  overflow-wrap: anywhere;
+}
+
+.fb-admin-col-phone {
+  width: 11%;
+}
+
 .fb-admin-col-status {
   width: 10%;
 }

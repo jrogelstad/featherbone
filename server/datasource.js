@@ -1842,6 +1842,8 @@
         @param {String} payload.lastName
         @param {String} payload.email
         @param {String} payload.phone
+        @param {String} [payload.by] Who is making the change, when it is
+        not the person themselves (an administrator)
         @param {Object} [tenant]
         @return {Promise}
     */
@@ -1897,7 +1899,7 @@
                         that.request({
                             method: "POST",
                             name: "Contact",
-                            user: obj.name,
+                            user: obj.by || obj.name,
                             client: conn.client,
                             data: {
                                 id: contactId,
@@ -1911,10 +1913,23 @@
                                 method: "POST",
                                 name: "UserAccount",
                                 id: userAccount.id,
-                                user: obj.name,
+                                user: obj.by || obj.name,
                                 client: conn.client,
                                 data: {
+                                    /*
+                                        The user account trigger wants
+                                        the address on the contact it
+                                        is handed, as the account form
+                                        sends the whole contact. A
+                                        bare id was refused with
+                                        "Contact must have a primary
+                                        email address" for everyone
+                                        whose profile was made at first
+                                        sign-in, so they could never
+                                        save their own details.
+                                    */
                                     contact: {
+                                        email: obj.email,
                                         id: contactId
                                     }
                                 }
@@ -1926,7 +1941,7 @@
                             method: "POST",
                             name: "Contact",
                             id: userAccount.contact.id,
-                            user: obj.name,
+                            user: obj.by || obj.name,
                             client: conn.client,
                             data: {
                                 firstName: obj.firstName,
@@ -1940,7 +1955,7 @@
             });
         }
 
-        return new Promise(function (resolve) {
+        return new Promise(function (resolve, reject) {
             Promise.resolve().then(
                 db.connect.bind(null, pTenant)
             ).then(
@@ -1952,7 +1967,21 @@
             ).then(
                 resolve
             ).catch(
-                rollback
+                /*
+                    Roll back, then say why. This used to roll back and
+                    stop there, so a failed save never answered: the
+                    dialog waited on a request that nothing finished.
+                */
+                async function (err) {
+                    try {
+                        if (conn) {
+                            await rollback();
+                        }
+                    } catch (ignore) {
+                        // The original failure is the one to report
+                    }
+                    reject(err);
+                }
             );
         });
     };
