@@ -431,10 +431,16 @@
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
             twoFactorAuth = Boolean(resp.twoFactorAuth);
+            /*
+                The password alone never makes a session: whether a
+                second factor is wanted is only known once the user is
+                (installation config, or their organization's policy),
+                so doSignIn opens the session itself when none is.
+            */
             authenticateLocal = passport.authenticate("local", {
                 failureFlash: true,
                 failWithError: true,
-                session: !twoFactorAuth
+                session: false
             });
 
             /*
@@ -2001,12 +2007,25 @@
                     error.bind(res)(e);
                 }
             } else {
-                req.user.mode = await modeOf(req.tenant);
-                req.session.mode = req.user.mode;
-                req.session.database = req.database;
-                req.session.save(function () {
-                    res.json(req.user);
-                });
+                try {
+                    req.user.mode = await modeOf(req.tenant);
+                    await new Promise(function (resolve, reject) {
+                        req.logIn(req.user, function (err) {
+                            return (
+                                err
+                                ? reject(err)
+                                : resolve()
+                            );
+                        });
+                    });
+                    req.session.mode = req.user.mode;
+                    req.session.database = req.database;
+                    req.session.save(function () {
+                        res.json(req.user);
+                    });
+                } catch (e) {
+                    error.bind(res)(e);
+                }
             }
         }
         /*
