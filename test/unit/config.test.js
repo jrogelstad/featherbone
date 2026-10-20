@@ -110,3 +110,142 @@ describe("config modes", function () {
         assert.deepEqual(config.modes().sort(), ["dev", "prod", "test"]);
     });
 });
+
+/*
+    No config.json (John, Oct 2026): a deployment that sets everything in
+    the environment has no file, and the server starts from defaults that
+    live in the code. The template is documentation, never read.
+*/
+describe("config without a file", function () {
+    const fs = require("fs");
+    const os = require("os");
+    const path = require("path");
+    const config = new Config();
+    const missing = path.join(os.tmpdir(), "fb-no-such-config.json");
+    const touched = [];
+
+    function env(name, value) {
+        touched.push([name, process.env[name]]);
+        process.env[name] = value;
+    }
+
+    function restore() {
+        touched.splice(0).reverse().forEach(function ([name, was]) {
+            if (was === undefined) {
+                delete process.env[name];
+            } else {
+                process.env[name] = was;
+            }
+        });
+    }
+
+    it("starts from the defaults", async function () {
+        let data = await config.read(missing);
+
+        assert.equal(data.pgHost, "127.0.0.1");
+        assert.equal(data.pgPort, 5432);
+        assert.equal(data.managerDatabase, "db_manager");
+        assert.equal(data.modulesDir, "./modules");
+        assert.equal(data.clientPort, 80);
+        assert.equal(data.twoFactorAuth, false);
+    });
+
+    it("still refuses to start without the secrets", async function () {
+        let data = await config.read(missing);
+
+        assert.deepEqual(
+            config.missingSecrets(data).sort(),
+            ["pgCryptoKey", "secret"]
+        );
+    });
+
+    it("ships no password and no placeholder mail server", async function () {
+        let data = await config.read(missing);
+
+        assert.equal(data.pgPassword, "");
+        assert.equal(data.smtpHost, "");
+        assert.equal(data.smtpAuthUser, "");
+        assert.equal(data.smtpAuthPass, "");
+    });
+
+    it("lets the environment set any setting", async function () {
+        env("pgCryptoKey", "k1");
+        env("secret", "s1");
+        env("pgPort", "6543");
+        env("selfUpgrade", "true");
+        env("smtpHost", "mail.example.com");
+        try {
+            let data = await config.read(missing);
+
+            assert.deepEqual(config.missingSecrets(data), []);
+            assert.equal(data.pgPort, 6543);
+            assert.equal(data.selfUpgrade, true);
+            assert.equal(data.smtpHost, "mail.example.com");
+        } finally {
+            restore();
+        }
+    });
+
+    it("keeps an empty environment value empty", async function () {
+        env("pgPassword", "");
+        try {
+            let data = await config.read(missing);
+
+            assert.equal(data.pgPassword, "");
+        } finally {
+            restore();
+        }
+    });
+
+    it("lets a file over-ride the defaults, and the environment the file",
+            async function () {
+        let file = path.join(os.tmpdir(), "fb-config-" + process.pid + ".json");
+
+        fs.writeFileSync(file, JSON.stringify({pgHost: "db1", pgPort: 1}));
+        env("pgPort", "2");
+        try {
+            let data = await config.read(file);
+
+            assert.equal(data.pgHost, "db1");
+            assert.equal(data.pgPort, 2);
+            assert.equal(data.pgUser, "admin");
+        } finally {
+            restore();
+            fs.unlinkSync(file);
+        }
+    });
+
+    it("rejects a file that is not JSON", async function () {
+        let file = path.join(os.tmpdir(), "fb-bad-" + process.pid + ".json");
+
+        fs.writeFileSync(file, "{not json");
+        try {
+            await assert.rejects(config.read(file), /not valid JSON/);
+        } finally {
+            fs.unlinkSync(file);
+        }
+    });
+
+    it("hands out a fresh copy, so one caller can't change another's",
+            async function () {
+        let one = await config.read(missing);
+
+        one.platformOnlySettings.push("x");
+        assert.deepEqual(
+            (await config.read(missing)).platformOnlySettings,
+            []
+        );
+    });
+
+    it("has a default for every setting the template documents",
+            function () {
+        let template = JSON.parse(fs.readFileSync(
+            path.join(__dirname, "../../server/config.template.json"),
+            "utf8"
+        ));
+        let have = config.defaults();
+        let absent = Object.keys(template).filter((key) => !(key in have));
+
+        assert.deepEqual(absent, [], "add these to defaults() in config.js");
+    });
+});

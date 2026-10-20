@@ -80,44 +80,147 @@
             });
         };
 
-        config.read = function () {
+        /*
+            What every setting is when neither the file nor the
+            environment says. These mirror config.template.json, which
+            stays as the documented starting point for a file, but the
+            server never reads the template: a file copied from it is a
+            real configuration, and the template is not. A deployment
+            that sets everything in the environment needs no file at all.
+
+            Left blank on purpose, so that nothing runs on a guess:
+            - the secrets, which the server refuses to start without
+              (REQUIRED_SECRETS)
+            - pgPassword, because it is also the password the installer
+              gives the platform administrator
+            - the SMTP account, because a placeholder host would be tried
+              as though it were real, and notify.js answers an empty one
+              with "No mail server is set up".
+        */
+        function defaults() {
+            return {
+                cipher: "",
+                clientPort: 80,
+                debug: true,
+                demoGraceDays: 30,
+                fileUpload: false,
+                googleEmailClientFile: "",
+                googleEmailUserAccount: "",
+                googleOauth2CallbackUrl: "",
+                googleOauth2ClientId: "",
+                googleOauth2ClientSecret: "",
+                logLevel: "info",
+                logMaxFiles: "7d",
+                logMaxSize: "10m",
+                logSilent: false,
+                logZippedArchive: false,
+                managerDatabase: MANAGER_DEFAULT,
+                mode: "prod",
+                modulesDir: "./modules",
+                passwordLength: 0,
+                pgCryptoKey: "",
+                pgHost: "127.0.0.1",
+                pgMaxConnections: 10,
+                pgPassword: "",
+                pgPort: 5432,
+                pgSslCA: "./server/ssl/root.crt",
+                pgSslCert: "./server/ssl/server.crt",
+                pgSslKey: "./server/ssl/server.key",
+                pgTenantIdleTimeout: 60000,
+                pgTenantPoolSize: 10,
+                pgUser: "admin",
+                platformOnlySettings: [],
+                secret: "",
+                selfUpgrade: false,
+                selfUpgradeIdentities: false,
+                selfUpgradeInstances: [],
+                selfUpgradeOrgAdmin: "",
+                selfUpgradeOrganization: "",
+                selfUpgradeSuperuser: "",
+                selfUpgradeSuperuserPassword: "",
+                sessionTimeout: 86400000,
+                smtpAuthPass: "",
+                smtpAuthUser: "",
+                smtpHost: "",
+                smtpPort: 465,
+                smtpSecure: true,
+                splashTitle: "Home",
+                splashUrl: "",
+                ssl: false,
+                ssoCallbackUrl: "",
+                twoFactorAuth: false,
+                webhookHeader: "",
+                webhookSecret: ""
+            };
+        }
+
+        /**
+            The built-in value of every setting, as `read` starts from
+            them. A fresh copy each time.
+
+            @method defaults
+            @return {Object}
+        */
+        config.defaults = defaults;
+
+        function typed(value) {
+            if (value.toLowerCase() === "true") {
+                return true;
+            }
+            if (value.toLowerCase() === "false") {
+                return false;
+            }
+            if (value.trim() !== "" && !Number.isNaN(Number(value))) {
+                return Number(value);
+            }
+            return value;
+        }
+
+        /**
+            The configuration: built-in defaults, over-ridden by
+            `server/config.json` when there is one, over-ridden in turn
+            by environment variables of the same name. A missing file is
+            not an error; one that cannot be parsed is.
+
+            @method read
+            @param {String} [filename] Another file to read, for tests
+            @return {Promise} Resolves the settings object
+        */
+        config.read = function (filename) {
             return new Promise(function (resolve, reject) {
-                let filename = path.format(
+                let file = filename || path.format(
                     {root: "./", base: "/server/config.json"}
                 );
 
-                fs.readFile(filename, "utf8", function (err, data) {
-                    if (err) {
+                fs.readFile(file, "utf8", function (err, text) {
+                    let data = defaults();
+
+                    if (err && err.code !== "ENOENT") {
                         console.error(err);
                         return reject(err);
                     }
-                    data = JSON.parse(data);
+                    if (!err) {
+                        try {
+                            Object.assign(data, JSON.parse(text));
+                        } catch (parseErr) {
+                            parseErr.message = (
+                                file + " is not valid JSON: " +
+                                parseErr.message
+                            );
+                            console.error(parseErr.message);
+                            return reject(parseErr);
+                        }
+                    }
 
-                    // Present even when the file leaves them out, so
-                    // the environment can set them on its own: the
-                    // override loop below only visits keys it can see
+                    // A file may blank these, but they always have a name
                     data.managerDatabase = (
                         data.managerDatabase || MANAGER_DEFAULT
                     );
-                    // Where installed packages live on this server
-                    // (ADR-002): one directory per module and version,
-                    // modules/<name>/<version>/
                     data.modulesDir = data.modulesDir || "./modules";
 
-                    function typed(value) {
-                        if (value.toLowerCase() === "true") {
-                            return true;
-                        }
-                        if (value.toLowerCase() === "false") {
-                            return false;
-                        }
-                        if (!Number.isNaN(Number(value))) {
-                            return Number(value);
-                        }
-                        return value;
-                    }
-
-                    // Environment values over-ride file if they exist
+                    // Environment values over-ride file if they exist.
+                    // Every setting has a default now, so the
+                    // environment can set any of them.
                     Object.keys(data).forEach(function (key) {
                         if (process.env[key] !== undefined) {
                             data[key] = typed(process.env[key]);
