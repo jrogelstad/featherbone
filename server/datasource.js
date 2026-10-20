@@ -793,6 +793,13 @@
         itself; one of services or feathers alone leaves nothing
         behind, so Deploy writes it either way.
 
+        The write is a deployment's own, so it is not refused the way
+        a person editing the row would be: moving a module from 1.0.0
+        to 1.1.0 changes the very row the guard protects while 1.0.0
+        is still installed here, which it normally is. Only code in
+        this process can say `isDeployment`; a request from a client
+        is built from its route and body, never from a flag.
+
         @method recordDeployed
         @param {String} database Instance database
         @param {String} name Module name
@@ -838,6 +845,7 @@
                     value: version
                 }],
                 id: found.id,
+                isDeployment: true,
                 method: "PATCH",
                 name: "Module",
                 tenant,
@@ -854,6 +862,7 @@
                 version
             },
             id: Buffer.from(name).toString("base64"),
+            isDeployment: true,
             method: "POST",
             name: "Module",
             tenant,
@@ -3431,7 +3440,11 @@
                 user, which is exactly who the read-only check below
                 lets through.
             */
-            if (!isExternalClient && obj.method !== "GET") {
+            if (
+                !isExternalClient &&
+                obj.method !== "GET" &&
+                obj.isDeployment !== true
+            ) {
                 let refusal = await packageWriteRefusal(theClient, obj);
 
                 if (refusal) {
