@@ -1266,55 +1266,53 @@
         );
     }
 
-    function doInstall(req, res) {
+    /*
+        The Modules page's Install: a package zip, put on this server
+        and applied to this database in one action (ADR-002 section 6).
+        It used to unpack the zip into a temporary folder, write the
+        module's code into this database's rows and delete the folder,
+        so the server never held the package and the code that ran was a
+        table row anyone with write access could change -- the very
+        thing Install apart from Deploy exists to end. Now Install puts
+        the files under modules/<name>/<version>/ and Deploy applies
+        that version here, the same two acts the Instances screen and
+        the command line perform, with the same rules: a platform
+        administrator, the instance held while it runs, both ends
+        audited.
+    */
+    async function doInstall(req, res) {
         let query = qs.parse(req.params.query);
-        const DIR = "./files/" + "tmp_" + f.createId();
-        const TEMPFILE = DIR + ".zip";
+        const TEMPFILE = "./files/tmp_" + f.createId() + ".zip";
 
-        function cleanup() {
-            rimraf(DIR); // Remove temp dir
-            fs.unlink(TEMPFILE, function () { // Remove zip
-                if (!res.headersSent) {
-                    res.json(true);
-                }
-            });
-        }
-
-        fs[mkdirsync](DIR); // Create temp dir
-
-        if (Object.keys(req.files).length === 0) {
-            return res.status(400).send("No files were uploaded.");
-        }
-
-        logger.verbose("Install");
-
-        // The name of the input field
-        let file = req.files.package;
-
-        // Move the file to a install folder
-        file.mv(TEMPFILE, function (err) {
-            if (err) {
-                return res.status(500).send(err);
+        try {
+            if (!req.user && !(req.session || {}).identity) {
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+            if (!req.files || !req.files.package) {
+                res.status(400).send("No files were uploaded.");
+                return;
             }
 
-            let zip = new AdmZip(TEMPFILE);
+            logger.verbose("Install");
 
-            zip.extractAllTo(DIR, true);
-            datasource.install(
-                DIR,
-                req.user.name,
-                {
-                    subscription: query.subscription,
-                    tenant: req.tenant,
-                    databases: query.databases
-                }
-            ).catch(function (err) {
-                return new Promise(function (resolve) {
-                    error.bind(res)(err);
-                    resolve();
-                });
-            }).finally(cleanup);
-        });
+            await req.files.package.mv(TEMPFILE);
+
+            let payload = adminPayload(req);
+
+            payload.data = {
+                source: TEMPFILE,
+                subscription: query.subscription
+            };
+
+            await admin.installAndDeploy(payload);
+            await refreshTenants();
+            res.json(true);
+        } catch (err) {
+            error.bind(res)(err);
+        } finally {
+            fs.rmSync(TEMPFILE, {force: true});
+        }
     }
 
     async function doUpgrade(req, res) {
