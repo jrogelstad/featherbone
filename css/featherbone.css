@@ -3073,6 +3073,15 @@ button:disabled .fb-ipicon,
   width: 15%;
 }
 
+.fb-admin-col-email {
+  width: 18%;
+  overflow-wrap: anywhere;
+}
+
+.fb-admin-col-phone {
+  width: 11%;
+}
+
 .fb-admin-col-status {
   width: 10%;
 }
@@ -3193,6 +3202,16 @@ button:disabled .fb-ipicon,
 
 .fb-admin-muted {
   opacity: 0.6;
+}
+
+.fb-admin-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 8px 8px 8px;
+  color: var(--fb-text);
+  font-size: 12px;
+  cursor: pointer;
 }
 
 /* Upgrade/Deploy progress, polled from the platform console and the

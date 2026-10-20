@@ -1,0 +1,624 @@
+/*
+    An administrator changing a person's details from the Users screen
+    (POST /admin/identity/info), and the contact details the screen
+    lists (GET /admin/overview).
+
+    The details a person edits for themselves live on their profile in
+    the instance (first and last name, email, phone); the identity in
+    the manager carries one name and one address. The screen reads the
+    profile where there is one, writes it through the same code as
+    "Edit my contact information", and keeps the identity in step.
+    (server/services/admin.js updateIdentity, server/datasource.js
+    changeUserInfo, server/services/manager.js setIdentityInfo)
+*/
+/*jslint node*/
+"use strict";
+
+const {describe, it, before, after} = require("node:test");
+const assert = require("node:assert/strict");
+const net = require("net");
+const settings = require("../harness/env");
+const db = require("../harness/db");
+const {Session, signedIn} = require("../harness/http");
+const access = require("./lib/access");
+
+describe("administrator edits a user's details", function () {
+    let admin;
+
+    async function row(name) {
+        let overview = await admin.get("/admin/overview");
+
+        return overview.identities.find((one) => one.username === name);
+    }
+
+    async function edit(id, data) {
+        return await admin.raw(
+            "POST",
+            "/admin/identity/info",
+            Object.assign({id}, data)
+        );
+    }
+
+    before(async function () {
+        admin = await signedIn();
+    });
+
+    after(async function () {
+        await access.dropAll();
+    });
+
+    it("keeps a name and address for someone who has not signed in yet",
+            async function () {
+        let name = access.track(access.uniq("fbt_info"));
+        let made = await admin.raw("POST", "/admin/identity", {
+            email: "before@example.com",
+            fullName: "Before Change",
+            password: "Info-Pw-1",
+            username: name
+        });
+
+        assert.ok(made.status < 300, JSON.stringify(made.body));
+
+        let before = await row(name);
+
+        assert.equal(before.hasProfile, false, "no profile until sign-in");
+
+        let resp = await edit(before.id, {
+            email: "after@example.com",
+            fullName: "After Change"
+        });
+
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+
+        let after = await row(name);
+
+        assert.equal(after.fullName, "After Change");
+        assert.equal(after.email, "after@example.com");
+        assert.equal(after.phone, undefined, "no phone without a profile");
+    });
+
+    it("writes the profile once there is one, phone included",
+            async function () {
+        let name = access.track(access.uniq("fbt_prof"));
+
+        await admin.raw("POST", "/admin/identity", {
+            email: "prof@example.com",
+            fullName: "Prof Person",
+            password: "Info-Pw-2",
+            username: name
+        });
+
+        // The first sign-in makes the profile (B.7), with no contact
+        assert.equal(
+            (await new Session().signIn(name, "Info-Pw-2")).status,
+            200
+        );
+
+        let before = await row(name);
+
+        assert.equal(before.hasProfile, true);
+
+        let resp = await edit(before.id, {
+            email: "married@example.com",
+            firstName: "Pat",
+            lastName: "Married-Name",
+            phone: "555-0100"
+        });
+
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+
+        let after = await row(name);
+
+        assert.equal(after.firstName, "Pat");
+        assert.equal(after.lastName, "Married-Name");
+        assert.equal(after.fullName, "Pat Married-Name");
+        assert.equal(after.email, "married@example.com");
+        assert.equal(after.phone, "555-0100");
+
+        // The organization-wide record follows
+        let held = await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                (
+                    "SELECT full_name, email FROM identity " +
+                    "WHERE username = $1 AND NOT is_deleted"
+                ),
+                [name]
+            )
+        );
+
+        assert.equal(held.rows[0].full_name, "Pat Married-Name");
+        assert.equal(held.rows[0].email, "married@example.com");
+
+        // And changing one field leaves the others alone
+        resp = await edit(before.id, {phone: "555-0222"});
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+
+        let again = await row(name);
+
+        assert.equal(again.phone, "555-0222");
+        assert.equal(again.lastName, "Married-Name");
+        assert.equal(again.email, "married@example.com");
+
+        // The change is on the audit trail
+        let overview = await admin.get("/admin/overview");
+
+        assert.ok(
+            overview.audit.some((one) => (
+                one.action === "identity.info_changed" &&
+                one.target === name
+            )),
+            "audited"
+        );
+    });
+
+    it("updates the contact a user account already has", async function () {
+        let user = await access.createUser(admin, {});
+        let before = await row(user.name);
+
+        assert.equal(before.firstName, "Test");
+
+        let resp = await edit(before.id, {
+            lastName: "Renamed",
+            phone: "555-0300"
+        });
+
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+
+        let after = await row(user.name);
+
+        assert.equal(after.firstName, "Test");
+        assert.equal(after.lastName, "Renamed");
+        assert.equal(after.phone, "555-0300");
+        assert.equal(after.email, user.email);
+    });
+
+    it("lets a user with no contact save their own details",
+            async function () {
+        let name = access.track(access.uniq("fbt_self"));
+
+        await admin.raw("POST", "/admin/identity", {
+            email: "self@example.com",
+            password: "Info-Pw-3",
+            username: name
+        });
+
+        let session = new Session();
+
+        await session.signIn(name, "Info-Pw-3");
+
+        let resp = await session.raw("POST", "/do/change-user-info", {
+            email: "self.changed@example.com",
+            firstName: "Sam",
+            lastName: "Self",
+            phone: "555-0400"
+        });
+
+        assert.ok(
+            resp.status < 300,
+            "a profile made at first sign-in has no contact yet: " +
+                JSON.stringify(resp.body)
+        );
+
+        let after = await row(name);
+
+        assert.equal(after.lastName, "Self");
+        assert.equal(after.phone, "555-0400");
+    });
+
+    it("refuses a bad address, an unknown person and an ordinary user",
+            async function () {
+        let user = await access.createUser(admin, {});
+        let target = await row(user.name);
+        let resp = await edit(target.id, {email: "not-an-address"});
+
+        assert.equal(resp.status, 400);
+
+        resp = await edit("no-such-identity", {email: "a@example.com"});
+        assert.equal(resp.status, 404);
+
+        let ordinary = new Session();
+
+        await ordinary.signIn(user.name, user.password);
+        resp = await ordinary.raw("POST", "/admin/identity/info", {
+            id: target.id,
+            phone: "555-0500"
+        });
+        assert.equal(resp.status, 401, "not an administrator");
+    });
+});
+
+/*
+    A user made without a password: the 2.2.0 way. The administrator
+    gives an email address, the person is mailed a link that signs
+    them in, and the first thing they meet is the page that makes them
+    choose a password. The mail goes out through the organization's
+    SMTP account (Settings), not the installation's config.json.
+
+    A throwaway SMTP server stands in for the mail provider.
+*/
+const NAME = "globalSettings";
+
+function sink() {
+    let mails = [];
+    let server = net.createServer(function (socket) {
+        let data = "";
+        let body = false;
+
+        function say(line) {
+            socket.write(line + "\r\n");
+        }
+
+        say("220 sink ESMTP");
+        socket.on("data", function (chunk) {
+            data += chunk.toString("binary");
+
+            while (data.length) {
+                if (body) {
+                    let end = data.indexOf("\r\n.\r\n");
+
+                    if (end === -1) {
+                        return;
+                    }
+                    /*
+                        A line that starts with a dot is sent with a
+                        second one, and a real server takes it off
+                        again; a link token wrapped onto such a line
+                        is otherwise corrupted.
+                    */
+                    mails[mails.length - 1].raw = data.slice(
+                        0,
+                        end
+                    ).replace(/\r\n\.\./g, "\r\n.");
+                    data = data.slice(end + 5);
+                    body = false;
+                    say("250 queued");
+                } else {
+                    let end = data.indexOf("\r\n");
+
+                    if (end === -1) {
+                        return;
+                    }
+
+                    let line = data.slice(0, end);
+
+                    data = data.slice(end + 2);
+
+                    if (/^EHLO/i.test(line)) {
+                        socket.write(
+                            "250-sink\r\n250-AUTH PLAIN LOGIN\r\n" +
+                            "250 8BITMIME\r\n"
+                        );
+                    } else if (/^AUTH/i.test(line)) {
+                        say("235 2.7.0 ok");
+                    } else if (/^MAIL FROM/i.test(line)) {
+                        mails.push({from: line, to: []});
+                        say("250 ok");
+                    } else if (/^RCPT TO/i.test(line)) {
+                        mails[mails.length - 1].to.push(line);
+                        say("250 ok");
+                    } else if (/^DATA/i.test(line)) {
+                        body = true;
+                        say("354 go");
+                    } else if (/^QUIT/i.test(line)) {
+                        say("221 bye");
+                        socket.end();
+                    } else {
+                        say("250 ok");
+                    }
+                }
+            }
+        });
+        socket.on("error", () => undefined);
+    });
+
+    return new Promise(function (resolve) {
+        server.listen(0, "127.0.0.1", function () {
+            resolve({
+                close: () => new Promise((done) => server.close(done)),
+                mails,
+                port: server.address().port
+            });
+        });
+    });
+}
+
+// Quoted-printable back to text, so the link in the mail can be read
+function decoded(raw) {
+    return raw.replace(/=\r?\n/g, "").replace(
+        /=([0-9A-F]{2})/g,
+        (ignore, hex) => String.fromCharCode(parseInt(hex, 16))
+    );
+}
+
+describe("mail the system sends: invitations and forgotten passwords",
+        function () {
+    let admin;
+    let before_;
+    let smtp;
+
+    async function useSmtp(port) {
+        let current = await admin.get("/settings/" + NAME);
+        let resp = await admin.raw("PUT", "/settings/" + NAME, {
+            data: Object.assign({}, current.data, {
+                smtpHost: "127.0.0.1",
+                smtpPassword: "secret",
+                smtpPort: port,
+                smtpSecure: false,
+                smtpType: "SMTP",
+                smtpUser: "noreply@example.com"
+            }),
+            etag: current.etag
+        });
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+    }
+
+    before(async function () {
+        admin = await signedIn();
+        before_ = await admin.get("/settings/" + NAME);
+        smtp = await sink();
+    });
+
+    after(async function () {
+        await smtp.close();
+        await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                "DELETE FROM \"$organization_settings\" WHERE name = $1",
+                [NAME]
+            )
+        ).catch(() => undefined);
+
+        let current = await admin.get("/settings/" + NAME);
+
+        await admin.raw("PUT", "/settings/" + NAME, {
+            data: before_.data,
+            etag: current.etag
+        });
+        await access.dropAll();
+    });
+
+    it("mails a link that signs them in and asks for a password",
+            async function () {
+        await useSmtp(smtp.port);
+
+        let name = access.track(access.uniq("fbt_inv"));
+        let resp = await admin.raw("POST", "/admin/identity", {
+            email: name + "@example.com",
+            fullName: "Invited Person",
+            sendInvite: true,
+            username: name
+        });
+
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+        assert.equal(resp.body.created, true);
+        assert.equal(resp.body.mail, "sent", JSON.stringify(resp.body));
+
+        // It left through the organization's account
+        let mail = smtp.mails[smtp.mails.length - 1];
+
+        assert.match(mail.from, /noreply@example\.com/);
+        assert.match(mail.to[0], new RegExp(name + "@example\\.com"));
+
+        let text = decoded(mail.raw);
+
+        assert.match(text, /Subject: New\s+account created/);
+        assert.ok(text.includes(name), "it names the user");
+
+        let link = text.match(/href="([^"]+)"/)[1];
+
+        assert.ok(
+            link.includes("/auth/magiclink/callback?token="),
+            link
+        );
+        assert.ok(
+            !text.includes("Invited-Pw"),
+            "no password travels in the mail"
+        );
+
+        // The link signs them in, and the profile says change it
+        let person = new Session();
+        let arrived = await person.raw(
+            "GET",
+            link.slice(link.indexOf("/auth/magiclink"))
+        );
+
+        assert.ok(arrived.status < 400, String(arrived.status));
+
+        let who = await person.raw("POST", "/connect");
+
+        assert.equal(who.status, 200, JSON.stringify(who.body));
+        assert.equal(who.body.data.authorized.name, name);
+        assert.equal(
+            who.body.data.authorized.changePassword,
+            true,
+            "sent to the change-password page on arrival"
+        );
+
+        // And the password they choose is the one that works afterwards
+        let chosen = await person.raw("POST", "/do/change-role-password", {
+            password: "Invited-Pw-1"
+        });
+
+        assert.ok(chosen.status < 300, JSON.stringify(chosen.body));
+        assert.equal(
+            (await new Session().signIn(name, "Invited-Pw-1")).status,
+            200
+        );
+    });
+
+    it("says so when the mail cannot go, and keeps the user",
+            async function () {
+        let dead = await sink();
+        let port = dead.port;
+
+        await dead.close();
+        await useSmtp(port);
+
+        let name = access.track(access.uniq("fbt_inv"));
+        let resp = await admin.raw("POST", "/admin/identity", {
+            email: name + "@example.com",
+            sendInvite: true,
+            username: name
+        });
+
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+        assert.equal(resp.body.created, true);
+        assert.equal(resp.body.mail, "failed");
+        assert.ok(resp.body.mailError, "and why");
+        assert.ok(await row(name), "the user is there to be given a password");
+    });
+
+    it("needs an address, and refuses a password as well",
+            async function () {
+        let name = access.uniq("fbt_inv");
+        let resp = await admin.raw("POST", "/admin/identity", {
+            sendInvite: true,
+            username: name
+        });
+
+        assert.equal(resp.status, 400);
+
+        resp = await admin.raw("POST", "/admin/identity", {
+            email: name + "@example.com",
+            password: "Both-Pw-1",
+            sendInvite: true,
+            username: name
+        });
+        assert.equal(resp.status, 400);
+    });
+
+    // Open the mailed link as the person would, and say who it made them
+    async function arrive(mail) {
+        let text = decoded(mail.raw);
+        let link = text.match(/href="([^"]+)"/)[1];
+        let person = new Session();
+        let arrived = await person.raw(
+            "GET",
+            link.slice(link.indexOf("/auth/magiclink"))
+        );
+
+        assert.ok(arrived.status < 400, String(arrived.status));
+
+        let who = await person.raw("POST", "/connect");
+
+        assert.equal(who.status, 200, JSON.stringify(who.body));
+
+        return {person, user: who.body.data.authorized};
+    }
+
+    async function asked(name) {
+        return await Promise.race([
+            new Session().raw("POST", "/reset-password", {username: name}),
+            new Promise((resolve) => setTimeout(
+                () => resolve({status: "no answer"}),
+                8000
+            ))
+        ]);
+    }
+
+    it("sends a forgotten-password link to a user with a contact",
+            async function () {
+        await useSmtp(smtp.port);
+
+        let user = await access.createUser(admin, {});
+        let sent = smtp.mails.length;
+        let resp = await asked(user.name);
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal(smtp.mails.length, sent + 1, "a mail went out");
+
+        let mail = smtp.mails[smtp.mails.length - 1];
+
+        assert.match(mail.to[0], new RegExp(user.email.replace(".", "\\.")));
+        assert.match(decoded(mail.raw), /reset your password/);
+
+        let {person, user: me} = await arrive(mail);
+
+        assert.equal(me.name, user.name);
+        assert.equal(me.changePassword, true);
+
+        let chosen = await person.raw("POST", "/do/change-role-password", {
+            password: "Forgot-Pw-1"
+        });
+
+        assert.ok(chosen.status < 300, JSON.stringify(chosen.body));
+        assert.equal(
+            (await new Session().signIn(user.name, "Forgot-Pw-1")).status,
+            200
+        );
+    });
+
+    it("answers for a user made on the Users screen, who has no contact",
+            async function () {
+        await useSmtp(smtp.port);
+
+        let name = access.track(access.uniq("fbt_forgot"));
+
+        await admin.raw("POST", "/admin/identity", {
+            email: name + "@example.com",
+            fullName: "Forgetful Person",
+            password: "Forgot-Pw-0",
+            username: name
+        });
+
+        // Signing in makes the profile, which has no contact
+        assert.equal(
+            (await new Session().signIn(name, "Forgot-Pw-0")).status,
+            200
+        );
+
+        let sent = smtp.mails.length;
+        let resp = await asked(name);
+
+        assert.equal(
+            resp.status,
+            200,
+            "it used to wait for an answer that never came: " +
+                JSON.stringify(resp.body)
+        );
+        assert.equal(smtp.mails.length, sent + 1, "a mail went out");
+
+        let mail = smtp.mails[smtp.mails.length - 1];
+
+        assert.match(mail.to[0], new RegExp(name + "@example\\.com"));
+
+        let {user: me} = await arrive(mail);
+
+        assert.equal(me.name, name);
+        assert.equal(me.changePassword, true);
+        assert.equal(me.email, name + "@example.com");
+    });
+
+    it("does not say it was sent when the mail cannot go",
+            async function () {
+        let dead = await sink();
+        let port = dead.port;
+
+        await dead.close();
+        await useSmtp(port);
+
+        let user = await access.createUser(admin, {});
+        let resp = await asked(user.name);
+
+        assert.equal(resp.status, 500, JSON.stringify(resp.body));
+        assert.ok(
+            !/smtp|ECONN|127\.0\.0\.1/i.test(JSON.stringify(resp.body)),
+            "and gives nothing away about the mail server"
+        );
+    });
+
+    it("refuses a user that does not exist", async function () {
+        let resp = await asked(access.uniq("fbt_nobody"));
+
+        assert.ok(resp.status >= 400, JSON.stringify(resp));
+    });
+
+
+    async function row(name) {
+        let overview = await admin.get("/admin/overview");
+
+        return overview.identities.find((one) => one.username === name);
+    }
+});
