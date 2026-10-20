@@ -260,6 +260,38 @@
         };
 
         /**
+            Change the name and email an identity carries in the
+            manager. The person's profile in an instance is where the
+            screens edit these (and where the phone number lives); this
+            keeps the organization-wide list in step with it.
+
+            @method setIdentityInfo
+            @param {Client} client Manager client
+            @param {Number} identityPk
+            @param {Object} data
+            @param {String} [data.fullName]
+            @param {String} [data.email]
+            @param {String} [by] Who to record as the author
+            @return {Promise}
+        */
+        that.setIdentityInfo = async function (client, identityPk, data, by) {
+            await client.query(
+                (
+                    "UPDATE identity SET " +
+                    "full_name = COALESCE($2, full_name), " +
+                    "email = COALESCE($3, email), " +
+                    "updated = now(), updated_by = $4 WHERE _pk = $1"
+                ),
+                [
+                    identityPk,
+                    data.fullName,
+                    data.email,
+                    by || "system"
+                ]
+            );
+        };
+
+        /**
             Grant or ungrant an identity access to one instance. The
             pair is unique, so this creates the grant or flips the one
             already there; a revoke deactivates it and keeps the row, so
