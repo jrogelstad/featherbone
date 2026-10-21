@@ -2801,16 +2801,50 @@
         );
     }
 
-    function doConnect(req, res) {
+    async function doConnect(req, res) {
         let key = f.createId();
+        let user = req.user;
+        let who = {};
         eventKeys[key] = {
             sessionID: req.sessionID,
             tenant: req.tenant
         };
 
+        /*
+            The organization and administration tier go out with the
+            session user, for the signed-in label in the ribbon. Best
+            effort on purpose: nothing in the application depends on
+            them, so a manager this process cannot read costs the
+            label its tooltip and no more. Read fresh rather than kept
+            on the session, which says who someone is and never what
+            they may do.
+
+            The client connects before anyone has signed in -- that is
+            how it learns whether a session is open -- so there is
+            often no user here at all, and the answer is then the same
+            nothing it always was.
+        */
+        if (user) {
+            try {
+                who = await admin.whoAmI({
+                    tenant: req.tenant,
+                    user: user.name
+                });
+            } catch (err) {
+                logger.verbose(
+                    "Could not read who " + user.name +
+                    " is signed in as: " + (err.message || err)
+                );
+            }
+        }
+
         respond.bind(res)({
             data: {
-                authorized: req.user,
+                authorized: (
+                    user
+                    ? Object.assign({}, user, who)
+                    : user
+                ),
                 eventKey: key
             }
         });
