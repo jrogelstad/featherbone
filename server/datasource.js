@@ -119,6 +119,19 @@
 
     let packagesScanned = false;
 
+    /*
+        The package index, read once per process. Both the registry
+        build and `install` need it -- install because what it will
+        refuse depends on what this server holds, and it may be the
+        first thing a process does.
+    */
+    async function ensurePackagesScanned() {
+        if (!packagesScanned) {
+            packagesScanned = true;
+            packages.scan((await config.read()).modulesDir);
+        }
+    }
+
     const TRIGGER_BEFORE = 1;
     const TRIGGER_AFTER = 2;
 
@@ -229,10 +242,7 @@
             Object.assign(reg[method], baseRegistry[method]);
         });
 
-        if (!packagesScanned) {
-            packagesScanned = true;
-            packages.scan((await config.read()).modulesDir);
-        }
+        await ensurePackagesScanned();
 
         // Which modules this database carries, and which of those the
         // server holds as packages on disk
@@ -2347,6 +2357,8 @@
             changed, rather than installing a module with no code.
         */
         let said;
+
+        await ensurePackagesScanned();
 
         try {
             said = JSON.parse(await fs.promises.readFile(

@@ -165,17 +165,35 @@
             The installed package for a module at a version, or
             undefined when the server does not have it.
 
+            The framework answers for whatever version a database
+            records, which the modules under the modules directory do
+            not. A module is served the version its database carries
+            because two databases may run different versions of it;
+            the framework is the one this process is, and a database
+            recording an older Core is behind rather than owed that
+            code -- its upgrade is what moves it. Matching Core
+            strictly would leave such a database served nothing at
+            all, now that no copy of the framework's code is kept in
+            its tables.
+
             @method resolve
             @param {String} name Module name
             @param {String} version Version
             @return {Object|undefined} {dir, manifest}
         */
         that.resolve = function (name, version) {
+            let own = builtin[name];
+            let versions = (
+                own
+                ? Object.keys(own)
+                : []
+            );
+
             return (
                 held(name, version) ||
                 (
-                    builtin[name]
-                    ? builtin[name][version]
+                    versions.length
+                    ? own[versions[0]]
                     : undefined
                 )
             );
