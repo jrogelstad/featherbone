@@ -495,3 +495,44 @@ describe("installing from an archive", function () {
         fs.rmSync(dest, {recursive: true, force: true});
     });
 });
+
+describe("Core as a package", function () {
+    let core = JSON.parse(fs.readFileSync(
+        path.join(__dirname, "..", "..", "manifest.json"),
+        "utf8"
+    ));
+    let pkgs = new Packages();
+
+    before(function () {
+        pkgs.scan(fs.mkdtempSync(path.join(os.tmpdir(), "fbcore-")));
+    });
+
+    it("is served from the checkout, so none of its code is stored",
+            function () {
+        let found = pkgs.resolve(core.module, core.version);
+
+        assert.ok(found, "the checkout answers for Core");
+        assert.equal(
+            path.resolve(found.dir),
+            path.resolve(__dirname, "..", "..")
+        );
+        assert.ok(
+            pkgs.serviceSources(core.module, core.version).length > 0,
+            "with its services read from files"
+        );
+        assert.ok(
+            pkgs.clientSource(core.module, core.version).script.length > 0,
+            "and its client script"
+        );
+    });
+
+    it("is not an installed package, and brings no libraries",
+            function () {
+        assert.deepEqual(
+            pkgs.installed().filter((pkg) => pkg.name === core.module),
+            []
+        );
+        assert.equal(pkgs.newest(core.module), undefined);
+        assert.deepEqual(pkgs.libraries(core.module, core.version), []);
+    });
+});

@@ -146,7 +146,7 @@ describe("a module served from its package (ADR-002)", function () {
         );
 
         assert.equal(resp.status, 405, JSON.stringify(resp.body));
-        assert.match(String(resp.body), /served from the package/);
+        assert.match(String(resp.body), /not stored in the database/);
         assert.match(
             String(resp.body),
             /deploy it/,
@@ -221,7 +221,45 @@ describe("a module served from its package (ADR-002)", function () {
         );
 
         assert.equal(resp.status, 405, JSON.stringify(resp.body));
-        assert.match(String(resp.body), /service script/);
+        assert.match(String(resp.body), /not stored in the database/);
+    });
+
+    it("refuses a new service row, whichever module it names",
+            async function () {
+        let resp = await admin.raw("POST", "/data/data-service", {
+            id: "fbtnewds",
+            module: "Core",
+            name: "fbt-new-service",
+            script: "// new"
+        });
+
+        assert.equal(resp.status, 405, JSON.stringify(resp.body));
+        assert.equal(
+            await db.withClient(settings.testDb, async function (client) {
+                let found = await client.query(
+                    "SELECT 1 FROM data_service WHERE name = $1",
+                    ["fbt-new-service"]
+                );
+
+                return found.rows.length;
+            }),
+            0,
+            "and nothing was written"
+        );
+    });
+
+    it("still lets what an old installation holds be deleted",
+            async function () {
+        let row = await serviceRow(settings.testDb);
+        let resp = await admin.raw(
+            "DELETE",
+            "/data/data-service/" + row.id
+        );
+
+        assert.ok(
+            resp.status < 400,
+            "status " + resp.status + " " + JSON.stringify(resp.body)
+        );
     });
 
     it("says which modules run from the package and which from rows",
@@ -264,18 +302,15 @@ describe("a module served from its package (ADR-002)", function () {
         );
         assert.ok(here.adrift >= 1, "which the instance row counts");
 
-        // And the write is allowed again, because the rows are what runs
+        // Rows may be what runs here, but they are still not written
         let row = await moduleRow(settings.testDb);
         let resp = await admin.raw(
             "PATCH",
             "/data/module/" + row.id,
-            [{op: "replace", path: "/script", value: row.script}]
+            [{op: "replace", path: "/script", value: "// edited"}]
         );
 
-        assert.ok(
-            resp.status < 400,
-            "status " + resp.status + " " + JSON.stringify(resp.body)
-        );
+        assert.equal(resp.status, 405, JSON.stringify(resp.body));
 
         await setVersion(settings.testDb, was);
     });
