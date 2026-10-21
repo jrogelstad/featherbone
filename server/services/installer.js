@@ -102,13 +102,6 @@
                 let pSubscr = opts.subscription;
                 let pProcessId = opts.processId;
                 /*
-                    Set when the directory is a package this server
-                    holds: its code is served from the files, so the
-                    database is given the module's record and not its
-                    code (datasource.install).
-                */
-                let pIsPackage = opts.isPackage === true;
-                /*
                     What the database being installed into is for:
                     "manager" or "instance" (tenant plan section 9). A
                     manifest entry may name a `target` of its own and is
@@ -341,7 +334,6 @@
 
                 function saveModule(
                     pName,
-                    pScript,
                     pVersion,
                     pDependencies,
                     pNpm
@@ -384,7 +376,7 @@
                                 name: pName,
                                 version: pVersion,
                                 owner: pUser,
-                                script: pScript,
+                                script: "",
                                 dependencies: deps,
                                 npm: pNpm
                             }
@@ -543,49 +535,6 @@
                         user: pUser,
                         client: pClient,
                         properties: ["id", "name"]
-                    }, true).then(callback).catch(rollback);
-                }
-
-                function saveService(pName, pModule, pScript) {
-                    function callback(resp) {
-                        let vId = btoa("ds" + pName);
-                        let payload;
-
-                        if (resp.length) {
-                            vId = resp[0].id;
-                        }
-
-                        payload = {
-                            method: "POST",
-                            name: "DataService",
-                            user: pUser,
-                            client: pClient,
-                            id: vId,
-                            data: {
-                                name: pName,
-                                module: pModule,
-                                script: pScript,
-                                owner: pUser
-                            }
-                        };
-
-                        runBatch([payload]);
-                    }
-
-                    pDatasource.request({
-                        method: "GET",
-                        name: "DataService",
-                        user: pUser,
-                        client: pClient,
-                        filter: {
-                            criteria: [{
-                                property: "name",
-                                value: pName
-                            }, {
-                                property: "module",
-                                value: pModule
-                            }]
-                        }
                     }, true).then(callback).catch(rollback);
                 }
 
@@ -947,29 +896,18 @@
                                 execute(filename);
                                 break;
                             case "module":
+                                // The record of the module, never its code
                                 saveModule(
                                     module,
-                                    (
-                                        pIsPackage
-                                        ? ""
-                                        : content
-                                    ),
                                     version,
                                     dependencies,
                                     npm
                                 );
                                 break;
                             case "service":
-                                if (pIsPackage) {
-                                    // Served from the package's file
-                                    runBatch([]);
-                                } else {
-                                    saveService(
-                                        file.name || name,
-                                        module,
-                                        content
-                                    );
-                                }
+                                // Served from the package's file; code is
+                                // never stored in the database
+                                runBatch([]);
                                 break;
                             case "feather":
                                 saveFeathers(

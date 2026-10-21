@@ -795,13 +795,6 @@
         itself; one of services or feathers alone leaves nothing
         behind, so Deploy writes it either way.
 
-        The write is a deployment's own, so it is not refused the way
-        a person editing the row would be: moving a module from 1.0.0
-        to 1.1.0 changes the very row the guard protects while 1.0.0
-        is still installed here, which it normally is. Only code in
-        this process can say `isDeployment`; a request from a client
-        is built from its route and body, never from a flag.
-
         @method recordDeployed
         @param {String} database Instance database
         @param {String} name Module name
@@ -847,7 +840,6 @@
                     value: version
                 }],
                 id: found.id,
-                isDeployment: true,
                 method: "PATCH",
                 name: "Module",
                 tenant,
@@ -864,7 +856,6 @@
                 version
             },
             id: Buffer.from(name).toString("base64"),
-            isDeployment: true,
             method: "POST",
             name: "Module",
             tenant,
@@ -2347,29 +2338,42 @@
         }
 
         /*
-            Code that is on disk is not also stored. A directory this
-            server holds as an installed package is served from there
-            (ADR-002 sections 2 and 6), so Deploy writes the module's
-            row, which records the version, and leaves its code out of
-            it: no `Module.script`, no `DataService` rows. Anything
-            else -- Core, installed from the checkout, and the modules
-            that predate packages -- is still stored as it always was,
-            because rows are all that serves it.
+            Code is never stored in the database. What a module runs
+            is read from its package's files (ADR-002), so a directory
+            that carries services or a client script has to be a
+            package this server holds -- Core, or one put under the
+            modules directory -- or there would be nowhere for the
+            code to be served from. Refused here, before anything is
+            changed, rather than installing a module with no code.
         */
-        let isPackage = false;
+        let said;
 
         try {
-            let said = JSON.parse(await fs.promises.readFile(
+            said = JSON.parse(await fs.promises.readFile(
                 path.join(filename, "manifest.json"),
                 "utf8"
             ));
-            let held = packages.resolve(said.module, said.version);
-
-            isPackage = Boolean(held) && (
-                path.resolve(held.dir) === path.resolve(filename)
-            );
         } catch (ignore) {
             // No readable manifest: the installer will say so
+            said = {};
+        }
+
+        let held = packages.resolve(said.module, said.version);
+        let listed = said.files || [];
+        let carriesCode = listed.some(
+            (file) => file.type === "service" || file.type === "module"
+        );
+
+        if (carriesCode && !(held && (
+            path.resolve(held.dir) === path.resolve(filename)
+        ))) {
+            resp.done();
+            return Promise.reject(new Error(
+                "\"" + said.module + " " + said.version + "\" in " +
+                filename + " is not a package this server holds, " +
+                "and code is never stored in the database. Install " +
+                "it as a package first, then deploy it."
+            ));
         }
 
         // Do the work
@@ -2397,7 +2401,6 @@
                         processId to track it by (John, 2026-10-18: "I
                         get no idea of whether it's working or not").
                     */
-                    isPackage,
                     isSuper: opts.isSuper === true,
                     processId: opts.processId,
                     subscription: opts.subscription,
@@ -3116,84 +3119,47 @@
         }
 
         /*
-            Which module a write is aimed at, and whether this database
-            is served that module from a package. The name comes from
-            the row being changed rather than from the payload: a PATCH
-            carries a JSON patch, not a record, and a DELETE carries
-            nothing at all.
+            Code is never written to the database. The service and
+            client scripts of a module are read from its package's
+            files, so a row carrying one would be a second copy that is
+            either ignored or, for a module with no package, source
+            code in a table that the server executes. Nothing writes
+            them, whoever asks and by whatever route: Install and
+            Deploy included. Deleting what older installations hold is
+            still allowed, and so is everything else about a Module.
         */
-        async function packageWriteRefusal(client, payload) {
-            const OWNED = {
-                DataService: {
-                    column: "module",
-                    table: "data_service",
-                    what: "service script"
-                },
-                Module: {
-                    column: "name",
-                    table: "module",
-                    what: "client script"
+        function scriptWriteRefusal(payload) {
+            let touches = false;
+            let data = payload.data;
+
+            if (payload.method === "DELETE") {
+                return;
+            }
+
+            if (payload.name === "DataService") {
+                touches = true;
+            } else if (payload.name === "Module") {
+                if (Array.isArray(data)) {
+                    touches = data.some((op) => (
+                        typeof op.path === "string" &&
+                        op.path.split("/")[1] === "script" &&
+                        op.op !== "remove" &&
+                        op.value !== ""
+                    ));
+                } else {
+                    touches = Boolean(data && data.script);
                 }
-            };
-            let owned = OWNED[payload.name];
-
-            if (!owned) {
-                return;
             }
 
-            let name;
-
-            if (payload.id) {
-                let found = await client.query(
-                    (
-                        "SELECT " + owned.column + " AS name FROM " +
-                        owned.table + " WHERE id = $1 AND NOT is_deleted"
-                    ),
-                    [payload.id]
-                ).catch(function () {
-                    return {rows: []};
-                });
-
-                name = (
-                    found.rows.length
-                    ? found.rows[0].name
-                    : undefined
-                );
-            }
-
-            if (!name && payload.data && !Array.isArray(payload.data)) {
-                name = payload.data[owned.column];
-            }
-
-            if (!name) {
-                return;
-            }
-
-            let deployed = await client.query(
-                (
-                    "SELECT version FROM module " +
-                    "WHERE name = $1 AND NOT is_deleted"
-                ),
-                [name]
-            ).catch(function () {
-                return {rows: []};
-            });
-
-            if (!deployed.rows.length) {
-                return;
-            }
-
-            let version = deployed.rows[0].version;
-
-            if (!packages.resolve(name, version)) {
+            if (!touches) {
                 return;
             }
 
             return (
-                "The " + owned.what + " of " + name + " " + version +
-                " is served from the package this server holds, so " +
-                "changing the row here would change nothing. Change " +
-                "it in the package and deploy it."
+                "Code is not stored in the database. A module's " +
+                "services and client script are read from its package, " +
+                "so there is nothing to save here. Change the package " +
+                "and deploy it."
             );
         }
 
@@ -3454,27 +3420,9 @@
             catalog = await settings.catalogFor(theClient);
             reg = await registryFor(theClient);
 
-            /*
-                The code of a module this server serves from a package
-                is not the database's to change (ADR-002 section 2).
-                The rows are still there and still load for a module
-                with no package, but for one with a package they are
-                not what runs: a save would look like it took and
-                change nothing.
-
-                Refused by where the call came from rather than by who
-                made it. Install and Deploy write these rows as part of
-                their work and arrive with a client of their own; a
-                person at the Develop workbook does not, and is a super
-                user, which is exactly who the read-only check below
-                lets through.
-            */
-            if (
-                !isExternalClient &&
-                obj.method !== "GET" &&
-                obj.isDeployment !== true
-            ) {
-                let refusal = await packageWriteRefusal(theClient, obj);
+            // No route writes code to the database (ADR-002)
+            if (obj.method !== "GET") {
+                let refusal = scriptWriteRefusal(obj);
 
                 if (refusal) {
                     return Promise.reject({
