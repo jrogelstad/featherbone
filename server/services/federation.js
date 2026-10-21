@@ -235,7 +235,7 @@
             let found = await client.query(
                 (
                     "SELECT fed._pk AS federation_pk, i._pk, i.username, " +
-                    "  i.status, i.is_platform_admin, i.is_org_admin, " +
+                    "  i.status, i.is_platform_admin, " +
                     "  i.full_name, i.email, " +
                     "  i._organization_organization_pk AS org " +
                     "FROM identity_federation fed " +
@@ -274,11 +274,24 @@
                     );
                 }
 
-                let here = await manager.identity(
-                    client,
-                    obj.organizationPk,
-                    username
-                );
+                let here = await manager.identity(client, username);
+
+                /*
+                    A username is global now, so this lookup can find
+                    somebody who has nothing to do with this
+                    organization -- another customer's user, or the
+                    platform administrator. A provider speaks for its
+                    own organization alone, and letting it claim a name
+                    outside it would hand that account to whoever
+                    controls the directory. Linking is confined to the
+                    accounts the organization owns, which is what this
+                    lookup used to return and all it may return now.
+                */
+                if (here && here.organization_pk !== obj.organizationPk) {
+                    throw refuse(
+                        "That user name belongs to another organization"
+                    );
+                }
 
                 if (here) {
                     identity = here;
@@ -300,11 +313,7 @@
                         username
                     });
 
-                    identity = await manager.identity(
-                        client,
-                        obj.organizationPk,
-                        username
-                    );
+                    identity = await manager.identity(client, username);
                     created = made.created;
                 }
 
@@ -350,11 +359,23 @@
                 let isAdmin = groupsFrom(claims).indexOf(
                     provider.adminGroup
                 ) !== -1;
+                /*
+                    The appointment is over this provider's own
+                    organization, which is the only one its claims
+                    speak for: an administrator elsewhere is somebody
+                    else's appointment and is left alone.
+                */
+                let was = await manager.isOrgAdminOf(
+                    client,
+                    identity._pk,
+                    obj.organizationPk
+                );
 
-                if (isAdmin !== (identity.is_org_admin === true)) {
+                if (isAdmin !== was) {
                     await manager.setOrgAdmin(
                         client,
                         identity._pk,
+                        obj.organizationPk,
                         isAdmin,
                         "sso"
                     );

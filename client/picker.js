@@ -62,7 +62,6 @@
         instances: [],
         isBusy: false,
         menu: undefined,
-        needOrganization: false,
         note: "",
         organizations: [],
         instanceSelection: undefined,
@@ -363,21 +362,16 @@
         vm.error = "";
 
         request("POST", "/sign-in", {
-            organization: fieldValue("organization"),
             password: fieldValue("password"),
             username: fieldValue("username")
         }).then(function () {
             vm.isBusy = false;
-            vm.needOrganization = false;
             return load();
         }).catch(function (err) {
             let data = (err || {}).data || {};
 
             vm.isBusy = false;
             vm.error = data.message || "Could not sign in";
-            if (data.code === "organization-required") {
-                vm.needOrganization = true;
-            }
             m.redraw();
         });
     }
@@ -415,7 +409,6 @@
             vm.organizations = [];
             vm.fleet = [];
             vm.error = "";
-            vm.needOrganization = false;
             m.redraw();
         });
     }
@@ -564,11 +557,6 @@
             }, vm.error),
             field("username", "Username", "text", signIn),
             field("password", "Password", "password", signIn),
-            (
-                vm.needOrganization
-                ? field("organization", "Organization", "text", signIn)
-                : undefined
-            ),
             m("div", {
                 class: "pure-control-group fb-sign-in"
             }, [
@@ -971,6 +959,14 @@
                     "They administer this organization: its people and " +
                     "who reaches which of its instances. They are " +
                     "granted no instance here."
+                )),
+                m("div", {class: "fb-admin-note"}, (
+                    "A user name already in use is that person, " +
+                    "appointed as they stand -- which is how somebody " +
+                    "administers several organizations without an " +
+                    "account apiece. Their password is unchanged, so " +
+                    "leave it blank; the full name and email are used " +
+                    "only when the account is being made."
                 ))
             ];
         } else if (kind === "provider") {

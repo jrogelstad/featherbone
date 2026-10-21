@@ -29,8 +29,11 @@
 
     * **platform** -- `identity.is_platform_admin`. Featherbone's own
       administrators. May do everything these routes offer.
-    * **organization** -- `identity.is_org_admin`. May manage every
-      identity in their organization and grant any of its instances.
+    * **organization** -- an appointment over the organization being
+      acted on (`organization_admin`). May manage every identity in
+      that organization and grant any of its instances. One person may
+      hold appointments over several organizations, which is how a
+      reseller administers their accounts without an account apiece.
     * **instance** -- a tenant super user (`user_account.is_super`) who
       holds neither flag. May read their organization, and may create,
       password and grant users **for the instance they are signed in
@@ -117,11 +120,7 @@
 
             if (obj.tenant) {
                 instance = await manager.instance(mclient, obj.tenant);
-                actor = await manager.identity(
-                    mclient,
-                    instance.organizationPk,
-                    obj.user || ""
-                );
+                actor = await manager.identity(mclient, obj.user || "");
             } else {
                 /*
                     No instance: the platform console, whose session was
@@ -140,11 +139,7 @@
                     throw forbidden("Not authorized to administer");
                 }
                 instance = {organizationPk: home._pk};
-                actor = await manager.identity(
-                    mclient,
-                    home._pk,
-                    obj.user || ""
-                );
+                actor = await manager.identity(mclient, obj.user || "");
 
                 if (!actor || !actor.is_platform_admin) {
                     throw forbidden(
@@ -154,9 +149,25 @@
                 }
             }
 
+            /*
+                Administering an organization is an appointment over
+                that organization, not a rank the person carries about
+                with them (John, Oct 2026), so it is asked of the
+                organization being acted on -- which, for the reach
+                below, is settled further down and asked again there.
+            */
+            let isOrgAdmin = Boolean(
+                actor &&
+                await manager.isOrgAdminOf(
+                    mclient,
+                    actor._pk,
+                    instance.organizationPk
+                )
+            );
+
             if (actor && actor.is_platform_admin) {
                 tier = "platform";
-            } else if (actor && actor.is_org_admin) {
+            } else if (isOrgAdmin) {
                 tier = "organization";
             } else if (obj.isSuper) {
                 tier = "instance";
@@ -167,14 +178,21 @@
             }
 
             /*
-                The break-glass path (ADR-001 requirement 3, tenant plan
-                A.4). Sign-in is organization-scoped, so a platform
-                administrator can never be signed in to another
-                organization's instance; instead they may name the
-                organization to act on. Everything downstream keys on
+                Acting on another organization than the one whose
+                instance this request came through (ADR-001 requirement
+                3, tenant plan A.4). A session is established against
+                one instance, so somebody who answers for several
+                organizations -- the platform administrator, and now the
+                reseller appointed over their customers -- names the one
+                they mean. Everything downstream keys on
                 ctx.organizationPk, so the whole screen and every write
                 follows, and the audit rows record the organization
                 acted on.
+
+                A platform administrator may name any; everybody else
+                may name only an organization they are appointed over,
+                and is an organization administrator there whatever
+                they are here.
             */
             let organizationPk = instance.organizationPk;
             let reach = obj.organization || (obj.data || {}).organization;
@@ -187,11 +205,22 @@
                 }
 
                 if (other._pk !== organizationPk) {
-                    if (tier !== "platform") {
+                    let appointed = Boolean(
+                        actor &&
+                        await manager.isOrgAdminOf(
+                            mclient,
+                            actor._pk,
+                            other._pk
+                        )
+                    );
+
+                    if (tier !== "platform" && !appointed) {
                         throw forbidden(
-                            "Only a platform administrator may " +
-                            "administer another organization"
+                            "You do not administer that organization"
                         );
+                    }
+                    if (tier !== "platform") {
+                        tier = "organization";
                     }
                     organizationPk = other._pk;
                 }
@@ -215,11 +244,49 @@
         }
 
         /*
-            A tier-"instance" administrator may only act on a person who
-            can already reach the instance they are signed in to, and
-            may not touch administrators.
+            Who an administrator may act on. An identity exists
+            installation-wide now, so being able to find one says
+            nothing about whether it is any of this organization's
+            business: what makes somebody theirs is the organization
+            owning the account, holding one of its instances, or
+            administering it -- the same three answers that put a
+            person on their Users screen. Anyone else is "no such
+            identity" rather than a refusal, which would confirm the
+            name exists somewhere.
+
+            A tier-"instance" administrator is narrower still: only a
+            person who can already reach the instance they are signed
+            in to, and never another administrator.
         */
-        async function targetFor(mclient, ctx, id, tenant) {
+        async function belongsHere(mclient, ctx, target) {
+            if (target.organization_pk === ctx.organizationPk) {
+                return true;
+            }
+
+            if (await manager.isOrgAdminOf(
+                mclient,
+                target._pk,
+                ctx.organizationPk
+            )) {
+                return true;
+            }
+
+            let granted = await mclient.query(
+                (
+                    "SELECT 1 FROM access_grant g " +
+                    "JOIN tenant t ON t._pk = g._tenant_tenant_pk " +
+                    "WHERE g._identity_identity_pk = $1 " +
+                    "  AND t._organization_organization_pk = $2 " +
+                    "  AND NOT g.is_deleted AND NOT t.is_deleted"
+                ),
+                [target._pk, ctx.organizationPk]
+            );
+
+            return granted.rows.length > 0;
+        }
+
+        async function targetFor(mclient, ctx, id, tenant, opts) {
+            let options = opts || {};
             let target = await manager.identityById(
                 mclient,
                 ctx.organizationPk,
@@ -227,7 +294,34 @@
             );
 
             if (!target) {
+                throw notFound("No such identity");
+            }
+
+            if (!await belongsHere(mclient, ctx, target)) {
                 throw notFound("No such identity in this organization");
+            }
+
+            /*
+                The account itself -- its password, whether it may sign
+                in at all -- belongs to the organization that owns it,
+                and to the platform. Working here does not hand it
+                over: otherwise an organization could appoint an
+                outsider, reset the password of the account they use
+                everywhere else, and walk in wherever it reaches.
+                Anyone may still be given or refused this
+                organization's instances, which is what administering
+                them here means.
+            */
+            if (
+                options.isAccountItself === true &&
+                ctx.tier !== "platform" &&
+                target.organization_pk !== ctx.organizationPk
+            ) {
+                throw forbidden(
+                    target.username + "'s account belongs to another " +
+                    "organization. You can give or take away your own " +
+                    "instances, but the account is theirs to change."
+                );
             }
 
             if (ctx.tier === "instance") {
@@ -262,12 +356,59 @@
             return target;
         }
 
+        /*
+            Which organizations a caller may name. A platform
+            administrator may name any; everybody else, those they hold
+            an appointment over -- and the one they are signed in to,
+            which is theirs by being here.
+        */
+        async function organizationsFor(mclient, ctx) {
+            function out(row) {
+                return {
+                    id: row.id,
+                    isActive: row.is_active !== false,
+                    name: row.name
+                };
+            }
+
+            if (ctx.tier === "platform") {
+                return (await manager.organizations(mclient)).map(out);
+            }
+
+            if (!ctx.actor) {
+                return undefined;
+            }
+
+            let mine = await manager.organizationsAdministered(
+                mclient,
+                ctx.actor._pk
+            );
+
+            return (
+                mine.length > 1
+                ? mine.map(out)
+                : undefined
+            );
+        }
+
         function identityOut(row) {
             return {
                 email: row.email,
                 failedAttempts: row.failed_attempts,
                 fullName: row.full_name,
                 grants: row.grants,
+                /*
+                    Whose account this is, when it is not this
+                    organization's. Somebody from outside -- a reseller,
+                    or the platform's own staff -- appears in the list
+                    because they work here, and saying so is the
+                    difference between a colleague and a stranger.
+                */
+                homeOrganization: (
+                    row.is_home === false
+                    ? row.home_organization
+                    : undefined
+                ),
                 id: row.id,
                 isOrgAdmin: row.is_org_admin,
                 isPlatformAdmin: row.is_platform_admin,
@@ -355,25 +496,17 @@
                         name: organization.name
                     },
                     /*
-                        Every organization, so a platform administrator
-                        can reach one that has lost its administrator
-                        (the break-glass picker). Only for them: what
-                        other organizations exist is not an
-                        organization administrator's to see.
+                        The organizations this caller may act on, which
+                        the screen offers as a picker. Every one for a
+                        platform administrator, so they can reach one
+                        that has lost its administrator; for everybody
+                        else the ones they are appointed over, which is
+                        how a reseller moves between their customers on
+                        one account (John, Oct 2026). What other
+                        organizations exist is still nobody else's to
+                        see.
                     */
-                    organizations: (
-                        ctx.tier === "platform"
-                        ? (await manager.organizations(mclient)).map(
-                            function (row) {
-                                return {
-                                    id: row.id,
-                                    isActive: row.is_active,
-                                    name: row.name
-                                };
-                            }
-                        )
-                        : undefined
-                    ),
+                    organizations: await organizationsFor(mclient, ctx),
                     tier: ctx.tier
                 };
             });
@@ -502,7 +635,8 @@
                     mclient,
                     ctx,
                     data.id,
-                    obj.tenant
+                    obj.tenant,
+                    {isAccountItself: true}
                 );
 
                 await manager.setPassword(
@@ -552,7 +686,8 @@
                     mclient,
                     ctx,
                     data.id,
-                    obj.tenant
+                    obj.tenant,
+                    {isAccountItself: true}
                 );
                 let was = target.status;
 
@@ -662,11 +797,17 @@
         };
 
         /**
-            Make an identity an organization administrator, or stop it
-            being one. Organization administrators and above only: this
-            is the authority to manage everyone else in the
-            organization, so it is not an instance administrator's to
-            hand out.
+            Make an identity an administrator of the organization
+            being acted on, or stop it being one. Organization
+            administrators and above only: this is the authority to
+            manage everyone else in the organization, so it is not an
+            instance administrator's to hand out.
+
+            Any existing identity will do, whichever organization owns
+            the account (John, Oct 2026): appointing somebody is what
+            brings them into an organization's administration, and a
+            person who already has an account does not need another one
+            made for them to be appointed.
 
             @method setOrgAdmin
             @param {Object} payload
@@ -695,12 +836,13 @@
                 );
 
                 if (!target) {
-                    throw notFound("No such identity in this organization");
+                    throw notFound("No such identity");
                 }
 
                 await manager.setOrgAdmin(
                     mclient,
                     target._pk,
+                    ctx.organizationPk,
                     data.isOrgAdmin,
                     obj.user
                 );
@@ -712,6 +854,88 @@
                     ),
                     actorPk: actorPk(ctx),
                     by: obj.user,
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: target._pk
+                });
+
+                return true;
+            });
+        };
+
+        /**
+            Make an identity a platform administrator, or stop it being
+            one -- the authority over every organization at once, so
+            only somebody who already holds it may hand it out.
+
+            A platform administrator is one account, not one per
+            organization (John, Oct 2026: "it's not practical for them
+            to have create many versions of themselves"), which is what
+            global usernames are for.
+
+            @method setPlatformAdmin
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {Boolean} payload.data.isPlatformAdmin
+            @return {Promise}
+        */
+        that.setPlatformAdmin = async function (obj) {
+            let data = obj.data || {};
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                requirePlatform(ctx, "appoint a platform administrator");
+
+                let target = await manager.identityById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such identity");
+                }
+
+                /*
+                    Standing down is one thing; taking the last
+                    administrator away from the platform is another,
+                    and would leave nobody able to put one back.
+                */
+                if (data.isPlatformAdmin !== true) {
+                    let others = await mclient.query(
+                        (
+                            "SELECT count(*)::int AS n FROM identity " +
+                            "WHERE is_platform_admin AND NOT is_deleted " +
+                            "  AND status = 'active' AND _pk <> $1"
+                        ),
+                        [target._pk]
+                    );
+
+                    if (!others.rows[0].n) {
+                        throw invalid(
+                            "That is the last platform administrator. " +
+                            "Appoint another before standing this one " +
+                            "down."
+                        );
+                    }
+                }
+
+                await manager.setPlatformAdmin(
+                    mclient,
+                    target._pk,
+                    data.isPlatformAdmin,
+                    obj.user
+                );
+                await manager.audit(mclient, {
+                    action: (
+                        data.isPlatformAdmin === true
+                        ? "identity.platform_admin_granted"
+                        : "identity.platform_admin_revoked"
+                    ),
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: target.username,
                     organizationPk: ctx.organizationPk,
                     targetIdentityPk: target._pk
                 });
@@ -2361,10 +2585,13 @@
                     */
                     let admins = await mclient.query(
                         (
-                            "SELECT _pk, username FROM identity " +
-                            "WHERE _organization_organization_pk = $1 " +
-                            "  AND is_org_admin AND status = 'active' " +
-                            "  AND NOT is_deleted"
+                            "SELECT i._pk, i.username " +
+                            "FROM organization_admin a " +
+                            "JOIN identity i " +
+                            "  ON i._pk = a._identity_identity_pk " +
+                            "WHERE a._organization_organization_pk = $1 " +
+                            "  AND a.is_active AND NOT a.is_deleted " +
+                            "  AND i.status = 'active' AND NOT i.is_deleted"
                         ),
                         [row.org_pk]
                     );
