@@ -96,6 +96,54 @@ describe("authentication", function () {
         );
     });
 
+    /*
+        The signed-in label in the ribbon reads all of this off the
+        connect payload (John, Oct 2026: "I'd like to see who I'm
+        logged as over near the alarm bell"). The organization is the
+        part worth a test: it is not on the session, it is read from
+        the manager, and it is the one thing a screen could not say
+        before.
+    */
+    it("tells a connected client who it is signed in as", async function () {
+        let resp = await admin.raw("POST", "/connect");
+        let who = resp.body.data.authorized;
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal(who.name, settings.adminUser);
+        assert.ok(who.organization, "the organization is named");
+        assert.equal(typeof who.organizationId, "string");
+
+        // What it says of their authority is the identity's own, not
+        // the session's idea of it
+        let identity = await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                (
+                    "SELECT is_org_admin, is_platform_admin FROM identity " +
+                    "WHERE lower(username) = lower($1) AND NOT is_deleted"
+                ),
+                [settings.adminUser]
+            )
+        );
+
+        assert.equal(who.isOrgAdmin, identity.rows[0].is_org_admin);
+        assert.equal(who.isPlatformAdmin, identity.rows[0].is_platform_admin);
+    });
+
+    it("answers a connect from nobody the way it always did",
+            async function () {
+        let resp = await new Session().raw("POST", "/connect");
+
+        assert.ok(
+            resp.status < 500,
+            "status " + resp.status + " " + JSON.stringify(resp.body)
+        );
+        assert.ok(
+            !resp.body.data || !resp.body.data.authorized,
+            "and nobody is reported signed in"
+        );
+    });
+
     // Improvement plan 1.6: failed sign-ins must not strand connections
     it("does not leak database connections on failed sign-ins", {
         todo: "plan 1.6: authenticate() leaks a pooled connection per failure"

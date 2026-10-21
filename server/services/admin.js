@@ -370,6 +370,61 @@
         }
 
         /**
+            Who the caller is signed in as, for the label the ribbon
+            shows beside the alerts bell (John, Oct 2026: "I'd like to
+            see who I'm logged as over near the alarm bell"). The
+            organization is the part of that nothing else on a screen
+            says, which is what made it worth a lookup: an identity
+            belongs to one organization, and a platform administrator
+            signed in to one organization's instance cannot tell from
+            the screen which that is.
+
+            Alone among the methods here this refuses nobody and goes
+            through no `contextFor`: it reports, it does not act, and
+            every signed-in person is entitled to be told their own
+            name. What it says of their authority is read from the
+            identity in the manager, not from the session, so it
+            cannot say more than they have.
+
+            @method whoAmI
+            @param {Object} payload
+            @param {Object} payload.tenant Instance of the request
+            @param {String} payload.user Signed-in user name
+            @return {Promise}
+        */
+        that.whoAmI = async function (obj) {
+            return await manager.run(async function (mclient) {
+                let instance = await manager.instance(mclient, obj.tenant);
+                let organization = await manager.organization(
+                    mclient,
+                    instance.organizationPk
+                );
+                let actor = await manager.identity(
+                    mclient,
+                    instance.organizationPk,
+                    obj.user || ""
+                );
+
+                return {
+                    isOrgAdmin: Boolean(actor && actor.is_org_admin),
+                    isPlatformAdmin: Boolean(
+                        actor && actor.is_platform_admin
+                    ),
+                    organization: (
+                        organization
+                        ? organization.name
+                        : undefined
+                    ),
+                    organizationId: (
+                        organization
+                        ? organization.id
+                        : undefined
+                    )
+                };
+            });
+        };
+
+        /**
             Everything one administration screen needs in one request:
             who the caller is, what they may do, the organization, its
             instances, its identities and the recent audit trail.
