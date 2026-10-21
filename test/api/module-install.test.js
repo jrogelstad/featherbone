@@ -213,6 +213,55 @@ describe("Install on the Modules page", function () {
         assert.equal(client.rows[0].script, "", "no client script");
     });
 
+    /*
+        The defect John's `tracker` hit, and the reason a web install
+        on a server that had been up a while would hang: whether an
+        install writes to another database was module-level state that
+        the first deployment set and nothing ever cleared, so this
+        install -- which writes through the caller's own connection --
+        finished as though it had one of its own and died on it, with
+        the request left unanswered and the instance held.
+
+        A deployment from a screen first, because that is what set the
+        flag; then the page's install, which has to answer.
+    */
+    it("installs after a deployment that was watched from a screen",
+            async function () {
+        let session = await signedIn(PLATFORM);
+        let instance = await db.withClient(
+            settings.managerDb,
+            async function (client) {
+                let found = await client.query(
+                    (
+                        "SELECT id FROM tenant " +
+                        "WHERE pg_database = $1 AND NOT is_deleted"
+                    ),
+                    [settings.testDb]
+                );
+
+                return found.rows[0].id;
+            }
+        );
+        let watched = await session.raw("POST", "/admin/instance/deploy", {
+            id: instance,
+            module: MODULE,
+            processId: "fbt-webinst-watched",
+            version: "1.0.0"
+        });
+
+        assert.equal(watched.status, 200, JSON.stringify(watched.body));
+        assert.equal(await deployed(), "1.0.0");
+
+        await session.upload(
+            "/module/install/x=1",
+            "package",
+            samplePackage("2.1.0", true),
+            30000
+        );
+
+        assert.equal(await deployed(), "2.1.0", "the page's install answered");
+    });
+
     it("says what is wrong with an archive that is not a package",
             async function () {
         let session = await signedIn(PLATFORM);
