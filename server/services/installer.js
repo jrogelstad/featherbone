@@ -33,7 +33,6 @@
     const path = require("path");
     const f = require("../../common/core");
     let isInstalling = false;
-    let isRemote = false;
 
     f.jsonpatch = require("fast-json-patch");
     f.isInstalling = () => isInstalling;
@@ -113,14 +112,34 @@
                 let pTarget = opts.target || "instance";
                 let reqClient = pClient;
                 let conn;
+                /*
+                    Whether this install writes to a database other
+                    than the caller's own, which decides how it
+                    finishes. One install's answer, not the process's:
+                    it used to be module-level state that the first
+                    deployment set and nothing ever cleared, so every
+                    later install in that process took the remote path
+                    whether or not it had a connection of its own to
+                    take it on -- and the one that did not died on
+                    `conn.done()` with nobody listening, leaving the
+                    request unanswered and the instance held.
+                */
+                let isRemote = false;
 
                 reqClient.currentUser(pUser);
                 f.datasource = pDatasource;
                 isInstalling = true;
 
-                async function init() {
-                    let pkgName;
-
+                /*
+                    The database this install writes to, and what kind
+                    it is. Every path through this function needs it,
+                    including the one that tracks no progress, so it is
+                    its own step rather than part of the progress
+                    set-up it used to sit in: an install aimed at
+                    another database but sent down that path wrote to
+                    the caller's own instead.
+                */
+                async function openTarget() {
                     // If target database is other than requestor's,
                     // connect to it
                     if (opts.tenant) {
@@ -150,6 +169,12 @@
                             pTarget = marked.rows[0].kind;
                         }
                     }
+                }
+
+                async function init() {
+                    let pkgName;
+
+                    await openTarget();
 
                     function getCount(loc) {
                         return new Promise(function (resolve) {
@@ -785,9 +810,22 @@
                                 }
                             }
                         }
-                        conn.done();
+
+                        // Only a remote install opened one
+                        if (conn) {
+                            conn.done();
+                        }
                     }
 
+                    /*
+                        Both endings answer the caller whatever
+                        happens. A throw in here used to float away as
+                        an unhandled rejection with the install's own
+                        promise never settled, so the request that
+                        asked for it waited for an answer that was
+                        never coming -- and a deployment waiting like
+                        that leaves the instance held.
+                    */
                     function complete() {
                         isInstalling = false;
                         if (isRemote) {
@@ -796,7 +834,7 @@
                             ).then(function () {
                                 console.log("Remote installation completed!");
                                 resolve();
-                            });
+                            }).catch(reject);
                             return;
                         }
 
@@ -815,7 +853,7 @@
                         }).then(pProcess.complete).then(function () {
                             console.log("Installation completed!");
                             resolve();
-                        });
+                        }).catch(reject);
                     }
 
                     // We deferred propagating views on every feather
@@ -980,13 +1018,21 @@
                 }
 
                 if (pIsSuper && !pProcessId) {
-                    // Run from the command line, so nobody is watching
-                    // and there is nothing to track it by
+                    // Run from the command line, or from a screen that
+                    // tracks its own progress: nobody is watching a
+                    // ServerProcess, so there is none to keep. The
+                    // target database is still the target database.
                     pProcess = {
                         next: () => true,
                         complete: () => true
                     };
-                    registerNpmModules(true).then(doInstall);
+                    openTarget().then(
+                        () => registerNpmModules(true)
+                    ).then(
+                        doInstall
+                    ).catch(
+                        reject
+                    );
                     return;
                 }
 
