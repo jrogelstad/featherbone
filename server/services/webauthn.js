@@ -123,11 +123,7 @@
     */
     async function identityFor(mclient, req) {
         let instance = await manager.instance(mclient, req.tenant);
-        let found = await manager.identity(
-            mclient,
-            instance.organizationPk,
-            req.user.name
-        );
+        let found = await manager.identity(mclient, req.user.name);
 
         if (!found) {
             throw new Error(

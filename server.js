@@ -1968,13 +1968,6 @@
                 req.body.organization
             );
         } catch (err) {
-            if (err.code === "organization-required") {
-                res.status(409).json({
-                    code: err.code,
-                    message: err.message
-                });
-                return;
-            }
             logger.error("/sign-in: " + err);
             res.status(401).json({message: signInMessage(err)});
             return;
@@ -2189,7 +2182,11 @@
                     fullName: (
                         who.identity.full_name || who.identity.username
                     ),
-                    isOrgAdmin: who.identity.is_org_admin === true,
+                    isOrgAdmin: await manager.isOrgAdminOf(
+                        mclient,
+                        who.identity._pk,
+                        organization._pk
+                    ),
                     isPlatformAdmin: (
                         who.identity.is_platform_admin === true
                     ),
@@ -2233,8 +2230,7 @@
             let instances = await platform.run(
                 (mclient) => platform.instancesFor(
                     mclient,
-                    identity.username,
-                    identity.organization.id
+                    identity.username
                 )
             );
 
@@ -3229,6 +3225,12 @@
         return {
             email: identity.email,
             fullName: identity.fullName,
+            /*
+                Whether they administer an organization at all. Which
+                ones is the admin screens' own question, asked of the
+                organization in front of them, because one person may
+                administer several now.
+            */
             isOrgAdmin: identity.isOrgAdmin === true,
             isPlatformAdmin: identity.isPlatformAdmin === true,
             isSuper: false,
@@ -3258,7 +3260,6 @@
             let entry = await platform.mayEnter(
                 mclient,
                 identity.username,
-                identity.organization.id,
                 req.tenant.id,
                 identity.isPlatformAdmin === true
             );
@@ -4077,6 +4078,10 @@
         dbRouter.post(
             "/:db/admin/identity/org-admin",
             doAdmin("setOrgAdmin")
+        );
+        dbRouter.post(
+            "/:db/admin/identity/platform-admin",
+            doAdmin("setPlatformAdmin")
         );
         dbRouter.post("/:db/admin/grant", doAdmin("setGrant"));
         dbRouter.get("/:db/admin/instances", doAdmin("instanceOverview"));

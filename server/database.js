@@ -196,19 +196,30 @@
             identity row; what access that buys is the caller's to
             decide.
         */
-        async function verifyCredential(client, orgPk, username, pswd) {
+        /*
+            A username names one person across the whole installation
+            (John, Oct 2026), so the credential is found by the name
+            alone. It used to be looked up inside the organization of
+            the instance being signed in to, which meant the same name
+            could be a different person in each one -- and that the
+            people who answer for every organization had to exist
+            separately in each. Which instances this person may then
+            reach is the grant's business, checked by the caller, and
+            that is where the organization boundary properly lives.
+        */
+        async function verifyCredential(client, username, pswd) {
             let resp = await client.query(
                 (
                     "SELECT _pk, password_hash, status, " +
                     "  failed_attempts, locked_until, " +
-                    "  is_platform_admin, is_org_admin, " +
+                    "  is_platform_admin, " +
+                    "  _organization_organization_pk AS org_pk, " +
                     "  full_name, email, username " +
                     "FROM identity " +
-                    "WHERE _organization_organization_pk = $1 " +
-                    "  AND lower(username) = lower($2) " +
+                    "WHERE lower(username) = lower($1) " +
                     "  AND NOT is_deleted"
                 ),
-                [orgPk, username]
+                [username]
             );
             let row;
 
@@ -412,12 +423,7 @@
                     );
                 }
 
-                row = await verifyCredential(
-                    client,
-                    resp.rows[0].org,
-                    username,
-                    pswd
-                );
+                row = await verifyCredential(client, username, pswd);
 
                 // The access boundary: may this identity enter this
                 // instance?
@@ -475,61 +481,48 @@
             local profile is made: what comes back is the identity, and
             the caller decides which instances it may reach.
 
-            A username is unique within its organization, not across
-            the installation, so an ambiguous one has to say which
-            organization it means. The organization is never listed to
-            a caller who has not signed in -- that would say where a
-            username exists -- and the password is not tried against
-            each candidate either, since a wrong one would count a
-            failure against every organization and lock them all.
+            A username names one person across the installation, so
+            there is nothing to disambiguate: the organization argument
+            is still accepted, because old clients send one, and
+            refused only when it names an organization this person has
+            nothing to do with. Sign-in policy -- single sign-on, a
+            second factor -- is the home organization's, that being the
+            organization that holds the account.
         */
         async function authenticateIdentityOnly(username, pswd, orgName) {
             let obj = await that.connect();
 
             try {
                 let client = obj.client;
+                let row = await verifyCredential(client, username, pswd);
                 let resp = await client.query(
                     (
-                        "SELECT o._pk, o.id, o.name, o.authentication, " +
-                        "  o.is_two_factor_required " +
-                        "FROM identity i " +
-                        "JOIN organization o " +
-                        "  ON o._pk = i._organization_organization_pk " +
-                        "WHERE lower(i.username) = lower($1) " +
-                        "  AND i.status = 'active' " +
-                        "  AND NOT i.is_deleted " +
-                        "  AND o.is_active AND NOT o.is_deleted " +
-                        "ORDER BY o.name"
+                        "SELECT _pk, id, name, authentication, " +
+                        "  is_two_factor_required, is_active " +
+                        "FROM organization WHERE _pk = $1 " +
+                        "  AND NOT is_deleted"
                     ),
-                    [username]
+                    [row.org_pk]
                 );
-                let org;
-                let row;
+                let org = resp.rows[0];
 
-                if (!resp.rows.length) {
+                if (!org || org.is_active !== true) {
                     throw new Error("Invalid sign in credentials.");
                 }
 
-                if (orgName) {
-                    org = resp.rows.find(
-                        (r) => (
-                            r.name.toLowerCase() ===
-                            String(orgName).trim().toLowerCase()
-                        )
-                    );
-                    if (!org) {
-                        throw new Error("Invalid sign in credentials.");
-                    }
-                } else if (resp.rows.length > 1) {
-                    let err = new Error(
-                        "More than one organization has this user name. " +
-                        "Which one is yours?"
-                    );
-
-                    err.code = "organization-required";
-                    throw err;
-                } else {
-                    org = resp.rows[0];
+                if (
+                    orgName &&
+                    String(orgName).trim().toLowerCase() !==
+                    org.name.toLowerCase()
+                ) {
+                    /*
+                        A named organization that is not this person's
+                        own. It used to pick which of several identities
+                        was meant; now it can only be wrong, and saying
+                        how would say which organizations exist to
+                        somebody who has not got in yet.
+                    */
+                    throw new Error("Invalid sign in credentials.");
                 }
 
                 if (org.authentication === "sso") {
@@ -539,18 +532,21 @@
                     );
                 }
 
-                row = await verifyCredential(
-                    client,
-                    org._pk,
-                    username,
-                    pswd
-                );
                 await stampSignIn(client, row._pk);
+
+                let administers = await client.query(
+                    (
+                        "SELECT 1 FROM organization_admin " +
+                        "WHERE _identity_identity_pk = $1 " +
+                        "  AND is_active AND NOT is_deleted LIMIT 1"
+                    ),
+                    [row._pk]
+                );
 
                 return {
                     email: row.email || "",
                     fullName: row.full_name || row.username,
-                    isOrgAdmin: row.is_org_admin === true,
+                    isOrgAdmin: administers.rows.length > 0,
                     isPlatformAdmin: row.is_platform_admin === true,
                     isTwoFactorRequired: org.is_two_factor_required === true,
                     organization: {id: org.id, name: org.name},

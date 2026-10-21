@@ -128,35 +128,95 @@
 
             @method identity
             @param {Client} client Manager client
-            @param {Number} organizationPk
             @param {String} username
             @return {Promise} Row or undefined
         */
-        that.identity = async function (client, organizationPk, username) {
+        that.identity = async function (client, username) {
             let resp = await client.query(
                 (
                     "SELECT _pk, id, username, full_name, email, status, " +
                     "  password_hash, failed_attempts, locked_until, " +
-                    "  last_signed_in, is_platform_admin, is_org_admin " +
+                    "  last_signed_in, is_platform_admin, " +
+                    "  _organization_organization_pk AS organization_pk " +
                     "FROM identity " +
-                    "WHERE _organization_organization_pk = $1 " +
-                    "  AND lower(username) = lower($2) " +
+                    "WHERE lower(username) = lower($1) " +
                     "  AND NOT is_deleted"
                 ),
-                [organizationPk, username]
+                [username]
             );
 
             return resp.rows[0];
         };
 
         /**
+            Whether an identity administers an organization. An
+            appointment of its own rather than a flag on the person,
+            because one person may administer several organizations --
+            a reseller whose customers are their accounts, or the
+            platform's own staff standing in for any of them (John,
+            Oct 2026).
+
+            @method isOrgAdminOf
+            @param {Client} client Manager client
+            @param {Number} identityPk
+            @param {Number} organizationPk
+            @return {Promise} Boolean
+        */
+        that.isOrgAdminOf = async function (
+            client,
+            identityPk,
+            organizationPk
+        ) {
+            let resp = await client.query(
+                (
+                    "SELECT 1 FROM organization_admin " +
+                    "WHERE _identity_identity_pk = $1 " +
+                    "  AND _organization_organization_pk = $2 " +
+                    "  AND is_active AND NOT is_deleted"
+                ),
+                [identityPk, organizationPk]
+            );
+
+            return resp.rows.length > 0;
+        };
+
+        /**
+            The organizations an identity administers, newest first.
+
+            @method organizationsAdministered
+            @param {Client} client Manager client
+            @param {Number} identityPk
+            @return {Promise} Array of {id, name}
+        */
+        that.organizationsAdministered = async function (
+            client,
+            identityPk
+        ) {
+            let resp = await client.query(
+                (
+                    "SELECT o.id, o.name FROM organization_admin a " +
+                    "JOIN organization o " +
+                    "  ON o._pk = a._organization_organization_pk " +
+                    "WHERE a._identity_identity_pk = $1 " +
+                    "  AND a.is_active AND NOT a.is_deleted " +
+                    "  AND NOT o.is_deleted " +
+                    "ORDER BY lower(o.name)"
+                ),
+                [identityPk]
+            );
+
+            return resp.rows;
+        };
+
+        /**
             Create an identity in an organization, or return the one
             already there.
 
-            An existing identity keeps its password. The same username
-            in one organization is the same person -- the
-            test-and-production case -- and creating an account for them
-            in a second instance is a grant, not a password reset.
+            An existing identity keeps its password. One username is
+            one person across the installation, so finding them already
+            there is the ordinary case -- giving them another instance,
+            or another organization's work, is a grant, not a password
+            reset.
 
             @method addIdentity
             @param {Client} client Manager client
@@ -171,11 +231,7 @@
         */
         that.addIdentity = async function (client, data) {
             let by = data.by || "system";
-            let found = await that.identity(
-                client,
-                data.organizationPk,
-                data.username
-            );
+            let found = await that.identity(client, data.username);
 
             if (found) {
                 return {created: false, identityPk: found._pk};
@@ -388,6 +444,16 @@
             identity, because this is what the administration screen
             reads on every visit.
 
+            Who this organization's administrator is answerable for:
+            the accounts it owns, anyone granted one of its instances,
+            and anyone appointed to administer it. The last two are new
+            with global usernames -- somebody from outside, a reseller
+            or the platform's own staff, holds one account and appears
+            in each organization they work in rather than once per
+            organization (John, Oct 2026). `isOrgAdmin` is about this
+            organization, not about the person, and `homeOrganization`
+            says whose account it is.
+
             @method identities
             @param {Client} client Manager client
             @param {Number} organizationPk
@@ -399,9 +465,17 @@
                     "SELECT i.id, i.username, i.full_name, i.email, " +
                     "  i.status, i.failed_attempts, i.locked_until, " +
                     "  i.last_signed_in, i.is_platform_admin, " +
-                    "  i.is_org_admin, " +
+                    "  (a._pk IS NOT NULL) AS is_org_admin, " +
+                    "  home.name AS home_organization, " +
+                    "  (i._organization_organization_pk = $1) AS is_home, " +
                     "  COALESCE(g.grants, '[]'::json) AS grants " +
                     "FROM identity i " +
+                    "LEFT JOIN organization home " +
+                    "  ON home._pk = i._organization_organization_pk " +
+                    "LEFT JOIN organization_admin a " +
+                    "  ON a._identity_identity_pk = i._pk " +
+                    "    AND a._organization_organization_pk = $1 " +
+                    "    AND a.is_active AND NOT a.is_deleted " +
                     "LEFT JOIN (" +
                     "  SELECT ag._identity_identity_pk AS pk, " +
                     "    json_agg(json_build_object(" +
@@ -411,10 +485,13 @@
                     "  FROM access_grant ag " +
                     "  JOIN tenant t ON t._pk = ag._tenant_tenant_pk " +
                     "  WHERE NOT ag.is_deleted AND NOT t.is_deleted " +
+                    "    AND t._organization_organization_pk = $1 " +
                     "  GROUP BY ag._identity_identity_pk" +
                     ") g ON g.pk = i._pk " +
-                    "WHERE i._organization_organization_pk = $1 " +
-                    "  AND NOT i.is_deleted " +
+                    "WHERE NOT i.is_deleted AND (" +
+                    "  i._organization_organization_pk = $1 " +
+                    "  OR a._pk IS NOT NULL " +
+                    "  OR g.pk IS NOT NULL) " +
                     "ORDER BY lower(i.username)"
                 ),
                 [organizationPk]
@@ -424,22 +501,28 @@
         };
 
         /**
-            One identity of an organization by its public id.
+            One identity by its public id, with whether it
+            administers the organization asking.
 
             @method identityById
             @param {Client} client Manager client
-            @param {Number} organizationPk
+            @param {Number} organizationPk The organization asking
             @param {String} id
             @return {Promise} Row or undefined
         */
         that.identityById = async function (client, organizationPk, id) {
             let resp = await client.query(
                 (
-                    "SELECT _pk, id, username, full_name, email, status, " +
-                    "  is_platform_admin, is_org_admin " +
-                    "FROM identity " +
-                    "WHERE _organization_organization_pk = $1 " +
-                    "  AND id = $2 AND NOT is_deleted"
+                    "SELECT i._pk, i.id, i.username, i.full_name, " +
+                    "  i.email, i.status, i.is_platform_admin, " +
+                    "  i._organization_organization_pk AS organization_pk, " +
+                    "  (a._pk IS NOT NULL) AS is_org_admin " +
+                    "FROM identity i " +
+                    "LEFT JOIN organization_admin a " +
+                    "  ON a._identity_identity_pk = i._pk " +
+                    "    AND a._organization_organization_pk = $1 " +
+                    "    AND a.is_active AND NOT a.is_deleted " +
+                    "WHERE i.id = $2 AND NOT i.is_deleted"
                 ),
                 [organizationPk, id]
             );
@@ -851,17 +934,99 @@
             @method setOrgAdmin
             @param {Client} client Manager client
             @param {Number} identityPk
+            @param {Number} organizationPk Organization administered
             @param {Boolean} isOrgAdmin
             @param {String} [by] Who to record as the author
             @return {Promise}
         */
-        that.setOrgAdmin = async function (client, identityPk, isOrgAdmin, by) {
+        that.setOrgAdmin = async function (
+            client,
+            identityPk,
+            organizationPk,
+            isOrgAdmin,
+            by
+        ) {
+            let author = by || "system";
+            let appointer = await client.query(
+                (
+                    "SELECT _pk FROM identity " +
+                    "WHERE lower(username) = lower($1) AND NOT is_deleted"
+                ),
+                [author]
+            );
+            let appointedBy = (
+                appointer.rows.length
+                ? appointer.rows[0]._pk
+                : null
+            );
+            let found = await client.query(
+                (
+                    "SELECT _pk FROM organization_admin " +
+                    "WHERE _identity_identity_pk = $1 " +
+                    "  AND _organization_organization_pk = $2 " +
+                    "  AND NOT is_deleted"
+                ),
+                [identityPk, organizationPk]
+            );
+
+            if (found.rows.length) {
+                await client.query(
+                    (
+                        "UPDATE organization_admin SET is_active = $2, " +
+                        "  appointed = now(), " +
+                        "  _appointed_by_identity_pk = $3, " +
+                        "  updated = now(), updated_by = $4 " +
+                        "WHERE _pk = $1"
+                    ),
+                    [
+                        found.rows[0]._pk,
+                        isOrgAdmin === true,
+                        appointedBy,
+                        author
+                    ]
+                );
+                return;
+            }
+
+            if (isOrgAdmin !== true) {
+                return;
+            }
+
             await client.query(
                 (
-                    "UPDATE identity SET is_org_admin = $2, " +
+                    "INSERT INTO organization_admin (" + DOC_COLS + "," +
+                    "_identity_identity_pk,_organization_organization_pk," +
+                    "is_active,appointed,_appointed_by_identity_pk) " +
+                    "VALUES (" + DOC_VALS + ",$3,$4,true,now(),$5)"
+                ),
+                [f.createId(), author, identityPk, organizationPk, appointedBy]
+            );
+        };
+
+        /**
+            Make an identity a platform administrator, or stop it being
+            one. The platform is one thing, so this is a flag on the
+            person rather than an appointment over something.
+
+            @method setPlatformAdmin
+            @param {Client} client Manager client
+            @param {Number} identityPk
+            @param {Boolean} isPlatformAdmin
+            @param {String} [by] Who to record as the author
+            @return {Promise}
+        */
+        that.setPlatformAdmin = async function (
+            client,
+            identityPk,
+            isPlatformAdmin,
+            by
+        ) {
+            await client.query(
+                (
+                    "UPDATE identity SET is_platform_admin = $2, " +
                     "updated = now(), updated_by = $3 WHERE _pk = $1"
                 ),
-                [identityPk, isOrgAdmin === true, by || "system"]
+                [identityPk, isPlatformAdmin === true, by || "system"]
             );
         };
 

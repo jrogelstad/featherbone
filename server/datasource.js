@@ -1137,11 +1137,7 @@
 
             let actor = (
                 organizationPk
-                ? await manager.identity(
-                    mclient,
-                    organizationPk,
-                    user || ""
-                )
+                ? await manager.identity(mclient, user || "")
                 : undefined
             );
 
