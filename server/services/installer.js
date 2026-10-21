@@ -145,8 +145,24 @@
                     if (opts.tenant) {
                         conn = await db.connect(opts.tenant);
                         pClient = conn.client;
-                        pClient.currentUser(pUser);
                         isRemote = true;
+
+                        /*
+                            Who this connection writes as. A trusted
+                            install acts as the service account, which
+                            is what the caller's own connection was
+                            already given (datasource.install) and what
+                            a deployment needs: the operator who asked
+                            is generally not a user of the instance
+                            being deployed to at all, and the ownership
+                            checks are written for users of it. The
+                            operator is in the audit, not in the rows.
+                        */
+                        if (pIsSuper) {
+                            pClient.currentUser = reqClient.currentUser;
+                        } else {
+                            pClient.currentUser(pUser);
+                        }
                     }
 
                     /*
@@ -265,8 +281,26 @@
                     });
                 }
 
+                /*
+                    A failed install gives back the connection it
+                    opened, as a finished one does. It used to keep it:
+                    the client stayed checked out of the instance's
+                    pool for the life of the process, and since ending
+                    a pool waits for its clients to come back, the next
+                    thing needing that instance to itself -- a template
+                    copy, a drop -- waited with it, forever. One failed
+                    deployment was enough.
+                */
                 function rollback(err) {
                     pClient.query("ROLLBACK;", function () {
+                        if (conn) {
+                            try {
+                                conn.done();
+                            } catch (ignore) {
+                                // Already given back
+                            }
+                            conn = undefined;
+                        }
                         console.error(err);
                         console.error("Installation failed.");
                         reject(err);
