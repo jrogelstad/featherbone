@@ -127,6 +127,26 @@ describe("the platform console (G.2, G.3)", function () {
         await flags(PLATFORM, {isOrgAdmin: true, isPlatformAdmin: true});
     });
 
+    it("lists the people who could be appointed", async function () {
+        let session = await signedInPlatform();
+        let overview = await session.get("/platform/overview");
+        let names = overview.people.map((one) => one.username);
+
+        assert.ok(names.includes(PLATFORM), "a person who can sign in");
+        assert.ok(names.includes(ORG_ADMIN), "from another account too");
+        assert.deepEqual(
+            names,
+            names.slice().sort(
+                (a, b) => a.toLowerCase().localeCompare(b.toLowerCase())
+            ),
+            "in name order"
+        );
+        assert.ok(
+            overview.people.every((one) => one.username),
+            "each one named"
+        );
+    });
+
     it("lists every organization with what it owns", async function () {
         let session = await signedInPlatform();
         let overview = await session.get("/platform/overview");
