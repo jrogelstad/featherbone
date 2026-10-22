@@ -4102,6 +4102,7 @@
                     }),
                     installed: await datasource.installedPackages(),
                     organizations: await platform.organizations(mclient),
+                    people: await platform.people(mclient),
                     providers: await platform.providers(mclient),
                     /*
                         The framework this server runs. Core comes
