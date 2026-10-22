@@ -34,7 +34,21 @@
 const adminPage = {};
 
 // The right-click menu offers what the toolbar does, in that order
-const MENU_KEYS = ["edit", "status", "password", "grant", "admin"];
+const MENU_KEYS = [
+    "edit", "status", "password", "grant", "admin", "platform"
+];
+
+/*
+    A user name that is an email address. Deliberately shallow: this
+    only decides whether to offer the same text as the email address,
+    which the person can overtype, so anything stricter would refuse
+    valid addresses for no gain.
+*/
+function isEmail(said) {
+    let text = String(said || "").trim();
+
+    return (/^[^@\s]+@[^@\s.]+\.[^@\s]+$/).test(text);
+}
 
 const STATUS_ICON = {
     active: "check_circle",
@@ -59,6 +73,8 @@ adminPage.viewModel = function () {
         sendInvite: f.prop(true),
         username: f.prop("")
     };
+    // Whether the email was typed rather than taken from the user name
+    let emailTouched = false;
     let pwd = {
         confirm: f.prop(""),
         id: f.prop(""),
@@ -272,6 +288,7 @@ adminPage.viewModel = function () {
         newUser.password("");
         newUser.sendInvite(true);
         newUser.username("");
+        emailTouched = false;
         vm.addUserDialog().show();
     };
 
@@ -359,6 +376,23 @@ adminPage.viewModel = function () {
         }).then(vm.refresh).catch(fail);
     };
 
+    /**
+        Make this person a platform administrator, or stand them down.
+        One account answers for every organization (John, Oct 2026), so
+        this is the whole of it -- there is no second account to make
+        anywhere.
+
+        @method doPlatformAdmin
+        @param {Object} identity
+        @param {Boolean} isPlatformAdmin
+    */
+    vm.doPlatformAdmin = function (identity, isPlatformAdmin) {
+        request("POST", "/admin/identity/platform-admin", {
+            id: identity.id,
+            isPlatformAdmin
+        }).then(vm.refresh).catch(fail);
+    };
+
     // ..........................................................
     // PRIVATE
     //
@@ -430,7 +464,24 @@ adminPage.viewModel = function () {
                 m("label", {for: "fbAdminNewName"}, "User name:"),
                 m("input", {
                     id: "fbAdminNewName",
-                    oninput: (e) => newUser.username(e.target.value),
+                    oninput: function (e) {
+                        newUser.username(e.target.value);
+                        /*
+                            People reach for their email address as a
+                            user name, it being universal and memorable
+                            (John, Oct 2026), and then type it again
+                            below. Copied across while the email is
+                            still untouched, so anyone who wants a
+                            different address just types one.
+                        */
+                        if (!emailTouched) {
+                            newUser.email(
+                                isEmail(e.target.value)
+                                ? e.target.value
+                                : ""
+                            );
+                        }
+                    },
                     required: true,
                     value: newUser.username()
                 })
@@ -447,7 +498,10 @@ adminPage.viewModel = function () {
                 m("label", {for: "fbAdminNewEmail"}, "Email:"),
                 m("input", {
                     id: "fbAdminNewEmail",
-                    oninput: (e) => newUser.email(e.target.value),
+                    oninput: function (e) {
+                        emailTouched = true;
+                        newUser.email(e.target.value);
+                    },
                     type: "email",
                     value: newUser.email()
                 })
@@ -675,6 +729,7 @@ adminPage.component = {
         let instances = data.instances || [];
         let audit = data.audit || [];
         let orgWide = vm.isOrgWide();
+        let isPlatform = data.tier === "platform";
         /*
             What the table lists. A selection that has been filtered
             out is no selection (find() looks here), so the toolbar
@@ -864,6 +919,38 @@ adminPage.component = {
                 () => vm.doOrgAdmin(identity, !identity.isOrgAdmin)
             );
 
+            entry(
+                "platform",
+                (
+                    (!none && identity.isPlatformAdmin)
+                    ? "Stand down"
+                    : "Platform admin"
+                ),
+                (
+                    none
+                    ? "Select a user"
+                    : (
+                        isPlatform
+                        ? (
+                            identity.isPlatformAdmin
+                            ? "Stop " + identity.username +
+                                " administering every organization"
+                            : "Let " + identity.username +
+                                " administer every organization"
+                        )
+                        : (
+                            "Only a platform administrator may " +
+                            "appoint another"
+                        )
+                    )
+                ),
+                none || !isPlatform,
+                () => vm.doPlatformAdmin(
+                    identity,
+                    !identity.isPlatformAdmin
+                )
+            );
+
             return list;
         }
 
@@ -975,7 +1062,12 @@ adminPage.component = {
                 toolbarButton(current.status),
                 toolbarButton(current.password),
                 toolbarButton(current.grant),
-                toolbarButton(current.admin)
+                toolbarButton(current.admin),
+                (
+                    isPlatform
+                    ? toolbarButton(current.platform)
+                    : undefined
+                )
             ]),
             m("div", {class: "fb-title"}, [
                 f.icon("manage_accounts", "fb-title-icon"),
@@ -1125,6 +1217,19 @@ adminPage.component = {
                                     ? m("span", {
                                         class: "fb-admin-tag"
                                     }, "admin")
+                                    : undefined
+                                ),
+                                (
+                                    identity.homeOrganization
+                                    ? m("span", {
+                                        class: "fb-admin-tag",
+                                        title: (
+                                            identity.username +
+                                            "'s account belongs to " +
+                                            identity.homeOrganization +
+                                            ", and works here too"
+                                        )
+                                    }, identity.homeOrganization)
                                     : undefined
                                 )
                             ]),

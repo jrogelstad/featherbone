@@ -40,6 +40,11 @@
         },
         {
             "type": "execute",
+            "path": "scripts/merge-duplicate-identities.js",
+            "target": "manager"
+        },
+        {
+            "type": "execute",
             "path": "scripts/manager-constraints.js",
             "target": "manager"
         },

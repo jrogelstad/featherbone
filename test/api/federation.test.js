@@ -379,23 +379,34 @@ describe("signing in through an identity provider (C.3, C.4)",
             "the same person"
         );
 
-        let after = await manager((client) => client.query(
-            "SELECT is_org_admin FROM identity WHERE _pk = $1",
-            [promoted.identity._pk]
-        ));
+        /*
+            Administering an organization is an appointment over that
+            organization now, so the claim writes one -- and over this
+            provider's organization alone, an administrator elsewhere
+            being somebody else's appointment.
+        */
+        function appointments() {
+            return manager((client) => client.query(
+                (
+                    "SELECT count(*)::int AS n FROM organization_admin " +
+                    "WHERE _identity_identity_pk = $1 " +
+                    "  AND is_active AND NOT is_deleted"
+                ),
+                [promoted.identity._pk]
+            ));
+        }
 
-        assert.equal(after.rows[0].is_org_admin, true, "promoted");
+        let after = await appointments();
+
+        assert.equal(after.rows[0].n, 1, "promoted");
 
         await resolve({groups: ["something-else"]});
 
-        let back = await manager((client) => client.query(
-            "SELECT is_org_admin FROM identity WHERE _pk = $1",
-            [promoted.identity._pk]
-        ));
+        let back = await appointments();
 
         assert.equal(
-            back.rows[0].is_org_admin,
-            false,
+            back.rows[0].n,
+            0,
             "and demoted when the claim goes"
         );
     });

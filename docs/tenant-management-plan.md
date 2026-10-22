@@ -1004,7 +1004,9 @@ the command line's alone. All four are done.*
       session belonged to one instance from the start, so the grant is
       read again at the door and recorded on the session. A revoked
       grant shuts the door at the next entry rather than at expiry.
-    - A user name is unique within its organization, so an ambiguous
+    - (Superseded by ADR-001 revision 4, 2026-10-21: a user name is now
+      unique across the installation and nothing is ambiguous.)
+      A user name is unique within its organization, so an ambiguous
       one is asked which organization it means -- without the
       organizations being listed to someone who has not signed in, and
       without trying the password against each, which would count a

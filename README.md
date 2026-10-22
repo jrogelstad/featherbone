@@ -72,16 +72,18 @@ there (the default is `instance`).
 
 Sign-in is by identity (ADR-001, `docs/adr-001-identity-and-tenancy.md`):
 the password is verified in Node against the `identity` table in the
-manager. An identity belongs to an organization, a username is unique
-within its organization, and an `access_grant` row per instance says which
-databases the identity may enter -- so one person is one password across
-their test and production instances. No Postgres login role is involved:
+manager. A username names one person across the whole installation, an
+identity's organization says who owns the account, and an `access_grant`
+row per instance says which databases the identity may enter -- so one
+person is one password across every instance they reach, in whatever
+organization. An email address works as a username, which is what people
+reach for anyway. No Postgres login role is involved:
 the service account in `config.json` is the only role Featherbone uses,
 and it needs no `CREATEROLE`.
 
 Managing users never touches the cluster. Creating a user account creates
-the identity in the organization of the instance it was created in and
-grants that instance; setting a password writes the identity's hash, so it
+the identity, owned by the organization of the instance it was created
+in, and grants that instance; setting a password writes the identity's hash, so it
 changes once for every instance the person can reach; deactivating or
 deleting the account deactivates that instance's grant and leaves the
 identity and the grant row in place, so the record of who could reach what
@@ -92,8 +94,7 @@ survives. Group roles and memberships are rows in `role` and
 `user_account` row -- the profile that holds preferences and the contact
 link -- and somebody granted an instance they have never opened has
 none. It is made for them the first time they sign in, on the strength
-of the grant: active identity, same organization as the instance, active
-grant to it. The profile joins `everyone` and nothing else, and the
+of the grant: active identity and an active grant to that instance. The profile joins `everyone` and nothing else, and the
 making of it is audited as `user_account.provisioned`. Nothing is
 created for a failed sign-in. A user who already exists in the
 organization is granted access and keeps the password they already have.
@@ -114,13 +115,12 @@ next entry. An instance that is closed or down for maintenance is
 listed and marked rather than hidden, so somebody who was working in it
 yesterday is told why it will not open.
 
-A username is unique within its organization, not across the
-installation, so a name that exists in two organizations is asked which
-one it means. The picker never lists the organizations to someone who
-has not signed in -- that would say where a username exists -- and it
-does not try the password against each candidate either, since a wrong
-one would count a failure against every one of them and lock them all.
-Type the organization's name and sign in again.
+A username is unique across the installation, so signing in asks
+nothing about organizations: the name is one person, and what they may
+reach is what they have been granted. Somebody granted instances in
+three organizations sees all three listed, each marked with whose it
+is. The picker still lists no organization to anybody who has not
+signed in.
 
 Two-factor organizations (`organization.isTwoFactorRequired`, ADR-001
 C.2) can pick here but sign in at the instance: the code is sent by the
@@ -234,27 +234,11 @@ it already made.
 ### Moving an existing installation
 
 An installation that predates identities has nobody who can sign in until
-it has been migrated, since there is no longer any other way in. Run
-`node scripts/migrate-identities.js` (a dry run; add `--apply` to write).
-It creates the organization, attaches registered instances, and makes an
-identity per existing user with an access grant per instance. Given
-superuser credentials (`--username`/`--password`) it also copies each
-user's password verifier from `pg_authid`, so every password keeps working
-and is re-hashed to the application's own form (scrypt) on first sign-in.
-`--org-admin <username>` appoints the organization's first administrator;
-nothing else does. Then re-run `node install.js --instance <name>` on each
-instance so it carries the current scripts, and restart.
-
-```bash
-node scripts/migrate-identities.js --apply \
-    --username postgres --password <pw> \
-    --organization "<your organization>" --org-admin admin
-node install.js --instance <name>
-```
-
-The migration is one way: once an installation is on identities there is
-no path back to Postgres login roles, and no tooling for one. The safety
-net before it is a backup:
+its users have been made identities. That one-time backfill is no longer
+part of the tree: every installation in use has been moved, and the
+script (`scripts/migrate-identities.js`) was removed. If you do hold an
+older one, run the script from the `v3.0.0-alpha.1` tag against it, then
+come back to this version. Take a backup first; the move was one way:
 
 ```bash
 pg_dump <each instance> > <name>-before-cutover.sql
@@ -268,44 +252,35 @@ no longer needs it.
 ### Upgrading where there is no command line
 
 A hosted installation is deployed by restarting the process, and there is
-often nowhere to type the three acts above. `selfUpgrade` runs them when
-the server starts, before anything reads a database:
+often nowhere to type the upgrade. Two switches do what `install.js
+--manager` and `install.js --instance <name>` would have done, when the
+server starts and before anything reads a database:
 
 ```jsonc
 {
-    "selfUpgrade": true,
-    "selfUpgradeInstances": ["acme"],   // empty: every registered instance
-    "selfUpgradeOrganization": "Acme"
+    "selfUpgradeManager": true,
+    "selfUpgradeInstances": true
 }
 ```
 
-It is off by default. On, each step first asks whether it has anything to
-do, so an ordinary restart of a current installation runs nothing and
-costs two queries:
+Both are off by default, and each can be supplied as an environment
+variable of the same name. On, each one first compares the Core version a
+database carries with this checkout's `manifest.json`, so an ordinary
+restart of a current installation runs nothing and costs a few queries:
 
-1. **The manager**, when the database named by `managerDatabase` is absent
-   or carries no `manager` marker — `install.js --manager`.
-2. **Each instance** whose Core version is behind this checkout's
-   `manifest.json`, or that carries no version at all because it predates
-   the manager — `install.js --instance <name>`. With
-   `selfUpgradeInstances` empty the list is the registry, which is what
-   every restart after the first one sees; name the instances explicitly
-   for the first upgrade, when there is no registry to read yet.
-3. **The identity backfill**, and only when `selfUpgradeIdentities` is on
-   *and* one of the steps above ran — `migrate-identities.js --apply`.
-   That migration is one way with no rollback tooling, so it has its own
-   switch: turning on `selfUpgrade` does not turn it on.
-   `selfUpgradeOrgAdmin` appoints the first organization administrator,
-   and `selfUpgradeSuperuser`/`selfUpgradeSuperuserPassword` let it copy
-   each user's password verifier out of `pg_authid` so existing passwords
-   keep working. Without them every identity it makes has to be reset.
+1. **`selfUpgradeManager`** — the manager database is absent, is not a
+   manager, or carries a Core version behind this checkout's:
+   `install.js --manager`. That applies the whole manifest to the manager,
+   including the steps that reshape its data.
+2. **`selfUpgradeInstances`** — every instance in the manager's registry
+   whose Core version is behind this checkout's, or that carries none:
+   `install.js --instance <name>`. There is no list to keep; the registry
+   is the list. (A manager built by this very boot has no registry yet, so
+   the instances follow on the next start.)
 
-What runs is the command line itself, as a child process: the same
-`install.js` and `scripts/migrate-identities.js` that would have been
-typed, given the flags these settings name. Every setting can be supplied
-as an environment variable of the same name, which is how a hosted
-installation is usually configured — `selfUpgradeInstances` takes a comma
-separated list there, since an environment variable cannot carry an array.
+The manager goes first. What runs is the command line itself, as a child
+process, so there is one installer to keep right. Neither switch touches
+identities or organizations.
 
 One upgrade runs at a time across nodes, on an advisory lock taken on the
 cluster's maintenance database; a node that loses waits, and then finds
@@ -350,8 +325,8 @@ as working rather than hung, fleet-wide ones especially.
 Note that this upgrades a database that is **already registered**. A
 database that predates the manager has no `"$db"` marker, so the console
 refuses to register it; `install.js --instance <name>` converts and
-registers it in one act, and `selfUpgradeInstances` is how to do that
-without a command line.
+registers it in one act. The self upgrade switches do not reach such a
+database either: they upgrade what the registry already holds.
 
 ### Settings the organization owns
 
@@ -409,18 +384,28 @@ What you may do depends on who you are (ADR-001):
 
 * a **platform administrator** (`identity.is_platform_admin`) may do
   everything;
-* an **organization administrator** (`identity.is_org_admin`) may manage
-  anyone in their organization and grant any of its instances;
-* a **tenant super user** with neither flag may only act on people who
+* an **organization administrator** -- an appointment over that
+  organization (`organization_admin`) -- may manage anyone in it and
+  grant any of its instances. One person may hold as many appointments
+  as they need, which is how a reseller administers several customers
+  from one account;
+* a **tenant super user** who is neither may only act on people who
   can already reach the instance they are signed in to.
 
-Sign-in is organization-scoped, so a platform administrator is never
-signed in to another organization's instance. For the emergency that
-rule would otherwise block -- an organization whose only administrator
-has left -- the Users screen offers platform administrators an
-organization picker: pick the organization, suspend the departed
-administrator, appoint the replacement. Every change is audited against
-the organization acted on.
+Any existing user can be appointed, whichever organization owns their
+account: appointing somebody is what brings them into an organization's
+administration, and nobody needs a second account to be appointed. What
+appointment does not hand over is the account itself -- its password and
+whether it may sign in at all stay with the organization that owns it,
+so appointing an outsider cannot become a way to take the account they
+use elsewhere. Only a platform administrator crosses that line.
+
+A session is established against one instance, so somebody who answers
+for several organizations names the one they mean: the Users screen
+offers an organization picker to platform administrators (every
+organization, which is also how an organization whose only
+administrator has left is rescued) and to anybody appointed over more
+than one. Every change is audited against the organization acted on.
 
 It is served from `client/components/admin-page.js`, which the
 unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
