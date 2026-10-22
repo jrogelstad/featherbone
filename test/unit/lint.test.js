@@ -4,8 +4,9 @@
     The project's own linter (`client/jslint.mjs`, the one the script
     editor uses) is run over each `.js` and `.mjs` file, honouring the
     jslint directive comment the file carries. node_modules, the
-    vendored archives, logs and the generated `client/clientmin.js` are
-    not the project's to lint.
+    vendored archives, logs, the tests of modules that live in other
+    repositories (`test/supplychain`) and the generated
+    `client/clientmin.js` are not the project's to lint.
 
     Not every file is clean yet, so the rule is a ratchet rather than
     zero: `test/lint-baseline.json` holds the warnings each file is
@@ -42,6 +43,13 @@ const SKIP_DIRS = new Set([
     "vendor"
 ]);
 
+/*
+    Directories whose tests belong to modules that live in their own
+    repositories (SupplyChain's Design, Billing and the rest) and are
+    linted there. The tests will be split the same way eventually.
+*/
+const SKIP_PATHS = ["test/supplychain"];
+
 // The linter itself, and a bundle generated from the client files.
 const SKIP_FILES = new Set([
     "client/clientmin.js",
@@ -59,7 +67,7 @@ async function sources(dir) {
         let rel = path.relative(ROOT, full).split(path.sep).join("/");
 
         if (ent.isDirectory()) {
-            if (!SKIP_DIRS.has(ent.name)) {
+            if (!SKIP_DIRS.has(ent.name) && !SKIP_PATHS.includes(rel)) {
                 found = found.concat(await sources(full));
             }
         } else if (
