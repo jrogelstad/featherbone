@@ -357,6 +357,64 @@
         }
     },
     {
+        "name": "OrganizationAdmin",
+        "plural": "OrganizationAdmins",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Which organizations an identity administers. One row per organization, because a person may administer more than one -- a reseller with several customers, or the platform's own staff standing in for any of them",
+        "authorizations": [],
+        "properties": {
+            "identity": {
+                "description": "Identity doing the administering",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName",
+                        "status"
+                    ]
+                },
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "organization": {
+                "description": "Organization administered",
+                "type": {
+                    "relation": "Organization",
+                    "properties": [
+                        "name",
+                        "isActive"
+                    ]
+                },
+                "isRequired": true,
+                "isAlwaysLoad": true
+            },
+            "isActive": {
+                "description": "Whether the appointment is in force",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true,
+                "isAlwaysLoad": true
+            },
+            "appointed": {
+                "description": "When the appointment was made",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null"
+            },
+            "appointedBy": {
+                "description": "Identity that made the appointment",
+                "type": {
+                    "relation": "Identity",
+                    "properties": [
+                        "username",
+                        "fullName"
+                    ]
+                }
+            }
+        }
+    },
+    {
         "name": "IdentityProvider",
         "plural": "IdentityProviders",
         "module": "Core",

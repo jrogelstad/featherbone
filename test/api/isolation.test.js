@@ -33,6 +33,8 @@ const OTHER_PW = "Fbtest-Other-Org-2!";
 const OTHER_DB = (settings.testDb + "_other").toLowerCase();
 const OTHER_ORG = "FBOther";
 const OTHER_ONLY = "fbt_other_only";
+const OTHER_ADMIN = "fbt_other_admin";
+const OTHER_USER = "fbt_other_user";
 
 const DOC_COLS = (
     "_pk,id,created,created_by,updated,updated_by,is_deleted," +
@@ -92,15 +94,42 @@ async function seed() {
                 ",_organization_organization_pk,username,full_name," +
                 "email,password_hash,status,is_platform_admin," +
                 "is_org_admin,failed_attempts) VALUES (" + docVals(id) +
-                ",$1,$2,$2,'',$3,'active',false,$4,0) RETURNING _pk"
+                ",$1,$2,$2,'',$3,'active',false,false,0) RETURNING _pk"
             ), [
                 orgPk,
                 name,
-                identities.hashPassword(password),
-                Boolean(flags && flags.isOrgAdmin)
+                identities.hashPassword(password)
             ]);
+            let pk = resp.rows[0]._pk;
 
-            return resp.rows[0]._pk;
+            if (flags && flags.isOrgAdmin) {
+                await appoint(id + "a", pk, orgPk);
+            }
+
+            return pk;
+        }
+
+        // Administering an organization is an appointment over it
+        async function appoint(id, identityPk, orgPk) {
+            let found = await client.query(
+                (
+                    "SELECT _pk FROM organization_admin " +
+                    "WHERE _identity_identity_pk = $1 " +
+                    "  AND _organization_organization_pk = $2"
+                ),
+                [identityPk, orgPk]
+            );
+
+            if (found.rows.length) {
+                return;
+            }
+
+            await client.query((
+                "INSERT INTO organization_admin (" + DOC_COLS +
+                ",_identity_identity_pk,_organization_organization_pk," +
+                "is_active,appointed) VALUES (" + docVals(id) +
+                ",$1,$2,true,now())"
+            ), [identityPk, orgPk]);
         }
 
         async function grant(id, identityPk, database) {
@@ -157,32 +186,29 @@ async function seed() {
         // The administrator has to be organization-wide for the
         // cross-organization writes below to be refused for the right
         // reason: not "you may not", but "no such identity here"
-        await client.query(
-            (
-                "UPDATE identity SET is_org_admin = true " +
-                "WHERE _pk = $1"
-            ),
-            [adminA]
-        );
+        await appoint("fbtisoadm0001", adminA, orgA);
 
         /*
-            Organization B: the same two usernames, different
-            passwords, plus one name that exists only here. No grant to
-            anything of A's -- that is the point.
+            Organization B: its own people, with names of their own. A
+            username names one person across the installation now
+            (John, Oct 2026), so two organizations no longer each
+            employ an "alice" -- what they still do not share is who
+            reaches what, which is the whole of this file. None of
+            these is granted anything of A's; that is the point.
         */
         let orgB = await organization("fbtorg000002", OTHER_ORG);
 
         await identity(
             "fbtisob00001",
             orgB,
-            settings.adminUser,
+            OTHER_ADMIN,
             OTHER_PW,
             {isOrgAdmin: true}
         );
         await identity(
             "fbtisob00002",
             orgB,
-            settings.basicUser,
+            OTHER_USER,
             OTHER_PW
         );
         await identity("fbtisob00003", orgB, OTHER_ONLY, OTHER_PW);
@@ -239,7 +265,7 @@ describe("two organizations are strangers (F.1)", function () {
             let resp = await identityPk(client, OTHER_ORG, OTHER_ONLY);
             idsOther.onlyThere = resp.rows[0].id;
 
-            resp = await identityPk(client, OTHER_ORG, settings.basicUser);
+            resp = await identityPk(client, OTHER_ORG, OTHER_USER);
             idsOther.sameName = resp.rows[0].id;
             hashes.b = resp.rows[0].password_hash;
 
@@ -251,10 +277,8 @@ describe("two organizations are strangers (F.1)", function () {
     after(unseed);
 
     describe("sign-in", function () {
-        it("keeps one password per organization for one username",
-                async function () {
-            // The same name in both organizations, and the two
-            // identities really do hold different secrets
+        it("keeps each person on their own credential", async function () {
+            // Two people, two secrets, whatever organizations they are in
             assert.notEqual(hashes.a, hashes.b, "two separate hashes");
 
             let mine = new Session(base);
@@ -266,7 +290,7 @@ describe("two organizations are strangers (F.1)", function () {
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
         });
 
-        it("refuses the other organization's password for that name",
+        it("refuses the other organization's password for our name",
                 async function () {
             let theirs = new Session(base);
             let resp = await theirs.signIn(settings.basicUser, OTHER_PW);
@@ -274,16 +298,20 @@ describe("two organizations are strangers (F.1)", function () {
             assert.equal(
                 resp.status,
                 401,
-                "B's password must not open A's instance"
+                "somebody else's password must not open this account"
             );
         });
 
         it("refuses the other organization's administrator outright",
                 async function () {
             let theirs = new Session(base);
-            let resp = await theirs.signIn(settings.adminUser, OTHER_PW);
+            let resp = await theirs.signIn(OTHER_ADMIN, OTHER_PW);
 
-            assert.equal(resp.status, 401, JSON.stringify(resp.body));
+            assert.equal(
+                resp.status,
+                401,
+                "their password is right and they still have no grant here"
+            );
 
             // And A's own administrator is untouched by any of it
             let ours = new Session(base);
@@ -296,7 +324,12 @@ describe("two organizations are strangers (F.1)", function () {
             );
         });
 
-        it("refuses a name that exists only in the other organization",
+        /*
+            The name exists -- every name does, installation-wide -- and
+            the password is right. What stops them is the grant, which
+            is the boundary now that the name is not one.
+        */
+        it("refuses somebody with no grant on this instance",
                 async function () {
             let theirs = new Session(base);
             let resp = await theirs.signIn(OTHER_ONLY, OTHER_PW);
@@ -308,7 +341,7 @@ describe("two organizations are strangers (F.1)", function () {
                 async function () {
             let theirs = new Session(base);
 
-            await theirs.signIn(settings.basicUser, OTHER_PW);
+            await theirs.signIn(OTHER_ONLY, OTHER_PW);
 
             // The failed sign-in leaves no usable session behind
             let resp = await theirs.raw("GET", "/sessions");
@@ -380,10 +413,8 @@ describe("two organizations are strangers (F.1)", function () {
             assert.equal(resp.status, 404, JSON.stringify(resp.body));
         });
 
-        it("cannot reset the password of its own name over there",
+        it("cannot reset the password of somebody else's user",
                 async function () {
-            // The case item 1.1 described: one administrator reaching
-            // another organization's user who happens to share a name
             let resp = await admin.raw("POST", "/admin/identity/password", {
                 id: idsOther.sameName,
                 password: "Fbtest-Hijack-3!"
@@ -398,7 +429,7 @@ describe("two organizations are strangers (F.1)", function () {
                     let row = await identityPk(
                         client,
                         OTHER_ORG,
-                        settings.basicUser
+                        OTHER_USER
                     );
 
                     assert.equal(row.rows[0].password_hash, hashes.b);
@@ -427,18 +458,65 @@ describe("two organizations are strangers (F.1)", function () {
             assert.equal(resp.status, 404, JSON.stringify(resp.body));
         });
 
-        it("cannot make them an administrator", async function () {
-            let resp = await admin.raw("POST", "/admin/identity/org-admin", {
-                id: idsOther.sameName,
-                isOrgAdmin: true
-            });
+        /*
+            Appointing somebody from outside is allowed and is the
+            point of the change -- it is how a reseller comes to
+            administer a customer -- but it hands over nothing of
+            theirs: their account stays their own organization's to
+            change, so the password they use elsewhere cannot be reset
+            from here.
+        */
+        it("may appoint somebody from outside, and still not take " +
+                "their account", async function () {
+            let appointed = await admin.raw(
+                "POST",
+                "/admin/identity/org-admin",
+                {id: idsOther.sameName, isOrgAdmin: true}
+            );
 
-            assert.equal(resp.status, 404, JSON.stringify(resp.body));
+            assert.equal(appointed.status, 200, JSON.stringify(
+                appointed.body
+            ));
+
+            let hijack = await admin.raw(
+                "POST",
+                "/admin/identity/password",
+                {id: idsOther.sameName, password: "Fbtest-Hijack-3!"}
+            );
+
+            assert.equal(hijack.status, 401, JSON.stringify(hijack.body));
+
+            await db.withClient(
+                settings.managerDb,
+                async function (client) {
+                    let row = await identityPk(client, OTHER_ORG, OTHER_USER);
+
+                    assert.equal(
+                        row.rows[0].password_hash,
+                        hashes.b,
+                        "their secret is untouched"
+                    );
+                }
+            );
+
+            // Put it back, the other claims reading the same fixture
+            await admin.raw("POST", "/admin/identity/org-admin", {
+                id: idsOther.sameName,
+                isOrgAdmin: false
+            });
         });
+
     });
 
-    describe("one person in two organizations (F.2)", function () {
-        it("keeps each identity on its own credential", async function () {
+    /*
+        What F.2 was about -- one person's business in one organization
+        not reaching another's -- with the model the other way up. The
+        person is one account now, so the separation that matters is
+        between accounts, and disabling somebody in one organization
+        cannot touch anybody else.
+    */
+    describe("one organization's people are their own (F.2)", function () {
+        it("keeps each person on their own credential", async function () {
             let mine = new Session(base);
 
             assert.equal(
@@ -446,19 +524,19 @@ describe("two organizations are strangers (F.1)", function () {
                     await mine.signIn(settings.basicUser, settings.password)
                 ).status,
                 200,
-                "their identity here works"
+                "our user signs in here"
             );
 
             let other = new Session(base);
 
             assert.equal(
-                (await other.signIn(settings.basicUser, OTHER_PW)).status,
+                (await other.signIn(OTHER_USER, OTHER_PW)).status,
                 401,
-                "their identity there is no use here"
+                "theirs has no grant here, right password and all"
             );
         });
 
-        it("leaves one working when the other is revoked",
+        it("leaves ours working when theirs is disabled",
                 async function () {
             await db.withClient(
                 settings.managerDb,
@@ -470,7 +548,7 @@ describe("two organizations are strangers (F.1)", function () {
                         "    i._organization_organization_pk = o._pk " +
                         "  WHERE o.name = $1 AND i.username = $2)"
                     ),
-                    [OTHER_ORG, settings.basicUser]
+                    [OTHER_ORG, OTHER_USER]
                 )
             );
 
@@ -481,7 +559,7 @@ describe("two organizations are strangers (F.1)", function () {
                     await mine.signIn(settings.basicUser, settings.password)
                 ).status,
                 200,
-                "disabling their other identity must not reach this one"
+                "disabling their user must not reach ours"
             );
         });
     });
@@ -582,13 +660,13 @@ describe("two organizations are strangers (F.1)", function () {
                             "  o._pk AND i.username = $1 " +
                             "  AND t.pg_database = $3"
                         ),
-                        [settings.adminUser, OTHER_ORG, OTHER_DB]
+                        [OTHER_ADMIN, OTHER_ORG, OTHER_DB]
                     );
                 }
             );
 
             theirs = new Session(baseOther);
-            resp = await theirs.signIn(settings.adminUser, OTHER_PW);
+            resp = await theirs.signIn(OTHER_ADMIN, OTHER_PW);
             assert.equal(
                 resp.status,
                 200,

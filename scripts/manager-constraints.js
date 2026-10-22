@@ -20,12 +20,21 @@
     Uniqueness the feather definitions cannot express (tenant plan A.3).
 
     A feather's `isNaturalKey` builds an ordinary index, not a unique one,
-    and there is no way to declare a constraint spanning two columns. The
-    one that matters most here is a username unique *within* an
-    organization and not across them: that is the whole point of improvement
-    item 1.1, where cluster-wide Postgres role names mean two customers
-    cannot both employ an `alice`. Enforcing it in application code alone
-    would leave the race open, so it is a database constraint.
+    and there is no way to declare a constraint spanning two columns.
+    Enforcing uniqueness in application code alone would leave the race
+    open, so these are database constraints.
+
+    A username is unique across the whole installation. It was once
+    unique only within an organization, so that two customers could each
+    employ an `alice` -- but a username that means a different person
+    depending on where you are standing cannot name the people who
+    stand everywhere: the platform administrator who answers for every
+    organization, and the reseller whose customers are several of them
+    (John, Oct 2026: "user names must be global and unique to the whole
+    system"). Those people had to be recreated in each organization,
+    which is no way to run a support desk. One name, one person, and an
+    email address -- which people reach for anyway, being universal and
+    memorable -- works as a username without further thought.
 
     Every index is partial on `NOT is_deleted`, because rows here are
     soft-deleted: a deleted identity must not reserve its username forever.
@@ -39,16 +48,33 @@
     const INDEXES = [
         {
             name: "identity_unique_username",
+            /*
+                An installation that predates global usernames has this
+                index keyed on the organization as well. It is dropped
+                and rebuilt rather than left: the duplicates it allowed
+                are merged by the step before this one, so by now there
+                are none to stand in the way.
+            */
+            stale: "_organization_organization_pk",
             sql: (
                 "CREATE UNIQUE INDEX IF NOT EXISTS " +
                 "identity_unique_username ON identity " +
-                "(_organization_organization_pk, lower(username)) " +
-                "WHERE NOT is_deleted"
+                "(lower(username)) WHERE NOT is_deleted"
             ),
             comment: (
-                "A username is unique within its organization, never across " +
-                "organizations (improvement item 1.1)"
+                "A username is unique across the installation, so one " +
+                "name is one person everywhere"
             )
+        },
+        {
+            name: "organization_admin_unique_pair",
+            sql: (
+                "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                "organization_admin_unique_pair ON organization_admin " +
+                "(_identity_identity_pk, _organization_organization_pk) " +
+                "WHERE NOT is_deleted"
+            ),
+            comment: "One appointment per identity and organization"
         },
         {
             name: "organization_unique_name",
@@ -121,6 +147,31 @@
             while (i < INDEXES.length) {
                 let idx = INDEXES[i];
                 i += 1;
+
+                /*
+                    An index whose shape has changed: CREATE ... IF NOT
+                    EXISTS would find the old one and leave it, so the
+                    old one goes first. Only when it really is the old
+                    one, so a current installation rebuilds nothing.
+                */
+                if (idx.stale) {
+                    let found = await obj.client.query(
+                        (
+                            "SELECT indexdef FROM pg_indexes " +
+                            "WHERE indexname = $1"
+                        ),
+                        [idx.name]
+                    );
+
+                    if (
+                        found.rows.length &&
+                        found.rows[0].indexdef.indexOf(idx.stale) !== -1
+                    ) {
+                        await obj.client.query(
+                            "DROP INDEX IF EXISTS " + idx.name
+                        );
+                    }
+                }
 
                 await obj.client.query(idx.sql);
                 // COMMENT is a utility statement and takes no bind

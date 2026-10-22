@@ -30,16 +30,17 @@ const {Identities} = require("../../server/services/identities");
 
 const identities = new Identities();
 const ROOT = settings.baseUrl.replace("/" + settings.testDb, "");
-const TWIN_ORG = "FBPickerTwin";
-const TWIN_PW = "Fbtest-Twin-Org-3!";
+const TWIN_ORG = "FBPickerGuest";
+const GUEST_PW = "Fbtest-Guest-Org-3!";
 /*
     This file's own identities. The grants are the subject, and the
     harness users carry whatever grants the other api files gave them,
     so these two are made here: SOLO is granted the first instance and
-    nothing else, and TWIN exists in two organizations.
+    nothing else, and GUEST belongs to a second organization while
+    working in this one.
 */
 const SOLO = "fbt_picker_solo";
-const TWIN = "fbt_picker_twin";
+const GUEST = "fbt_picker_guest";
 
 const DOC_COLS = (
     "_pk,id,created,created_by,updated,updated_by,is_deleted," +
@@ -54,12 +55,14 @@ function docVals(id) {
 }
 
 /*
-    A second organization carrying the same user name as the harness's
-    administrator, so "which organization is yours" has something to
-    be ambiguous about. Made here rather than assumed: the api files
-    run one at a time, each in its own process.
+    A second organization, and somebody whose account belongs to it.
+    A username names one person across the installation now (John, Oct
+    2026), so the question is no longer which organization a name
+    means: it is whether somebody owned by one organization can work
+    in another, which is what a reseller does. Made here rather than
+    assumed: the api files run one at a time, each in its own process.
 */
-async function seedTwin() {
+async function seedGuest() {
     await db.withClient(settings.managerDb, async function (client) {
         let org = await client.query(
             "SELECT _pk FROM organization WHERE name = $1",
@@ -81,32 +84,63 @@ async function seedTwin() {
         }
 
         let found = await client.query(
-            (
-                "SELECT _pk FROM identity WHERE username = $1 " +
-                "  AND _organization_organization_pk = $2"
-            ),
-            [TWIN, orgPk]
+            "SELECT _pk FROM identity WHERE lower(username) = lower($1)",
+            [GUEST]
         );
+        let identityPk;
 
-        if (!found.rows.length) {
-            await client.query((
+        if (found.rows.length) {
+            identityPk = found.rows[0]._pk;
+        } else {
+            let person = await client.query((
                 "INSERT INTO identity (" + DOC_COLS +
                 ",_organization_organization_pk,username,full_name," +
                 "email,password_hash,status,is_platform_admin," +
                 "is_org_admin,failed_attempts) VALUES (" +
                 docVals("fbtpick00002") +
-                ",$1,$2,$2,'',$3,'active',false,false,0)"
+                ",$1,$2,$2,'',$3,'active',false,false,0) RETURNING _pk"
             ), [
                 orgPk,
-                TWIN,
-                identities.hashPassword(TWIN_PW)
+                GUEST,
+                identities.hashPassword(GUEST_PW)
             ]);
+
+            identityPk = person.rows[0]._pk;
+        }
+
+        // Granted this organization's instance, not their own
+        let grant = await client.query(
+            (
+                "SELECT g._pk FROM access_grant g " +
+                "JOIN tenant t ON t._pk = g._tenant_tenant_pk " +
+                "WHERE g._identity_identity_pk = $1 " +
+                "  AND t.pg_database = $2 AND NOT g.is_deleted"
+            ),
+            [identityPk, settings.testDb]
+        );
+
+        if (!grant.rows.length) {
+            await client.query((
+                "INSERT INTO access_grant (" + DOC_COLS +
+                ",_identity_identity_pk,_tenant_tenant_pk,is_active," +
+                "granted) SELECT " + docVals("fbtpick00003") +
+                ",$1,_pk,true,now() FROM tenant WHERE pg_database = $2"
+            ), [identityPk, settings.testDb]);
         }
     });
 }
 
-async function unseedTwin() {
+async function unseedGuest() {
     await db.withClient(settings.managerDb, async function (client) {
+        await client.query(
+            (
+                "DELETE FROM access_grant WHERE " +
+                "_identity_identity_pk IN (SELECT _pk FROM identity " +
+                "  WHERE _organization_organization_pk = (SELECT _pk " +
+                "    FROM organization WHERE name = $1))"
+            ),
+            [TWIN_ORG]
+        );
         await client.query(
             (
                 "DELETE FROM identity WHERE " +
@@ -142,13 +176,11 @@ describe("the instance picker (G.1)", function () {
     before(async function () {
         // Granted the first instance and nothing else
         await db.ensureIdentity(SOLO, settings.password, settings.testDb);
-        // The same name in two organizations, granted nothing here
-        await db.ensureIdentity(TWIN, settings.password);
-        await seedTwin();
+        await seedGuest();
     });
 
     after(async function () {
-        await unseedTwin();
+        await unseedGuest();
         await grantState(SOLO, settings.testDb, true);
     });
 
@@ -230,44 +262,49 @@ describe("the instance picker (G.1)", function () {
         assert.equal(resp.body.isPlatformAdmin, false);
     });
 
-    it("asks which organization when the user name is in two",
+    /*
+        A username names one person across the installation (John, Oct
+        2026: "user names must be global and unique to the whole
+        system"), so signing in never asks which organization is meant
+        -- and an organization named is either this person's own or
+        wrong, which the generic refusal keeps to itself.
+    */
+    it("asks nothing about organizations, the name being one person",
             async function () {
-        let resp = await new Session(ROOT).signIn(TWIN, settings.password);
+        let resp = await new Session(ROOT).signIn(GUEST, GUEST_PW);
 
-        assert.equal(resp.status, 409, JSON.stringify(resp.body));
-        assert.equal(resp.body.code, "organization-required");
-        assert.ok(
-            !JSON.stringify(resp.body).includes(TWIN_ORG),
-            "and does not say where the name exists"
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal(resp.body.username, GUEST);
+        assert.equal(
+            resp.body.organization.name,
+            TWIN_ORG,
+            "the organization that owns the account"
         );
     });
 
     it("takes the organization when it is named", async function () {
         let resp = await new Session(ROOT).signIn(
-            TWIN,
-            settings.password,
-            "FBTest"
-        );
-
-        assert.equal(resp.status, 200, JSON.stringify(resp.body));
-        assert.equal(resp.body.organization.name, "FBTest");
-    });
-
-    it("tells the two apart by their own passwords", async function () {
-        let wrong = await new Session(ROOT).signIn(
-            TWIN,
-            TWIN_PW,
-            "FBTest"
-        );
-        let right = await new Session(ROOT).signIn(
-            TWIN,
-            TWIN_PW,
+            GUEST,
+            GUEST_PW,
             TWIN_ORG
         );
 
-        assert.equal(wrong.status, 401, "the twin's password is not ours");
-        assert.equal(right.status, 200, JSON.stringify(right.body));
-        assert.equal(right.body.organization.name, TWIN_ORG);
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal(resp.body.organization.name, TWIN_ORG);
+    });
+
+    it("refuses an organization that is not this person's", async function () {
+        let resp = await new Session(ROOT).signIn(
+            GUEST,
+            GUEST_PW,
+            "FBTest"
+        );
+
+        assert.equal(resp.status, 401, JSON.stringify(resp.body));
+        assert.ok(
+            !JSON.stringify(resp.body || "").includes(TWIN_ORG),
+            "and says nothing of where the account lives"
+        );
     });
 
     it("lists the instances the grants reach, and no others",
@@ -297,15 +334,44 @@ describe("the instance picker (G.1)", function () {
         );
     });
 
-    it("says nothing of another organization's instances",
+    /*
+        The reseller's case, and the point of the whole change: the
+        grant is the boundary, so an account owned by one organization
+        reaches instances of another when it is granted them, and each
+        instance says whose it is.
+    */
+    it("lists an instance of another organization that it is granted",
             async function () {
-        let twin = new Session(ROOT);
+        let guest = new Session(ROOT);
 
-        await twin.signIn(TWIN, TWIN_PW, TWIN_ORG);
+        await guest.signIn(GUEST, GUEST_PW);
 
-        let mine = await twin.get("/my/instances");
+        let mine = await guest.get("/my/instances");
 
-        assert.deepEqual(mine.instances, []);
+        assert.deepEqual(
+            mine.instances.map((i) => i.database),
+            [settings.testDb],
+            "granted here, though the account belongs elsewhere"
+        );
+        assert.equal(mine.identity.organization.name, TWIN_ORG);
+        assert.ok(
+            mine.instances[0].organization,
+            "and the instance says which organization it belongs to"
+        );
+    });
+
+    it("says nothing of instances it holds no grant on",
+            async function () {
+        let guest = new Session(ROOT);
+
+        await guest.signIn(GUEST, GUEST_PW);
+
+        let mine = await guest.get("/my/instances");
+
+        assert.ok(
+            !mine.instances.some((i) => i.database === settings.testDb2),
+            "the second instance was never granted"
+        );
     });
 
     it("enters an instance it is granted", async function () {

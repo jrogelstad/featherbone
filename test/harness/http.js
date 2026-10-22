@@ -89,7 +89,12 @@ class Session {
         builds the body from FormData, so the boundary is its to set --
         hence no Content-Type here.
     */
-    async upload(path, field, file) {
+    /*
+        `timeoutMs` is for a request that may never be answered: it
+        gives the test a clean failure instead of a file that hangs
+        until the runner gives up on it.
+    */
+    async upload(path, field, file, timeoutMs) {
         const fs = require("fs");
         const nodePath = require("path");
         let url = this.baseUrl + path;
@@ -105,6 +110,10 @@ class Session {
 
         if (this.cookie) {
             opts.headers.Cookie = this.cookie;
+        }
+
+        if (timeoutMs) {
+            opts.signal = AbortSignal.timeout(timeoutMs);
         }
 
         let resp = await fetch(url, opts);

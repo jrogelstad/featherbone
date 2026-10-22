@@ -131,12 +131,12 @@ visible change in 3.0 and the one an existing user meets first.
 
 * **Self upgrade at startup** (new in this alpha). A hosted installation
   is deployed by restarting the process, and often has nowhere to type
-  an upgrade. With `selfUpgrade` on, the server runs the same command
-  line acts itself before anything reads a database: build or upgrade
-  the manager, bring each instance behind this checkout's version
-  current, and — separately asked for, because it is one way — backfill
-  identities. Off by default; a restart of a current installation runs
-  nothing. See the README.
+  an upgrade. Two switches, `selfUpgradeManager` and
+  `selfUpgradeInstances`, run `install.js --manager` and
+  `install.js --instance <name>` themselves before anything reads a
+  database, for the manager and for every registered instance whose Core
+  version is behind this checkout's. Off by default; a restart of a
+  current installation runs nothing. See the README.
 * **Settings an organization owns travel with it, not with one
   database.** A customer's letterhead and mail account used to drift
   between production, test and demo; a property marked
@@ -199,23 +199,12 @@ now answer 200 to a signed-in session and 401 to anyone else.
 
 ### Upgrading from 2.2.0
 
-```bash
-pg_dump <each instance> > <name>-before-cutover.sql   # there is no way back
-node install.js --manager
-node install.js --instance <name>
-node scripts/migrate-identities.js --apply \
-    --username postgres --password <pw> \
-    --organization "<your organization>" --org-admin <user>
-```
-
-Until the migration has run, nobody can sign in: there is no longer any
-other way in. It is one way by design and there is no rollback tooling,
-so the backup is the safety net. Where there is no command line, set
-`selfUpgrade` (and `selfUpgradeIdentities`) and restart instead.
-
-Afterwards the old Postgres login roles are still on the cluster; drop
-them once you are satisfied, and revoke `CREATEROLE` from the service
-account.
+Moving an installation from before identities needed
+`scripts/migrate-identities.js`, which has since been removed because every
+installation in use has been moved. To upgrade one that has not, run that
+script from the `v3.0.0-alpha.1` tag first (take a backup: there is no way
+back), then upgrade this version with `node install.js --manager` and
+`node install.js --instance <name>`, or the self upgrade switches.
 
 ### Known gaps
 
