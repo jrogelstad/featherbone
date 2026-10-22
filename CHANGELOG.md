@@ -3,6 +3,14 @@
 Notable changes to Featherbone. Dates are the day the work landed on
 `master`.
 
+## Unreleased
+
+* **Install tells you how it went.** The Modules page's Install answers
+  what it installed and where, and a deployment that fails says which
+  package, which database, why, and that the instance is still held in
+  maintenance. The page shows both as a dialog (the bundled
+  `clientmin.js` is not rebuilt, so that needs `"debug": true` until it is).
+
 ## 3.0.0-alpha.1 — 2026-10-18
 
 The first alpha of 3.0. Everything an installation is made of changed
