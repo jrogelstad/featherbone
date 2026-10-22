@@ -448,8 +448,8 @@
                 it (John, Oct 2026). This has to run ahead of the
                 datasource: the manager it would connect to is one of
                 the things a first upgrade creates. Off unless
-                `selfUpgrade` says otherwise, and a no-op when
-                everything is already current.
+                `selfUpgradeManager` or `selfUpgradeInstances` say
+                otherwise, and a no-op when everything is current.
             */
             let upgraded = await upgrade.run(resp, logger).catch(
                 function (err) {
