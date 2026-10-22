@@ -145,6 +145,51 @@ const HOME_TAB = {
 
 const COLLAPSED_KEY = "fb-ribbon-collapsed";
 
+/*
+    Who the person is signed in as, for the label beside the alerts
+    bell (John, Oct 2026: "I'd like to see who I'm logged as over near
+    the alarm bell"). Username rather than display name, because that
+    is what an administrator asks them for and what the Users screen
+    lists them under; the full name, organization and what they
+    administer are in the tooltip, the organization being the part
+    nothing else on the screen says.
+
+    Everything here is read off the session user the server sent at
+    connect, so a field it did not send simply goes unmentioned
+    instead of showing as blank or undefined.
+*/
+function whoTitle(user) {
+    let names = [user.firstName, user.lastName];
+    let full = names.filter((part) => Boolean(part)).join(" ");
+    // The instance is the first segment of the path it is served at
+    let path = location.pathname || "";
+    let segments = path.split("/");
+    let instance = segments.filter((part) => Boolean(part))[0];
+    let lines = ["Signed in as " + user.name + (
+        full
+        ? " (" + full + ")"
+        : ""
+    )];
+
+    if (user.organization) {
+        lines.push("Organization: " + user.organization);
+    }
+
+    if (instance) {
+        lines.push("Instance: " + instance);
+    }
+
+    if (user.isPlatformAdmin) {
+        lines.push("Platform administrator");
+    } else if (user.isOrgAdmin) {
+        lines.push("Organization administrator");
+    }
+
+    lines.push("Click for account actions");
+
+    return lines.join("\n");
+}
+
 // How many hues featherbone.css cycles through for categories whose
 // name has no hue of its own -- see hueIndex() in view(), below.
 const HUE_COUNT = 8;
@@ -644,6 +689,8 @@ ribbon.component = {
         let selectedKey = vm.selected();
         let alertsWb = vm.alertsWorkbook();
         let alertsButton;
+        let whoButton;
+        let whoUser = f.currentUser() || {};
         let routeTab = (
             isHome
             ? HOME_TAB.key
@@ -849,6 +896,23 @@ ribbon.component = {
             }, f.icon(alertsWb.data.icon() || "notifications"));
         }
 
+        /*
+            Beside the bell, on every screen the ribbon is on. Clicking
+            it shows the Home tab, where the account buttons (Info,
+            Password, Sign Out) live, so the label is also the way to
+            them rather than a dead ornament.
+        */
+        if (whoUser.name) {
+            whoButton = m("button[type=button]", {
+                class: "fb-ribbon-whoami",
+                title: whoTitle(whoUser),
+                onclick: vm.chooseTab.bind(null, HOME_TAB.key)
+            }, [
+                f.icon("person"),
+                m("span", {class: "fb-ribbon-whoami-name"}, whoUser.name)
+            ]);
+        }
+
         let showBody = !collapsed || vm.isPopupOpen();
 
         return m("div", {
@@ -925,6 +989,7 @@ ribbon.component = {
                     class: "fb-ribbon-spacer"
                 }),
                 attrs.topRight || [],
+                whoButton,
                 alertsButton,
                 m("button[type=button]", {
                     class: "fb-ribbon-collapse",
