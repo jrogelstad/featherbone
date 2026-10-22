@@ -241,17 +241,17 @@ describe("settings the organization owns", function () {
             [NAME]
         );
 
-        try {
-            let resp = await admin.raw("GET", "/settings/" + NAME);
+        let resp = await admin.raw("GET", "/settings/" + NAME).catch(
+            (err) => err
+        );
 
-            assert.equal(resp.status, 200, JSON.stringify(resp.body));
-            assert.equal(resp.body.data.street, "1 Desert Road");
-        } finally {
-            await db.query(
-                "UPDATE \"$settings\" SET data = $2 WHERE name = $1",
-                [NAME, JSON.stringify(kept)]
-            );
-        }
+        await db.query(
+            "UPDATE \"$settings\" SET data = $2 WHERE name = $1",
+            [NAME, JSON.stringify(kept)]
+        );
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal(resp.body.data.street, "1 Desert Road");
     });
 
     it("carries the logo too, now that it is a pointer", async function () {
