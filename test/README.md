@@ -66,6 +66,17 @@ Every file builds its own data with an `RT-`-style unique prefix, so the
 tests pass on a clone of the demo database and on a fresh install, and files
 can run alone or together in one server.
 
+## Lint
+
+`unit/lint.test.js` runs the project's own JSLint (`client/jslint.mjs`)
+over every JavaScript file, skipping `node_modules`, `vendor`, the
+generated `client/clientmin.js` and the linter itself. Not every file is
+clean yet, so it is a ratchet: `test/lint-baseline.json` records the
+warnings each file is known to have, no file may exceed its entry, and a
+file with no entry (a new one) must have none. Fixing warnings never
+fails the test; run `FB_UPDATE_LINT=1 node test/run.js unit/lint` to lower
+the baseline to match. The update can only lower a count, never raise one.
+
 ## Reading the results
 
 Three outcomes matter:
