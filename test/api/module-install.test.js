@@ -45,12 +45,30 @@ function flags(username, data) {
     ));
 }
 
-function samplePackage(version) {
+function samplePackage(version, withCode) {
     let file = path.join(work, MODULE + "-" + version + ".zip");
     let zip = new AdmZip();
+    let files = [];
+
+    if (withCode) {
+        files = [{
+            name: "fbt-webinstall-service",
+            path: "service.js",
+            type: "service"
+        }, {
+            path: "client.js",
+            type: "module"
+        }];
+        zip.addFile("service.js", Buffer.from(
+            "// service " + version + "\n"
+        ));
+        zip.addFile("client.js", Buffer.from(
+            "// client " + version + "\n"
+        ));
+    }
 
     zip.addFile("manifest.json", Buffer.from(JSON.stringify({
-        files: [],
+        files,
         module: MODULE,
         version
     })));
@@ -160,6 +178,88 @@ describe("Install on the Modules page", function () {
         );
 
         assert.equal(await deployed(), "1.1.0");
+    });
+
+    /*
+        A package's code is served from its files, so the database is
+        given the module's record -- name and version, which is what
+        dispatch and the fleet view read -- and not a second copy of the
+        code in a table, where anyone with write access could change
+        what runs.
+    */
+    it("keeps the package's code out of the database's rows",
+            async function () {
+        let session = await signedIn(PLATFORM);
+
+        await session.upload(
+            "/module/install/x=1",
+            "package",
+            samplePackage("2.0.0", true)
+        );
+
+        assert.equal(onDisk("2.0.0"), true);
+        assert.equal(await deployed(), "2.0.0");
+
+        let services = await db.query(
+            "SELECT count(*)::int AS n FROM data_service WHERE module = $1",
+            [MODULE]
+        );
+        let client = await db.query(
+            "SELECT script FROM module WHERE name = $1",
+            [MODULE]
+        );
+
+        assert.equal(services.rows[0].n, 0, "no service rows");
+        assert.equal(client.rows[0].script, "", "no client script");
+    });
+
+    /*
+        The defect John's `tracker` hit, and the reason a web install
+        on a server that had been up a while would hang: whether an
+        install writes to another database was module-level state that
+        the first deployment set and nothing ever cleared, so this
+        install -- which writes through the caller's own connection --
+        finished as though it had one of its own and died on it, with
+        the request left unanswered and the instance held.
+
+        A deployment from a screen first, because that is what set the
+        flag; then the page's install, which has to answer.
+    */
+    it("installs after a deployment that was watched from a screen",
+            async function () {
+        let session = await signedIn(PLATFORM);
+        let instance = await db.withClient(
+            settings.managerDb,
+            async function (client) {
+                let found = await client.query(
+                    (
+                        "SELECT id FROM tenant " +
+                        "WHERE pg_database = $1 AND NOT is_deleted"
+                    ),
+                    [settings.testDb]
+                );
+
+                return found.rows[0].id;
+            }
+        );
+        let watched = await session.raw("POST", "/admin/instance/deploy", {
+            id: instance,
+            module: MODULE,
+            processId: "fbt-webinst-watched",
+            version: "1.0.0"
+        });
+
+        assert.equal(watched.status, 200, JSON.stringify(watched.body));
+        assert.equal(await deployed(), "1.0.0");
+
+        await session.upload(
+            "/module/install/x=1",
+            "package",
+            samplePackage("2.1.0", true),
+            30000
+        );
+
+        assert.equal(await deployed(), "2.1.0", "the page's install answered");
     });
 
     it("says what is wrong with an archive that is not a package",

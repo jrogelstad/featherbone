@@ -8,7 +8,7 @@
 /*jslint node*/
 "use strict";
 
-const {describe, it, before, after} = require("node:test");
+const {after, before, describe, it} = require("node:test");
 const assert = require("node:assert/strict");
 const AdmZip = require("adm-zip");
 const child = require("child_process");
@@ -493,5 +493,72 @@ describe("installing from an archive", function () {
             "Tarred"
         );
         fs.rmSync(dest, {recursive: true, force: true});
+    });
+});
+
+describe("Core as a package", function () {
+    let core = JSON.parse(fs.readFileSync(
+        path.join(__dirname, "..", "..", "manifest.json"),
+        "utf8"
+    ));
+    let pkgs = new Packages();
+
+    before(function () {
+        pkgs.scan(fs.mkdtempSync(path.join(os.tmpdir(), "fbcore-")));
+    });
+
+    it("is served from the checkout, so none of its code is stored",
+            function () {
+        let found = pkgs.resolve(core.module, core.version);
+
+        assert.ok(found, "the checkout answers for Core");
+        assert.equal(
+            path.resolve(found.dir),
+            path.resolve(__dirname, "..", "..")
+        );
+        assert.ok(
+            pkgs.serviceSources(core.module, core.version).length > 0,
+            "with its services read from files"
+        );
+        assert.ok(
+            pkgs.clientSource(core.module, core.version).script.length > 0,
+            "and its client script"
+        );
+    });
+
+    it("answers for whatever version a database records of it",
+            function () {
+        /*
+            A database behind this server is behind, not owed code
+            nobody keeps any more: its tables hold none of the
+            framework's, so the framework it is served is this one,
+            and its upgrade is what moves it forward.
+        */
+        let old = pkgs.resolve(core.module, "2.2.0");
+
+        assert.ok(old, "an older version still resolves");
+        assert.equal(
+            path.resolve(old.dir),
+            path.resolve(__dirname, "..", "..")
+        );
+        assert.equal(
+            pkgs.serviceSources(core.module, "2.2.0").length,
+            pkgs.serviceSources(core.module, core.version).length
+        );
+        assert.equal(
+            pkgs.resolve("NotAModuleHere", core.version),
+            undefined,
+            "and nothing else gets that treatment"
+        );
+    });
+
+    it("is not an installed package, and brings no libraries",
+            function () {
+        assert.deepEqual(
+            pkgs.installed().filter((pkg) => pkg.name === core.module),
+            []
+        );
+        assert.equal(pkgs.newest(core.module), undefined);
+        assert.deepEqual(pkgs.libraries(core.module, core.version), []);
     });
 });

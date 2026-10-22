@@ -278,7 +278,10 @@ restart of a current installation runs nothing and costs a few queries:
    is the list. (A manager built by this very boot has no registry yet, so
    the instances follow on the next start.)
 
-The manager goes first. What runs is the command line itself, as a child
+The manager goes first. The server does not listen until the upgrade
+is done, so it prints what it is doing to the console as it goes -- the
+plan, each step with the installer's own output, and how long each took --
+whether or not `consolelog` is on. What runs is the command line itself, as a child
 process, so there is one installer to keep right. Neither switch touches
 identities or organizations.
 
