@@ -349,6 +349,38 @@
         };
 
         /**
+            Everyone who can sign in, with the organization that owns
+            the account: who a platform administrator may appoint as an
+            administrator rather than making somebody new. A username
+            is global, so the name alone is enough to appoint by.
+
+            @method people
+            @param {Client} client Manager client
+            @return {Promise} [{username, fullName, email, organization}]
+        */
+        that.people = async function (client) {
+            let sql = (
+                "SELECT i.username, i.full_name, i.email, " +
+                "  o.name AS organization " +
+                "FROM identity i " +
+                "LEFT JOIN organization o " +
+                "  ON o._pk = i._organization_organization_pk " +
+                "WHERE i.status = 'active' AND NOT i.is_deleted " +
+                "ORDER BY lower(i.username)"
+            );
+            let resp = await client.query(sql);
+
+            return resp.rows.map(function (row) {
+                return {
+                    email: row.email,
+                    fullName: row.full_name,
+                    organization: row.organization,
+                    username: row.username
+                };
+            });
+        };
+
+        /**
             Every organization, with what it owns: how many instances
             and identities, and whether anybody can administer it. An
             organization with no administrator is the state onboarding
