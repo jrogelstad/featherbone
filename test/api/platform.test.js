@@ -233,6 +233,13 @@ describe("the platform console (G.2, G.3)", function () {
             ).administrators,
             1
         );
+        assert.deepEqual(
+            after.organizations.find(
+                (o) => o.name === NEW_ORG
+            ).administratorNames,
+            [NEW_ADMIN + " -- Herbal Administrator"],
+            "the count's tooltip says who they are"
+        );
 
         // And they are a real identity: they can sign in at the picker
         let theirs = new Session(ROOT);
