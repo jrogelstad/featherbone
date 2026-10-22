@@ -29,7 +29,7 @@ const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
 const env = require("../harness/env");
 const db = require("../harness/db");
-const {signedIn} = require("../harness/http");
+const {Session, signedIn} = require("../harness/http");
 
 const NAME = "globalSettings";
 const SECRET = "Org-Smtp-" + Date.now().toString(36);
@@ -205,6 +205,53 @@ describe("settings the organization owns", function () {
             "1 Desert Road",
             "the organization's value, not the instance's"
         );
+    });
+
+    it("answers for an instance whose row was never saved",
+            async function () {
+        /*
+            A database registered afterwards (a new instance moved to
+            an organization that already has its letterhead) has the
+            definition and no data. The organization's values lay over
+            nothing, and used to fail with "Cannot set properties of
+            null (setting 'logo')". The server keeps a copy of each
+            row it has read, so the copy is dropped first the way the
+            product drops it: a save from another database forgets
+            this one's.
+        */
+        let base = env.baseUrl.replace(
+            "/" + env.testDb,
+            "/" + env.testDb2
+        );
+        let other = new Session(base);
+        let kept = await instanceRow();
+
+        assert.equal((await other.signIn()).status, 200);
+
+        let theirs = await other.get("/settings/" + NAME);
+        let saved = await other.raw("PUT", "/settings/" + NAME, {
+            data: theirs.data,
+            etag: theirs.etag
+        });
+
+        assert.equal(saved.status, 200, JSON.stringify(saved.body));
+
+        await db.query(
+            "UPDATE \"$settings\" SET data = NULL WHERE name = $1",
+            [NAME]
+        );
+
+        try {
+            let resp = await admin.raw("GET", "/settings/" + NAME);
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.equal(resp.body.data.street, "1 Desert Road");
+        } finally {
+            await db.query(
+                "UPDATE \"$settings\" SET data = $2 WHERE name = $1",
+                [NAME, JSON.stringify(kept)]
+            );
+        }
     });
 
     it("carries the logo too, now that it is a pointer", async function () {
