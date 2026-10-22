@@ -40,7 +40,7 @@ Precisely, so the move is not guesswork:
 | --- | --- | --- |
 | Server-side services | `Script.script`, a text column | `new Function("f", …)(f)` in `datasource.js` ~2497, in the server process |
 | Client module scripts | `Module.script` | `new Function("f", …)(f)` in `client/main.js` ~1089, in every browser |
-| Routes | `Route` (`module`, `path`, `function`) | `registerRoute` (`server.js` ~573) mounts `/:db/<module><path>`; `function` names a service registered by the scripts above |
+| Routes | `Route` (`module`, `path`, `function`) | `registerRoute` (`server.js` ~573) mounts `/:db/<module><path>`; `function` names a service registered by the scripts above. **Since the routes-on-disk change:** declared in the package's `routes.json`, resolved per database (see section 11) |
 | Feathers | the `catalog` settings row, plus `feather`, `feather_property`, `feather_authorization` | read into the process at boot; defines every table |
 | Forms, print forms, styles, help | `Form`, `Style`, `HelpLink`, `ResourceLink` | rendered by the client |
 | Module library dependencies | `ModuleNpm` (`module`, `package`, `version`, `property`, `export`) | loaded into the process at boot, globally |
@@ -415,3 +415,23 @@ timestamp with time zone: false". Appending at the end is the
 workaround and is what this work did. The fix belongs in the Feather
 child-array merge, which should match on name rather than position; it
 is recorded in `featherbone-fix-branches.md`.
+
+## 11. Routes on disk
+
+A route is declared by the module version a database deployed, so the
+path alone cannot decide what it calls. Mounting each path once, with the
+function name of whichever database registered it first, let two databases
+on different versions disagree silently, and let a database reach a route
+its version never declared.
+
+* A package carries its routes in `routes.json` at its root -- the file a
+  package export already writes. Entries are `{path, function}`, bare or
+  wrapped as batch records (`{data: {path, function}}`).
+* One handler answers `POST /:db/<module>/<path>`. It asks the requesting
+  database's route map, built with its registry from the versions it
+  deployed. A path that version does not declare falls through (404).
+* A package on disk **without** a `routes.json` has not been repackaged:
+  the database's own `_route` rows keep serving that module, as they do for
+  a module with no package. Nothing has to be reinstalled before the server
+  starts; reinstalling or repackaging a module moves its routes to disk.
+* `_route` rows of a module whose package has a `routes.json` are ignored.
