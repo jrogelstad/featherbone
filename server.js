@@ -153,7 +153,6 @@
     f.formats = new Tools().formats;
 
     let app = express();
-    let routes = [];
     let eventSessions = {};
     let eventKeys = {};
     let sessions = {};
@@ -475,7 +474,6 @@
 
             await datasource.loadCryptoKey();
             await datasource.getCatalog();
-            routes = await datasource.getRoutes();
             pgPool = await datasource.getPool();
             await datasource.loadNpmModules();
             await datasource.loadServices();
@@ -650,63 +648,41 @@
         );
     }
 
-    const mountedRoutes = {};
-
-    function registerRoute(route) {
-        let fullPath = (
-            "/:db/" +
-            route.module.toSpinalCase() + route.path
-        );
-        let doPostRequest = postify.bind(route.function);
-
-        /*
-            Routes mount once however many databases declare them: the
-            path carries the database and the function name resolves in
-            that database's own registry, so one mount dispatches to
-            whatever version each database deployed (ADR-002).
-        */
-        if (mountedRoutes[fullPath]) {
+    /*
+        Module routes. A route is declared by the module version a
+        database deployed (its package's routes.json), so the path alone
+        says nothing: which function a path calls, or whether it exists
+        at all, is decided per database. One handler therefore answers
+        every /:db/<module>/<path> and asks the requesting database,
+        and a path the database's version does not declare falls
+        through to whatever else is mounted (ADR-002).
+    */
+    async function doModuleRoute(req, res, next) {
+        if (!req.tenant) {
+            next();
             return;
         }
-        mountedRoutes[fullPath] = true;
 
-        logger.info("Registering module route: " + fullPath);
-        dbRouter.post(fullPath, doPostRequest);
-    }
+        try {
+            await primeTenant(req);
+            let fn = await datasource.request({
+                method: "GET",
+                name: "getRouteFunction",
+                user: systemUser,
+                data: {
+                    key: req.params.module + "/" + req.params[0]
+                },
+                tenant: req.tenant
+            }, true);
 
-    /*
-        Module routes of every registered tenant database, so a route
-        that exists only in a tenant is reachable (the boot route list
-        reads one database). Failures are tolerated per tenant: an
-        unreachable tenant must not stop the server.
-    */
-    async function unionTenantRoutes(tenantList) {
-        let i = 0;
-
-        while (i < tenantList.length) {
-            let tenant = tenantList[i];
-            i += 1;
-
-            if (tenant.id === "-1") {
-                continue;
+            if (!fn) {
+                next();
+                return;
             }
 
-            try {
-                let rows = await datasource.request({
-                    method: "GET",
-                    name: "Route",
-                    user: systemUser,
-                    properties: ["id", "module", "path", "function"],
-                    tenant
-                }, true);
-
-                rows.forEach(registerRoute);
-            } catch (err) {
-                logger.warn(
-                    "Could not read routes for tenant \"" +
-                    tenant.pgDatabase + "\": " + err.message
-                );
-            }
+            postify.call(fn, req, res);
+        } catch (err) {
+            error.bind(res)(err);
         }
     }
 
@@ -3124,26 +3100,6 @@
         }, true);
     }
 
-    // Listen for changes to routes, refresh if changed
-    async function subscribeToRoutes() {
-        let sid = f.createId();
-        let eKey = f.createId();
-
-        // Reregister routes if something changes
-        eventSessions[eKey] = async function () {
-            routes = await datasource.getRoutes();
-            routes.forEach(registerRoute);
-        };
-
-        await datasource.request({
-            name: "Route",
-            method: "GET",
-            user: systemUser,
-            subscription: {id: sid, eventKey: eKey},
-            tenant: false
-        }, true);
-    }
-
     // HANDLE PUSH NOTIFICATION -------------------------------
     // Receiver callback for all events, sends only to applicable instance.
     let pending = [];
@@ -4384,9 +4340,8 @@
         await listenToTenants();
         handleEvents();
 
-        // REGISTER MODULE ROUTES
-        routes.forEach(registerRoute);
-        await unionTenantRoutes(tenants);
+        // MODULE ROUTES
+        dbRouter.post("/:db/:module/*", doModuleRoute);
 
         // Last of all: the generic data fallback, strictly after every
         // specific route so none is shadowed
@@ -4417,7 +4372,5 @@
         subscribeToFeathers
     ).then(
         subscribeToCatalog
-    ).then(
-        subscribeToRoutes
     ).then(start).catch(process.exit);
 }());

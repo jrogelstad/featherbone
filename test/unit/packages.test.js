@@ -234,6 +234,53 @@ describe("installed packages", function () {
         );
         fs.rmSync(into, {recursive: true, force: true});
     });
+
+    it("reads routes.json, bare or as batch records", function () {
+        let dir = place("gamma", "1.0.0", {module: "gamma", version: "1.0.0"});
+
+        write(dir, "routes.json", JSON.stringify([
+            {function: "gammaOne", path: "/one"},
+            {data: {function: "gammaTwo", path: "/two"}, name: "Route"},
+            {path: "/broken"}
+        ]));
+        packages.scan(root);
+
+        assert.deepEqual(packages.routesOf("gamma", "1.0.0"), [
+            {function: "gammaOne", module: "gamma", path: "/one"},
+            {function: "gammaTwo", module: "gamma", path: "/two"}
+        ]);
+    });
+
+    it("tells a package without routes.json from one with none",
+            function () {
+        place("delta", "1.0.0", {module: "delta", version: "1.0.0"});
+        write(
+            place("epsilon", "1.0.0", {module: "epsilon", version: "1.0.0"}),
+            "routes.json",
+            "[]"
+        );
+        packages.scan(root);
+
+        assert.equal(packages.routesOf("delta", "1.0.0"), undefined);
+        assert.deepEqual(packages.routesOf("epsilon", "1.0.0"), []);
+    });
+
+    it("answers each version with its own routes", function () {
+        write(
+            place("zeta", "1.0.0", {module: "zeta", version: "1.0.0"}),
+            "routes.json",
+            JSON.stringify([{function: "zetaA", path: "/a"}])
+        );
+        write(
+            place("zeta", "2.0.0", {module: "zeta", version: "2.0.0"}),
+            "routes.json",
+            JSON.stringify([{function: "zetaA2", path: "/a"}])
+        );
+        packages.scan(root);
+
+        assert.equal(packages.routesOf("zeta", "1.0.0")[0].function, "zetaA");
+        assert.equal(packages.routesOf("zeta", "2.0.0")[0].function, "zetaA2");
+    });
 });
 
 /*
