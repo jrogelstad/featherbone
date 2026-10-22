@@ -40,11 +40,34 @@ module.static = f.prop({
             }
         });
         function error(err) {
-            dialog.message(err.message);
-            dialog.title("Error");
+            f.notify("Install failed", {icon: "error", iconColor: "red"});
+            dialog.message(err.message || String(err));
+            dialog.title("Install failed");
             dialog.icon("error");
             dialog.buttonCancel().hide();
             dialog.show();
+        }
+
+        function installed(done) {
+            let what = (
+                (done && done.module)
+                ? done.module + " " + done.version
+                : "The package"
+            );
+
+            f.notify(what + " installed", {icon: "check_circle"});
+            dialog.message(
+                what + " is installed on the server and deployed" + (
+                    (done && done.database)
+                    ? " to " + done.database
+                    : ""
+                ) + "."
+            );
+            dialog.title("Installed");
+            dialog.icon("check_circle");
+            dialog.buttonCancel().hide();
+            dialog.show();
+            return viewModel.refresh();
         }
 
         function processFile() {
@@ -59,8 +82,9 @@ module.static = f.prop({
                 body: formData
             };
 
+            f.notify("Installing " + file.name + "...", {icon: "upload"});
             f.datasource().request(payload).then(
-                viewModel.refresh
+                installed
             ).catch(error);
         }
 

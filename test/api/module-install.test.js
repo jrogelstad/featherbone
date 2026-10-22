@@ -76,6 +76,31 @@ function samplePackage(version, withCode) {
     return file;
 }
 
+function brokenPackage() {
+    let file = path.join(work, MODULE + "-broken.zip");
+    let zip = new AdmZip();
+
+    // A relation to a feather no module defines: the shape of a
+    // package whose dependencies are out of order
+    zip.addFile("feathers.json", Buffer.from(JSON.stringify([{
+        description: "Points at nothing",
+        name: "FbtNoSuchRelation",
+        properties: {
+            thing: {
+                description: "A relation that cannot resolve",
+                type: {properties: ["name"], relation: "FbtNoSuchFeather"}
+            }
+        }
+    }])));
+    zip.addFile("manifest.json", Buffer.from(JSON.stringify({
+        files: [{path: "feathers.json", type: "feather"}],
+        module: MODULE,
+        version: "9.9.9"
+    })));
+    zip.writeZip(file);
+    return file;
+}
+
 function onDisk(version) {
     return fs.existsSync(path.join(settings.modulesDir, MODULE, version));
 }
@@ -178,6 +203,66 @@ describe("Install on the Modules page", function () {
         );
 
         assert.equal(await deployed(), "1.1.0");
+    });
+
+    /*
+        What the page is told. A success used to answer a bare `true`,
+        so the page could only refresh; a failure answered with the
+        installer's own words and nothing about the instance it left
+        held, so the next thing anyone saw was an application that
+        refused them (John, Oct 2026: "UI should tell us success or
+        failure").
+    */
+    it("answers what it installed and where", async function () {
+        let session = await signedIn(PLATFORM);
+        let resp = await session.upload(
+            "/module/install/x=1",
+            "package",
+            samplePackage("1.1.0")
+        );
+
+        assert.equal(resp.module, MODULE, JSON.stringify(resp));
+        assert.equal(resp.version, "1.1.0");
+        assert.equal(resp.database, settings.testDb);
+    });
+
+    it("says what failed, and that the instance is held, when the " +
+            "deployment fails", async function () {
+        let session = await signedIn(PLATFORM);
+        let resp = await session.upload(
+            "/module/install/x=1",
+            "package",
+            brokenPackage()
+        ).catch((err) => err);
+
+        // Let go of the hold first: the assertions below must not
+        // leave the suite's instance refusing everyone if one fails
+        await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                "UPDATE tenant SET is_maintenance = false " +
+                "WHERE pg_database = $1",
+                [settings.testDb]
+            )
+        );
+
+        assert.equal(resp.status, 500, "a failure, not silence");
+        assert.match(
+            String(resp.body),
+            /FbtNoSuchFeather/,
+            "the installer's reason"
+        );
+        assert.match(
+            String(resp.body),
+            new RegExp(MODULE + " 9.9.9 was not deployed to "),
+            "which package, and where"
+        );
+        assert.match(
+            String(resp.body),
+            /held in maintenance/,
+            "what state it left the instance in"
+        );
+        assert.equal(await deployed(), "1.1.0", "nothing half applied");
     });
 
     /*
