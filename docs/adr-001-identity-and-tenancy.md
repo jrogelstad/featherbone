@@ -36,7 +36,7 @@ answered. The sequencing and the per-item record live in
 | Recursive CTE replaces `pg_has_role()` | `tools.memberNames()`, shared by every call site. `everyone` is implicit for every active user account. |
 | `user_account` becomes the local profile | Made on first sign-in on the strength of a live grant (B.7), audited. |
 | Provisioning (§6) | A resumable state machine in `"$provision"`: requested, created, configured, seeded, active; each step claimed with `FOR UPDATE SKIP LOCKED` and committed on its own. Create, resume, drop, template and the expired-demo sweep are on the Instances screen, platform administrators only. |
-| Migration (§7) | `scripts/migrate-identities.js`, dry run by default, `--apply` to write, **one way** (John's decision, 2026-10-15: a rollback keeps the role path alive). Imports SCRAM-SHA-256 and md5 verifiers and re-hashes to scrypt on first sign-in; copies passkeys. Rehearsed against a copy of `demo`. |
+| Migration (§7) | `scripts/migrate-identities.js`, dry run by default, `--apply` to write, **one way** (John's decision, 2026-10-15: a rollback keeps the role path alive). Imports SCRAM-SHA-256 and md5 verifiers and re-hashes to scrypt on first sign-in; copies passkeys. Rehearsed against a copy of `demo`. **Removed from the tree 2026-10-22 (John):** every installation in use has been moved; the script is at tag `v3.0.0-alpha.1`. |
 | Sessions (§5) | `resave: false`, rolling kept. Sessions stay in the manager. |
 
 
