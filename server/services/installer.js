@@ -33,7 +33,6 @@
     const path = require("path");
     const f = require("../../common/core");
     let isInstalling = false;
-    let isRemote = false;
 
     f.jsonpatch = require("fast-json-patch");
     f.isInstalling = () => isInstalling;
@@ -113,21 +112,57 @@
                 let pTarget = opts.target || "instance";
                 let reqClient = pClient;
                 let conn;
+                /*
+                    Whether this install writes to a database other
+                    than the caller's own, which decides how it
+                    finishes. One install's answer, not the process's:
+                    it used to be module-level state that the first
+                    deployment set and nothing ever cleared, so every
+                    later install in that process took the remote path
+                    whether or not it had a connection of its own to
+                    take it on -- and the one that did not died on
+                    `conn.done()` with nobody listening, leaving the
+                    request unanswered and the instance held.
+                */
+                let isRemote = false;
 
                 reqClient.currentUser(pUser);
                 f.datasource = pDatasource;
                 isInstalling = true;
 
-                async function init() {
-                    let pkgName;
-
+                /*
+                    The database this install writes to, and what kind
+                    it is. Every path through this function needs it,
+                    including the one that tracks no progress, so it is
+                    its own step rather than part of the progress
+                    set-up it used to sit in: an install aimed at
+                    another database but sent down that path wrote to
+                    the caller's own instead.
+                */
+                async function openTarget() {
                     // If target database is other than requestor's,
                     // connect to it
                     if (opts.tenant) {
                         conn = await db.connect(opts.tenant);
                         pClient = conn.client;
-                        pClient.currentUser(pUser);
                         isRemote = true;
+
+                        /*
+                            Who this connection writes as. A trusted
+                            install acts as the service account, which
+                            is what the caller's own connection was
+                            already given (datasource.install) and what
+                            a deployment needs: the operator who asked
+                            is generally not a user of the instance
+                            being deployed to at all, and the ownership
+                            checks are written for users of it. The
+                            operator is in the audit, not in the rows.
+                        */
+                        if (pIsSuper) {
+                            pClient.currentUser = reqClient.currentUser;
+                        } else {
+                            pClient.currentUser(pUser);
+                        }
                     }
 
                     /*
@@ -150,6 +185,12 @@
                             pTarget = marked.rows[0].kind;
                         }
                     }
+                }
+
+                async function init() {
+                    let pkgName;
+
+                    await openTarget();
 
                     function getCount(loc) {
                         return new Promise(function (resolve) {
@@ -240,8 +281,26 @@
                     });
                 }
 
+                /*
+                    A failed install gives back the connection it
+                    opened, as a finished one does. It used to keep it:
+                    the client stayed checked out of the instance's
+                    pool for the life of the process, and since ending
+                    a pool waits for its clients to come back, the next
+                    thing needing that instance to itself -- a template
+                    copy, a drop -- waited with it, forever. One failed
+                    deployment was enough.
+                */
                 function rollback(err) {
                     pClient.query("ROLLBACK;", function () {
+                        if (conn) {
+                            try {
+                                conn.done();
+                            } catch (ignore) {
+                                // Already given back
+                            }
+                            conn = undefined;
+                        }
                         console.error(err);
                         console.error("Installation failed.");
                         reject(err);
@@ -334,7 +393,6 @@
 
                 function saveModule(
                     pName,
-                    pScript,
                     pVersion,
                     pDependencies,
                     pNpm
@@ -377,7 +435,7 @@
                                 name: pName,
                                 version: pVersion,
                                 owner: pUser,
-                                script: pScript,
+                                script: "",
                                 dependencies: deps,
                                 npm: pNpm
                             }
@@ -536,49 +594,6 @@
                         user: pUser,
                         client: pClient,
                         properties: ["id", "name"]
-                    }, true).then(callback).catch(rollback);
-                }
-
-                function saveService(pName, pModule, pScript) {
-                    function callback(resp) {
-                        let vId = btoa("ds" + pName);
-                        let payload;
-
-                        if (resp.length) {
-                            vId = resp[0].id;
-                        }
-
-                        payload = {
-                            method: "POST",
-                            name: "DataService",
-                            user: pUser,
-                            client: pClient,
-                            id: vId,
-                            data: {
-                                name: pName,
-                                module: pModule,
-                                script: pScript,
-                                owner: pUser
-                            }
-                        };
-
-                        runBatch([payload]);
-                    }
-
-                    pDatasource.request({
-                        method: "GET",
-                        name: "DataService",
-                        user: pUser,
-                        client: pClient,
-                        filter: {
-                            criteria: [{
-                                property: "name",
-                                value: pName
-                            }, {
-                                property: "module",
-                                value: pModule
-                            }]
-                        }
                     }, true).then(callback).catch(rollback);
                 }
 
@@ -829,9 +844,22 @@
                                 }
                             }
                         }
-                        conn.done();
+
+                        // Only a remote install opened one
+                        if (conn) {
+                            conn.done();
+                        }
                     }
 
+                    /*
+                        Both endings answer the caller whatever
+                        happens. A throw in here used to float away as
+                        an unhandled rejection with the install's own
+                        promise never settled, so the request that
+                        asked for it waited for an answer that was
+                        never coming -- and a deployment waiting like
+                        that leaves the instance held.
+                    */
                     function complete() {
                         isInstalling = false;
                         if (isRemote) {
@@ -840,7 +868,7 @@
                             ).then(function () {
                                 console.log("Remote installation completed!");
                                 resolve();
-                            });
+                            }).catch(reject);
                             return;
                         }
 
@@ -859,7 +887,7 @@
                         }).then(pProcess.complete).then(function () {
                             console.log("Installation completed!");
                             resolve();
-                        });
+                        }).catch(reject);
                     }
 
                     // We deferred propagating views on every feather
@@ -940,16 +968,18 @@
                                 execute(filename);
                                 break;
                             case "module":
+                                // The record of the module, never its code
                                 saveModule(
                                     module,
-                                    content,
                                     version,
                                     dependencies,
                                     npm
                                 );
                                 break;
                             case "service":
-                                saveService(file.name || name, module, content);
+                                // Served from the package's file; code is
+                                // never stored in the database
+                                runBatch([]);
                                 break;
                             case "feather":
                                 saveFeathers(
@@ -1022,13 +1052,21 @@
                 }
 
                 if (pIsSuper && !pProcessId) {
-                    // Run from the command line, so nobody is watching
-                    // and there is nothing to track it by
+                    // Run from the command line, or from a screen that
+                    // tracks its own progress: nobody is watching a
+                    // ServerProcess, so there is none to keep. The
+                    // target database is still the target database.
                     pProcess = {
                         next: () => true,
                         complete: () => true
                     };
-                    registerNpmModules(true).then(doInstall);
+                    openTarget().then(
+                        () => registerNpmModules(true)
+                    ).then(
+                        doInstall
+                    ).catch(
+                        reject
+                    );
                     return;
                 }
 
