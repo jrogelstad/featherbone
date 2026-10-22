@@ -8,6 +8,109 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Open, 2026-10-20 (fourth round)
+
+Found by John on the 3.0.0-alpha.1 deployment: an administrator could
+not change a user's name, email or phone (or even see the email and
+phone), a user created on the Users screen was never mailed, and
+"Forgot password" did nothing. Five branches, **stacked, merge in this
+order**; none needs a reinstall (client and server code only).
+
+1. `feat/users-hide-disabled` -- the Users screen lists only people who
+   can sign in; a "Show disabled users" checkbox (off by default) brings
+   the rest back. Client and CSS only.
+2. `feat/users-edit-details` -- POST `/:db/admin/identity/info`
+   (`admin.updateIdentity`), an Edit button and right-click item, and
+   Email and Phone columns. The details live on the person's profile in
+   the instance (`Contact`), so they are read and written there through
+   `changeUserInfo`, with the identity's name and email kept in step and
+   the change audited (`identity.info_changed`). Someone who has not
+   signed in yet has no profile: name and email only. Also fixes two
+   defects in `changeUserInfo` that the self-service "Edit my contact
+   information" shared: a profile made at first sign-in has no contact,
+   and linking a new one was refused by the user-account trigger
+   ("Contact must have a primary email address") because it reads the
+   address off the contact it is handed, so no one provisioned through
+   the Users screen could ever save their own details; and on any
+   failure it rolled back and never answered. `test/api/admin-users.test.js`.
+3. `feat/new-user-email-invite` -- the 2.2.0 way of making a user: no
+   password, the person is mailed a magic link that signs them in and
+   sends them to the change-password page. System mail (that link, the
+   password reset, sign-in codes) now goes out through the
+   **organization's SMTP account** from Settings (`server/services/notify.js`),
+   falling back to `config.json`; it used to use `config.json` alone, so
+   the account an administrator entered was only ever used for mail a
+   person sent by hand. A mail that cannot go is now reported to the
+   administrator instead of being answered "sent". **"Forgot password"
+   fixed**: for a user with no contact (every user made on the Users
+   screen) the user-account trigger refused the change-password flag
+   ("Contact is required"), the error went nowhere, and the request
+   never answered; the contact is now made from the identity's name and
+   address when there is none. Same tests file, against a throwaway SMTP
+   server: the mail arrives through the organization's account, the link
+   signs the person in with `changePassword` set, the password they
+   choose works, and a dead mail server is reported.
+
+Checked in this sandbox: `admin-users.test.js` 12 claims (two of the
+edit claims fail with the `changeUserInfo` fix removed), the
+neighbouring suites (`users`, `auth`, `security`, `settings`,
+`organization-settings`, `credentials`, `picker`, `platform`) match
+master, `users` still failing its one Employee/Job Shop test, and the
+Users screen driven in headless Chromium. Check locally: with Job Shop
+installed, a contact there is an `Employee`; `changeUserInfo` creates a
+plain `Contact` for a profile that has none, as it always did.
+
+4. `fix/org-two-factor-session` (on top of 3) -- **a security hole that
+   was already on master, found while testing the sign-in code mail.**
+   When two-factor is required by the *organization* (tenant plan C.2,
+   `organization.is_two_factor_required`) rather than by `config.json`'s
+   `twoFactorAuth`, the password step still opened a session: passport's
+   local strategy was created with `session: !twoFactorAuth`, which is
+   only false for the installation-wide setting. The confirmation code
+   was mailed and asked for, but a password alone already had access (a
+   data request made before entering any code returned 200). The
+   password step now never opens a session; `doSignIn` logs the user in
+   itself when no second factor applies, and the magic-link callback
+   (which checks the code) is the only way in when one does. New
+   `test/api/two-factor-mail.test.js`: with the organization requiring
+   it and SMTP pointed at a throwaway server, a password alone gets
+   nowhere, the code arrives through the organization's account at the
+   user's address, a wrong code is refused and still gets nowhere, and
+   the right code signs the user in. The throwaway SMTP server moved to
+   `test/api/lib/mailsink.js` so both tests use it. Merge it with, or
+   straight after, branch 3.
+
+5. `fix/user-contact-employee` (on top of 4) -- **found on John's
+   `tracker`/`demo` after branches 2 and 3**: saving a person's details
+   on the Users screen, and creating a user with an invitation, failed
+   with "Cannot read properties of undefined (reading 'type')". Cause:
+   SupplyChain's Common module keeps a trigger on UserAccount
+   (`triggersUserAccount`) that PATCHes the account's contact *as an
+   Employee*, assuming every user account is backed by one.
+   `changeUserInfo` -- the one place a contact is made for someone who
+   has none, shared by the administrator's edit, the invitation,
+   "Forgot password" and "Edit my contact information" -- made a plain
+   Contact, so linking it to the account tripped that trigger. It now
+   makes an Employee when the instance has an `Employee` feather that
+   inherits `Contact`, with `number` (the required natural key) set to
+   the user name in upper case, suffixed `-2`, `-3` if another employee
+   has it, and `isActive` true; otherwise a Contact as before.
+   `test/api/user-contact-employee.test.js` builds an Employee feather
+   as Common defines it and fails without the change. The user
+   `ncuser_12161`'s contact on `demo` is a plain Contact; anything that
+   saves that account will hit the same trigger -- the real fix for
+   that is in Common (make the trigger create or skip a non-Employee).
+
+   The 2FA mail itself was not removed by branch 3: its text, subject,
+   recipient, code and verify step are as they were; only the transport
+   changed to the shared `notify.send`.
+
+Not done: the invitation does not appear in the Users worksheet's own
+"new user" form (a user made there is still mailed by
+`doPostUserAccount`, now through the organization's account too);
+a "send test email" button under Settings; any change to the mail
+wording (the 2.2.0 text is reused as it was).
+
 ## Open, 2026-10-18 (third round)
 
 Two more, each standing alone on `john/master` (which now carries the
