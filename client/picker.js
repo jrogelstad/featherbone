@@ -677,6 +677,7 @@
                 : "Open " + instance.name
             )
         }, [
+            m("td", {class: "fb-admin-muted"}, instance.organization || ""),
             m("td", {class: "fb-admin-col-name"}, instance.name),
             m("td", {class: "fb-admin-muted"}, instance.database),
             m("td", {class: "fb-admin-col-status"}, state(instance)),
@@ -705,9 +706,6 @@
                     )
                 ))
             ]),
-            m("div", {
-                class: "fb-admin-subtitle"
-            }, vm.identity.organization.name),
             (
                 vm.error
                 ? m("div", {class: "fb-admin-note"}, vm.error)
@@ -728,6 +726,7 @@
                     class: "pure-table fb-admin-table"
                 }, [
                     m("thead", m("tr", [
+                        m("th", "Organization"),
                         m("th", "Instance"),
                         m("th", "Database"),
                         m("th", "State"),
