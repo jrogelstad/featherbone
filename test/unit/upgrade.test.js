@@ -93,8 +93,7 @@ describe("self upgrade: what a boot plans", function () {
         assert.deepEqual(upgrade.plan(current(), BOTH), []);
     });
 
-    it("plans nothing when both switches are off, however far behind",
-            function () {
+    it("plans nothing when both switches are off", function () {
         let state = current();
 
         state.managerVersion = "2.2.0";
@@ -118,8 +117,7 @@ describe("self upgrade: what a boot plans", function () {
         assert.deepEqual(steps[0].args, ["--manager"]);
     });
 
-    it("replaces nothing it was not asked to: a database that is not " +
-            "a manager is the manager step's to refuse", function () {
+    it("leaves refusing a non-manager to the manager step", function () {
         let steps = upgrade.plan({
             instances: [],
             managerKind: "instance",
@@ -152,8 +150,7 @@ describe("self upgrade: what a boot plans", function () {
         );
     });
 
-    it("leaves the manager alone when only instances are asked for",
-            function () {
+    it("leaves the manager alone when only instances", function () {
         let state = current();
 
         state.managerVersion = "2.2.0";
@@ -165,8 +162,7 @@ describe("self upgrade: what a boot plans", function () {
         assert.deepEqual(steps[0].args, ["--instance", "acme"]);
     });
 
-    it("leaves the instances alone when only the manager is asked for",
-            function () {
+    it("leaves instances alone when only the manager", function () {
         let state = current();
 
         state.managerVersion = "2.2.0";
@@ -177,8 +173,7 @@ describe("self upgrade: what a boot plans", function () {
         assert.deepEqual(names(steps), ["manager"]);
     });
 
-    it("plans one step per instance behind, the manager first",
-            function () {
+    it("plans a step per instance behind, manager first", function () {
         let steps = upgrade.plan({
             instances: [
                 {name: "a", version: OWN},
@@ -198,8 +193,7 @@ describe("self upgrade: what a boot plans", function () {
         assert.deepEqual(steps[2].args, ["--instance", "c"]);
     });
 
-    it("names no organization or user: those are the installer's, and " +
-            "the instances already have theirs", function () {
+    it("names no organization, user or script of its own", function () {
         let steps = upgrade.plan({
             instances: [{name: "acme", version: "2.2.0"}],
             managerKind: "manager",
