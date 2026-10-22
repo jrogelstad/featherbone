@@ -58,6 +58,24 @@
         let that = {};
         let root = "./modules";
         let index = {};
+        /*
+            The framework itself, Core, is a package too: the checkout
+            this server runs from. It is not under the modules directory
+            and cannot be installed, removed or listed as one, but its
+            services and client script are read from its files like any
+            other package's, because nothing is ever stored as rows.
+        */
+        let builtin = {};
+        const CHECKOUT = path.resolve(__dirname, "..", "..");
+
+        // Installed under the modules directory, which Core is not
+        function held(name, version) {
+            return (
+                index[name]
+                ? index[name][version]
+                : undefined
+            );
+        }
 
         function manifestOf(dir) {
             let file = path.join(dir, "manifest.json");
@@ -86,8 +104,19 @@
             @return {Object} The index, {name: {version: {dir, manifest}}}
         */
         that.scan = function (dir) {
+            let core = manifestOf(CHECKOUT);
+
             root = dir || root;
             index = {};
+            builtin = {};
+
+            if (core && core.module && core.version) {
+                builtin[core.module] = {};
+                builtin[core.module][core.version] = {
+                    dir: CHECKOUT,
+                    manifest: core
+                };
+            }
 
             if (!fs.existsSync(root)) {
                 return index;
@@ -143,9 +172,12 @@
         */
         that.resolve = function (name, version) {
             return (
-                index[name]
-                ? index[name][version]
-                : undefined
+                held(name, version) ||
+                (
+                    builtin[name]
+                    ? builtin[name][version]
+                    : undefined
+                )
             );
         };
 
@@ -278,7 +310,8 @@
             @return {Array} [{property, package, export}]
         */
         that.libraries = function (name, version) {
-            let pkg = that.resolve(name, version);
+            // Core's dependencies are the server's own, not libraries
+            let pkg = held(name, version);
             let file;
             let json;
             let declared;
@@ -348,7 +381,7 @@
             @return {Array} The properties loaded
         */
         that.loadLibraries = function (name, version, global) {
-            let pkg = that.resolve(name, version);
+            let pkg = held(name, version);
             let loaded = [];
 
             if (!pkg) {

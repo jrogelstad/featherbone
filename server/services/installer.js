@@ -334,7 +334,6 @@
 
                 function saveModule(
                     pName,
-                    pScript,
                     pVersion,
                     pDependencies,
                     pNpm
@@ -377,7 +376,7 @@
                                 name: pName,
                                 version: pVersion,
                                 owner: pUser,
-                                script: pScript,
+                                script: "",
                                 dependencies: deps,
                                 npm: pNpm
                             }
@@ -536,49 +535,6 @@
                         user: pUser,
                         client: pClient,
                         properties: ["id", "name"]
-                    }, true).then(callback).catch(rollback);
-                }
-
-                function saveService(pName, pModule, pScript) {
-                    function callback(resp) {
-                        let vId = btoa("ds" + pName);
-                        let payload;
-
-                        if (resp.length) {
-                            vId = resp[0].id;
-                        }
-
-                        payload = {
-                            method: "POST",
-                            name: "DataService",
-                            user: pUser,
-                            client: pClient,
-                            id: vId,
-                            data: {
-                                name: pName,
-                                module: pModule,
-                                script: pScript,
-                                owner: pUser
-                            }
-                        };
-
-                        runBatch([payload]);
-                    }
-
-                    pDatasource.request({
-                        method: "GET",
-                        name: "DataService",
-                        user: pUser,
-                        client: pClient,
-                        filter: {
-                            criteria: [{
-                                property: "name",
-                                value: pName
-                            }, {
-                                property: "module",
-                                value: pModule
-                            }]
-                        }
                     }, true).then(callback).catch(rollback);
                 }
 
@@ -940,16 +896,18 @@
                                 execute(filename);
                                 break;
                             case "module":
+                                // The record of the module, never its code
                                 saveModule(
                                     module,
-                                    content,
                                     version,
                                     dependencies,
                                     npm
                                 );
                                 break;
                             case "service":
-                                saveService(file.name || name, module, content);
+                                // Served from the package's file; code is
+                                // never stored in the database
+                                runBatch([]);
                                 break;
                             case "feather":
                                 saveFeathers(
