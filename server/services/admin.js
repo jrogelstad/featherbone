@@ -1965,7 +1965,28 @@
                         ),
                         organizationPk: ctx.organizationPk
                     });
-                    throw err;
+
+                    /*
+                        The instance stays held, and the person who
+                        asked is told so in the answer: a screen that
+                        only said what went wrong left the instance
+                        refusing everyone with no hint why (John, Oct
+                        2026).
+                    */
+                    let failure = (
+                        typeof err === "string"
+                        ? new Error(err)
+                        : err
+                    );
+
+                    failure.message = (
+                        data.module + " " + data.version +
+                        " was not deployed to " + target.pg_database +
+                        ": " + failure.message + " The instance is held " +
+                        "in maintenance; end it from the Instances " +
+                        "screen once you have checked it."
+                    );
+                    throw failure;
                 }
 
                 await manager.setInstanceMaintenance(
