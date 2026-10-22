@@ -50,11 +50,7 @@
     */
     async function identityFor(client, name, mclient) {
         let instance = await manager.instance(mclient, client.tenant());
-        let found = await manager.identity(
-            mclient,
-            instance.organizationPk,
-            name
-        );
+        let found = await manager.identity(mclient, name);
 
         if (!found) {
             return;
@@ -300,11 +296,7 @@
                     obj.client.tenant()
                 );
                 let by = obj.client.currentUser();
-                let actor = await manager.identity(
-                    mclient,
-                    instance.organizationPk,
-                    by || ""
-                );
+                let actor = await manager.identity(mclient, by || "");
                 let added = await manager.addIdentity(mclient, {
                     by,
                     email: obj.data.email,

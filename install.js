@@ -937,15 +937,19 @@
             }
 
             resp = await cpClient.query(
-                "SELECT is_org_admin, is_platform_admin FROM identity " +
-                "WHERE _pk = $1",
+                "SELECT is_platform_admin FROM identity WHERE _pk = $1",
                 [added.identityPk]
             );
 
-            if (!resp.rows[0].is_org_admin) {
+            if (!await manager.isOrgAdminOf(
+                cpClient,
+                added.identityPk,
+                orgPk
+            )) {
                 await manager.setOrgAdmin(
                     cpClient,
                     added.identityPk,
+                    orgPk,
                     true,
                     by
                 );

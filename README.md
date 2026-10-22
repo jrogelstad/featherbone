@@ -72,16 +72,18 @@ there (the default is `instance`).
 
 Sign-in is by identity (ADR-001, `docs/adr-001-identity-and-tenancy.md`):
 the password is verified in Node against the `identity` table in the
-manager. An identity belongs to an organization, a username is unique
-within its organization, and an `access_grant` row per instance says which
-databases the identity may enter -- so one person is one password across
-their test and production instances. No Postgres login role is involved:
+manager. A username names one person across the whole installation, an
+identity's organization says who owns the account, and an `access_grant`
+row per instance says which databases the identity may enter -- so one
+person is one password across every instance they reach, in whatever
+organization. An email address works as a username, which is what people
+reach for anyway. No Postgres login role is involved:
 the service account in `config.json` is the only role Featherbone uses,
 and it needs no `CREATEROLE`.
 
 Managing users never touches the cluster. Creating a user account creates
-the identity in the organization of the instance it was created in and
-grants that instance; setting a password writes the identity's hash, so it
+the identity, owned by the organization of the instance it was created
+in, and grants that instance; setting a password writes the identity's hash, so it
 changes once for every instance the person can reach; deactivating or
 deleting the account deactivates that instance's grant and leaves the
 identity and the grant row in place, so the record of who could reach what
@@ -92,8 +94,7 @@ survives. Group roles and memberships are rows in `role` and
 `user_account` row -- the profile that holds preferences and the contact
 link -- and somebody granted an instance they have never opened has
 none. It is made for them the first time they sign in, on the strength
-of the grant: active identity, same organization as the instance, active
-grant to it. The profile joins `everyone` and nothing else, and the
+of the grant: active identity and an active grant to that instance. The profile joins `everyone` and nothing else, and the
 making of it is audited as `user_account.provisioned`. Nothing is
 created for a failed sign-in. A user who already exists in the
 organization is granted access and keeps the password they already have.
@@ -114,13 +115,12 @@ next entry. An instance that is closed or down for maintenance is
 listed and marked rather than hidden, so somebody who was working in it
 yesterday is told why it will not open.
 
-A username is unique within its organization, not across the
-installation, so a name that exists in two organizations is asked which
-one it means. The picker never lists the organizations to someone who
-has not signed in -- that would say where a username exists -- and it
-does not try the password against each candidate either, since a wrong
-one would count a failure against every one of them and lock them all.
-Type the organization's name and sign in again.
+A username is unique across the installation, so signing in asks
+nothing about organizations: the name is one person, and what they may
+reach is what they have been granted. Somebody granted instances in
+three organizations sees all three listed, each marked with whose it
+is. The picker still lists no organization to anybody who has not
+signed in.
 
 Two-factor organizations (`organization.isTwoFactorRequired`, ADR-001
 C.2) can pick here but sign in at the instance: the code is sent by the
@@ -384,18 +384,28 @@ What you may do depends on who you are (ADR-001):
 
 * a **platform administrator** (`identity.is_platform_admin`) may do
   everything;
-* an **organization administrator** (`identity.is_org_admin`) may manage
-  anyone in their organization and grant any of its instances;
-* a **tenant super user** with neither flag may only act on people who
+* an **organization administrator** -- an appointment over that
+  organization (`organization_admin`) -- may manage anyone in it and
+  grant any of its instances. One person may hold as many appointments
+  as they need, which is how a reseller administers several customers
+  from one account;
+* a **tenant super user** who is neither may only act on people who
   can already reach the instance they are signed in to.
 
-Sign-in is organization-scoped, so a platform administrator is never
-signed in to another organization's instance. For the emergency that
-rule would otherwise block -- an organization whose only administrator
-has left -- the Users screen offers platform administrators an
-organization picker: pick the organization, suspend the departed
-administrator, appoint the replacement. Every change is audited against
-the organization acted on.
+Any existing user can be appointed, whichever organization owns their
+account: appointing somebody is what brings them into an organization's
+administration, and nobody needs a second account to be appointed. What
+appointment does not hand over is the account itself -- its password and
+whether it may sign in at all stay with the organization that owns it,
+so appointing an outsider cannot become a way to take the account they
+use elsewhere. Only a platform administrator crosses that line.
+
+A session is established against one instance, so somebody who answers
+for several organizations names the one they mean: the Users screen
+offers an organization picker to platform administrators (every
+organization, which is also how an organization whose only
+administrator has left is rescued) and to anybody appointed over more
+than one. Every change is audited against the organization acted on.
 
 It is served from `client/components/admin-page.js`, which the
 unbundled client (`index_debug.html`, `"debug": true` in `config.json`)

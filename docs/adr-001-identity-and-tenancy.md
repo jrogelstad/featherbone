@@ -27,7 +27,7 @@ answered. The sequencing and the per-item record live in
 | ADR says | The code does |
 | --- | --- |
 | "Tenant management database", "control plane" | The **manager database** (`managerDatabase`, default `db_manager`). It is never routable; every application database is an **instance** registered in it. The vocabulary in this ADR keeps "tenant" and "control plane"; read them as instance and manager. The `Tenant` feather keeps its name (the Admin Console module is another repository). |
-| `identity`, `organization`, `access_grant`, `admin_audit` | Core feathers in the manager. Username is unique per organization (partial unique index on `(organization, lower(username))`), one grant per identity and instance. |
+| `identity`, `organization`, `access_grant`, `organization_admin`, `admin_audit` | Core feathers in the manager. Username is unique across the installation (partial unique index on `lower(username)` — see revision 4), one grant per identity and instance, one appointment per identity and organization. |
 | `identity_credential` (passkeys, TOTP) | The bare manager table `"$identity_credential"`, plus `"$identity_challenge"` for ceremony challenges (single use, two minutes). Bare tables are made on first use, so no reinstall. No generic data route serves them. **TOTP is not built.** |
 | `identity_federation` (SSO) | **Not built.** Plan items C.3 and C.4, waiting on a decision about an identity provider. |
 | Sign-in flow, §4 steps 1-8 | As written, in `server/database.js` `authenticateIdentity`: database, instance, organization, identity, scrypt verification in Node, an active `access_grant`, and a closed or inactive instance is refused. The organization's `isTwoFactorRequired` decides the second factor; the `twoFactorAuth` setting remains an installation-wide override. Lock after the fourth failure, audited. No connection is opened as the user. |
@@ -174,6 +174,13 @@ Three points this settles:
 
 ### Identity is scoped to an organization
 
+> **Revised 2026-10-21 — see "Revision 4: one name, one person" at the end of
+> this document.** A username is now unique across the installation, and an
+> identity's organization says who owns the account rather than who it may
+> work for. The paragraphs below record the original choice and why it was
+> made; the revision records why it did not survive contact with the
+> platform administrator and the reseller.
+
 `identity.organization` is **required**. A username is unique *within* an
 organization, not globally.
 
@@ -208,10 +215,11 @@ In the tenant management database:
 | Table | Holds | Notes |
 | --- | --- | --- |
 | `organization` | The customer or account | Owns tenants, edition, billing, authentication policy. New. |
-| `identity` | **A person within one organization** | Required `organization`; username unique per organization; `password_hash`; status; lock state; sign-in attempts; `is_platform_admin`; `is_org_admin`. |
+| `identity` | **A person** | Required `organization`, being who owns the account; username unique installation-wide; `password_hash`; status; lock state; sign-in attempts; `is_platform_admin`. (`is_org_admin` retired by revision 4.) |
 | `identity_credential` | WebAuthn passkeys, TOTP secrets | Moves up from the per-tenant `WebauthnCredential`. Also stores short-lived challenges, which today sit in process memory. |
 | `identity_federation` | SSO bindings | `(provider, issuer, subject) → identity`, plus per-organization IdP configuration. Serves requirement 7. |
-| `access_grant` | **(identity, tenant) + status** | The reachability boundary. Per tenant, so an organization can give a user production but not test. |
+| `access_grant` | **(identity, tenant) + status** | The reachability boundary, and since revision 4 the whole of it: a grant may name any instance, which is how one account reaches several organizations. Per tenant, so an organization can give a user production but not test. |
+| `organization_admin` | **(identity, organization) + status** | Who administers an organization. Added by revision 4, so that one person may administer several. |
 | `admin_audit` | Privileged actions | Who did what, to whom, when, and on whose behalf. |
 | `tenant` | Existing Core feather | Gains an `organization` relation. |
 | `tenant_service` | Existing Core feather | Already supports many hosts. |
@@ -427,3 +435,69 @@ Still open:
 - **API tokens**, next to `identity`, if they are coming. **Punted for
   3.0.0-alpha.1 (John, 2026-10-18):** "identity tokens are out of scope for
   now."
+
+
+## Revision 4: one name, one person (2026-10-21)
+
+John, reading back the answer that a platform administrator needs an account
+in each organization: *"that defeats one of our original requirements to have
+the notion of a global platform admin over all who can resolve any problem for
+any org. It's not practical for them to have create many versions of
+themselves. Likewise we had the use case of a VAR who might be given access to
+multiple orgs that are their accounts. So user names must be global and unique
+to the whole system."*
+
+The per-organization username made requirement 2 easy to state and
+requirement 3 impossible to build. Everyone who answers for more than one
+organization -- Featherbone's own staff, and a reseller whose customers are
+their accounts -- had to be recreated in each one, with a password apiece and
+no way to tell the copies were one person. What was built was an account per
+organization pretending to be a person.
+
+**What changes.**
+
+- A username is unique across the installation: the partial unique index drops
+  the organization from its key. An email address, which people reach for
+  anyway because it is universal and memorable, works as a username without
+  further thought.
+- `identity.organization` stays and means **who owns the account** -- where
+  the person was created, and who may change their password or stop them
+  signing in. It no longer limits where they may work.
+- `access_grant` is the whole of the access boundary. A grant may name any
+  instance, so a reseller holds one account and reaches their customers'
+  instances by being granted them.
+- Administering an organization moves off the identity and into
+  `organization_admin`: one row per organization administered, as many as a
+  person needs. `is_org_admin` is no longer read.
+- `is_platform_admin` stays a flag on the identity, and is now true to its
+  name: one account answers for every organization, because sign-in is no
+  longer organization-scoped.
+
+**What this costs, and what pays for it.** The original design's strength was
+that no identity was shared, so no cross-customer takeover was representable.
+That strength is kept by splitting what "administer" means:
+
+- Anyone may be **appointed** over an organization, and anyone may be given or
+  refused that organization's instances. That is the authority an organization
+  administrator has always had, and it reaches only their own organization.
+- The **account itself** -- its password, whether it may sign in at all --
+  belongs to the organization that owns it, and to the platform. Otherwise an
+  organization could appoint an outsider, reset the password of the account
+  that person uses everywhere else, and walk in wherever it reaches. Only a
+  platform administrator crosses that line, which is the authority the ADR
+  always gave them, and it is audited.
+- An organization's Users screen shows the accounts it owns, anyone granted
+  one of its instances, and anyone appointed over it -- with the outsiders
+  marked by whose account they are.
+
+A provider's group claim still appoints over that provider's own organization
+only, and linking a federated subject is still confined to the accounts that
+organization owns: a directory speaks for its own organization and no other.
+
+**Migration.** Duplicate usernames across organizations are merged on
+`node install.js --manager`, before the new index is built. The identity most
+recently signed in to survives and inherits the others' instance grants,
+federated subjects and administration; the others are soft-deleted; each merge
+is printed and written to the audit. John chose merging over reporting for
+resolution by hand (2026-10-21), the duplicates in practice being one person
+entered twice by a command-line install.

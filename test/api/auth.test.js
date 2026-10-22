@@ -113,16 +113,29 @@ describe("authentication", function () {
         assert.ok(who.organization, "the organization is named");
         assert.equal(typeof who.organizationId, "string");
 
-        // What it says of their authority is the identity's own, not
-        // the session's idea of it
+        /*
+            What it says of their authority is read where the authority
+            lives: the platform flag on the identity, and administering
+            this organization as an appointment over it (ADR-001
+            revision 4).
+        */
         let identity = await db.withClient(
             settings.managerDb,
             (client) => client.query(
                 (
-                    "SELECT is_org_admin, is_platform_admin FROM identity " +
-                    "WHERE lower(username) = lower($1) AND NOT is_deleted"
+                    "SELECT i.is_platform_admin, " +
+                    "  (a._pk IS NOT NULL) AS is_org_admin " +
+                    "FROM identity i " +
+                    "LEFT JOIN tenant t ON t.pg_database = $2 " +
+                    "LEFT JOIN organization_admin a " +
+                    "  ON a._identity_identity_pk = i._pk " +
+                    "    AND a._organization_organization_pk = " +
+                    "      t._organization_organization_pk " +
+                    "    AND a.is_active AND NOT a.is_deleted " +
+                    "WHERE lower(i.username) = lower($1) " +
+                    "  AND NOT i.is_deleted"
                 ),
-                [settings.adminUser]
+                [settings.adminUser, settings.testDb]
             )
         );
 

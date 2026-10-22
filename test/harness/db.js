@@ -202,13 +202,13 @@ async function ensureIdentity(name, password, database, opts) {
         );
         let orgPk = org.rows[0]._pk;
         let hash = opts.hash || identities.hashPassword(password);
+        // A username names one person across the installation
         let found = await client.query(
             (
                 "SELECT _pk FROM identity " +
-                "WHERE _organization_organization_pk = $1 " +
-                "  AND lower(username) = lower($2) AND NOT is_deleted"
+                "WHERE lower(username) = lower($1) AND NOT is_deleted"
             ),
-            [orgPk, name]
+            [name]
         );
         let pk;
 
@@ -219,16 +219,11 @@ async function ensureIdentity(name, password, database, opts) {
                     "UPDATE identity SET password_hash = $2, " +
                     "  status = 'active', failed_attempts = 0, " +
                     "  locked_until = null, " +
-                    "  is_org_admin = $3, is_platform_admin = $4, " +
+                    "  is_platform_admin = $3, " +
                     "  updated = now(), updated_by = 'fbtest' " +
                     "WHERE _pk = $1"
                 ),
-                [
-                    pk,
-                    hash,
-                    Boolean(opts.isOrgAdmin),
-                    Boolean(opts.isPlatformAdmin)
-                ]
+                [pk, hash, Boolean(opts.isPlatformAdmin)]
             );
         } else {
             let made = await client.query((
@@ -236,7 +231,7 @@ async function ensureIdentity(name, password, database, opts) {
                 ",_organization_organization_pk,username,full_name," +
                 "email,password_hash,status,is_platform_admin," +
                 "is_org_admin,failed_attempts) VALUES (" + DOC_VALS +
-                ",$2,$3,$3,'',$4,'active',$5,$6,0) RETURNING _pk"
+                ",$2,$3,$3,'',$4,'active',$5,false,0) RETURNING _pk"
             ), [
                 opts.id || ("fbti" + Date.now().toString(36) + (
                     Math.random().toString(36).slice(2, 6)
@@ -244,10 +239,48 @@ async function ensureIdentity(name, password, database, opts) {
                 orgPk,
                 name,
                 hash,
-                Boolean(opts.isPlatformAdmin),
-                Boolean(opts.isOrgAdmin)
+                Boolean(opts.isPlatformAdmin)
             ]);
             pk = made.rows[0]._pk;
+        }
+
+        /*
+            Administering an organization is an appointment over it
+            now, not a flag on the person, so the fixture's
+            organization is the one these tests administer.
+        */
+        let appointed = await client.query(
+            (
+                "SELECT _pk FROM organization_admin " +
+                "WHERE _identity_identity_pk = $1 " +
+                "  AND _organization_organization_pk = $2 " +
+                "  AND NOT is_deleted"
+            ),
+            [pk, orgPk]
+        );
+
+        if (appointed.rows.length) {
+            await client.query(
+                (
+                    "UPDATE organization_admin SET is_active = $2, " +
+                    "  updated = now(), updated_by = 'fbtest' " +
+                    "WHERE _pk = $1"
+                ),
+                [appointed.rows[0]._pk, Boolean(opts.isOrgAdmin)]
+            );
+        } else if (opts.isOrgAdmin) {
+            await client.query((
+                "INSERT INTO organization_admin (" + DOC_COLS +
+                ",_identity_identity_pk,_organization_organization_pk," +
+                "is_active,appointed) VALUES (" + DOC_VALS +
+                ",$2,$3,true,now())"
+            ), [
+                "fbta" + Date.now().toString(36) + (
+                    Math.random().toString(36).slice(2, 6)
+                ),
+                pk,
+                orgPk
+            ]);
         }
 
         if (database) {
