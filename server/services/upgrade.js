@@ -339,12 +339,14 @@
                     "WHERE pg_database = $1",
                     [database]
                 );
-                logger.warn(
+                say(logger, "warn",
                     "Instance \"" + database + "\" is held for " +
                     "maintenance after a failed upgrade"
                 );
             } catch (err) {
-                logger.warn(
+                say(
+                    logger,
+                    "warn",
                     "Could not hold \"" + database + "\": " + err.message
                 );
             } finally {
@@ -352,40 +354,93 @@
             }
         }
 
-        // Run one command line act, the way it would be typed.
+        function named(one) {
+            return (
+                one.step === "manager"
+                ? "manager"
+                : "instance \"" + one.name + "\""
+            );
+        }
+
+        /*
+            Said to the log and, when the log is not already writing to
+            the console, to the console as well. An upgrade can take
+            minutes and runs before the server is listening, so without
+            this a restart that is working looks exactly like one that
+            is hung: the log goes to a file unless `consolelog` is on.
+        */
+        function say(logger, level, message) {
+            let onConsole = Boolean(
+                logger.transports &&
+                logger.transports.some((one) => one.name === "console")
+            );
+
+            logger[level](message);
+
+            if (!onConsole) {
+                (
+                    (level === "error" || level === "warn")
+                    ? console.error
+                    : console.log
+                )(message);
+            }
+        }
+
+        // Whole lines out of a stream that delivers arbitrary chunks.
+        function lines(stream, each) {
+            let held = "";
+
+            stream.setEncoding("utf8");
+            stream.on("data", function (chunk) {
+                let text = held + chunk;
+                let parts = text.split("\n");
+
+                held = parts.pop();
+                parts.filter(Boolean).forEach(each);
+            });
+            stream.on("end", function () {
+                if (held) {
+                    each(held);
+                }
+            });
+        }
+
+        // Run one command line act, the way it would be typed, passing
+        // what it says along as it says it.
         function execute(step, logger) {
             return new Promise(function (resolve, reject) {
                 let script = "install.js";
+                let tail = [];
+                let proc;
 
-                logger.info(
-                    "Self upgrade: node " + script + " " +
-                    step.args.join(" ") + " (" + step.why + ")"
-                );
-
-                child.execFile(
+                proc = child.spawn(
                     process.execPath,
                     [path.join(ROOT, script)].concat(step.args),
-                    {
-                        cwd: ROOT,
-                        env: process.env,
-                        maxBuffer: 1024 * 1024 * 32
-                    },
-                    function (err, stdout, stderr) {
-                        String(stdout || "").split("\n").filter(
-                            Boolean
-                        ).forEach((line) => logger.info("  " + line));
-
-                        String(stderr || "").split("\n").filter(
-                            Boolean
-                        ).forEach((line) => logger.warn("  " + line));
-
-                        if (err) {
-                            return reject(err);
-                        }
-
-                        resolve();
-                    }
+                    {cwd: ROOT, env: process.env}
                 );
+
+                function keep(level) {
+                    return function (line) {
+                        tail.push(line);
+                        tail = tail.slice(-20);
+                        say(logger, level, "    " + line);
+                    };
+                }
+
+                lines(proc.stdout, keep("info"));
+                lines(proc.stderr, keep("warn"));
+
+                proc.on("error", reject);
+                proc.on("close", function (code) {
+                    if (code) {
+                        return reject(new Error(
+                            "node " + script + " " + step.args.join(" ") +
+                            " exited " + code + ": " + tail.join(" | ")
+                        ));
+                    }
+
+                    resolve();
+                });
             });
         }
 
@@ -427,7 +482,9 @@
             let locked = await lock.connect().then(
                 () => true
             ).catch(function (err) {
-                logger.warn(
+                say(
+                    logger,
+                    "warn",
                     "Self upgrade is running without its lock: " +
                     err.message + ". Two nodes starting at once could " +
                     "both upgrade."
@@ -443,10 +500,23 @@
                         application out of a database another node is
                         halfway through upgrading.
                     */
-                    await lock.query(
-                        "SELECT pg_advisory_lock(hashtext($1))",
+                    let got = await lock.query(
+                        "SELECT pg_try_advisory_lock(hashtext($1)) AS got",
                         [LOCK]
                     );
+
+                    if (!got.rows[0].got) {
+                        say(
+                            logger,
+                            "info",
+                            "Self upgrade: another node is upgrading; " +
+                            "waiting for it to finish"
+                        );
+                        await lock.query(
+                            "SELECT pg_advisory_lock(hashtext($1))",
+                            [LOCK]
+                        );
+                    }
                 }
 
                 /*
@@ -454,6 +524,13 @@
                     waited is looking at what the winner left, and the
                     whole point of waiting is to see it.
                 */
+                say(
+                    logger,
+                    "info",
+                    "Self upgrade: checking the manager and instances " +
+                    "against Core " + ownVersion()
+                );
+
                 let managerKind;
                 let managerVersion;
                 let instances = [];
@@ -493,7 +570,9 @@
                 }, conf);
 
                 if (!steps.length) {
-                    logger.info(
+                    say(
+                        logger,
+                        "info",
                         "Self upgrade: nothing to do, everything is " +
                         "current"
                     );
@@ -502,20 +581,43 @@
 
                 let n = 0;
 
+                say(
+                    logger,
+                    "info",
+                    "Self upgrade: " + steps.length + " to do: " +
+                    steps.map(named).join(", ") + ". The server starts " +
+                    "when this is finished."
+                );
+
                 while (n < steps.length) {
                     let step = steps[n];
+                    let began = Date.now();
+
+                    say(
+                        logger,
+                        "info",
+                        "Self upgrade [" + (n + 1) + "/" + steps.length +
+                        "] " + named(step) + ": node install.js " +
+                        step.args.join(" ") + " (" + step.why + ")"
+                    );
 
                     try {
                         await execute(step, logger);
                         done.ran.push(step);
+                        say(
+                            logger,
+                            "info",
+                            "Self upgrade [" + (n + 1) + "/" +
+                            steps.length + "] " + named(step) +
+                            ": done in " +
+                            Math.round((Date.now() - began) / 1000) + "s"
+                        );
                     } catch (err) {
-                        logger.error(
-                            "Self upgrade failed at " + step.step +
-                            (
-                                step.name
-                                ? " \"" + step.name + "\""
-                                : ""
-                            ) + ": " + err.message
+                        say(
+                            logger,
+                            "error",
+                            "Self upgrade failed at " + named(step) +
+                            ": " + err.message
                         );
                         done.failed.push(step);
 
@@ -537,9 +639,15 @@
                     n += 1;
                 }
 
-                logger.info(
+                say(
+                    logger,
+                    "info",
                     "Self upgrade: " + done.ran.length + " of " +
-                    steps.length + " steps ran"
+                    steps.length + " steps ran" + (
+                        done.failed.length
+                        ? "; " + done.failed.length + " failed"
+                        : ""
+                    )
                 );
 
                 return done;
