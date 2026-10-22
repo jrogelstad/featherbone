@@ -275,6 +275,68 @@
             return found;
         };
 
+        /**
+            The routes an installed package declares: the `routes.json`
+            at the root of its directory, the same file a package export
+            writes. Each entry names a `path` and the `function` it
+            calls, either bare or wrapped as a batch record
+            (`{data: {path, function}}`). Routes come from the version a
+            database deployed, never from a table, so two databases on
+            different versions of one module each get their own.
+
+            @method routesOf
+            @param {String} name Module name
+            @param {String} version Version
+            @return {Array|undefined} [{module, path, function}], or
+            undefined when the package carries no routes.json at all,
+            which is a package not yet repackaged rather than one with
+            no routes
+        */
+        that.routesOf = function (name, version) {
+            let pkg = that.resolve(name, version);
+            let file;
+            let list;
+
+            if (!pkg) {
+                return undefined;
+            }
+
+            file = path.join(pkg.dir, "routes.json");
+            if (!fs.existsSync(file)) {
+                return undefined;
+            }
+
+            try {
+                list = JSON.parse(fs.readFileSync(file, "utf8"));
+            } catch (err) {
+                console.error(
+                    "Package routes " + file + " are unreadable: " +
+                    err.message
+                );
+                return [];
+            }
+
+            if (!Array.isArray(list)) {
+                return [];
+            }
+
+            return list.map(
+                (item) => (
+                    (item && item.data)
+                    ? item.data
+                    : item
+                )
+            ).filter(
+                (item) => item && item.path && item.function
+            ).map(function (item) {
+                return {
+                    function: item.function,
+                    module: pkg.manifest.module || name,
+                    path: item.path
+                };
+            });
+        };
+
         /*
             Where a package goes: one directory per module and version,
             named by the manifest's module, because that name is what a

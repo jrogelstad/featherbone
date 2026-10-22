@@ -20,56 +20,32 @@
     Self upgrade at startup (John, Oct 2026).
 
     An installation with no shell cannot be upgraded the documented
-    way, which is three command line acts: build or upgrade the
-    manager, bring each instance's installed scripts current, and --
-    for an installation that predates identities -- backfill the
-    identities. A hosted instance is exactly that case: the deployment
-    is a restart and there is nowhere to type.
+    way, which is `node install.js --manager` and then
+    `node install.js --instance <name>` for each instance. A hosted
+    installation is exactly that case: the deployment is a restart and
+    there is nowhere to type.
 
-    `selfUpgrade` runs those same acts when the server starts, before
-    anything touches a database. What runs is the command line itself,
-    as a child process: the same `install.js` and
-    `scripts/migrate-identities.js`, given the flags their settings
-    name. Nothing is reimplemented here, so there is one installer to
-    keep right, and a child process keeps the installer's own catalog
-    loading out of the caches the server is about to build.
+    Two switches, both off by default, both environment-overridable
+    because that is how a hosted installation is configured:
 
-    Every step asks first whether it has anything to do, so an ordinary
-    restart of a current installation costs two queries and runs
-    nothing.
-
-    The settings, all overridable by environment variable because
-    that is how a hosted installation is configured. Each one is a
-    flag of the command line it stands for, so what runs at boot is
-    what would have been typed:
-
-    selfUpgrade
-        The switch. Off by default; nothing here runs unless it is on.
+    selfUpgradeManager
+        When the server starts, compare the Core version the manager
+        database carries with this checkout's `manifest.json`. If it
+        is behind -- or the manager is missing -- run
+        `install.js --manager`.
 
     selfUpgradeInstances
-        Which instances to bring current: an array in the file, a
-        comma separated list in the environment. Empty means every
-        instance in the registry, which is what every restart after
-        the first one sees.
+        When the server starts, do the same for every instance the
+        manager has registered: each one whose Core version is behind
+        (or absent) gets `install.js --instance <name>`. Instances are
+        always the registry's; there is no list to keep.
 
-    selfUpgradeOrganization
-        `--organization`. Read only when an instance is being
-        registered for the first time.
-
-    selfUpgradeIdentities
-        Whether to run the identity backfill. One way and without
-        rollback tooling, so it is its own switch: turning on self
-        upgrade does not turn this on.
-
-    selfUpgradeOrgAdmin
-        `--org-admin`: who the backfill appoints the organization's
-        first administrator. Nothing else appoints one.
-
-    selfUpgradeSuperuser, selfUpgradeSuperuserPassword
-        `--username` and `--password`, so the backfill can copy each
-        user's password verifier out of `pg_authid` and every
-        password keeps working. Without them the identities it makes
-        have none and every user has to be reset.
+    What runs is the command line itself, as a child process, so
+    there is one installer to keep right and a child process keeps the
+    installer's own catalog loading out of the caches the server is
+    about to build. Every check asks first whether there is anything
+    to do, so an ordinary restart of a current installation costs a
+    few queries and runs nothing.
 */
 (function (exports) {
     "use strict";
@@ -156,29 +132,6 @@
             return that.version();
         }
 
-        /*
-            An array in config.json, a comma separated list in the
-            environment. The environment can only carry a string, and
-            `config.read` types nothing but numbers and booleans, so
-            the splitting has to happen where the setting is read
-            rather than in the generic override.
-        */
-        that.instanceNames = function (value) {
-            if (Array.isArray(value)) {
-                return value.map(String).map(
-                    (one) => one.trim()
-                ).filter(Boolean);
-            }
-
-            if (typeof value === "string") {
-                return value.split(",").map(
-                    (one) => one.trim()
-                ).filter(Boolean);
-            }
-
-            return [];
-        };
-
         /**
             What this startup has to do, given what the databases say.
             Separated from the doing so the decision can be tested
@@ -189,97 +142,70 @@
             @param {Object} state
             @param {String} [state.managerKind] "$db" kind of the
                 manager database, undefined when it is absent or bare
+            @param {String} [state.managerVersion] Core version the
+                manager carries, undefined when it has none
             @param {Array} state.instances [{name, version}], version
                 being the Core version that instance carries and
-                undefined for a database installed before the manager
+                undefined for a database with no Core module row
             @param {String} state.version The version this checkout is
             @param {Object} conf Configuration as returned by `read`
             @return {Array} [{step, args, why}]
         */
         that.plan = function (state, conf) {
             let steps = [];
-            let org = String(conf.selfUpgradeOrganization || "").trim();
 
-            if (state.managerKind !== "manager") {
-                steps.push({
-                    args: ["--manager"],
-                    step: "manager",
-                    why: (
-                        state.managerKind === undefined
-                        ? "no manager database"
-                        : "manager database is a \"" +
-                        state.managerKind + "\""
-                    )
-                });
+            function behind(version) {
+                return (
+                    version === undefined ||
+                    version === null ||
+                    packages.compareVersions(version, state.version) < 0
+                );
             }
 
-            state.instances.forEach(function (instance) {
-                let behind = (
-                    instance.version === undefined ||
-                    instance.version === null ||
-                    packages.compareVersions(
-                        instance.version,
-                        state.version
-                    ) < 0
-                );
-
-                if (!behind) {
-                    return;
+            if (conf.selfUpgradeManager) {
+                if (state.managerKind !== "manager") {
+                    steps.push({
+                        args: ["--manager"],
+                        step: "manager",
+                        why: (
+                            state.managerKind === undefined
+                            ? "no manager database"
+                            : "manager database is a \"" +
+                            state.managerKind + "\""
+                        )
+                    });
+                } else if (behind(state.managerVersion)) {
+                    steps.push({
+                        args: ["--manager"],
+                        step: "manager",
+                        why: (
+                            state.managerVersion === undefined
+                            ? "manager carries no Core version"
+                            : "manager carries Core " +
+                            state.managerVersion + ", this server is " +
+                            state.version
+                        )
+                    });
                 }
+            }
 
-                let args = ["--instance", instance.name];
+            if (conf.selfUpgradeInstances) {
+                state.instances.forEach(function (instance) {
+                    if (!behind(instance.version)) {
+                        return;
+                    }
 
-                if (org) {
-                    args = args.concat(["--organization", org]);
-                }
-
-                steps.push({
-                    args,
-                    step: "instance",
-                    name: instance.name,
-                    why: (
-                        instance.version === undefined
-                        ? "carries no Core version"
-                        : "carries Core " + instance.version +
-                        ", this server is " + state.version
-                    )
-                });
-            });
-
-            /*
-                The identity backfill is one way and has no rollback by
-                John's decision, so it is asked for separately and run
-                only when something else changed. A restart that found
-                everything current has nothing for it to backfill, and
-                running an irreversible migration on every boot to
-                discover that is not a trade worth making.
-            */
-            if (conf.selfUpgradeIdentities && steps.length) {
-                let args = ["--apply"];
-                let admin = String(conf.selfUpgradeOrgAdmin || "").trim();
-                let su = String(conf.selfUpgradeSuperuser || "").trim();
-
-                if (org) {
-                    args = args.concat(["--organization", org]);
-                }
-
-                if (admin) {
-                    args = args.concat(["--org-admin", admin]);
-                }
-
-                if (su) {
-                    args = args.concat([
-                        "--username", su,
-                        "--password",
-                        String(conf.selfUpgradeSuperuserPassword || "")
-                    ]);
-                }
-
-                steps.push({
-                    args,
-                    script: "scripts/migrate-identities.js",
-                    step: "identities",
-                    why: "an upgrade ran and identities are asked for"
+                    steps.push({
+                        args: ["--instance", instance.name],
+                        step: "instance",
+                        name: instance.name,
+                        why: (
+                            instance.version === undefined
+                            ? "carries no Core version"
+                            : "carries Core " + instance.version +
+                            ", this server is " + state.version
+                        )
+                    });
                 });
             }
 
@@ -369,8 +295,7 @@
         }
 
         // Every instance the registry holds. Empty when there is no
-        // manager yet, which is why a first upgrade has to be told the
-        // names in `selfUpgradeInstances`.
+        // manager yet, and then there is nothing to upgrade.
         async function registered(conf) {
             let client = instanceClient(
                 conf,
@@ -414,12 +339,14 @@
                     "WHERE pg_database = $1",
                     [database]
                 );
-                logger.warn(
+                say(logger, "warn",
                     "Instance \"" + database + "\" is held for " +
                     "maintenance after a failed upgrade"
                 );
             } catch (err) {
-                logger.warn(
+                say(
+                    logger,
+                    "warn",
                     "Could not hold \"" + database + "\": " + err.message
                 );
             } finally {
@@ -427,40 +354,93 @@
             }
         }
 
-        // Run one command line act, the way it would be typed.
+        function named(one) {
+            return (
+                one.step === "manager"
+                ? "manager"
+                : "instance \"" + one.name + "\""
+            );
+        }
+
+        /*
+            Said to the log and, when the log is not already writing to
+            the console, to the console as well. An upgrade can take
+            minutes and runs before the server is listening, so without
+            this a restart that is working looks exactly like one that
+            is hung: the log goes to a file unless `consolelog` is on.
+        */
+        function say(logger, level, message) {
+            let onConsole = Boolean(
+                logger.transports &&
+                logger.transports.some((one) => one.name === "console")
+            );
+
+            logger[level](message);
+
+            if (!onConsole) {
+                (
+                    (level === "error" || level === "warn")
+                    ? console.error
+                    : console.log
+                )(message);
+            }
+        }
+
+        // Whole lines out of a stream that delivers arbitrary chunks.
+        function lines(stream, each) {
+            let held = "";
+
+            stream.setEncoding("utf8");
+            stream.on("data", function (chunk) {
+                let text = held + chunk;
+                let parts = text.split("\n");
+
+                held = parts.pop();
+                parts.filter(Boolean).forEach(each);
+            });
+            stream.on("end", function () {
+                if (held) {
+                    each(held);
+                }
+            });
+        }
+
+        // Run one command line act, the way it would be typed, passing
+        // what it says along as it says it.
         function execute(step, logger) {
             return new Promise(function (resolve, reject) {
-                let script = step.script || "install.js";
+                let script = "install.js";
+                let tail = [];
+                let proc;
 
-                logger.info(
-                    "Self upgrade: node " + script + " " +
-                    step.args.join(" ") + " (" + step.why + ")"
-                );
-
-                child.execFile(
+                proc = child.spawn(
                     process.execPath,
                     [path.join(ROOT, script)].concat(step.args),
-                    {
-                        cwd: ROOT,
-                        env: process.env,
-                        maxBuffer: 1024 * 1024 * 32
-                    },
-                    function (err, stdout, stderr) {
-                        String(stdout || "").split("\n").filter(
-                            Boolean
-                        ).forEach((line) => logger.info("  " + line));
-
-                        String(stderr || "").split("\n").filter(
-                            Boolean
-                        ).forEach((line) => logger.warn("  " + line));
-
-                        if (err) {
-                            return reject(err);
-                        }
-
-                        resolve();
-                    }
+                    {cwd: ROOT, env: process.env}
                 );
+
+                function keep(level) {
+                    return function (line) {
+                        tail.push(line);
+                        tail = tail.slice(-20);
+                        say(logger, level, "    " + line);
+                    };
+                }
+
+                lines(proc.stdout, keep("info"));
+                lines(proc.stderr, keep("warn"));
+
+                proc.on("error", reject);
+                proc.on("close", function (code) {
+                    if (code) {
+                        return reject(new Error(
+                            "node " + script + " " + step.args.join(" ") +
+                            " exited " + code + ": " + tail.join(" | ")
+                        ));
+                    }
+
+                    resolve();
+                });
             });
         }
 
@@ -483,7 +463,7 @@
         that.run = async function (conf, logger) {
             let done = {failed: [], fatal: false, ran: []};
 
-            if (!conf.selfUpgrade) {
+            if (!conf.selfUpgradeManager && !conf.selfUpgradeInstances) {
                 return done;
             }
 
@@ -502,7 +482,9 @@
             let locked = await lock.connect().then(
                 () => true
             ).catch(function (err) {
-                logger.warn(
+                say(
+                    logger,
+                    "warn",
                     "Self upgrade is running without its lock: " +
                     err.message + ". Two nodes starting at once could " +
                     "both upgrade."
@@ -518,10 +500,23 @@
                         application out of a database another node is
                         halfway through upgrading.
                     */
-                    await lock.query(
-                        "SELECT pg_advisory_lock(hashtext($1))",
+                    let got = await lock.query(
+                        "SELECT pg_try_advisory_lock(hashtext($1)) AS got",
                         [LOCK]
                     );
+
+                    if (!got.rows[0].got) {
+                        say(
+                            logger,
+                            "info",
+                            "Self upgrade: another node is upgrading; " +
+                            "waiting for it to finish"
+                        );
+                        await lock.query(
+                            "SELECT pg_advisory_lock(hashtext($1))",
+                            [LOCK]
+                        );
+                    }
                 }
 
                 /*
@@ -529,45 +524,55 @@
                     waited is looking at what the winner left, and the
                     whole point of waiting is to see it.
                 */
-                let names = that.instanceNames(conf.selfUpgradeInstances);
+                say(
+                    logger,
+                    "info",
+                    "Self upgrade: checking the manager and instances " +
+                    "against Core " + ownVersion()
+                );
+
                 let managerKind;
+                let managerVersion;
+                let instances = [];
 
                 if (!locked || await exists(lock, managerDb)) {
                     managerKind = await markerKind(conf, managerDb);
                 }
 
-                if (!names.length && managerKind === "manager") {
-                    names = await registered(conf);
+                if (managerKind === "manager") {
+                    managerVersion = await coreVersion(conf, managerDb);
                 }
 
-                let instances = [];
-                let i = 0;
+                /*
+                    Only a manager that is already there has a registry
+                    to read. A manager built by this very boot has no
+                    instances yet, so there is nothing for the second
+                    switch to do until the next one.
+                */
+                if (conf.selfUpgradeInstances && managerKind === "manager") {
+                    let names = await registered(conf);
+                    let i = 0;
 
-                while (i < names.length) {
-                    let name = names[i];
-
-                    /*
-                        A name that is no database yet is still an
-                        instance to install: that is a first upgrade
-                        naming the application database it is about to
-                        register. `install.js --instance` creates what
-                        is missing and converts what is there.
-                    */
-                    instances.push({
-                        name,
-                        version: await coreVersion(conf, name)
-                    });
-                    i += 1;
+                    while (i < names.length) {
+                        instances.push({
+                            name: names[i],
+                            version: await coreVersion(conf, names[i])
+                        });
+                        i += 1;
+                    }
                 }
 
                 let steps = that.plan({
                     instances,
                     managerKind,
+                    managerVersion,
                     version: ownVersion()
                 }, conf);
 
                 if (!steps.length) {
-                    logger.info(
+                    say(
+                        logger,
+                        "info",
                         "Self upgrade: nothing to do, everything is " +
                         "current"
                     );
@@ -576,20 +581,43 @@
 
                 let n = 0;
 
+                say(
+                    logger,
+                    "info",
+                    "Self upgrade: " + steps.length + " to do: " +
+                    steps.map(named).join(", ") + ". The server starts " +
+                    "when this is finished."
+                );
+
                 while (n < steps.length) {
                     let step = steps[n];
+                    let began = Date.now();
+
+                    say(
+                        logger,
+                        "info",
+                        "Self upgrade [" + (n + 1) + "/" + steps.length +
+                        "] " + named(step) + ": node install.js " +
+                        step.args.join(" ") + " (" + step.why + ")"
+                    );
 
                     try {
                         await execute(step, logger);
                         done.ran.push(step);
+                        say(
+                            logger,
+                            "info",
+                            "Self upgrade [" + (n + 1) + "/" +
+                            steps.length + "] " + named(step) +
+                            ": done in " +
+                            Math.round((Date.now() - began) / 1000) + "s"
+                        );
                     } catch (err) {
-                        logger.error(
-                            "Self upgrade failed at " + step.step +
-                            (
-                                step.name
-                                ? " \"" + step.name + "\""
-                                : ""
-                            ) + ": " + err.message
+                        say(
+                            logger,
+                            "error",
+                            "Self upgrade failed at " + named(step) +
+                            ": " + err.message
                         );
                         done.failed.push(step);
 
@@ -611,9 +639,15 @@
                     n += 1;
                 }
 
-                logger.info(
+                say(
+                    logger,
+                    "info",
                     "Self upgrade: " + done.ran.length + " of " +
-                    steps.length + " steps ran"
+                    steps.length + " steps ran" + (
+                        done.failed.length
+                        ? "; " + done.failed.length + " failed"
+                        : ""
+                    )
                 );
 
                 return done;

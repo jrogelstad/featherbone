@@ -1,0 +1,4 @@
+[
+    {"path": "/version", "function": "fbtestVersion"},
+    {"path": "/newer", "function": "fbtestVersion"}
+]

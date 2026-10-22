@@ -68,6 +68,7 @@
         onlyOrg: false,
         packages: [],
         packagesUnknown: [],
+        people: [],
         picked: {},
         pkgSelection: undefined,
         progress: undefined,
@@ -182,6 +183,7 @@
             );
             vm.fleet = data.fleet;
             vm.organizations = data.organizations;
+            vm.people = data.people || [];
             vm.services = data.services;
             vm.templates = data.templates;
             vm.installed = data.installed || [];
@@ -677,6 +679,7 @@
                 : "Open " + instance.name
             )
         }, [
+            m("td", {class: "fb-admin-muted"}, instance.organization || ""),
             m("td", {class: "fb-admin-col-name"}, instance.name),
             m("td", {class: "fb-admin-muted"}, instance.database),
             m("td", {class: "fb-admin-col-status"}, state(instance)),
@@ -705,9 +708,6 @@
                     )
                 ))
             ]),
-            m("div", {
-                class: "fb-admin-subtitle"
-            }, vm.identity.organization.name),
             (
                 vm.error
                 ? m("div", {class: "fb-admin-note"}, vm.error)
@@ -728,6 +728,7 @@
                     class: "pure-table fb-admin-table"
                 }, [
                     m("thead", m("tr", [
+                        m("th", "Organization"),
                         m("th", "Instance"),
                         m("th", "Database"),
                         m("th", "State"),
@@ -782,7 +783,7 @@
                 ),
                 none,
                 function () {
-                    vm.form = {kind: "administrator"};
+                    vm.form = {kind: "administrator", person: ""};
                     vm.menu = undefined;
                 }
             ),
@@ -877,6 +878,21 @@
         };
     }
 
+    // "jsmith -- Jane Smith (Acme)": enough to tell two people apart
+    function personLabel(one) {
+        let label = one.username;
+
+        if (one.fullName && one.fullName !== one.username) {
+            label += " -- " + one.fullName;
+        }
+
+        if (one.organization) {
+            label += " (" + one.organization + ")";
+        }
+
+        return label;
+    }
+
     function organizationForm() {
         let organization = selectedOrganization() || {};
         let kind = vm.form.kind;
@@ -909,12 +925,26 @@
                 return;
             }
             if (kind === "administrator") {
+                let existing = vm.form.person;
+
                 send("/platform/organization/administrator", {
-                    email: fieldValue("email"),
-                    fullName: fieldValue("full-name"),
+                    email: (
+                        existing
+                        ? ""
+                        : fieldValue("email")
+                    ),
+                    fullName: (
+                        existing
+                        ? ""
+                        : fieldValue("full-name")
+                    ),
                     organization: organization.id,
-                    password: fieldValue("password"),
-                    username: fieldValue("username")
+                    password: (
+                        existing
+                        ? ""
+                        : fieldValue("password")
+                    ),
+                    username: existing || fieldValue("username")
                 }, "Administrator appointed");
                 return;
             }
@@ -984,25 +1014,61 @@
                 ])
             ];
         } else if (kind === "administrator") {
+            let chosen = vm.people.find(
+                (one) => one.username === vm.form.person
+            );
+
             fields = [
-                field("username", "Username", "text", submit),
-                field("full-name", "Full name", "text", submit),
-                field("email", "Email", "text", submit),
-                field("password", "Password", "password", submit),
-                m("div", {class: "fb-admin-note"}, (
-                    "They administer this organization: its people and " +
-                    "who reaches which of its instances. They are " +
-                    "granted no instance here."
-                )),
-                m("div", {class: "fb-admin-note"}, (
-                    "A user name already in use is that person, " +
-                    "appointed as they stand -- which is how somebody " +
-                    "administers several organizations without an " +
-                    "account apiece. Their password is unchanged, so " +
-                    "leave it blank; the full name and email are used " +
-                    "only when the account is being made."
-                ))
+                m("div", {class: "pure-control-group fb-sign-in"}, [
+                    m("label", {
+                        class: "fb-sign-in-label",
+                        for: "person"
+                    }, "Person"),
+                    m("select", {
+                        id: "person",
+                        onchange: function (e) {
+                            vm.form.person = e.target.value;
+                        }
+                    }, [
+                        m("option", {
+                            selected: vm.form.person === "",
+                            value: ""
+                        }, "A new person...")
+                    ].concat(vm.people.map(function (one) {
+                        return m("option", {
+                            selected: vm.form.person === one.username,
+                            value: one.username
+                        }, personLabel(one));
+                    })))
+                ])
             ];
+
+            if (chosen) {
+                fields.push(m("div", {class: "fb-admin-note"}, (
+                    chosen.username + " is appointed as they stand: " +
+                    "their password and details are not changed, and " +
+                    "the same account can administer other " +
+                    "organizations too."
+                )));
+            } else {
+                fields = fields.concat([
+                    field("username", "Username", "text", submit),
+                    field("full-name", "Full name", "text", submit),
+                    field("email", "Email", "text", submit),
+                    field("password", "Password", "password", submit),
+                    m("div", {class: "fb-admin-note"}, (
+                        "A new account, owned by this organization. " +
+                        "Pick an existing person above to appoint them " +
+                        "instead."
+                    ))
+                ]);
+            }
+
+            fields.push(m("div", {class: "fb-admin-note"}, (
+                "They administer this organization: its people and " +
+                "who reaches which of its instances. They are " +
+                "granted no instance here."
+            )));
         } else if (kind === "provider") {
             let have = vm.providers.find(
                 (one) => one.organizationId === organization.id
@@ -1126,6 +1192,7 @@
 
     function organizationRow(organization) {
         let events = rowEvents(organization.id);
+        let administrators = organization.administratorNames || [];
 
         return m("tr", Object.assign({
             class: (
@@ -1144,7 +1211,9 @@
             )),
             m("td", organization.instances),
             m("td", organization.identities),
-            m("td", (
+            m("td", {
+                title: administrators.join("\n")
+            }, (
                 organization.administrators
                 ? organization.administrators
                 : m("span", {

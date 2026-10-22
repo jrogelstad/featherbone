@@ -234,27 +234,11 @@ it already made.
 ### Moving an existing installation
 
 An installation that predates identities has nobody who can sign in until
-it has been migrated, since there is no longer any other way in. Run
-`node scripts/migrate-identities.js` (a dry run; add `--apply` to write).
-It creates the organization, attaches registered instances, and makes an
-identity per existing user with an access grant per instance. Given
-superuser credentials (`--username`/`--password`) it also copies each
-user's password verifier from `pg_authid`, so every password keeps working
-and is re-hashed to the application's own form (scrypt) on first sign-in.
-`--org-admin <username>` appoints the organization's first administrator;
-nothing else does. Then re-run `node install.js --instance <name>` on each
-instance so it carries the current scripts, and restart.
-
-```bash
-node scripts/migrate-identities.js --apply \
-    --username postgres --password <pw> \
-    --organization "<your organization>" --org-admin admin
-node install.js --instance <name>
-```
-
-The migration is one way: once an installation is on identities there is
-no path back to Postgres login roles, and no tooling for one. The safety
-net before it is a backup:
+its users have been made identities. That one-time backfill is no longer
+part of the tree: every installation in use has been moved, and the
+script (`scripts/migrate-identities.js`) was removed. If you do hold an
+older one, run the script from the `v3.0.0-alpha.1` tag against it, then
+come back to this version. Take a backup first; the move was one way:
 
 ```bash
 pg_dump <each instance> > <name>-before-cutover.sql
@@ -268,44 +252,38 @@ no longer needs it.
 ### Upgrading where there is no command line
 
 A hosted installation is deployed by restarting the process, and there is
-often nowhere to type the three acts above. `selfUpgrade` runs them when
-the server starts, before anything reads a database:
+often nowhere to type the upgrade. Two switches do what `install.js
+--manager` and `install.js --instance <name>` would have done, when the
+server starts and before anything reads a database:
 
 ```jsonc
 {
-    "selfUpgrade": true,
-    "selfUpgradeInstances": ["acme"],   // empty: every registered instance
-    "selfUpgradeOrganization": "Acme"
+    "selfUpgradeManager": true,
+    "selfUpgradeInstances": true
 }
 ```
 
-It is off by default. On, each step first asks whether it has anything to
-do, so an ordinary restart of a current installation runs nothing and
-costs two queries:
+Both are off by default, and each can be supplied as an environment
+variable of the same name. On, each one first compares the Core version a
+database carries with this checkout's `manifest.json`, so an ordinary
+restart of a current installation runs nothing and costs a few queries:
 
-1. **The manager**, when the database named by `managerDatabase` is absent
-   or carries no `manager` marker — `install.js --manager`.
-2. **Each instance** whose Core version is behind this checkout's
-   `manifest.json`, or that carries no version at all because it predates
-   the manager — `install.js --instance <name>`. With
-   `selfUpgradeInstances` empty the list is the registry, which is what
-   every restart after the first one sees; name the instances explicitly
-   for the first upgrade, when there is no registry to read yet.
-3. **The identity backfill**, and only when `selfUpgradeIdentities` is on
-   *and* one of the steps above ran — `migrate-identities.js --apply`.
-   That migration is one way with no rollback tooling, so it has its own
-   switch: turning on `selfUpgrade` does not turn it on.
-   `selfUpgradeOrgAdmin` appoints the first organization administrator,
-   and `selfUpgradeSuperuser`/`selfUpgradeSuperuserPassword` let it copy
-   each user's password verifier out of `pg_authid` so existing passwords
-   keep working. Without them every identity it makes has to be reset.
+1. **`selfUpgradeManager`** — the manager database is absent, is not a
+   manager, or carries a Core version behind this checkout's:
+   `install.js --manager`. That applies the whole manifest to the manager,
+   including the steps that reshape its data.
+2. **`selfUpgradeInstances`** — every instance in the manager's registry
+   whose Core version is behind this checkout's, or that carries none:
+   `install.js --instance <name>`. There is no list to keep; the registry
+   is the list. (A manager built by this very boot has no registry yet, so
+   the instances follow on the next start.)
 
-What runs is the command line itself, as a child process: the same
-`install.js` and `scripts/migrate-identities.js` that would have been
-typed, given the flags these settings name. Every setting can be supplied
-as an environment variable of the same name, which is how a hosted
-installation is usually configured — `selfUpgradeInstances` takes a comma
-separated list there, since an environment variable cannot carry an array.
+The manager goes first. The server does not listen until the upgrade
+is done, so it prints what it is doing to the console as it goes -- the
+plan, each step with the installer's own output, and how long each took --
+whether or not `consolelog` is on. What runs is the command line itself, as a child
+process, so there is one installer to keep right. Neither switch touches
+identities or organizations.
 
 One upgrade runs at a time across nodes, on an advisory lock taken on the
 cluster's maintenance database; a node that loses waits, and then finds
@@ -350,8 +328,8 @@ as working rather than hung, fleet-wide ones especially.
 Note that this upgrades a database that is **already registered**. A
 database that predates the manager has no `"$db"` marker, so the console
 refuses to register it; `install.js --instance <name>` converts and
-registers it in one act, and `selfUpgradeInstances` is how to do that
-without a command line.
+registers it in one act. The self upgrade switches do not reach such a
+database either: they upgrade what the registry already holds.
 
 ### Settings the organization owns
 
