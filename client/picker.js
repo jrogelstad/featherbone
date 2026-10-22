@@ -1192,6 +1192,7 @@
 
     function organizationRow(organization) {
         let events = rowEvents(organization.id);
+        let administrators = organization.administratorNames || [];
 
         return m("tr", Object.assign({
             class: (
@@ -1210,7 +1211,9 @@
             )),
             m("td", organization.instances),
             m("td", organization.identities),
-            m("td", (
+            m("td", {
+                title: administrators.join("\n")
+            }, (
                 organization.administrators
                 ? organization.administrators
                 : m("span", {

@@ -414,8 +414,31 @@
                 )
             );
 
+            // Who they are, for the count's tooltip
+            let named = await client.query(
+                "SELECT o.id AS organization, i.username, i.full_name " +
+                "FROM organization_admin a " +
+                "JOIN organization o " +
+                "  ON o._pk = a._organization_organization_pk " +
+                "JOIN identity i ON i._pk = a._identity_identity_pk " +
+                "WHERE a.is_active AND NOT a.is_deleted " +
+                "  AND i.status = 'active' AND NOT i.is_deleted " +
+                "ORDER BY lower(i.username)"
+            );
+
             return resp.rows.map(function (row) {
                 return {
+                    administratorNames: named.rows.filter(
+                        (one) => one.organization === row.id
+                    ).map(function (one) {
+                        let label = one.username;
+
+                        if (one.full_name && one.full_name !== label) {
+                            label += " -- " + one.full_name;
+                        }
+
+                        return label;
+                    }),
                     administrators: row.administrators,
                     authentication: row.authentication,
                     id: row.id,
