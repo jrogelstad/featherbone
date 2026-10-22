@@ -1281,9 +1281,11 @@
                 subscription: query.subscription
             };
 
-            await admin.installAndDeploy(payload);
+            let done = await admin.installAndDeploy(payload);
+
             await refreshTenants();
-            res.json(true);
+            // What was installed and where, so the page can say so
+            res.json(done);
         } catch (err) {
             error.bind(res)(err);
         } finally {
