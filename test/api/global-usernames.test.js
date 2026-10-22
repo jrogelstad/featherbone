@@ -23,7 +23,7 @@
 /*jslint node*/
 "use strict";
 
-const {describe, it, before, after} = require("node:test");
+const {after, before, describe, it} = require("node:test");
 const assert = require("node:assert/strict");
 const db = require("../harness/db");
 const settings = require("../harness/env");
@@ -166,8 +166,7 @@ describe("one name, one person (ADR-001 revisited)", function () {
         ));
     });
 
-    it("refuses the same name to a second person, anywhere",
-            async function () {
+    it("refuses one name to a second person", async function () {
         await assert.rejects(
             manager((client) => client.query((
                 "INSERT INTO identity (" + DOC_COLS +
@@ -194,8 +193,7 @@ describe("one name, one person (ADR-001 revisited)", function () {
         assert.deepEqual(await appointments(CANDIDATE), ["FBTest"]);
     });
 
-    it("lets one account administer several organizations",
-            async function () {
+    it("lets one account administer several orgs", async function () {
         let admin = await signedIn(PLATFORM);
         let id = await identityId(RESELLER);
         let here = await admin.raw("POST", "/admin/identity/org-admin", {
@@ -214,9 +212,11 @@ describe("one name, one person (ADR-001 revisited)", function () {
 
         assert.equal(here.status, 200, JSON.stringify(here.body));
         assert.equal(there.status, 200, JSON.stringify(there.body));
+        let orgs = [OTHER_ORG, "FBTest"];
+
         assert.deepEqual(
             await appointments(RESELLER),
-            [OTHER_ORG, "FBTest"].sort(),
+            orgs.sort(),
             "one account, two organizations"
         );
     });
@@ -240,8 +240,7 @@ describe("one name, one person (ADR-001 revisited)", function () {
         assert.equal(theirs.tier, "organization");
     });
 
-    it("refuses an organization nobody appointed them over",
-            async function () {
+    it("refuses an organization without appointment", async function () {
         let plain = await signedIn(PLAIN);
         let admin = await signedIn(PLATFORM);
         let overview = await admin.get("/admin/overview");
@@ -256,8 +255,7 @@ describe("one name, one person (ADR-001 revisited)", function () {
         assert.ok(resp.status >= 400, "status " + resp.status);
     });
 
-    it("appoints a platform administrator, who answers everywhere",
-            async function () {
+    it("appoints a platform administrator", async function () {
         let admin = await signedIn(PLATFORM);
         let resp = await admin.raw("POST", "/admin/identity/platform-admin", {
             id: await identityId(CANDIDATE),
@@ -281,8 +279,7 @@ describe("one name, one person (ADR-001 revisited)", function () {
         });
     });
 
-    it("keeps platform administration to platform administrators",
-            async function () {
+    it("keeps platform appointment to platform admins", async function () {
         let reseller = await signedIn(RESELLER);
         let resp = await reseller.raw(
             "POST",
@@ -308,8 +305,7 @@ describe("one name, one person (ADR-001 revisited)", function () {
         );
     });
 
-    it("will not leave the platform without an administrator",
-            async function () {
+    it("will not stand down the last platform admin", async function () {
         let admin = await signedIn(PLATFORM);
         let others = await manager(async function (client) {
             let found = await client.query(

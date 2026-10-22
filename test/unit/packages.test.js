@@ -8,7 +8,7 @@
 /*jslint node*/
 "use strict";
 
-const {describe, it, before, after} = require("node:test");
+const {after, before, describe, it} = require("node:test");
 const assert = require("node:assert/strict");
 const AdmZip = require("adm-zip");
 const child = require("child_process");
