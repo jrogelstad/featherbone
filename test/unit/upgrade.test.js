@@ -3,7 +3,7 @@
 
     No database and no child process. Everything that could be got
     wrong about an upgrade -- which steps, in what order, with which
-    flags, and above all when the one-way identity backfill runs -- is
+    flags, and above all which of the two switches does what -- is
     the plan, so the plan is what is tested here. Running the steps is
     `install.js`, which has its own suites.
 */
@@ -15,42 +15,23 @@ const assert = require("node:assert/strict");
 const {Upgrade} = require("../../server/services/upgrade");
 
 const upgrade = new Upgrade();
+const OWN = upgrade.version();
 
 // A current single-instance installation: nothing to do.
 function current() {
     return {
-        instances: [{name: "acme", version: "3.0.0-alpha.1"}],
+        instances: [{name: "acme", version: OWN}],
         managerKind: "manager",
-        version: "3.0.0-alpha.1"
+        managerVersion: OWN,
+        version: OWN
     };
 }
+
+const BOTH = {selfUpgradeInstances: true, selfUpgradeManager: true};
 
 function names(steps) {
     return steps.map((step) => step.step);
 }
-
-describe("self upgrade: the instance list", function () {
-    it("takes an array from the configuration file", function () {
-        assert.deepEqual(
-            upgrade.instanceNames(["acme", "acme_test"]),
-            ["acme", "acme_test"]
-        );
-    });
-
-    it("splits a comma separated list from the environment", function () {
-        assert.deepEqual(
-            upgrade.instanceNames("acme, acme_test ,demo"),
-            ["acme", "acme_test", "demo"]
-        );
-    });
-
-    it("is empty when the setting is missing or blank", function () {
-        assert.deepEqual(upgrade.instanceNames(undefined), []);
-        assert.deepEqual(upgrade.instanceNames(""), []);
-        assert.deepEqual(upgrade.instanceNames([]), []);
-        assert.deepEqual(upgrade.instanceNames(" , "), []);
-    });
-});
 
 describe("self upgrade: what counts as behind", function () {
     /*
@@ -92,8 +73,9 @@ describe("self upgrade: what counts as behind", function () {
                 {name: "current", version: own}
             ],
             managerKind: "manager",
+            managerVersion: own,
             version: own
-        }, {selfUpgrade: true});
+        }, BOTH);
 
         assert.deepEqual(steps.map((step) => step.name), ["behind"]);
         assert.equal(upgrade.isBehind("2.2.0"), true);
@@ -108,199 +90,123 @@ describe("self upgrade: what counts as behind", function () {
 
 describe("self upgrade: what a boot plans", function () {
     it("plans nothing when everything is current", function () {
-        assert.deepEqual(
-            upgrade.plan(current(), {selfUpgrade: true}),
-            []
-        );
+        assert.deepEqual(upgrade.plan(current(), BOTH), []);
     });
 
-    it("builds the manager when there is none", function () {
+    it("plans nothing when both switches are off", function () {
         let state = current();
-        delete state.managerKind;
 
-        let steps = upgrade.plan(state, {selfUpgrade: true});
+        state.managerVersion = "2.2.0";
+        state.instances = [{name: "acme", version: "2.2.0"}];
+
+        assert.deepEqual(upgrade.plan(state, {}), []);
+        assert.deepEqual(upgrade.plan(state, {
+            selfUpgradeInstances: false,
+            selfUpgradeManager: false
+        }), []);
+    });
+
+    it("builds a manager that is not there", function () {
+        let steps = upgrade.plan({
+            instances: [],
+            managerKind: undefined,
+            version: OWN
+        }, {selfUpgradeManager: true});
 
         assert.deepEqual(names(steps), ["manager"]);
         assert.deepEqual(steps[0].args, ["--manager"]);
-        assert.equal(steps[0].why, "no manager database");
     });
 
-    it("builds the manager before any instance", function () {
+    it("leaves refusing a non-manager to the manager step", function () {
         let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: undefined,
-            version: "3.0.0-alpha.1"
-        }, {selfUpgrade: true});
+            instances: [],
+            managerKind: "instance",
+            version: OWN
+        }, {selfUpgradeManager: true});
 
-        assert.deepEqual(names(steps), ["manager", "instance"]);
+        assert.deepEqual(names(steps), ["manager"]);
     });
 
-    it("upgrades an instance that is behind this server", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {selfUpgrade: true});
+    it("upgrades a manager whose Core is behind", function () {
+        let state = current();
+
+        state.managerVersion = "2.19.0";
+
+        let steps = upgrade.plan(state, {selfUpgradeManager: true});
+
+        assert.deepEqual(names(steps), ["manager"]);
+        assert.deepEqual(steps[0].args, ["--manager"]);
+        assert.match(steps[0].why, /2\.19\.0/);
+    });
+
+    it("upgrades a manager that carries no Core version", function () {
+        let state = current();
+
+        delete state.managerVersion;
+
+        assert.deepEqual(
+            names(upgrade.plan(state, {selfUpgradeManager: true})),
+            ["manager"]
+        );
+    });
+
+    it("leaves the manager alone when only instances", function () {
+        let state = current();
+
+        state.managerVersion = "2.2.0";
+        state.instances = [{name: "acme", version: "2.2.0"}];
+
+        let steps = upgrade.plan(state, {selfUpgradeInstances: true});
 
         assert.deepEqual(names(steps), ["instance"]);
         assert.deepEqual(steps[0].args, ["--instance", "acme"]);
-        assert.match(steps[0].why, /carries Core 2\.2\.0/);
     });
 
-    it("upgrades one that carries no Core version at all", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: undefined}],
-            managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {selfUpgrade: true});
+    it("leaves instances alone when only the manager", function () {
+        let state = current();
 
-        assert.deepEqual(names(steps), ["instance"]);
-        assert.equal(steps[0].why, "carries no Core version");
+        state.managerVersion = "2.2.0";
+        state.instances = [{name: "acme", version: "2.2.0"}];
+
+        let steps = upgrade.plan(state, {selfUpgradeManager: true});
+
+        assert.deepEqual(names(steps), ["manager"]);
     });
 
-    it("leaves an instance ahead of this server alone", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "3.1.0"}],
-            managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {selfUpgrade: true});
-
-        assert.deepEqual(steps, []);
-    });
-
-    it("counts a prerelease as behind the release it leads to", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "3.0.0-alpha.1"}],
-            managerKind: "manager",
-            version: "3.0.0"
-        }, {selfUpgrade: true});
-
-        assert.deepEqual(names(steps), ["instance"]);
-    });
-
-    it("names the organization when one is configured", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {
-            selfUpgrade: true,
-            selfUpgradeOrganization: "Acme"
-        });
-
-        assert.deepEqual(
-            steps[0].args,
-            ["--instance", "acme", "--organization", "Acme"]
-        );
-    });
-
-    it("plans one step per instance behind, in the order given", function () {
+    it("plans a step per instance behind, manager first", function () {
         let steps = upgrade.plan({
             instances: [
-                {name: "acme", version: "2.2.0"},
-                {name: "acme_test", version: "3.0.0-alpha.1"},
-                {name: "acme_demo", version: undefined}
+                {name: "a", version: OWN},
+                {name: "b", version: "2.2.0"},
+                {name: "c", version: undefined},
+                {name: "d", version: "2.19.0"}
             ],
             managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {selfUpgrade: true});
-
-        assert.deepEqual(names(steps), ["instance", "instance"]);
-        assert.deepEqual(
-            steps.map((step) => step.name),
-            ["acme", "acme_demo"]
-        );
-    });
-});
-
-describe("self upgrade: the identity backfill", function () {
-    it("does not run unless it is asked for", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: undefined,
-            version: "3.0.0-alpha.1"
-        }, {selfUpgrade: true});
-
-        assert.equal(names(steps).includes("identities"), false);
-    });
-
-    it("does not run when nothing else did", function () {
-        let steps = upgrade.plan(current(), {
-            selfUpgrade: true,
-            selfUpgradeIdentities: true
-        });
-
-        assert.deepEqual(steps, []);
-    });
-
-    it("runs last, after the upgrade that gave it work", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: undefined,
-            version: "3.0.0-alpha.1"
-        }, {
-            selfUpgrade: true,
-            selfUpgradeIdentities: true
-        });
+            managerVersion: "2.2.0",
+            version: OWN
+        }, BOTH);
 
         assert.deepEqual(
-            names(steps),
-            ["manager", "instance", "identities"]
+            steps.map((step) => step.name || step.step),
+            ["manager", "b", "c", "d"]
         );
-        assert.equal(
-            steps[2].script,
-            "scripts/migrate-identities.js"
-        );
+        assert.deepEqual(steps[2].args, ["--instance", "c"]);
     });
 
-    it("applies rather than rehearsing", function () {
+    it("names no organization, user or script of its own", function () {
         let steps = upgrade.plan({
             instances: [{name: "acme", version: "2.2.0"}],
             managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {
-            selfUpgrade: true,
-            selfUpgradeIdentities: true
-        });
-
-        assert.deepEqual(steps[1].args, ["--apply"]);
-    });
-
-    it("carries the organization, administrator and superuser", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {
-            selfUpgrade: true,
+            managerVersion: "2.2.0",
+            version: OWN
+        }, Object.assign({
             selfUpgradeIdentities: true,
-            selfUpgradeOrgAdmin: "jsmith",
-            selfUpgradeOrganization: "Acme",
-            selfUpgradeSuperuser: "postgres",
-            selfUpgradeSuperuserPassword: "s3cret"
+            selfUpgradeOrganization: "Acme"
+        }, BOTH));
+
+        steps.forEach(function (step) {
+            assert.equal(step.args.indexOf("--organization"), -1);
+            assert.equal(step.script, undefined);
         });
-
-        assert.deepEqual(steps[1].args, [
-            "--apply",
-            "--organization", "Acme",
-            "--org-admin", "jsmith",
-            "--username", "postgres",
-            "--password", "s3cret"
-        ]);
-    });
-
-    it("leaves the password out when no superuser was named", function () {
-        let steps = upgrade.plan({
-            instances: [{name: "acme", version: "2.2.0"}],
-            managerKind: "manager",
-            version: "3.0.0-alpha.1"
-        }, {
-            selfUpgrade: true,
-            selfUpgradeIdentities: true,
-            selfUpgradeSuperuserPassword: "s3cret"
-        });
-
-        assert.equal(steps[1].args.includes("--password"), false);
-        assert.equal(steps[1].args.includes("s3cret"), false);
     });
 });
