@@ -70,7 +70,8 @@ can run alone or together in one server.
 
 `unit/lint.test.js` runs the project's own JSLint (`client/jslint.mjs`)
 over every JavaScript file, skipping `node_modules`, `vendor`, the
-generated `client/clientmin.js` and the linter itself. Not every file is
+generated `client/clientmin.js`, the linter itself and `test/supplychain`
+(those modules, and their tests, live in their own repositories). Not every file is
 clean yet, so it is a ratchet: `test/lint-baseline.json` records the
 warnings each file is known to have, no file may exceed its entry, and a
 file with no entry (a new one) must have none. Fixing warnings never
