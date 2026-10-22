@@ -112,6 +112,10 @@
     // database name -> built registry
     let dbRegistries = {};
 
+    // database name -> {"<module>/<path>": function name}, the routes
+    // of the module versions that database deployed
+    let dbRoutes = {};
+
     // database name -> registry under construction, so a service that
     // issues a request while loading sees the partial registry instead
     // of deadlocking on its own build
@@ -224,6 +228,13 @@
         });
     }
 
+    function routeKey(module, routePath) {
+        return (
+            module.toSpinalCase() + "/" +
+            String(routePath).replace(/^\/+/, "")
+        );
+    }
+
     async function buildRegistry(client) {
         let reg = {
             GET: {},
@@ -286,6 +297,48 @@
         });
 
         await loadLegacyLibraries(client, mods.rows, onDisk);
+
+        /*
+            Routes follow the same rule as services: from the package
+            on disk at the version this database deployed, and from the
+            database's own rows only for a module with no package.
+        */
+        let routeMap = {};
+        let hasRoutes = await client.query(
+            "SELECT to_regclass('_route') IS NOT NULL AS found;"
+        );
+        let legacy = (
+            hasRoutes.rows[0].found
+            ? await routes.getRoutes({client})
+            : []
+        );
+
+        function addRoute(row) {
+            routeMap[routeKey(row.module, row.path)] = row.function;
+        }
+
+        let unpackaged = {};
+
+        Object.keys(onDisk).forEach(function (name) {
+            let declared = packages.routesOf(name, onDisk[name]);
+
+            if (declared === undefined) {
+                // On disk but without a routes.json: not repackaged
+                // yet, so its routes stay where they were
+                unpackaged[name] = true;
+                return;
+            }
+            declared.forEach(addRoute);
+        });
+        legacy.forEach(function (row) {
+            if (
+                onDisk[row.module] === undefined ||
+                unpackaged[row.module]
+            ) {
+                addRoute(row);
+            }
+        });
+        dbRoutes[client.database] = routeMap;
 
         // A database mid-install has no service rows to load yet
         let hasServices = await client.query(
@@ -367,6 +420,18 @@
         let reg = await buildRegistry(client);
         dbRegistries[database] = reg;
         return reg;
+    }
+
+    /*
+        The function a route calls for the requesting database, or null
+        when the version of the module that database deployed does not
+        declare the route. The registry build has filled the map by the
+        time any request reaches here.
+    */
+    function getRouteFunction(obj) {
+        let map = dbRoutes[obj.client.database] || {};
+
+        return Promise.resolve(map[obj.data.key] || null);
     }
 
     function subscribe(obj) {
@@ -4098,10 +4163,12 @@
         */
         if (pClient && pClient.database) {
             delete dbRegistries[pClient.database];
+            delete dbRoutes[pClient.database];
             return;
         }
 
         dbRegistries = {};
+        dbRoutes = {};
         packagesScanned = false;
     };
 
@@ -4286,6 +4353,7 @@
     that.registerFunction("GET", "getFeather", feathers.getFeather);
     that.registerFunction("GET", "getProfile", profile.getProfile);
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
+    that.registerFunction("GET", "getRouteFunction", getRouteFunction);
     that.registerFunction("GET", "getSettings", settings.getSettings);
     that.registerFunction(
         "GET",
