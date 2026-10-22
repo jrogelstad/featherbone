@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node unordered*/
+/*jslint node, name, unordered*/
 /*
     One name, one person (John, Oct 2026: "user names must be global and
     unique to the whole system").

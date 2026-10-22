@@ -362,6 +362,10 @@ settings.getSettings = async function (obj) {
                     );
 
                     if (mine) {
+                        // A row never saved has a definition and no
+                        // data yet; the organization's values still
+                        // stand over it
+                        rec.data = rec.data || {};
                         shared.forEach(function (key) {
                             if (mine[key] !== undefined) {
                                 rec.data[key] = mine[key];

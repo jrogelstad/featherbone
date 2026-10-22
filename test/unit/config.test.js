@@ -172,14 +172,14 @@ describe("config without a file", function () {
         env("pgCryptoKey", "k1");
         env("secret", "s1");
         env("pgPort", "6543");
-        env("selfUpgrade", "true");
+        env("selfUpgradeManager", "true");
         env("smtpHost", "mail.example.com");
         try {
             let data = await config.read(missing);
 
             assert.deepEqual(config.missingSecrets(data), []);
             assert.equal(data.pgPort, 6543);
-            assert.equal(data.selfUpgrade, true);
+            assert.equal(data.selfUpgradeManager, true);
             assert.equal(data.smtpHost, "mail.example.com");
         } finally {
             restore();
