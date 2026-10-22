@@ -370,6 +370,61 @@
         }
 
         /**
+            Who the caller is signed in as, for the label the ribbon
+            shows beside the alerts bell (John, Oct 2026: "I'd like to
+            see who I'm logged as over near the alarm bell"). The
+            organization is the part of that nothing else on a screen
+            says, which is what made it worth a lookup: an identity
+            belongs to one organization, and a platform administrator
+            signed in to one organization's instance cannot tell from
+            the screen which that is.
+
+            Alone among the methods here this refuses nobody and goes
+            through no `contextFor`: it reports, it does not act, and
+            every signed-in person is entitled to be told their own
+            name. What it says of their authority is read from the
+            identity in the manager, not from the session, so it
+            cannot say more than they have.
+
+            @method whoAmI
+            @param {Object} payload
+            @param {Object} payload.tenant Instance of the request
+            @param {String} payload.user Signed-in user name
+            @return {Promise}
+        */
+        that.whoAmI = async function (obj) {
+            return await manager.run(async function (mclient) {
+                let instance = await manager.instance(mclient, obj.tenant);
+                let organization = await manager.organization(
+                    mclient,
+                    instance.organizationPk
+                );
+                let actor = await manager.identity(
+                    mclient,
+                    instance.organizationPk,
+                    obj.user || ""
+                );
+
+                return {
+                    isOrgAdmin: Boolean(actor && actor.is_org_admin),
+                    isPlatformAdmin: Boolean(
+                        actor && actor.is_platform_admin
+                    ),
+                    organization: (
+                        organization
+                        ? organization.name
+                        : undefined
+                    ),
+                    organizationId: (
+                        organization
+                        ? organization.id
+                        : undefined
+                    )
+                };
+            });
+        };
+
+        /**
             Everything one administration screen needs in one request:
             who the caller is, what they may do, the organization, its
             instances, its identities and the recent audit trail.
@@ -1648,6 +1703,7 @@
                         databases: [target.pg_database],
                         isSuper: true,
                         processId: data.processId,
+                        subscription: data.subscription,
                         tenant
                     });
                     await datasource.recordDeployed(
@@ -2333,6 +2389,62 @@
                 name: done.name,
                 version: done.version
             };
+        };
+
+        /**
+            Install a package on this server and deploy it into the
+            instance the request came through: what the Modules page's
+            Install button asks for. Two acts (ADR-002 section 6), done
+            one after the other by the same rules each has on its own,
+            so a platform administrator is needed for both and nothing
+            here can do what neither could.
+
+            The version is replaced if this server already holds it. A
+            package being worked on is installed again and again at one
+            version, and the command line's `--force` is the same
+            choice; Install on its own does not make it for you.
+
+            @method installAndDeploy
+            @param {Object} payload
+            @param {String} payload.data.source Uploaded archive
+            @param {Object} [payload.data.subscription] Progress bar
+            @return {Promise} {database, module, version, libraries}
+        */
+        that.installAndDeploy = async function (obj) {
+            let data = obj.data || {};
+            let tenant = obj.tenant;
+
+            if (!tenant || !tenant.id || tenant.id === "-1") {
+                throw invalid(
+                    "This is not an instance, so there is nothing to " +
+                    "deploy into. Use the Admin Console to install a " +
+                    "package on the server."
+                );
+            }
+
+            let installed = await that.installPackage({
+                data: {force: true, source: data.source},
+                identity: obj.identity,
+                organization: obj.organization,
+                registry: obj.registry,
+                tenant: obj.tenant,
+                user: obj.user
+            });
+            let deployed = await that.deployPackage({
+                data: {
+                    id: tenant.id,
+                    module: installed.name,
+                    subscription: data.subscription,
+                    version: installed.version
+                },
+                identity: obj.identity,
+                organization: obj.organization,
+                registry: obj.registry,
+                tenant: obj.tenant,
+                user: obj.user
+            });
+
+            return Object.assign({libraries: installed.libraries}, deployed);
         };
 
         /**

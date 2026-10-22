@@ -793,6 +793,13 @@
         itself; one of services or feathers alone leaves nothing
         behind, so Deploy writes it either way.
 
+        The write is a deployment's own, so it is not refused the way
+        a person editing the row would be: moving a module from 1.0.0
+        to 1.1.0 changes the very row the guard protects while 1.0.0
+        is still installed here, which it normally is. Only code in
+        this process can say `isDeployment`; a request from a client
+        is built from its route and body, never from a flag.
+
         @method recordDeployed
         @param {String} database Instance database
         @param {String} name Module name
@@ -838,6 +845,7 @@
                     value: version
                 }],
                 id: found.id,
+                isDeployment: true,
                 method: "PATCH",
                 name: "Module",
                 tenant,
@@ -854,6 +862,7 @@
                 version
             },
             id: Buffer.from(name).toString("base64"),
+            isDeployment: true,
             method: "POST",
             name: "Module",
             tenant,
@@ -1871,6 +1880,53 @@
             conn.done();
         }
 
+        /*
+            What kind of contact a person with none gets. Core's is a
+            Contact, but an installation with an Employee feather that
+            inherits Contact (SupplyChain's Common module) takes the
+            employee to be the person behind every user account: its
+            trigger on UserAccount patches the account's contact *as an
+            Employee*, so a plain Contact linked to an account failed
+            there with "Cannot read properties of undefined (reading
+            'type')" -- for an administrator saving a person's details,
+            for an invitation, and for "Forgot password" alike (John,
+            Oct 2026). An employee needs a number, which is a natural
+            key someone chooses; the user name, upper case, is made to
+            do, with a suffix if another employee already has it.
+        */
+        async function contactSeed(username) {
+            let client = conn.client;
+            let found = await client.query(
+                (
+                    "SELECT 1 FROM feather WHERE name = 'Employee' " +
+                    "  AND inherits = 'Contact' AND NOT is_deleted"
+                )
+            );
+            let number;
+            let n = 1;
+            let taken;
+
+            if (!found.rows.length) {
+                return {data: {}, feather: "Contact"};
+            }
+
+            number = String(username).toUpperCase();
+            taken = async (one) => (await client.query(
+                "SELECT 1 FROM employee WHERE number = $1",
+                [one]
+            )).rows.length > 0;
+
+            while (await taken(number)) {
+                n += 1;
+                number = String(username).toUpperCase() + "-" + n;
+            }
+
+            return {
+                data: {isActive: true, number},
+                feather: "Employee"
+            };
+        }
+
         function doUpdate() {
             return new Promise(function (resolve, reject) {
                 that.request({
@@ -1896,19 +1952,21 @@
 
                     if (userAccount.contact === null) {
                         // Create contact and link to user account
-                        that.request({
-                            method: "POST",
-                            name: "Contact",
-                            user: obj.by || obj.name,
-                            client: conn.client,
-                            data: {
-                                id: contactId,
-                                firstName: obj.firstName,
-                                lastName: obj.lastName,
-                                phone: obj.phone,
-                                email: obj.email
-                            }
-                        }, true).then(function () {
+                        contactSeed(obj.name).then(function (seed) {
+                            return that.request({
+                                method: "POST",
+                                name: seed.feather,
+                                user: obj.by || obj.name,
+                                client: conn.client,
+                                data: Object.assign({
+                                    id: contactId,
+                                    firstName: obj.firstName,
+                                    lastName: obj.lastName,
+                                    phone: obj.phone,
+                                    email: obj.email
+                                }, seed.data)
+                            }, true);
+                        }).then(function () {
                             that.request({
                                 method: "POST",
                                 name: "UserAccount",
@@ -3460,7 +3518,11 @@
                 user, which is exactly who the read-only check below
                 lets through.
             */
-            if (!isExternalClient && obj.method !== "GET") {
+            if (
+                !isExternalClient &&
+                obj.method !== "GET" &&
+                obj.isDeployment !== true
+            ) {
                 let refusal = await packageWriteRefusal(theClient, obj);
 
                 if (refusal) {
