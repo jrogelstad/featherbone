@@ -427,6 +427,152 @@
             };
         }
 
+        /*
+            The people who have a profile in the instance the caller is
+            signed in to, with the contact details they keep there. A
+            person's phone number, and the first and last name they edit
+            for themselves, live on that profile's Contact rather than
+            on the identity in the manager, which carries one name and
+            one address for the whole organization. Keyed by lower-case
+            user name. Empty when there is no instance (the platform
+            console) or it cannot be read: the screen then shows what
+            the identity holds, as it always did.
+        */
+        async function instanceContacts(obj) {
+            let found = {};
+            let conn;
+
+            if (!obj.tenant) {
+                return found;
+            }
+
+            try {
+                conn = await db.connect(obj.tenant);
+
+                let resp = await conn.client.query(
+                    "SELECT lower(u.name) AS name, c.first_name, " +
+                    "  c.last_name, c.email, c.phone " +
+                    "FROM user_account u " +
+                    "LEFT OUTER JOIN contact c ON " +
+                    "  c._pk = u._contact_contact_pk " +
+                    "WHERE NOT u.is_deleted"
+                );
+
+                resp.rows.forEach(function (row) {
+                    found[row.name] = row;
+                });
+            } catch (e) {
+                console.error(
+                    "Could not read contact details: " + (e.message || e)
+                );
+            } finally {
+                if (conn) {
+                    conn.done();
+                }
+            }
+
+            return found;
+        }
+
+        function withContact(out, contact) {
+            if (!contact) {
+                out.hasProfile = false;
+                return out;
+            }
+
+            let first = contact.first_name || "";
+            let last = contact.last_name || "";
+
+            out.hasProfile = true;
+            out.firstName = first;
+            out.lastName = last;
+            out.phone = contact.phone || "";
+
+            if (contact.email) {
+                out.email = contact.email;
+            }
+            if (joined(first, last)) {
+                out.fullName = joined(first, last);
+            }
+
+            return out;
+        }
+
+        function joined(first, last) {
+            return String(first + " " + last).trim();
+        }
+
+        function cleaned(value) {
+            return (
+                typeof value === "string"
+                ? value.trim()
+                : undefined
+            );
+        }
+
+        /**
+            Who the caller is signed in as, for the label the ribbon
+            shows beside the alerts bell (John, Oct 2026: "I'd like to
+            see who I'm logged as over near the alarm bell"). The
+            organization is the part of that nothing else on a screen
+            says, which is what made it worth a lookup: an identity
+            belongs to one organization, and a platform administrator
+            signed in to one organization's instance cannot tell from
+            the screen which that is.
+
+            Alone among the methods here this refuses nobody and goes
+            through no `contextFor`: it reports, it does not act, and
+            every signed-in person is entitled to be told their own
+            name. What it says of their authority is read from the
+            identity in the manager, not from the session, so it
+            cannot say more than they have.
+
+            @method whoAmI
+            @param {Object} payload
+            @param {Object} payload.tenant Instance of the request
+            @param {String} payload.user Signed-in user name
+            @return {Promise}
+        */
+        that.whoAmI = async function (obj) {
+            return await manager.run(async function (mclient) {
+                let instance = await manager.instance(mclient, obj.tenant);
+                let organization = await manager.organization(
+                    mclient,
+                    instance.organizationPk
+                );
+                let actor = await manager.identity(mclient, obj.user || "");
+
+                return {
+                    /*
+                        Administering this organization, not a rank the
+                        person carries: one account may administer
+                        several (ADR-001 revision 4).
+                    */
+                    isOrgAdmin: Boolean(
+                        actor &&
+                        await manager.isOrgAdminOf(
+                            mclient,
+                            actor._pk,
+                            instance.organizationPk
+                        )
+                    ),
+                    isPlatformAdmin: Boolean(
+                        actor && actor.is_platform_admin
+                    ),
+                    organization: (
+                        organization
+                        ? organization.name
+                        : undefined
+                    ),
+                    organizationId: (
+                        organization
+                        ? organization.id
+                        : undefined
+                    )
+                };
+            });
+        };
+
         /**
             Everything one administration screen needs in one request:
             who the caller is, what they may do, the organization, its
@@ -459,6 +605,16 @@
                     ctx.organizationPk,
                     obj.limit
                 );
+                /*
+                    Contact details are the signed-in instance's, so
+                    they are read only for that instance's own
+                    organization, never for one reached by break-glass.
+                */
+                let contacts = (
+                    ctx.organizationPk === ctx.homeOrganizationPk
+                    ? await instanceContacts(obj)
+                    : {}
+                );
 
                 return {
                     actor: (
@@ -476,7 +632,12 @@
                             target: row.target
                         };
                     }),
-                    identities: identities.map(identityOut),
+                    identities: identities.map(function (row) {
+                        return withContact(
+                            identityOut(row),
+                            contacts[row.username.toLowerCase()]
+                        );
+                    }),
                     instance: homeInstanceId(obj),
                     instances: instances.map(function (row) {
                         return {
@@ -525,17 +686,49 @@
             @param {String} [payload.data.fullName]
             @param {String} [payload.data.email]
             @param {String} [payload.data.password]
+            @param {Boolean} [payload.data.sendInvite] Instead of a
+            password, mail the person a link that signs them in and
+            makes them choose one (needs the email; the signed-in
+            instance only). `mail` in the answer says what became of it:
+            "sent", "failed" (with `mailError`), or "existing" when the
+            person already had an account and so was not mailed.
             @param {String} [payload.data.instance] Instance id to grant
             @return {Promise}
         */
         that.createIdentity = async function (obj) {
             let data = obj.data || {};
+            let invite = data.sendInvite === true;
+            let email = cleaned(data.email) || "";
+            let result;
 
             if (!data.username || !data.username.trim()) {
                 throw invalid("A user name is required");
             }
 
-            return await manager.run(async function (mclient) {
+            if (invite) {
+                if (!email) {
+                    throw invalid(
+                        "An email address is needed to send an invitation"
+                    );
+                }
+                if (data.password) {
+                    throw invalid(
+                        "Give a password or send an invitation, not both: " +
+                        "the person chooses their own from the link"
+                    );
+                }
+                if (data.instance && data.instance !== homeInstanceId(obj)) {
+                    throw invalid(
+                        "An invitation can only be sent for the instance " +
+                        "you are signed in to"
+                    );
+                }
+                if (typeof obj.invite !== "function") {
+                    throw invalid("This request cannot send an invitation");
+                }
+            }
+
+            result = await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
                 let tenantPk = ctx.tenantPk;
 
@@ -570,7 +763,7 @@
 
                 let added = await manager.addIdentity(mclient, {
                     by: obj.user,
-                    email: data.email,
+                    email,
                     fullName: data.fullName,
                     organizationPk: ctx.organizationPk,
                     password: data.password,
@@ -598,6 +791,148 @@
                 });
 
                 return {created: added.created};
+            });
+
+            /*
+                After the identity and its grant are committed: the
+                link signs them in, which needs both. A mail that does
+                not go is reported, not raised -- the user exists, and
+                the administrator can set a password by hand.
+            */
+            if (invite) {
+                if (!result.created) {
+                    result.mail = "existing";
+                } else {
+                    try {
+                        await obj.invite(
+                            data.username.trim(),
+                            email,
+                            cleaned(data.fullName)
+                        );
+                        result.mail = "sent";
+                    } catch (e) {
+                        result.mail = "failed";
+                        result.mailError = e.message || String(e);
+                    }
+                }
+            }
+
+            return result;
+        };
+
+        /**
+            Change a person's name, email address and phone number, for
+            the user who cannot or will not do it themselves (a name
+            that changes with marriage is the plain case).
+
+            The details a person edits for themselves live on their
+            profile in the instance, so for someone who has one they
+            are written there, through the same code that serves "Edit
+            my contact information", and the identity in the manager is
+            brought into step. Someone who has not signed in yet has no
+            profile: only a name and an address can be kept for them,
+            on the identity, and the phone number waits for the profile.
+
+            Same reach as setting a password: a tier-"instance"
+            administrator may only change someone who can already reach
+            their instance, and no one else's administrator.
+
+            @method updateIdentity
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {String} [payload.data.firstName]
+            @param {String} [payload.data.lastName]
+            @param {String} [payload.data.fullName] Used when there is
+            no profile to hold a first and last name
+            @param {String} [payload.data.email]
+            @param {String} [payload.data.phone]
+            @return {Promise}
+        */
+        that.updateIdentity = async function (obj) {
+            let data = obj.data || {};
+            let email = cleaned(data.email);
+
+            if (email && !(/^[^@\s]+@[^@\s]+\.[^@\s]+$/).test(email)) {
+                throw invalid("That does not look like an email address");
+            }
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                /*
+                    The name and address are the account's, so they
+                    follow the same rule as its password: an
+                    organization may not rewrite the details of an
+                    account another one owns. An email address is the
+                    sharper half of that -- it is where a password
+                    reset goes.
+                */
+                let target = await targetFor(
+                    mclient,
+                    ctx,
+                    data.id,
+                    obj.tenant,
+                    {isAccountItself: true}
+                );
+                let contact = (
+                    ctx.organizationPk === ctx.homeOrganizationPk
+                    ? (await instanceContacts(obj))[
+                        target.username.toLowerCase()
+                    ]
+                    : undefined
+                );
+                let fullName = cleaned(data.fullName);
+
+                function keep(value, was) {
+                    return (
+                        value === undefined
+                        ? (was || "")
+                        : value
+                    );
+                }
+
+                if (contact) {
+                    let first = keep(
+                        cleaned(data.firstName),
+                        contact.first_name
+                    );
+                    let last = keep(
+                        cleaned(data.lastName),
+                        contact.last_name
+                    );
+
+                    await datasource.changeUserInfo({
+                        by: obj.user,
+                        email: keep(email, contact.email || target.email),
+                        firstName: first,
+                        lastName: last,
+                        name: target.username,
+                        phone: keep(cleaned(data.phone), contact.phone)
+                    }, obj.tenant);
+                    fullName = joined(first, last) || fullName;
+                }
+
+                await manager.setIdentityInfo(mclient, target._pk, {
+                    email,
+                    fullName: fullName || undefined
+                }, obj.user);
+                await manager.audit(mclient, {
+                    action: "identity.info_changed",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: (
+                        "From the administration screen" + (
+                            contact
+                            ? ""
+                            : "; no profile in this instance yet, so " +
+                                    "name and email only"
+                        )
+                    ),
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: target._pk
+                });
+
+                return true;
             });
         };
 
@@ -1609,6 +1944,7 @@
                         databases: [target.pg_database],
                         isSuper: true,
                         processId: data.processId,
+                        subscription: data.subscription,
                         tenant
                     });
                     await datasource.recordDeployed(
@@ -2294,6 +2630,62 @@
                 name: done.name,
                 version: done.version
             };
+        };
+
+        /**
+            Install a package on this server and deploy it into the
+            instance the request came through: what the Modules page's
+            Install button asks for. Two acts (ADR-002 section 6), done
+            one after the other by the same rules each has on its own,
+            so a platform administrator is needed for both and nothing
+            here can do what neither could.
+
+            The version is replaced if this server already holds it. A
+            package being worked on is installed again and again at one
+            version, and the command line's `--force` is the same
+            choice; Install on its own does not make it for you.
+
+            @method installAndDeploy
+            @param {Object} payload
+            @param {String} payload.data.source Uploaded archive
+            @param {Object} [payload.data.subscription] Progress bar
+            @return {Promise} {database, module, version, libraries}
+        */
+        that.installAndDeploy = async function (obj) {
+            let data = obj.data || {};
+            let tenant = obj.tenant;
+
+            if (!tenant || !tenant.id || tenant.id === "-1") {
+                throw invalid(
+                    "This is not an instance, so there is nothing to " +
+                    "deploy into. Use the Admin Console to install a " +
+                    "package on the server."
+                );
+            }
+
+            let installed = await that.installPackage({
+                data: {force: true, source: data.source},
+                identity: obj.identity,
+                organization: obj.organization,
+                registry: obj.registry,
+                tenant: obj.tenant,
+                user: obj.user
+            });
+            let deployed = await that.deployPackage({
+                data: {
+                    id: tenant.id,
+                    module: installed.name,
+                    subscription: data.subscription,
+                    version: installed.version
+                },
+                identity: obj.identity,
+                organization: obj.organization,
+                registry: obj.registry,
+                tenant: obj.tenant,
+                user: obj.user
+            });
+
+            return Object.assign({libraries: installed.libraries}, deployed);
         };
 
         /**

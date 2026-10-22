@@ -149,8 +149,16 @@ visible change in 3.0 and the one an existing user meets first.
   encrypted at rest in the manager the same way it was in the
   instance. **The logo** is a pointer now, not a `ResourceLink`
   relation -- a URL, or the name of a file uploaded to this server --
-  with its own **Upload** button beside the box, behind the existing
-  `fileUpload` flag.
+  on its own **Logo** tab between Address and SMTP Credentials. The
+  box is a drop zone in the style of the Import / Export screens: drag
+  an image onto it or use the **Choose File** control inside it, and
+  the image replaces the prompt so you can see what is in use. Until
+  one is set it shows the bundled Featherbone logo, which is also what
+  printed forms fall back to; **Clear** returns to that, and a web
+  address can still be pasted instead. Uploading is behind the
+  existing `fileUpload` flag. A definition change, so run
+  `node install.js --instance <name>` after upgrading or the tab shows
+  a plain text box.
 * **Upgrade, on demand, from the screen.** A restart is not the only
   way to bring Core current: the Instances screen and the platform
   console's fleet view each carry an **Upgrade** button beside
@@ -183,7 +191,11 @@ was applied before being refused; a failed install exited 0; a
 package's own record now wins over a colliding one on natural key; and
 the Instances screen's **Upgrade** button, though fully wired up
 underneath, was never added to its toolbar or context menu, so it
-could not be reached.
+could not be reached; and uploaded files could not be fetched back at
+all -- `/files/upload/<name>` answered 500 ("Deserialize user function
+requires a tenant") because the session middleware read `files` as the
+name of an instance, which also broke `ResourceLink` attachments. They
+now answer 200 to a signed-in session and 401 to anyone else.
 
 ### Upgrading from 2.2.0
 

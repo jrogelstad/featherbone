@@ -39,8 +39,10 @@
     const config = new Config();
     const {Tools} = require("./server/services/tools");
     const {Admin} = require("./server/services/admin");
+    const {Notify} = require("./server/services/notify");
     const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
+    const notify = new Notify();
     const {Platform} = require("./server/services/platform");
     const {Federation} = require("./server/services/federation");
     const {Manager} = require("./server/services/manager");
@@ -166,7 +168,6 @@
     let logger;
     let tenants = false;
     let systemUser;
-    let smtpAuthUser;
     let magicLogin;
     let twoFactorAuth = false;
     let authenticateLocal;
@@ -426,15 +427,20 @@
             sessionTimeout = resp.sessionTimeout || 86400000;
             thesecret = resp.secret;
             systemUser = resp.pgUser;
-            smtpAuthUser = resp.smtpAuthUser;
             mode = resp.mode || "prod";
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
             twoFactorAuth = Boolean(resp.twoFactorAuth);
+            /*
+                The password alone never makes a session: whether a
+                second factor is wanted is only known once the user is
+                (installation config, or their organization's policy),
+                so doSignIn opens the session itself when none is.
+            */
             authenticateLocal = passport.authenticate("local", {
                 failureFlash: true,
                 failWithError: true,
-                session: !twoFactorAuth
+                session: false
             });
 
             /*
@@ -1260,55 +1266,53 @@
         );
     }
 
-    function doInstall(req, res) {
+    /*
+        The Modules page's Install: a package zip, put on this server
+        and applied to this database in one action (ADR-002 section 6).
+        It used to unpack the zip into a temporary folder, write the
+        module's code into this database's rows and delete the folder,
+        so the server never held the package and the code that ran was a
+        table row anyone with write access could change -- the very
+        thing Install apart from Deploy exists to end. Now Install puts
+        the files under modules/<name>/<version>/ and Deploy applies
+        that version here, the same two acts the Instances screen and
+        the command line perform, with the same rules: a platform
+        administrator, the instance held while it runs, both ends
+        audited.
+    */
+    async function doInstall(req, res) {
         let query = qs.parse(req.params.query);
-        const DIR = "./files/" + "tmp_" + f.createId();
-        const TEMPFILE = DIR + ".zip";
+        const TEMPFILE = "./files/tmp_" + f.createId() + ".zip";
 
-        function cleanup() {
-            rimraf(DIR); // Remove temp dir
-            fs.unlink(TEMPFILE, function () { // Remove zip
-                if (!res.headersSent) {
-                    res.json(true);
-                }
-            });
-        }
-
-        fs[mkdirsync](DIR); // Create temp dir
-
-        if (Object.keys(req.files).length === 0) {
-            return res.status(400).send("No files were uploaded.");
-        }
-
-        logger.verbose("Install");
-
-        // The name of the input field
-        let file = req.files.package;
-
-        // Move the file to a install folder
-        file.mv(TEMPFILE, function (err) {
-            if (err) {
-                return res.status(500).send(err);
+        try {
+            if (!req.user && !(req.session || {}).identity) {
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+            if (!req.files || !req.files.package) {
+                res.status(400).send("No files were uploaded.");
+                return;
             }
 
-            let zip = new AdmZip(TEMPFILE);
+            logger.verbose("Install");
 
-            zip.extractAllTo(DIR, true);
-            datasource.install(
-                DIR,
-                req.user.name,
-                {
-                    subscription: query.subscription,
-                    tenant: req.tenant,
-                    databases: query.databases
-                }
-            ).catch(function (err) {
-                return new Promise(function (resolve) {
-                    error.bind(res)(err);
-                    resolve();
-                });
-            }).finally(cleanup);
-        });
+            await req.files.package.mv(TEMPFILE);
+
+            let payload = adminPayload(req);
+
+            payload.data = {
+                source: TEMPFILE,
+                subscription: query.subscription
+            };
+
+            await admin.installAndDeploy(payload);
+            await refreshTenants();
+            res.json(true);
+        } catch (err) {
+            error.bind(res)(err);
+        } finally {
+            fs.rmSync(TEMPFILE, {force: true});
+        }
     }
 
     async function doUpgrade(req, res) {
@@ -1722,53 +1726,163 @@
         });
     }
 
-    function doResetPassword(req, res) {
-        if (req.body.username === systemUser) {
+    /*
+        "Forgot password": mail a link that signs the person in and
+        sends them to the change-password page.
+
+        What this used to trip on, for anyone whose profile was made at
+        first sign-in (everyone made on the Users screen): such a
+        profile has no contact, so the user account trigger refused the
+        flag ("Contact is required"), the error went nowhere, and the
+        request never answered; and with no contact there was no
+        address to mail anyway. flagPasswordChange makes the contact
+        from the identity's name and address when there is none. And a
+        mail that could not go used to be answered "sent"; it is now
+        answered as a failure, in words that give nothing away to
+        someone who is not signed in.
+    */
+    async function identityInfo(req, username) {
+        return await manager.run(async function (mclient) {
+            let found = await manager.identity(mclient, username);
+
+            return (
+                found
+                ? {email: found.email, fullName: found.full_name}
+                : {}
+            );
+        });
+    }
+
+    async function flagPasswordChange(req, username, fallback) {
+        let user = await datasource.deserializeUser(
+            {tenant: req.tenant},
+            username
+        );
+        let email = user.email;
+        let known;
+        let names;
+        let rows;
+
+        if (!email) {
+            known = (
+                typeof fallback === "function"
+                ? await fallback()
+                : fallback
+            ) || {};
+            email = known.email;
+
+            if (!email) {
+                return Promise.reject(new Error(
+                    "There is no email address on file for " + username
+                ));
+            }
+
+            // The trigger also wants the contact to carry the address
+            names = String(known.fullName || "").trim().split(/\s+/);
+            await datasource.changeUserInfo({
+                by: (
+                    req.user
+                    ? req.user.name
+                    : username
+                ),
+                email,
+                firstName: names.slice(0, -1).join(" "),
+                lastName: names[names.length - 1] || username,
+                name: username,
+                phone: ""
+            }, req.tenant);
+        }
+
+        rows = await datasource.request({
+            filter: {criteria: [{property: "name", value: username}]},
+            method: "GET",
+            name: "UserAccount",
+            properties: ["id"],
+            tenant: req.tenant,
+            user: username
+        }, true);
+
+        await datasource.request({
+            data: [{op: "replace", path: "/changePassword", value: true}],
+            id: rows[0].id,
+            method: "PATCH",
+            name: "UserAccount",
+            tenant: req.tenant,
+            user: username
+        }, true);
+
+        return email;
+    }
+
+    /*
+        Send the magic link and wait to learn whether it went. The
+        strategy answers "sent" whatever happened (sendMagicLink keeps
+        the failure on the request), and has no promise to wait on.
+    */
+    async function sendLink(req, body) {
+        let linkReq = Object.create(req);
+
+        /*
+            Its own body, so nothing the caller typed (a password, say)
+            rides along in the signed link.
+        */
+        linkReq.body = body;
+
+        await new Promise(function (resolve) {
+            magicLogin.send(linkReq, {
+                end: resolve,
+                json: resolve,
+                send: resolve,
+                status: function () {
+                    return this;
+                }
+            });
+        });
+
+        if (linkReq.mailError) {
+            return Promise.reject(linkReq.mailError);
+        }
+    }
+
+    async function doResetPassword(req, res) {
+        let body = req.body || {};
+        let username = String(body.username || "");
+        let destination;
+
+        if (username === systemUser) {
             error.bind(res)(
                 "Cannot reset password for the system user"
             );
             return;
         }
 
-        deserializeUser(
-            req,
-            req.body.username,
-            async function (err, user) {
-                if (err) {
-                    error.bind(res)(err);
-                    return;
-                }
+        try {
+            destination = await flagPasswordChange(
+                req,
+                username,
+                () => identityInfo(req, username)
+            );
+        } catch (err) {
+            error.bind(res)(err);
+            return;
+        }
 
-                let rows = await datasource.request({
-                    filter: {criteria: [{
-                        property: "name",
-                        value: req.body.username
-                    }]},
-                    method: "GET",
-                    name: "UserAccount",
-                    properties: ["id"],
-                    tenant: req.tenant,
-                    user: req.body.username
-                }, true);
+        try {
+            await sendLink(req, {
+                destination,
+                tenant: req.tenant,
+                username
+            });
+        } catch (err) {
+            logger.error("Reset mail for " + username + ": " + err);
+            error.bind(res)(new Error(
+                "The email could not be sent. Please ask your " +
+                "administrator."
+            ));
+            return;
+        }
 
-                await datasource.request({
-                    data: [{
-                        op: "replace",
-                        path: "/changePassword",
-                        value: true
-                    }],
-                    id: rows[0].id,
-                    method: "PATCH",
-                    name: "UserAccount",
-                    tenant: req.tenant,
-                    user: req.body.username
-                }, true);
-
-                req.body.destination = user.email;
-                req.body.tenant = req.tenant;
-                magicLogin.send(req, res);
-            }
-        );
+        res.json({success: true});
     }
 
     async function doNotice(req, res, next) {
@@ -1886,12 +2000,25 @@
                     error.bind(res)(e);
                 }
             } else {
-                req.user.mode = await modeOf(req.tenant);
-                req.session.mode = req.user.mode;
-                req.session.database = req.database;
-                req.session.save(function () {
-                    res.json(req.user);
-                });
+                try {
+                    req.user.mode = await modeOf(req.tenant);
+                    await new Promise(function (resolve, reject) {
+                        req.logIn(req.user, function (err) {
+                            return (
+                                err
+                                ? reject(err)
+                                : resolve()
+                            );
+                        });
+                    });
+                    req.session.mode = req.user.mode;
+                    req.session.database = req.database;
+                    req.session.save(function () {
+                        res.json(req.user);
+                    });
+                } catch (e) {
+                    error.bind(res)(e);
+                }
             }
         }
         /*
@@ -2401,6 +2528,26 @@
             registry: datasource.registeredTenants(),
             tenant: req.tenant,
             /*
+                Where a person signs in, and the means of inviting
+                one: the 2.2.0 way of making a user, a mail with a
+                link that signs them in and makes them choose their
+                own password. Needs the request (its host and its
+                database name are in the link), so admin.js is handed
+                a function rather than the request.
+            */
+            invite: (username, destination, fullName) => inviteByMail(
+                req,
+                username,
+                destination,
+                fullName
+            ),
+            signInUrl: (
+                req.database
+                ? req.protocol + "://" + req.get("host") + "/" +
+                        req.database + "/"
+                : undefined
+            ),
+            /*
                 No session is a 401 rather than the type error reading
                 a name off nothing used to raise: these routes answer
                 where no database is named, so an unauthenticated
@@ -2409,6 +2556,35 @@
             */
             user: (req.user || {}).name
         };
+    }
+
+    /*
+        Mail a new person a link that signs them in and makes them set
+        their own password, as 2.2.0 did (John, 2026-10-20). The
+        profile is made now, with the flag that sends them to the
+        change-password page on arrival, because a link opened later
+        finds it already there; it is the same flag a password reset
+        sets (doResetPassword). Rejects with the reason when the mail
+        could not go, which the strategy itself would hide.
+    */
+    async function inviteByMail(req, username, destination, fullName) {
+        /*
+            The profile is made now (the person has a grant), with the
+            contact the trigger insists on, built from what the
+            administrator typed.
+        */
+        await flagPasswordChange(req, username, {
+            email: destination,
+            fullName
+        });
+
+        await sendLink(req, {
+            destination,
+            newAccount: true,
+            tenant: req.tenant,
+            user: {name: username},
+            username
+        });
     }
 
     function doAdmin(method) {
@@ -2797,16 +2973,50 @@
         );
     }
 
-    function doConnect(req, res) {
+    async function doConnect(req, res) {
         let key = f.createId();
+        let user = req.user;
+        let who = {};
         eventKeys[key] = {
             sessionID: req.sessionID,
             tenant: req.tenant
         };
 
+        /*
+            The organization and administration tier go out with the
+            session user, for the signed-in label in the ribbon. Best
+            effort on purpose: nothing in the application depends on
+            them, so a manager this process cannot read costs the
+            label its tooltip and no more. Read fresh rather than kept
+            on the session, which says who someone is and never what
+            they may do.
+
+            The client connects before anyone has signed in -- that is
+            how it learns whether a session is open -- so there is
+            often no user here at all, and the answer is then the same
+            nothing it always was.
+        */
+        if (user) {
+            try {
+                who = await admin.whoAmI({
+                    tenant: req.tenant,
+                    user: user.name
+                });
+            } catch (err) {
+                logger.verbose(
+                    "Could not read who " + user.name +
+                    " is signed in as: " + (err.message || err)
+                );
+            }
+        }
+
         respond.bind(res)({
             data: {
-                authorized: req.user,
+                authorized: (
+                    user
+                    ? Object.assign({}, user, who)
+                    : user
+                ),
                 eventKey: key
             }
         });
@@ -3515,23 +3725,14 @@
                     // Confirmation mail only
                     if (req.body.confirmCode) {
                         req.magicHref = href;
-                        await datasource.request({
-                            method: "POST",
-                            name: "sendMail",
-                            data: {
-                                message: {
-                                    to: req.user.email,
-                                    subject: "Featherbone confirmation code",
-                                    from: smtpAuthUser,
-                                    html: (
-                                        `<html><p>Your confirmation code is: ` +
-                                        `<b>${req.body.confirmCode}</b>` +
-                                        `</p><html>`
-                                    )
-                                }
-                            },
-                            user: systemUser,
-                            tenant: false
+                        await notify.send(req.tenant, systemUser, {
+                            html: (
+                                `<html><p>Your confirmation code is: ` +
+                                `<b>${req.body.confirmCode}</b>` +
+                                `</p><html>`
+                            ),
+                            subject: "Featherbone confirmation code",
+                            to: req.user.email
                         });
                         return;
                     }
@@ -3565,43 +3766,31 @@
                             `\"${url}\"` +
                             `>here</a> to sign in.</p><html>`
                         );
-                        await datasource.request({
-                            method: "POST",
-                            name: "sendMail",
-                            data: {
-                                message: {
-                                    to: destination,
-                                    subject: `New ${acctType} account created`,
-                                    from: smtpAuthUser,
-                                    html: theHtml
-                                }
-                            },
-                            user: systemUser,
-                            tenant: false
+                        await notify.send(req.tenant, systemUser, {
+                            html: theHtml,
+                            subject: `New ${acctType} account created`,
+                            to: destination
                         });
                     } else {
                         // Reset password
-                        await datasource.request({
-                            method: "POST",
-                            name: "sendMail",
-                            data: {
-                                message: {
-                                    to: destination,
-                                    subject: "Featherbone password reset",
-                                    from: smtpAuthUser,
-                                    html: (
-                                        `<html><p>Click <a href=` +
-                                        `\"${url}\"` +
-                                        `>here</a> to reset your password.` +
-                                        `</p><html>`
-                                    )
-                                }
-                            },
-                            user: systemUser,
-                            tenant: false
+                        await notify.send(req.tenant, systemUser, {
+                            html: (
+                                `<html><p>Click <a href=` +
+                                `\"${url}\"` +
+                                `>here</a> to reset your password.` +
+                                `</p><html>`
+                            ),
+                            subject: "Featherbone password reset",
+                            to: destination
                         });
                     }
                 } catch (e) {
+                    /*
+                        The strategy would answer "sent" whatever
+                        happened here. A caller that needs to know
+                        (an administrator inviting someone) reads this.
+                    */
+                    req.mailError = e;
                     logger.error(e);
                     console.error(e);
                 }
@@ -4070,6 +4259,10 @@
         );
         dbRouter.get("/:db/admin/overview", doAdmin("overview"));
         dbRouter.post("/:db/admin/identity", doAdmin("createIdentity"));
+        dbRouter.post(
+            "/:db/admin/identity/info",
+            doAdmin("updateIdentity")
+        );
         dbRouter.post(
             "/:db/admin/identity/password",
             doAdmin("setPassword")

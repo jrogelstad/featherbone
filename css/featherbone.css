@@ -2767,6 +2767,50 @@ button:disabled .fb-ipicon,
     line-height: 24px;
 }
 
+/* Who the person is signed in as, beside the alerts bell (John, Oct
+   2026 -- "I'd like to see who I'm logged as over near the alarm
+   bell"). Same muted treatment as the two icon buttons to its right,
+   with the username beside the icon; clicking it shows the Home tab,
+   where the account buttons are. */
+.fb-ribbon-whoami {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    align-self: center;
+    max-width: 220px;
+    margin-bottom: 4px;
+    margin-right: 4px;
+    padding: 2px 6px;
+    font: inherit;
+    color: var(--fb-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fb-ribbon-whoami:hover {
+    color: var(--fb-text);
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-ribbon-whoami .material-icons-outlined {
+    display: block;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+}
+
+/* One line, cut off rather than pushing the bell about: a long
+   username is still identifiable from its first characters, and the
+   whole of it is in the tooltip. */
+.fb-ribbon-whoami-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* The one workbook ("Alerts") that gets its own permanent icon
    button at the ribbon's right end instead of being filed under a
    category tab (John, Oct 2026 -- "Alerts aren't an admin thing, but
@@ -3073,6 +3117,15 @@ button:disabled .fb-ipicon,
   width: 15%;
 }
 
+.fb-admin-col-email {
+  width: 18%;
+  overflow-wrap: anywhere;
+}
+
+.fb-admin-col-phone {
+  width: 11%;
+}
+
 .fb-admin-col-status {
   width: 10%;
 }
@@ -3193,6 +3246,16 @@ button:disabled .fb-ipicon,
 
 .fb-admin-muted {
   opacity: 0.6;
+}
+
+.fb-admin-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 8px 8px 8px;
+  color: var(--fb-text);
+  font-size: 12px;
+  cursor: pointer;
 }
 
 /* Upgrade/Deploy progress, polled from the platform console and the
