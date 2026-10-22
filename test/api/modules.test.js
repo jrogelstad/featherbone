@@ -90,6 +90,35 @@ describe("packages on disk", function () {
         );
     });
 
+    it("a route only the newer version declares exists only there",
+            async function () {
+        let resp = await admin2.post("/fbtest/newer", {});
+
+        assert.equal(resp.version, "1.1.0");
+        assert.equal(resp.database, settings.testDb2);
+
+        // The first database's version declares no such route: the
+        // mount is shared, the route is not
+        await assert.rejects(
+            admin.post("/fbtest/newer", {}),
+            (err) => err.status === 404
+        );
+    });
+
+    it("a package without routes.json keeps the database's own " +
+            "route rows", async function () {
+        // 1.0.0 has no routes.json; its /version comes from _route
+        let rows = await db.query(
+            "SELECT count(*)::int AS n FROM route " +
+            "WHERE module = 'fbtest' AND NOT is_deleted"
+        );
+
+        assert.equal(rows.rows[0].n, 1);
+        let resp = await admin.post("/fbtest/version", {});
+
+        assert.equal(resp.version, "1.0.0");
+    });
+
     it("still serves data from both databases", async function () {
         let one = await admin.list("Kinds", {properties: ["id"]});
         let two = await admin2.list("Kinds", {properties: ["id"]});
