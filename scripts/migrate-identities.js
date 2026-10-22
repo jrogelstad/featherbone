@@ -448,12 +448,23 @@
             (tenant plan A.4, B.6).
         */
         if (orgAdmin) {
+            /*
+                Administering an organization is an appointment over it
+                (ADR-001 revision 4), and a username names one person
+                across the installation, so the person is found by name
+                and the appointment is looked for separately.
+            */
             resp = await manager.query(
                 (
-                    "SELECT _pk, username, is_org_admin FROM identity " +
-                    "WHERE _organization_organization_pk = $1 " +
-                    "  AND lower(username) = lower($2) " +
-                    "  AND NOT is_deleted"
+                    "SELECT i._pk, i.username, " +
+                    "  (a._pk IS NOT NULL) AS is_org_admin " +
+                    "FROM identity i " +
+                    "LEFT JOIN organization_admin a " +
+                    "  ON a._identity_identity_pk = i._pk " +
+                    "    AND a._organization_organization_pk = $1 " +
+                    "    AND a.is_active AND NOT a.is_deleted " +
+                    "WHERE lower(i.username) = lower($2) " +
+                    "  AND NOT i.is_deleted"
                 ),
                 [orgPk, orgAdmin]
             );
@@ -482,11 +493,14 @@
                 if (apply) {
                     await manager.query(
                         (
-                            "UPDATE identity SET is_org_admin = true, " +
-                            "updated = now(), updated_by = 'migrate' " +
-                            "WHERE _pk = $1"
+                            "INSERT INTO organization_admin (" +
+                            DOC_COLS + ",_identity_identity_pk," +
+                            "_organization_organization_pk,is_active," +
+                            "appointed) VALUES (" +
+                            docVals(f.createId()).text +
+                            ",$1,$2,true,now())"
                         ),
-                        [resp.rows[0]._pk]
+                        [resp.rows[0]._pk, orgPk]
                     );
                     audits.push([
                         "identity.org_admin_granted",

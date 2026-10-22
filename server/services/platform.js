@@ -72,22 +72,21 @@
             marked rather than hidden: somebody who was working in it
             yesterday should be told why it will not open.
 
+            Across organizations, because a grant is the whole of the
+            boundary now (John, Oct 2026: "a VAR who might be given
+            access to multiple orgs that are their accounts"). It used
+            to list only instances belonging to the identity's own
+            organization, which made an account per organization the
+            only way to hold several -- so each instance says which
+            organization it belongs to, there now being more than one
+            answer.
+
             @method instancesFor
             @param {Client} client Manager client
             @param {String} username
-            @param {String} organizationId
             @return {Promise} Array of instances
         */
-        that.instancesFor = async function (client, username, organizationId) {
-            let organization = await manager.organizationById(
-                client,
-                organizationId
-            );
-
-            if (!organization) {
-                return [];
-            }
-
+        that.instancesFor = async function (client, username) {
             let maint = (
                 await that.hasMaintenance(client)
                 ? "t.is_maintenance"
@@ -96,19 +95,20 @@
             let resp = await client.query(
                 (
                     "SELECT t.id, t.name, t.pg_database, t.is_active, " +
-                    "  t.is_demo, t.expiration, " + maint + " " +
+                    "  t.is_demo, t.expiration, " + maint + ", " +
+                    "  o.id AS organization_id, o.name AS organization " +
                     "FROM access_grant g " +
                     "JOIN tenant t ON t._pk = g._tenant_tenant_pk " +
                     "JOIN identity i ON i._pk = g._identity_identity_pk " +
+                    "LEFT JOIN organization o " +
+                    "  ON o._pk = t._organization_organization_pk " +
                     "WHERE lower(i.username) = lower($1) " +
-                    "  AND i._organization_organization_pk = $2 " +
-                    "  AND t._organization_organization_pk = $2 " +
                     "  AND i.status = 'active' AND NOT i.is_deleted " +
                     "  AND g.is_active AND NOT g.is_deleted " +
                     "  AND NOT t.is_deleted " +
-                    "ORDER BY lower(t.name)"
+                    "ORDER BY lower(o.name), lower(t.name)"
                 ),
-                [username, organization._pk]
+                [username]
             );
 
             return resp.rows.map(function (row) {
@@ -119,7 +119,9 @@
                     isActive: row.is_active === true,
                     isDemo: row.is_demo === true,
                     isMaintenance: row.is_maintenance === true,
-                    name: row.name
+                    name: row.name,
+                    organization: row.organization,
+                    organizationId: row.organization_id
                 };
             });
         };
@@ -160,7 +162,6 @@
             @method mayEnter
             @param {Client} client Manager client
             @param {String} username
-            @param {String} organizationId
             @param {String} instanceId
             @param {Boolean} [isPlatformAdmin]
             @return {Promise} Object, `ok` with a `reason` when not
@@ -168,15 +169,10 @@
         that.mayEnter = async function (
             client,
             username,
-            organizationId,
             instanceId,
             isPlatformAdmin
         ) {
-            let instances = await that.instancesFor(
-                client,
-                username,
-                organizationId
-            );
+            let instances = await that.instancesFor(client, username);
             let instance = instances.find((i) => i.id === instanceId);
 
             if (!instance) {
@@ -269,7 +265,6 @@
                 home
                 ? await manager.identity(
                     client,
-                    home._pk,
                     (identity || {}).username || ""
                 )
                 : undefined
@@ -348,11 +343,7 @@
                 return false;
             }
 
-            let actor = await manager.identity(
-                client,
-                resp.rows[0].org,
-                username || ""
-            );
+            let actor = await manager.identity(client, username || "");
 
             return Boolean(actor && actor.is_platform_admin);
         };
@@ -379,9 +370,12 @@
                     "  (SELECT count(*) FROM identity i " +
                     "    WHERE i._organization_organization_pk = o._pk " +
                     "      AND NOT i.is_deleted)::int AS identities, " +
-                    "  (SELECT count(*) FROM identity i " +
-                    "    WHERE i._organization_organization_pk = o._pk " +
-                    "      AND i.is_org_admin AND i.status = 'active' " +
+                    "  (SELECT count(*) FROM organization_admin a " +
+                    "    JOIN identity i " +
+                    "      ON i._pk = a._identity_identity_pk " +
+                    "    WHERE a._organization_organization_pk = o._pk " +
+                    "      AND a.is_active AND NOT a.is_deleted " +
+                    "      AND i.status = 'active' " +
                     "      AND NOT i.is_deleted)::int AS administrators " +
                     "FROM organization o " +
                     "WHERE NOT o.is_deleted ORDER BY lower(o.name)"
@@ -719,9 +713,14 @@
             Before this, a new organization's administrator was the
             service account the installer had borrowed.
 
-            Makes the identity if there is none by that name, sets the
-            password, and marks it the organization's administrator. It
-            grants no instance: who reaches what is the organization
+            Appoints whoever that username names. A username names one
+            person across the installation (John, Oct 2026), so the
+            person may well exist already -- the platform's own staff,
+            or a reseller who administers several organizations -- and
+            an existing account is appointed as it stands, password and
+            all. A password is wanted only for somebody being created.
+
+            It grants no instance: who reaches what is the organization
             administrator's to say from the Users screen.
 
             @method appointAdministrator
@@ -729,7 +728,7 @@
             @param {Object} data
             @param {String} data.organization Organization id
             @param {String} data.username
-            @param {String} data.password
+            @param {String} [data.password] For an account being made
             @param {String} [data.fullName]
             @param {String} [data.email]
             @return {Promise} {created, username}
@@ -748,7 +747,10 @@
             if (!username) {
                 throw invalid("A user name is required");
             }
-            if (password.length < 8) {
+
+            let existing = await manager.identity(client, username);
+
+            if (!existing && password.length < 8) {
                 throw invalid(
                     "Password must be at least 8 characters"
                 );
@@ -763,28 +765,22 @@
                 username
             });
 
-            if (!made.created) {
-                await manager.setPassword(
-                    client,
-                    made.identityPk,
-                    password,
-                    data.by
-                );
-                await manager.setStatus(
-                    client,
-                    made.identityPk,
-                    "active",
-                    data.by
-                );
-            }
             await manager.setOrgAdmin(
                 client,
                 made.identityPk,
+                organization._pk,
                 true,
                 data.by
             );
 
-            return {created: made.created, username};
+            return {
+                created: made.created,
+                username: (
+                    existing
+                    ? existing.username
+                    : username
+                )
+            };
         };
 
         /**
