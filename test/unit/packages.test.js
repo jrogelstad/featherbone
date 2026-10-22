@@ -526,6 +526,32 @@ describe("Core as a package", function () {
         );
     });
 
+    it("answers for whatever version a database records of it",
+            function () {
+        /*
+            A database behind this server is behind, not owed code
+            nobody keeps any more: its tables hold none of the
+            framework's, so the framework it is served is this one,
+            and its upgrade is what moves it forward.
+        */
+        let old = pkgs.resolve(core.module, "2.2.0");
+
+        assert.ok(old, "an older version still resolves");
+        assert.equal(
+            path.resolve(old.dir),
+            path.resolve(__dirname, "..", "..")
+        );
+        assert.equal(
+            pkgs.serviceSources(core.module, "2.2.0").length,
+            pkgs.serviceSources(core.module, core.version).length
+        );
+        assert.equal(
+            pkgs.resolve("NotAModuleHere", core.version),
+            undefined,
+            "and nothing else gets that treatment"
+        );
+    });
+
     it("is not an installed package, and brings no libraries",
             function () {
         assert.deepEqual(
