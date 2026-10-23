@@ -819,6 +819,72 @@
             @property phone
             @type String
         */
+        /**
+            Write the local profile for a name: the `user_account` row
+            and its membership of "everyone", and nothing more. A no-op
+            when the profile is already there (the name is unique), so
+            it is safe to call twice or from two places at once.
+
+            This is the write only. The decision that somebody may have
+            a profile in this instance is the caller's: a live grant,
+            checked in `provisionProfile` on the sign-in path and given
+            by the administrator on the grant path.
+
+            @method makeProfile
+            @for Database
+            @param {Object} tenant The instance's registry entry
+            @param {String} username
+            @return {Promise} True when a row was made, false when one
+                was already there
+        */
+        that.makeProfile = async function (tenant, username) {
+            let made;
+            let obj = await that.connect(tenant);
+
+            try {
+                /*
+                    Two requests can arrive together on a first sign-in,
+                    and name is a unique natural key since improvement
+                    item 2.6, so the second insert is a no-op rather
+                    than an error.
+                */
+                made = await obj.client.query(
+                    (
+                        "INSERT INTO user_account (" +
+                        "  _pk, id, created, created_by, updated, " +
+                        "  updated_by, is_deleted, owner, etag, name, " +
+                        "  is_login, is_super, is_active, " +
+                        "  change_password, sign_in_attempts, is_locked" +
+                        ") VALUES (" +
+                        "  nextval('object__pk_seq'), $1, now(), " +
+                        "  'system', now(), 'system', false, $2, $1, $2, " +
+                        "  true, false, true, false, 0, false" +
+                        ") ON CONFLICT DO NOTHING RETURNING _pk"
+                    ),
+                    [f.createId(), username]
+                );
+
+                if (made.rows.length) {
+                    await obj.client.query(
+                        (
+                            "INSERT INTO role_membership (" +
+                            "  _pk, id, created, created_by, updated, " +
+                            "  updated_by, is_deleted, _parent_role_pk, " +
+                            "  role) VALUES (" +
+                            "  nextval('object__pk_seq'), $1, now(), " +
+                            "  'system', now(), 'system', false, $2, " +
+                            "  'everyone')"
+                        ),
+                        [f.createId(), made.rows[0]._pk]
+                    );
+                }
+            } finally {
+                obj.done();
+            }
+
+            return made.rows.length > 0;
+        };
+
         /*
             Give an identity the local profile the instance needs
             (tenant plan B.7).
@@ -875,48 +941,7 @@
                 mgr.done();
             }
 
-            let obj = await that.connect(req.tenant);
-
-            try {
-                /*
-                    Two requests can arrive together on a first sign-in,
-                    and name is a unique natural key since improvement
-                    item 2.6, so the second insert is a no-op rather
-                    than an error.
-                */
-                let made = await obj.client.query(
-                    (
-                        "INSERT INTO user_account (" +
-                        "  _pk, id, created, created_by, updated, " +
-                        "  updated_by, is_deleted, owner, etag, name, " +
-                        "  is_login, is_super, is_active, " +
-                        "  change_password, sign_in_attempts, is_locked" +
-                        ") VALUES (" +
-                        "  nextval('object__pk_seq'), $1, now(), " +
-                        "  'system', now(), 'system', false, $2, $1, $2, " +
-                        "  true, false, true, false, 0, false" +
-                        ") ON CONFLICT DO NOTHING RETURNING _pk"
-                    ),
-                    [f.createId(), username]
-                );
-
-                if (made.rows.length) {
-                    await obj.client.query(
-                        (
-                            "INSERT INTO role_membership (" +
-                            "  _pk, id, created, created_by, updated, " +
-                            "  updated_by, is_deleted, _parent_role_pk, " +
-                            "  role) VALUES (" +
-                            "  nextval('object__pk_seq'), $1, now(), " +
-                            "  'system', now(), 'system', false, $2, " +
-                            "  'everyone')"
-                        ),
-                        [f.createId(), made.rows[0]._pk]
-                    );
-                }
-            } finally {
-                obj.done();
-            }
+            await that.makeProfile(req.tenant, username);
 
             // Recorded where the other privileged writes are
             let audit = await that.connect();
