@@ -76,6 +76,34 @@ function samplePackage(version, withCode) {
     return file;
 }
 
+function triggerPackage() {
+    let file = path.join(work, MODULE + "-trigger.zip");
+    let zip = new AdmZip();
+
+    // Answers only to its own probe, so a registry left holding it
+    // after the suite changes nothing for anybody else
+    zip.addFile("service.js", Buffer.from(
+        "f.datasource.registerFunction(\"POST\", \"Contact\", " +
+        "function (obj) {\n" +
+        "    if (obj.newRec.lastName === \"fbt-trigger-probe\") {\n" +
+        "        return Promise.reject(new Error(\"fbt-trigger-ran\"));\n" +
+        "    }\n" +
+        "    return Promise.resolve();\n" +
+        "}, f.datasource.TRIGGER_BEFORE);\n"
+    ));
+    zip.addFile("manifest.json", Buffer.from(JSON.stringify({
+        files: [{
+            name: "fbt-webinstall-trigger",
+            path: "service.js",
+            type: "service"
+        }],
+        module: MODULE,
+        version: "3.0.0"
+    })));
+    zip.writeZip(file);
+    return file;
+}
+
 function brokenPackage() {
     let file = path.join(work, MODULE + "-broken.zip");
     let zip = new AdmZip();
@@ -360,5 +388,38 @@ describe("Install on the Modules page", function () {
             session.upload("/module/install/x=1", "package", file),
             /manifest/
         );
+    });
+
+    /*
+        A package's triggers are live once it is deployed, not after
+        the next restart. The database's registered code is built on
+        its first request and kept, and a deployment from here ended
+        without saying it had changed: Tracker's mail on a new issue
+        never went until the server was restarted (John, Oct 2026).
+    */
+    it("runs a deployed package's triggers without a restart",
+            async function () {
+        let session = await signedIn(PLATFORM);
+
+        // Build and keep the database's registry before the package
+        let first = await session.raw("POST", "/data/contact", {
+            firstName: "Before",
+            lastName: "fbt-trigger-probe"
+        });
+
+        assert.equal(first.status, 200, "no trigger yet");
+        await session.upload(
+            "/module/install/x=1",
+            "package",
+            triggerPackage()
+        );
+
+        let resp = await session.raw("POST", "/data/contact", {
+            firstName: "After",
+            lastName: "fbt-trigger-probe"
+        });
+
+        assert.notEqual(resp.status, 200, "the trigger refused it");
+        assert.match(JSON.stringify(resp.body), /fbt-trigger-ran/);
     });
 });

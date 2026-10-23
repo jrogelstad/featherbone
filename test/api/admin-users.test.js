@@ -20,7 +20,7 @@ const settings = require("../harness/env");
 const db = require("../harness/db");
 const {Session, signedIn} = require("../harness/http");
 const access = require("./lib/access");
-const {decoded, sink} = require("./lib/mailsink");
+const {claims, decoded, sink} = require("./lib/mailsink");
 
 describe("administrator edits a user's details", function () {
     let admin;
@@ -61,7 +61,20 @@ describe("administrator edits a user's details", function () {
 
         let before = await row(name);
 
-        assert.equal(before.hasProfile, false, "no profile until sign-in");
+        /*
+            The grant makes the profile now. Take it away again to get
+            back to the state of an account granted before it did, so
+            the screen's no-profile branch stays covered.
+        */
+        assert.equal(before.hasProfile, true, "made when granted");
+        await db.query(
+            "DELETE FROM role_membership WHERE _parent_role_pk IN (" +
+            "SELECT _pk FROM user_account WHERE name = $1)",
+            [name]
+        );
+        await db.query("DELETE FROM user_account WHERE name = $1", [name]);
+        before = await row(name);
+        assert.equal(before.hasProfile, false, "no profile to edit");
 
         let resp = await edit(before.id, {
             email: "after@example.com",
@@ -77,6 +90,66 @@ describe("administrator edits a user's details", function () {
         assert.equal(after.phone, undefined, "no phone without a profile");
     });
 
+    it("gives somebody a profile in the instance when they are added",
+            async function () {
+        let name = access.track(access.uniq("fbt_lst"));
+        let made = await admin.raw("POST", "/admin/identity", {
+            fullName: "Listed Person",
+            password: "Info-Pw-3",
+            username: name
+        });
+
+        assert.ok(made.status < 300, JSON.stringify(made.body));
+
+        /*
+            The lists inside the instance -- the user account field on
+            a record, assignments -- read user_account, so the person
+            has to be in it before they have ever signed in.
+        */
+        let rows = await admin.findBy("userAccounts", "name", name);
+
+        assert.equal(rows.length, 1, "listed before any sign-in");
+        assert.equal(rows[0].name, name);
+    });
+
+    it("gives somebody an existing account a profile when it is granted",
+            async function () {
+        let name = access.track(access.uniq("fbt_grn"));
+        let made = await admin.raw("POST", "/admin/identity", {
+            fullName: "Granted Person",
+            password: "Info-Pw-4",
+            username: name
+        });
+
+        assert.ok(made.status < 300, JSON.stringify(made.body));
+
+        // Take away the grant and the profile, as if never given
+        let who = await row(name);
+        let revoked = await admin.raw("POST", "/admin/grant", {
+            id: who.id,
+            isActive: false
+        });
+
+        assert.ok(revoked.status < 300, JSON.stringify(revoked.body));
+        await db.query(
+            "DELETE FROM role_membership WHERE _parent_role_pk IN (" +
+            "SELECT _pk FROM user_account WHERE name = $1)",
+            [name]
+        );
+        await db.query("DELETE FROM user_account WHERE name = $1", [name]);
+
+        let granted = await admin.raw("POST", "/admin/grant", {id: who.id});
+
+        assert.ok(granted.status < 300, JSON.stringify(granted.body));
+
+        let found = await db.query(
+            "SELECT count(*)::int AS n FROM user_account WHERE name = $1",
+            [name]
+        );
+
+        assert.equal(found.rows[0].n, 1);
+    });
+
     it("writes the profile once there is one, phone included",
             async function () {
         let name = access.track(access.uniq("fbt_prof"));
@@ -88,7 +161,7 @@ describe("administrator edits a user's details", function () {
             username: name
         });
 
-        // The first sign-in makes the profile (B.7), with no contact
+        // Already there from the grant; sign-in must cope with that
         assert.equal(
             (await new Session().signIn(name, "Info-Pw-2")).status,
             200
@@ -325,6 +398,23 @@ describe("mail the system sends: invitations and forgotten passwords",
             "no password travels in the mail"
         );
 
+        /*
+            The link is signed, not encrypted: whoever holds it can read
+            it. It says who it is for and which database, and no more.
+        */
+        let said = claims(link);
+
+        assert.equal(said.username, name);
+        assert.equal(said.database, settings.testDb);
+
+        let plumbing = ["code", "exp", "iat"];
+        let kept = Object.keys(said).filter(
+            (key) => plumbing.indexOf(key) < 0
+        );
+
+        kept.sort();
+        assert.deepEqual(kept, ["database", "destination", "username"]);
+
         // The link signs them in, and the profile says change it
         let person = new Session();
         let arrived = await person.raw(
@@ -354,6 +444,39 @@ describe("mail the system sends: invitations and forgotten passwords",
             (await new Session().signIn(name, "Invited-Pw-1")).status,
             200
         );
+    });
+
+    it("sends the sign-in link for a user account without its password " +
+            "or the instance's credentials", async function () {
+        await useSmtp(smtp.port);
+
+        let name = access.track(access.uniq("fbt_acc"));
+        let contact = await access.createContact(admin, name);
+        let sent = smtp.mails.length;
+        let resp = await admin.raw("POST", "/data/user-account", {
+            contact: {id: contact.id},
+            membership: [{role: "everyone"}],
+            name,
+            password: "Acc-Pw-Secret-1"
+        });
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        await access.poll(() => smtp.mails.length > sent, 5000);
+        assert.equal(smtp.mails.length, sent + 1, "a mail went out");
+
+        let text = decoded(smtp.mails[smtp.mails.length - 1].raw);
+        let said = claims(text);
+
+        assert.equal(said.username, name);
+        assert.equal(said.database, settings.testDb);
+
+        let all = JSON.stringify(said);
+
+        assert.ok(!all.includes("Acc-Pw-Secret-1"), "no password");
+        assert.ok(!all.includes("pgPassword"), "no database credentials");
+        assert.equal(said.tenant, undefined);
+        assert.equal(said.password, undefined);
     });
 
     it("says so when the mail cannot go, and keeps the user",

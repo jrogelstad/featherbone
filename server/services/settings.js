@@ -27,6 +27,12 @@ const config = new Config();
 const events = new Events();
 const pgdb = new Database();
 const platform = new Platform();
+
+/*
+    Settings an administrator of the instance's organization may change
+    without being a super user of the instance. See settingIsAuthorized.
+*/
+const ORG_ADMIN_SETTINGS = ["globalSettings"];
 const tools = new Tools();
 const dbsettings = {};
 const dbencrypted = {};
@@ -628,7 +634,32 @@ settings.settingIsAuthorized = async function (obj) {
     }
 
     resp = await client.query(sql, [name, user]);
-    return resp.rows.length > 0;
+
+    if (resp.rows.length) {
+        return true;
+    }
+
+    /*
+        The people who administer the organization own what is shared
+        across it. They need not be a super user of the instance: a
+        profile made on first sign-in carries no authority, so without
+        this an organization administrator was disabled out of their
+        own global settings and needed platform help (John, Oct 2026:
+        "you should only have to be an org admin"). Only the settings
+        named in ORG_ADMIN_SETTINGS, so this does not widen anything
+        else a super user alone may change.
+    */
+    if (ORG_ADMIN_SETTINGS.indexOf(name) === -1) {
+        return false;
+    }
+
+    return await platform.run(
+        (mclient) => platform.administersInstance(
+            mclient,
+            client.database,
+            user
+        )
+    );
 };
 
 /*
