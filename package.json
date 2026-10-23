@@ -11,6 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "node server.js",
     "test": "node test/run.js",
     "test:unit": "node test/run.js unit",
     "test:integration": "node test/run.js integration"
