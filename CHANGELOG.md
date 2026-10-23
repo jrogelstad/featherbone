@@ -10,6 +10,13 @@ Notable changes to Featherbone. Dates are the day the work landed on
   package, which database, why, and that the instance is still held in
   maintenance. The page shows both as a dialog (the bundled
   `clientmin.js` is not rebuilt, so that needs `"debug": true` until it is).
+* **A package's mail uses the organization's account.** `sendMail`
+  called from inside an instance with no server named now sends through
+  the account entered under Settings, falling back to `config.json`
+  only when the organization has none. Before, Tracker's notice of a
+  new issue went through `config.json` alone and, on a server without
+  SMTP set there, failed on "connect ECONNREFUSED 127.0.0.1:465" and
+  took the save with it.
 * **A package's triggers and routes work as soon as it is deployed.** A
   deployment ended without telling the database its registered code had
   changed, so a package installed on a running server did nothing until

@@ -144,6 +144,52 @@
 
         let that = {};
 
+        /*
+            The mail account the organization entered under Settings,
+            for a message sent from inside an instance -- a package's
+            trigger, say. Those used to go out through `config.json`
+            alone, which on a hosted server is a second place to set
+            the same account up and, when unset, a mail server on
+            localhost: Tracker's notice of a new issue failed on
+            "connect ECONNREFUSED 127.0.0.1:465" and took the save
+            with it (John, Oct 2026).
+
+            The instance is named by `data.tenant`, or is the one the
+            request came from. A message with neither (the system's own
+            mail, which reads the organization's account itself and
+            says so by passing it) falls through to `config.json`, as
+            does an organization with no account.
+        */
+        async function organizationSmtp(obj) {
+            let client = obj.client;
+            let tenant = obj.data.tenant || obj.tenant;
+            let user = obj.user;
+
+            if (client && typeof client.tenant === "function") {
+                tenant = tenant || client.tenant();
+            }
+            if (client && typeof client.currentUser === "function") {
+                user = user || client.currentUser();
+            }
+
+            if (!tenant || !tenant.pgDatabase) {
+                return;
+            }
+
+            try {
+                // Loaded here: notify needs the datasource, which
+                // needs this file
+                let {Notify} = require("./notify");
+
+                return await new Notify().smtpFor(tenant, user);
+            } catch (e) {
+                console.error(
+                    "Could not read the organization's mail settings: " +
+                    (e.message || e)
+                );
+            }
+        }
+
         // ..........................................................
         // PUBLIC
         //
@@ -177,7 +223,7 @@
         that.sendMail = async function (obj) {
             let message = obj.data.message;
             let opts = obj.data.pdf;
-            let theSmtp = obj.data.smtp || smtp;
+            let theSmtp = obj.data.smtp || await organizationSmtp(obj) || smtp;
             let thePath = false;
             message.from = message.from || theSmtp.auth.user;
 
