@@ -3324,13 +3324,21 @@
             module with no package on this server still answers from
             its row.
 
-            Internal callers see the rows as they are -- they pass
-            isSuperUser, and some of them write what they read back.
+            Every caller gets the file, a super user included. This
+            used to leave the rows as they were for any request made
+            as a super user, meant for internal callers -- but
+            `isSuperUser` is also the signed-in user's own flag (the
+            query route passes it), and since an install no longer
+            writes code to rows, every row a deployment touched is
+            empty: a super user's browser was handed no code for Core
+            or any packaged module. No internal caller reads
+            `Module.script` through here (the packager reads its
+            tables directly), and none could write one back.
         */
         function fromPackage(resp) {
             let rows;
 
-            if (isSuperUser || obj.name !== "Module" || !resp) {
+            if (obj.name !== "Module" || !resp) {
                 return resp;
             }
 
