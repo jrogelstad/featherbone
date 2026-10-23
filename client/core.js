@@ -2739,6 +2739,19 @@ f.sendMail = async function (params) {
 // Define application state
 f.currentUser = f.prop();
 message = f.prop("");
+
+/*
+    What the sign-in screen is told when somebody arrives from a sign-in
+    link that no longer works: whose it was, so the user name is already
+    in the box, and a line saying what happened. Nothing is signed in by
+    this; it is only text for the screen.
+*/
+let signInUser = "";
+f.signInHint = function (username, note) {
+    signInUser = String(username || "");
+    message(note || "");
+};
+f.signInUser = () => signInUser;
 appState = State.define(function () {
     this.state("Uninitialized", function () {
         this.event("preauthorized", function () {

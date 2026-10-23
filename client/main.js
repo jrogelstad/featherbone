@@ -27,6 +27,39 @@ const components = catalog.store().components();
 const viewModels = catalog.store().viewModels();
 const connectionMonitor = catalog.store().global().connectionMonitor;
 
+/*
+    A sign-in link from an email that no longer works (two days old, the
+    server restarted) is sent here by the server with whose it was, as
+    "#link-failed=<name>". Read it before the route is worked out, and
+    take it out of the address so that it is not mistaken for one, and
+    is not still there after a refresh.
+*/
+(function () {
+    let marker = "#link-failed=";
+    let found = window.location.hash;
+
+    if (!found.startsWith(marker)) {
+        return;
+    }
+
+    try {
+        window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search
+        );
+    } catch (ignore) {
+        // The marker stays in the address; nothing else depends on it
+    }
+
+    f.signInHint(
+        decodeURIComponent(found.slice(marker.length)),
+        "That sign-in link has expired or can no longer be used. " +
+        "Enter your password, or choose Forgot password to be sent a " +
+        "new link."
+    );
+}());
+
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
 let formsSid = f.createId();
