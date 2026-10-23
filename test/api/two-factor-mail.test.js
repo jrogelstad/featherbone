@@ -18,7 +18,7 @@ const settings = require("../harness/env");
 const db = require("../harness/db");
 const {Session, signedIn} = require("../harness/http");
 const access = require("./lib/access");
-const {decoded, sink} = require("./lib/mailsink");
+const {claims, decoded, sink} = require("./lib/mailsink");
 
 const NAME = "globalSettings";
 
@@ -135,6 +135,20 @@ describe("second factor by email", function () {
         assert.match(text, /Subject: Featherbone confirmation code/);
 
         let code = text.match(/<b>(\d{5})<\/b>/)[1];
+
+        /*
+            The link is the browser's to hold and the code is the
+            mail's, so the code cannot be read out of the link: it
+            carries a hash of it, and neither the password just
+            typed nor the instance's credentials.
+        */
+        let said = claims(resp.body.confirmUrl);
+
+        assert.equal(said.confirmCode, undefined, "no code in the link");
+        assert.match(said.confirm, /^[0-9a-f]{64}$/);
+        assert.equal(said.password, undefined);
+        assert.equal(said.tenant, undefined);
+        assert.equal(said.username, user.name);
 
         // A wrong code is refused
         let wrong = await person.raw(
