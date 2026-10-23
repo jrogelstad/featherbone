@@ -267,11 +267,14 @@ ribbon.viewModel = function () {
     };
 
     /**
-        Categories with their workbooks resolved and ordered. Every
-        defined category gets a tab, empty or not -- they're rows the
-        user maintains, so one just created shouldn't vanish until
-        something is filed under it. "Other" is the exception: it
-        only appears when there are workbooks with no category.
+        Categories with their workbooks resolved and ordered. A
+        category appears only when the user has a workbook in it: a
+        tab with nothing behind it is noise, and what a user can open
+        is what decides it, so somebody who may open one workbook of
+        a dozen categories sees one tab (John, Oct 2026). Categories
+        are maintained in their own dialog, so an empty one is still
+        there to be filled. "Other" likewise appears only when there
+        are workbooks with no category.
         @method categories
         @return {Array}
     */
@@ -308,6 +311,10 @@ ribbon.viewModel = function () {
             ).sort(bySequence);
 
             mine.forEach((key) => claimed.push(key));
+
+            if (!mine.length) {
+                return;
+            }
 
             ret.push({
                 key: cat.name.toSpinalCase(),
