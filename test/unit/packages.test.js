@@ -609,3 +609,157 @@ describe("Core as a package", function () {
         assert.deepEqual(pkgs.libraries(core.module, core.version), []);
     });
 });
+
+describe("modules carried inside a package", function () {
+    let dir;
+    let own;
+    let outside;
+
+    function nestedModule(sub, name, version, files, extra) {
+        let at = path.join(dir, sub);
+
+        write(at, "manifest.json", JSON.stringify({
+            files: files || [],
+            module: name,
+            version
+        }));
+        Object.keys(extra || {}).forEach(
+            (file) => write(at, file, extra[file])
+        );
+    }
+
+    before(function () {
+        let top;
+
+        outside = fs.mkdtempSync(path.join(os.tmpdir(), "fb-umbrella-"));
+        own = path.join(outside, "modules");
+        top = path.join(own, "Umbrella", "2.0.0");
+        dir = top;
+
+        write(top, "manifest.json", JSON.stringify({
+            files: [
+                {path: "common/manifest.json", type: "install"},
+                {path: "ship/manifest.json", type: "install"},
+                {path: "../../../escape/manifest.json", type: "install"},
+                {path: "gone/manifest.json", type: "install"},
+                {path: "module.js", type: "module"}
+            ],
+            module: "Umbrella",
+            version: "2.0.0"
+        }));
+        write(top, "module.js", "// umbrella client");
+        write(top, "package.json", JSON.stringify({
+            dependencies: {"big.js": "^6.0.0"},
+            featherbone: {libraries: {Money: {package: "big.js"}}}
+        }));
+        nestedModule("common", "Common", "1.2.0", [
+            {name: "doThing", path: "do-thing.js", type: "service"},
+            {path: "module.js", type: "module"}
+        ], {
+            "do-thing.js": "// common service",
+            "module.js": "// common client",
+            "routes.json": JSON.stringify([
+                {function: "doThing", path: "/do/thing"}
+            ])
+        });
+        nestedModule("ship", "Ship", "1.0.4", [
+            {path: "module.js", type: "module"}
+        ], {
+            "module.js": "// ship client",
+            "package.json": JSON.stringify({
+                dependencies: {"node-fetch": "^2.0.0"}
+            })
+        });
+        // A manifest outside the package must not be followed
+        write(path.join(outside, "escape"), "manifest.json",
+            JSON.stringify({module: "Escaped", version: "1.0.0"}));
+
+        packages = new Packages();
+        packages.scan(own);
+    });
+
+    after(function () {
+        fs.rmSync(outside, {force: true, recursive: true});
+    });
+
+    it("finds a nested module by its own name and version", function () {
+        let pkg = packages.resolve("Common", "1.2.0");
+
+        assert.ok(pkg);
+        assert.equal(pkg.dir, path.join(dir, "common"));
+        assert.equal(packages.resolve("Common", "9.9.9"), undefined);
+        assert.ok(packages.resolve("Ship", "1.0.4"));
+    });
+
+    it("serves a nested module's services, client and routes",
+            function () {
+        assert.deepEqual(packages.serviceSources("Common", "1.2.0"), [{
+            module: "Common",
+            name: "doThing",
+            script: "// common service"
+        }]);
+        assert.equal(
+            packages.clientSource("Common", "1.2.0").script,
+            "// common client"
+        );
+        assert.equal(
+            packages.clientSource("Ship", "1.0.4").script,
+            "// ship client"
+        );
+        assert.deepEqual(packages.routesOf("Common", "1.2.0"), [
+            {function: "doThing", module: "Common", path: "/do/thing"}
+        ]);
+        assert.equal(
+            packages.clientSource("Umbrella", "2.0.0").script,
+            "// umbrella client"
+        );
+    });
+
+    it("takes libraries from the module's own package.json, else the " +
+            "umbrella's", function () {
+        assert.deepEqual(packages.libraries("Common", "1.2.0"), [
+            {export: undefined, package: "big.js", property: "Money"}
+        ]);
+        assert.deepEqual(packages.libraries("Ship", "1.0.4"), [
+            {export: undefined, package: "node-fetch", property: "nodeFetch"}
+        ]);
+    });
+
+    it("lists only what was installed", function () {
+        assert.deepEqual(
+            packages.installed(),
+            [{name: "Umbrella", version: "2.0.0"}]
+        );
+        assert.equal(packages.newest("Common"), undefined);
+    });
+
+    it("does not follow a path out of the package", function () {
+        assert.equal(packages.resolve("Escaped", "1.0.0"), undefined);
+    });
+
+    it("prefers a module installed on its own to the copy inside",
+            function () {
+        place2("Common", "1.2.0", "// standalone client");
+        packages.scan(own);
+
+        assert.equal(
+            packages.clientSource("Common", "1.2.0").script,
+            "// standalone client"
+        );
+        assert.deepEqual(packages.installed().map((one) => one.name), [
+            "Common",
+            "Umbrella"
+        ]);
+    });
+
+    function place2(name, version, client) {
+        let at = path.join(own, name, version);
+
+        write(at, "manifest.json", JSON.stringify({
+            files: [{path: "module.js", type: "module"}],
+            module: name,
+            version
+        }));
+        write(at, "module.js", client);
+    }
+});
