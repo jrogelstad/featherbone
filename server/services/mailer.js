@@ -154,6 +154,14 @@
             "connect ECONNREFUSED 127.0.0.1:465" and took the save
             with it (John, Oct 2026).
 
+            Read as the installation's own service account, never as
+            the person whose action sent the mail. The password is an
+            encrypted setting, blanked for anyone who may not change the
+            row, so reading it as an ordinary user -- the reporter of a
+            ticket, say -- found the account's host and user name but
+            an empty password, and the send failed with 'Missing
+            credentials for "PLAIN"'.
+
             The instance is named by `data.tenant`, or is the one the
             request came from. A message with neither (the system's own
             mail, which reads the organization's account itself and
@@ -163,13 +171,9 @@
         async function organizationSmtp(obj) {
             let client = obj.client;
             let tenant = obj.data.tenant || obj.tenant;
-            let user = obj.user;
 
             if (client && typeof client.tenant === "function") {
                 tenant = tenant || client.tenant();
-            }
-            if (client && typeof client.currentUser === "function") {
-                user = user || client.currentUser();
             }
 
             if (!tenant || !tenant.pgDatabase) {
@@ -180,8 +184,9 @@
                 // Loaded here: notify needs the datasource, which
                 // needs this file
                 let {Notify} = require("./notify");
+                let conf = await config.read();
 
-                return await new Notify().smtpFor(tenant, user);
+                return await new Notify().smtpFor(tenant, conf.pgUser);
             } catch (e) {
                 console.error(
                     "Could not read the organization's mail settings: " +
@@ -265,6 +270,20 @@
                     }
                 } catch (e) {
                     console.error(e);
+                    // The server asked who is sending and was told
+                    // nothing: say what to do about it
+                    if (
+                        e.code === "EAUTH" &&
+                        theSmtp.auth &&
+                        !(theSmtp.auth.user && theSmtp.auth.pass)
+                    ) {
+                        e.message = (
+                            "The mail server asked for a sign-in but the " +
+                            "mail account has no user name or password. " +
+                            "Enter SMTP credentials under Settings, or " +
+                            "smtpAuthUser and smtpAuthPass in config.json."
+                        );
+                    }
                     return Promise.reject(e);
                 }
             }

@@ -20,6 +20,13 @@ Notable changes to Featherbone. Dates are the day the work landed on
   package, which database, why, and that the instance is still held in
   maintenance. The page shows both as a dialog (the bundled
   `clientmin.js` is not rebuilt, so that needs `"debug": true` until it is).
+* **A package's mail no longer fails for people who may not change
+  Settings.** The organization's mail account is now read as the
+  installation's service account, not as whoever's action sent the
+  mail. Read as an ordinary user (the reporter of a ticket), the
+  encrypted password comes back blank and the send failed with
+  `Missing credentials for "PLAIN"`. A refused sign-in with no user
+  name or password now says what to enter and where.
 * **A package's mail uses the organization's account.** `sendMail`
   called from inside an instance with no server named now sends through
   the account entered under Settings, falling back to `config.json`
