@@ -10,6 +10,12 @@ Notable changes to Featherbone. Dates are the day the work landed on
   package, which database, why, and that the instance is still held in
   maintenance. The page shows both as a dialog (the bundled
   `clientmin.js` is not rebuilt, so that needs `"debug": true` until it is).
+* **A person you add is in the instance's lists straight away.** Adding
+  a user, or granting an existing one an instance, now makes their
+  profile (`user_account`) there at once. Before, it appeared at their
+  first sign-in, so until then they were missing from the "user account"
+  field on a record and every other list of people. Granting again
+  repairs an account that was granted before this.
 * **Routes come from the package on disk.** A module's `routes.json` is
   read per database, from the version that database deployed, instead of
   one process-wide mount per path. A package without one keeps using the

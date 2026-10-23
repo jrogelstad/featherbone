@@ -428,6 +428,54 @@
         }
 
         /*
+            Give somebody who was just granted an instance the profile
+            they will be listed under there.
+
+            The grant lives in the manager; the instance keeps its own
+            `user_account` row for them, which is what every list of
+            people inside it reads -- the "user account" field on a
+            record, assignments, the Users list. Until now that row
+            appeared only when the person first signed in, so somebody
+            an administrator had just added was missing from every one
+            of those lists, and could not be assigned anything, until
+            they happened to log in (John, Oct 2026).
+
+            After the grant is committed, and never a reason to fail
+            it: the sign-in path still makes the row on demand, so a
+            miss here is logged and costs nothing but the wait.
+        */
+        async function ensureProfile(obj, pgDatabase, username) {
+            let tenant;
+
+            if (!pgDatabase || !username) {
+                return;
+            }
+
+            if (obj.tenant && obj.tenant.pgDatabase === pgDatabase) {
+                tenant = obj.tenant;
+            } else {
+                let served = obj.registry || [];
+
+                tenant = served.find(
+                    (entry) => entry.pgDatabase === pgDatabase
+                );
+            }
+
+            if (!tenant) {
+                return;
+            }
+
+            try {
+                await db.makeProfile(tenant, username);
+            } catch (e) {
+                console.error(
+                    "Could not make the profile for " + username +
+                    " in " + pgDatabase + ": " + (e.message || e)
+                );
+            }
+        }
+
+        /*
             The people who have a profile in the instance the caller is
             signed in to, with the contact details they keep there. A
             person's phone number, and the first and last name they edit
@@ -777,6 +825,17 @@
                     isActive: true,
                     tenantPk
                 });
+
+                let where = await mclient.query(
+                    "SELECT pg_database FROM tenant WHERE _pk = $1",
+                    [tenantPk]
+                );
+
+                added.pgDatabase = (
+                    where.rows.length
+                    ? where.rows[0].pg_database
+                    : undefined
+                );
                 await manager.audit(mclient, {
                     action: (
                         added.created
@@ -790,8 +849,13 @@
                     targetIdentityPk: added.identityPk
                 });
 
-                return {created: added.created};
+                return {
+                    created: added.created,
+                    pgDatabase: added.pgDatabase
+                };
             });
+
+            await ensureProfile(obj, result.pgDatabase, data.username.trim());
 
             /*
                 After the identity and its grant are committed: the
@@ -1064,8 +1128,11 @@
         */
         that.setGrant = async function (obj) {
             let data = obj.data || {};
+            let pgDatabase;
+            let username;
+            let result;
 
-            return await manager.run(async function (mclient) {
+            result = await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
                 let instanceId = data.instance || homeInstanceId(obj);
                 let tenantPk = ctx.tenantPk;
@@ -1114,6 +1181,18 @@
                     isActive: data.isActive !== false,
                     tenantPk
                 });
+
+                let where = await mclient.query(
+                    "SELECT pg_database FROM tenant WHERE _pk = $1",
+                    [tenantPk]
+                );
+
+                pgDatabase = (
+                    where.rows.length
+                    ? where.rows[0].pg_database
+                    : undefined
+                );
+                username = target.username;
                 await manager.audit(mclient, {
                     action: (
                         data.isActive === false
@@ -1129,6 +1208,12 @@
 
                 return true;
             });
+
+            if (data.isActive !== false) {
+                await ensureProfile(obj, pgDatabase, username);
+            }
+
+            return result;
         };
 
         /**
