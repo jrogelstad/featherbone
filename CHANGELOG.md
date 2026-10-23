@@ -5,6 +5,25 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A sign-in link that no longer works lands on the sign-in screen.**
+  An emailed link (new account, invitation, password reset) that is two
+  days old, or that the server can no longer honour after a restart, used
+  to end on the server's own error page. It now goes to the instance's
+  sign-in screen with the user name already filled in and a line saying
+  the link has expired; a password or Forgot password is all that is
+  left. The reason is in the server log. A two-factor confirmation code
+  is unchanged. The client part needs `"debug": true` until
+  `clientmin.js` is rebuilt.
+* **Sign-in links no longer carry secrets.** The link mailed for a new
+  account, a password reset, an invitation or a second factor is signed
+  but readable by whoever holds it, and it used to carry the whole
+  request behind it: a new account's password, the password just typed
+  at sign-in, and the instance's Postgres credentials. It now says only
+  who it is for and which database, and the instance is looked up again
+  when it is used. A second-factor code travels as a keyed hash, so the
+  code can no longer be read out of the link it guards. Anyone who was
+  mailed one of the earlier links should treat the password it carried,
+  and the database password, as exposed.
 * **Install tells you how it went.** The Modules page's Install answers
   what it installed and where, and a deployment that fails says which
   package, which database, why, and that the instance is still held in
@@ -23,6 +42,20 @@ Notable changes to Featherbone. Dates are the day the work landed on
 * **The ribbon shows a category only when you have a workbook in it.**
   Somebody who may open one workbook of a dozen categories sees one tab,
   not eleven empty ones.
+* **A package's mail no longer fails for people who may not change
+  Settings.** The organization's mail account is now read as the
+  installation's service account, not as whoever's action sent the
+  mail. Read as an ordinary user (the reporter of a ticket), the
+  encrypted password comes back blank and the send failed with
+  `Missing credentials for "PLAIN"`. A refused sign-in with no user
+  name or password now says what to enter and where.
+* **A package's mail uses the organization's account.** `sendMail`
+  called from inside an instance with no server named now sends through
+  the account entered under Settings, falling back to `config.json`
+  only when the organization has none. Before, Tracker's notice of a
+  new issue went through `config.json` alone and, on a server without
+  SMTP set there, failed on "connect ECONNREFUSED 127.0.0.1:465" and
+  took the save with it.
 * **A package's triggers and routes work as soon as it is deployed.** A
   deployment ended without telling the database its registered code had
   changed, so a package installed on a running server did nothing until

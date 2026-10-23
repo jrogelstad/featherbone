@@ -124,6 +124,25 @@ describe("a module's client script comes from its package", function () {
         );
     });
 
+    it("serves the file to a super user too", async function () {
+        let admin = new Session();
+        let signed = await admin.signIn(settings.adminUser, settings.password);
+
+        assert.equal(signed.status, 200, JSON.stringify(signed.body));
+
+        let resp = await modules(admin);
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        let fixture = resp.body.find((row) => row.name === "fbtest");
+
+        assert.match(
+            String(fixture.script),
+            /1\.0\.0 from disk/,
+            "a super user's browser compiles the same code as anyone's"
+        );
+    });
+
     it("changes nothing in the database", async function () {
         assert.equal(
             await rowScript(settings.testDb, "fbtest"),

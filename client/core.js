@@ -1258,8 +1258,34 @@ formats.richText.editor = function (options) {
                     : "default"
                 ),
                 setup: function (editor) {
+                    /*
+                        TinyMCE's events run outside Mithril's, so
+                        nothing redraws after them. Without the redraw
+                        the model knew it had changed (and the required
+                        check was met) but the Save button, drawn from
+                        that, stayed as it was until the next click on
+                        something Mithril handles -- "tab out of
+                        Reproduction and Save is still disabled" (John,
+                        Oct 2026).
+                    */
                     editor.on("change", function (e) {
                         prop(e.level.content);
+                        m.redraw();
+                    });
+                    /*
+                        Leaving the editor commits what was typed even
+                        when TinyMCE has not announced a change yet, as
+                        the script editor does on blur. Only an editor
+                        the person actually changed: the markup it
+                        reads back is normalised, so reading an
+                        untouched one would mark a record that merely
+                        loaded as edited.
+                    */
+                    editor.on("blur", function () {
+                        if (editor.isDirty()) {
+                            prop(editor.getContent());
+                        }
+                        m.redraw();
                     });
                 }
             }).then(function (editors) {
@@ -2713,6 +2739,19 @@ f.sendMail = async function (params) {
 // Define application state
 f.currentUser = f.prop();
 message = f.prop("");
+
+/*
+    What the sign-in screen is told when somebody arrives from a sign-in
+    link that no longer works: whose it was, so the user name is already
+    in the box, and a line saying what happened. Nothing is signed in by
+    this; it is only text for the screen.
+*/
+let signInUser = "";
+f.signInHint = function (username, note) {
+    signInUser = String(username || "");
+    message(note || "");
+};
+f.signInUser = () => signInUser;
 appState = State.define(function () {
     this.state("Uninitialized", function () {
         this.event("preauthorized", function () {
