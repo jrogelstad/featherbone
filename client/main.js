@@ -50,6 +50,9 @@ let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
 let isAdmin = false;
+// Whether to open the screens that belong to whoever administers the
+// organization: Settings, Users, Instances (see main.js start-up)
+let canAdminister = false;
 
 // For workbook management
 const template = f.prop("");
@@ -269,7 +272,7 @@ const fetchRequests = [];
     @method goGlobalSettings
 */
 function goGlobalSettings() {
-    if (!isAdmin) {
+    if (!canAdminister) {
         return;
     }
     m.route.set("/settings/:settings", {
@@ -442,10 +445,14 @@ function homeRibbonGroups() {
         buttons: [{
             label: "Settings",
             icon: "public",
-            title: "Global settings",
-            disabled: !isAdmin,
+            title: (
+                canAdminister
+                ? "Global settings"
+                : "Must be an administrator to change global settings"
+            ),
+            disabled: !canAdminister,
             onclick: (
-                isAdmin
+                canAdminister
                 ? goGlobalSettings
                 : undefined
             )
@@ -453,13 +460,17 @@ function homeRibbonGroups() {
             label: "Users",
             icon: "manage_accounts",
             title: (
-                "Who may sign in, and to which instances. The manager " +
-                "holds these records and is not routable, so they are " +
-                "administered from here."
+                canAdminister
+                ? (
+                    "Who may sign in, and to which instances. The " +
+                    "manager holds these records and is not routable, " +
+                    "so they are administered from here."
+                )
+                : "Must be an administrator to manage users"
             ),
-            disabled: !isAdmin,
+            disabled: !canAdminister,
             onclick: (
-                isAdmin
+                canAdminister
                 ? () => m.route.set("/admin")
                 : undefined
             )
@@ -467,13 +478,17 @@ function homeRibbonGroups() {
             label: "Instances",
             icon: "storage",
             title: (
-                "Which databases this installation serves, and which " +
-                "organization they belong to. The other half of " +
-                "Administration, next to Users."
+                canAdminister
+                ? (
+                    "Which databases this installation serves, and " +
+                    "which organization they belong to. The other half " +
+                    "of Administration, next to Users."
+                )
+                : "Must be an administrator to manage instances"
             ),
-            disabled: !isAdmin,
+            disabled: !canAdminister,
             onclick: (
-                isAdmin
+                canAdminister
                 ? () => m.route.set("/instances")
                 : undefined
             )
@@ -1218,6 +1233,19 @@ function initApp() {
         isAdmin = (
             f.currentUser().isAdmin ||
             f.currentUser().isSuper
+        );
+        /*
+            Administering the organization is standing in the manager,
+            not a role in this instance: somebody appointed over it has
+            no local authority until given some, so the instance's own
+            flags alone shut them out of the very screens that exist to
+            give it (John, Oct 2026). The server decides what each
+            screen then lets them do.
+        */
+        canAdminister = (
+            isAdmin ||
+            f.currentUser().isOrgAdmin === true ||
+            f.currentUser().isPlatformAdmin === true
         );
 
         // Menu. The ribbon (ribbon.js) replaces the sidebar navigator

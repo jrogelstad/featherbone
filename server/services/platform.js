@@ -349,6 +349,41 @@
         };
 
         /**
+            Whether somebody administers the organization an instance
+            belongs to -- appointed over it, or a platform
+            administrator, who is over every organization. This is
+            about the person's standing in the manager, not the
+            instance's own `user_account` row, which a person gets on
+            first sign-in with no authority (they join "everyone" and
+            nothing else).
+
+            @method administersInstance
+            @param {Client} client Manager client
+            @param {String} database Instance database name
+            @param {String} username
+            @return {Promise} Boolean
+        */
+        that.administersInstance = async function (client, database, username) {
+            let org = await that.organizationOf(client, database);
+
+            if (org === undefined) {
+                return false;
+            }
+
+            let actor = await manager.identity(client, username || "");
+
+            if (!actor) {
+                return false;
+            }
+
+            if (actor.is_platform_admin) {
+                return true;
+            }
+
+            return await manager.isOrgAdminOf(client, actor._pk, org);
+        };
+
+        /**
             Everyone who can sign in, with the organization that owns
             the account: who a platform administrator may appoint as an
             administrator rather than making somebody new. A username
