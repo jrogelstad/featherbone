@@ -757,6 +757,40 @@ describe("client components", function () {
         });
     });
 
+    describe("ribbon categories", function () {
+        it("shows a category only when the user has a workbook in it",
+                function () {
+            let real = catalog.store().workbooks;
+            let realCats = catalog.store().data().navigationCategories;
+            let wbs = {
+                sales: {data: {
+                    category: () => "c1",
+                    isTemplate: () => false,
+                    name: () => "Sales",
+                    sequence: () => 1
+                }}
+            };
+
+            catalog.store().workbooks = () => wbs;
+            catalog.store().data().navigationCategories = () => [
+                {icon: "folder", id: "c1", name: "Selling"},
+                {icon: "folder", id: "c2", name: "Nothing For You"}
+            ];
+
+            let shown;
+
+            try {
+                shown = vms.ribbon().categories().map((cat) => cat.label);
+            } catch (err) {
+                shown = err;
+            }
+
+            catalog.store().workbooks = real;
+            catalog.store().data().navigationCategories = realCats;
+            assert.deepEqual(shown, ["Selling"]);
+        });
+    });
+
     describe("pages", function () {
         before(function () {
             // Pieces main.js registers that the ribbon pages mount. Inert
