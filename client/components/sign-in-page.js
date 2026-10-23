@@ -22,7 +22,17 @@ const signInPage = {};
 
 signInPage.component = {
     oncreate: function () {
+        let who = f.signInUser();
+        let user = document.getElementById("username");
+
         document.getElementById("fb-title").text = "Sign In";
+
+        // Arrived from a link that no longer works: whose it was is
+        // already filled in, so the password is what is left
+        if (who && user) {
+            user.value = who;
+            document.getElementById("password").focus();
+        }
     },
 
     view: function () {

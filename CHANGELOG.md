@@ -5,6 +5,15 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A sign-in link that no longer works lands on the sign-in screen.**
+  An emailed link (new account, invitation, password reset) that is two
+  days old, or that the server can no longer honour after a restart, used
+  to end on the server's own error page. It now goes to the instance's
+  sign-in screen with the user name already filled in and a line saying
+  the link has expired; a password or Forgot password is all that is
+  left. The reason is in the server log. A two-factor confirmation code
+  is unchanged. The client part needs `"debug": true` until
+  `clientmin.js` is rebuilt.
 * **Sign-in links no longer carry secrets.** The link mailed for a new
   account, a password reset, an invitation or a second factor is signed
   but readable by whoever holds it, and it used to carry the whole
