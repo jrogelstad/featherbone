@@ -446,6 +446,7 @@
         */
         async function ensureProfile(obj, pgDatabase, username) {
             let tenant;
+            let isSuper = false;
 
             if (!pgDatabase || !username) {
                 return;
@@ -466,13 +467,40 @@
             }
 
             try {
-                await db.makeProfile(tenant, username);
+                isSuper = await manager.run(async function (mclient) {
+                    return await orgAdminOf(mclient, username, pgDatabase);
+                });
+                await db.makeProfile(tenant, username, isSuper);
             } catch (e) {
                 console.error(
                     "Could not make the profile for " + username +
                     " in " + pgDatabase + ": " + (e.message || e)
                 );
             }
+        }
+
+        /*
+            Whether somebody administers the organization an instance
+            belongs to -- which, in the application, makes them a super
+            user there.
+        */
+        async function orgAdminOf(mclient, username, pgDatabase) {
+            let resp = await mclient.query(
+                (
+                    "SELECT 1 FROM organization_admin a " +
+                    "JOIN identity i ON i._pk = a._identity_identity_pk " +
+                    "JOIN tenant t ON " +
+                    "  t._organization_organization_pk = " +
+                    "  a._organization_organization_pk " +
+                    "WHERE lower(i.username) = lower($1) " +
+                    "  AND t.pg_database = $2 AND NOT t.is_deleted " +
+                    "  AND a.is_active AND NOT a.is_deleted " +
+                    "  AND i.status = 'active' AND NOT i.is_deleted"
+                ),
+                [username, pgDatabase]
+            );
+
+            return resp.rows.length > 0;
         }
 
         /*
@@ -1238,8 +1266,10 @@
         */
         that.setOrgAdmin = async function (obj) {
             let data = obj.data || {};
+            let reach = {instances: [], username: undefined};
+            let result;
 
-            return await manager.run(async function (mclient) {
+            result = await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
 
                 if (ctx.tier === "instance") {
@@ -1278,8 +1308,63 @@
                     targetIdentityPk: target._pk
                 });
 
+                /*
+                    The instances they reach in this organization, to
+                    bring their profiles into step below.
+                */
+                let reached = await mclient.query(
+                    (
+                        "SELECT t.pg_database FROM access_grant g " +
+                        "JOIN tenant t ON t._pk = g._tenant_tenant_pk " +
+                        "WHERE g._identity_identity_pk = $1 " +
+                        "  AND g.is_active AND NOT g.is_deleted " +
+                        "  AND t._organization_organization_pk = $2 " +
+                        "  AND NOT t.is_deleted"
+                    ),
+                    [target._pk, ctx.organizationPk]
+                );
+
+                reach.username = target.username;
+                reach.instances = reached.rows.map((row) => row.pg_database);
+
                 return true;
             });
+
+            /*
+                An organization administrator is a super user in the
+                organization's instances (John, Oct 2026), and a profile
+                holds that as a flag, so appointing raises it and
+                standing down lowers it, in every instance they have
+                access to. Whoever was made a super user some other way
+                loses it with this, because the flag cannot say which
+                reason put it there.
+            */
+            let served = obj.registry || [];
+            let n = 0;
+
+            while (n < reach.instances.length) {
+                let entry = served.find(
+                    (one) => one.pgDatabase === reach.instances[n]
+                );
+
+                n += 1;
+
+                try {
+                    if (entry && data.isOrgAdmin === true) {
+                        await db.makeProfile(entry, reach.username, true);
+                    } else if (entry) {
+                        await db.setSuper(entry, reach.username, false);
+                    }
+                } catch (e) {
+                    console.error(
+                        "Could not bring " + reach.username + " in " +
+                        reach.instances[n - 1] + " into step: " +
+                        (e.message || e)
+                    );
+                }
+            }
+
+            return result;
         };
 
         /**
