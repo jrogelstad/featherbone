@@ -250,6 +250,38 @@ describe("administrator edits a user's details", function () {
         assert.equal(await isSuper(name), true);
     });
 
+    it("corrects an organization administrator's stale profile when " +
+            "they sign in", async function () {
+        let name = access.track(access.uniq("fbt_oh"));
+
+        await admin.raw("POST", "/admin/identity", {
+            password: "Info-Pw-7",
+            username: name
+        });
+
+        let who = await row(name);
+        let boss = await appointer();
+        let appointed = await boss.raw("POST", "/admin/identity/org-admin", {
+            id: who.id,
+            isOrgAdmin: true
+        });
+
+        assert.ok(appointed.status < 300, JSON.stringify(appointed.body));
+
+        // As it was left by an earlier version
+        await db.query(
+            "UPDATE user_account SET is_super = false WHERE name = $1",
+            [name]
+        );
+        assert.equal(await isSuper(name), false, "stale to begin");
+
+        assert.equal(
+            (await new Session().signIn(name, "Info-Pw-7")).status,
+            200
+        );
+        assert.equal(await isSuper(name), true, "healed at sign-in");
+    });
+
     it("writes the profile once there is one, phone included",
             async function () {
         let name = access.track(access.uniq("fbt_prof"));
