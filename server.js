@@ -40,6 +40,7 @@
     const {Tools} = require("./server/services/tools");
     const {Admin} = require("./server/services/admin");
     const {Notify} = require("./server/services/notify");
+    const {SignInLink} = require("./server/services/sign-in-link");
     const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
     const notify = new Notify();
@@ -3967,9 +3968,8 @@
         dbRouter.post("/:db/reset-password", doResetPassword);
         dbRouter.get(
             "/:db/auth/magiclink/callback",
-            passport.authenticate("magiclogin", {
-                session: true,
-                successRedirect: "../../"
+            SignInLink.callback(passport, {
+                error: (msg) => logger.error(msg)
             })
         );
 

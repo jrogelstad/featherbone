@@ -5,6 +5,15 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A sign-in link that no longer works lands on the sign-in screen.**
+  An emailed link (new account, invitation, password reset) that is two
+  days old, or that the server can no longer honour after a restart, used
+  to end on the server's own error page. It now goes to the instance's
+  sign-in screen with the user name already filled in and a line saying
+  the link has expired; a password or Forgot password is all that is
+  left. The reason is in the server log. A two-factor confirmation code
+  is unchanged. The client part needs `"debug": true` until
+  `clientmin.js` is rebuilt.
 * **Sign-in links no longer carry secrets.** The link mailed for a new
   account, a password reset, an invitation or a second factor is signed
   but readable by whoever holds it, and it used to carry the whole
@@ -20,6 +29,13 @@ Notable changes to Featherbone. Dates are the day the work landed on
   package, which database, why, and that the instance is still held in
   maintenance. The page shows both as a dialog (the bundled
   `clientmin.js` is not rebuilt, so that needs `"debug": true` until it is).
+* **A package's mail no longer fails for people who may not change
+  Settings.** The organization's mail account is now read as the
+  installation's service account, not as whoever's action sent the
+  mail. Read as an ordinary user (the reporter of a ticket), the
+  encrypted password comes back blank and the send failed with
+  `Missing credentials for "PLAIN"`. A refused sign-in with no user
+  name or password now says what to enter and where.
 * **A package's mail uses the organization's account.** `sendMail`
   called from inside an instance with no server named now sends through
   the account entered under Settings, falling back to `config.json`
