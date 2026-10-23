@@ -1043,6 +1043,81 @@
             return true;
         }
 
+        /*
+            Is this person an administrator of the organization that
+            owns the instance? Asked of the manager, and remembered
+            briefly because deserializeUser runs on every request and
+            the answer for someone who is not one rarely changes.
+        */
+        const adminChecked = {};
+        const ADMIN_RECHECK_MS = 60000;
+
+        async function isOrgAdminHere(req, username) {
+            let key = req.tenant.id + ":" + String(username).toLowerCase();
+            let last = adminChecked[key];
+            let mgr;
+
+            if (last && Date.now() - last < ADMIN_RECHECK_MS) {
+                return false;
+            }
+
+            mgr = await that.connect();
+
+            let resp = await mgr.client.query(
+                (
+                    "SELECT 1 FROM organization_admin a " +
+                    "JOIN identity i ON " +
+                    "  a._identity_identity_pk = i._pk " +
+                    "JOIN tenant t ON " +
+                    "  a._organization_organization_pk = " +
+                    "  t._organization_organization_pk " +
+                    "WHERE t.id = $1 " +
+                    "  AND lower(i.username) = lower($2) " +
+                    "  AND i.status = 'active' AND NOT i.is_deleted " +
+                    "  AND a.is_active AND NOT a.is_deleted " +
+                    "  AND NOT t.is_deleted"
+                ),
+                [req.tenant.id, username]
+            ).then(function (answer) {
+                mgr.done();
+                return answer;
+            }, function (err) {
+                mgr.done();
+                return Promise.reject(err);
+            });
+
+            if (!resp.rows.length) {
+                adminChecked[key] = Date.now();
+                return false;
+            }
+
+            delete adminChecked[key];
+            return true;
+        }
+
+        /*
+            Raise the profile of an organization administrator whose
+            row says otherwise. Never lowers anything, and a manager
+            that cannot be asked leaves the profile as it is.
+        */
+        function healSuper(req, username) {
+            return isOrgAdminHere(req, username).then(function (yes) {
+                if (!yes) {
+                    return false;
+                }
+
+                return that.setSuper(req.tenant, username, true).then(
+                    () => true
+                );
+            }).catch(function (err) {
+                console.error(
+                    "Could not check organization administration for " +
+                    username + ": " + (err.message || err)
+                );
+                return false;
+            });
+        }
+
         /**
             Return user data.
             @method deserializeUser
@@ -1118,6 +1193,21 @@
                 }
 
                 row = resp.rows[0];
+
+                /*
+                    An organization administrator is a super user of
+                    its own instances. The profile is raised when they
+                    are appointed or granted, but anyone appointed
+                    before that was so, or whose profile predates it,
+                    is still marked otherwise; bring it into line at
+                    sign-in instead of waiting for a re-grant. Never
+                    lowers anything, and a manager that cannot be
+                    asked leaves the profile as it is.
+                */
+                if (!row.is_super && await healSuper(req, username)) {
+                    row.is_super = true;
+                }
+
                 row.isAdmin = row.is_admin;
                 row.isSuper = row.is_super;
                 row.firstName = row.first_name || "";

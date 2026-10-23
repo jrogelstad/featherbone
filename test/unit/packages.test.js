@@ -615,12 +615,13 @@ describe("modules carried inside a package", function () {
     let own;
     let outside;
 
-    function nestedModule(sub, name, version, files, extra) {
+    function nestedModule(sub, name, version, files, extra, npm) {
         let at = path.join(dir, sub);
 
         write(at, "manifest.json", JSON.stringify({
             files: files || [],
             module: name,
+            npm,
             version
         }));
         Object.keys(extra || {}).forEach(
@@ -661,7 +662,12 @@ describe("modules carried inside a package", function () {
             "routes.json": JSON.stringify([
                 {function: "doThing", path: "/do/thing"}
             ])
-        });
+        }, [
+            {export: "", package: "fs", property: "", version: ""},
+            {export: "Client", package: "pg", property: "PgClient"},
+            {package: "node-fetch"},
+            {package: "big.js", property: "Money"}
+        ]);
         nestedModule("ship", "Ship", "1.0.4", [
             {path: "module.js", type: "module"}
         ], {
@@ -718,8 +724,12 @@ describe("modules carried inside a package", function () {
     it("takes libraries from the module's own package.json, else the " +
             "umbrella's", function () {
         assert.deepEqual(packages.libraries("Common", "1.2.0"), [
-            {export: undefined, package: "big.js", property: "Money"}
-        ]);
+            {export: undefined, package: "big.js", property: "Money"},
+            {export: undefined, package: "fs", property: "Fs"},
+            {export: "Client", package: "pg", property: "PgClient"},
+            {export: undefined, package: "node-fetch", property: "NodeFetch"}
+        ], "the umbrella's package.json, then the module's own npm list " +
+                "under the names ModuleNpm gave them");
         assert.deepEqual(packages.libraries("Ship", "1.0.4"), [
             {export: undefined, package: "node-fetch", property: "nodeFetch"}
         ]);
