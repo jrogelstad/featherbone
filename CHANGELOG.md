@@ -5,6 +5,14 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **An organization administrator's profile is corrected at sign-in.**
+  Being made a super user of the organization's instances happened only
+  when someone was appointed or granted, so an administrator whose
+  profile predates that (or who was appointed before it) still saw few
+  workbooks. Signing in now raises the profile when the manager says the
+  person administers the organization. It never lowers anything, and
+  asks the manager at most once a minute for anyone who is not one.
+
 * **A sign-in link that no longer works lands on the sign-in screen.**
   An emailed link (new account, invitation, password reset) that is two
   days old, or that the server can no longer honour after a restart, used
