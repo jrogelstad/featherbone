@@ -435,11 +435,24 @@
                                 name: pName,
                                 version: pVersion,
                                 owner: pUser,
-                                script: "",
                                 dependencies: deps,
                                 npm: pNpm
                             }
                         };
+
+                        /*
+                            A new module starts with no script. One that
+                            exists keeps what its row holds: a POST over
+                            an id is an upsert that leaves alone any
+                            property it does not carry, so naming an
+                            empty script here would blank, for the
+                            modules that have no package on this server,
+                            the only copy of their client code. Code is
+                            never written by an install either way.
+                        */
+                        if (!found) {
+                            payload.data.script = "";
+                        }
 
                         runBatch([payload]);
                     }
