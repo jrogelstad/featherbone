@@ -2038,6 +2038,21 @@
                         data.version,
                         obj.user
                     );
+
+                    /*
+                        The database's registered code is rebuilt from
+                        what it has deployed, on its next request, so
+                        this is the moment to say it has changed. A
+                        remote install does not: it ends without
+                        reloading, because the registry it would reload
+                        is the caller's. Without this a package's
+                        triggers and routes did nothing until the
+                        server restarted -- Tracker's mail on a new
+                        issue never went (John, Oct 2026).
+                    */
+                    await datasource.loadServices(obj.user, {
+                        database: target.pg_database
+                    });
                 } catch (err) {
                     await manager.audit(mclient, {
                         action: "instance.deploy_failed",
