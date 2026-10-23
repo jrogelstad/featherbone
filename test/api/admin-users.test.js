@@ -20,7 +20,7 @@ const settings = require("../harness/env");
 const db = require("../harness/db");
 const {Session, signedIn} = require("../harness/http");
 const access = require("./lib/access");
-const {decoded, sink} = require("./lib/mailsink");
+const {claims, decoded, sink} = require("./lib/mailsink");
 
 describe("administrator edits a user's details", function () {
     let admin;
@@ -398,6 +398,23 @@ describe("mail the system sends: invitations and forgotten passwords",
             "no password travels in the mail"
         );
 
+        /*
+            The link is signed, not encrypted: whoever holds it can read
+            it. It says who it is for and which database, and no more.
+        */
+        let said = claims(link);
+
+        assert.equal(said.username, name);
+        assert.equal(said.database, settings.testDb);
+
+        let plumbing = ["code", "exp", "iat"];
+        let kept = Object.keys(said).filter(
+            (key) => plumbing.indexOf(key) < 0
+        );
+
+        kept.sort();
+        assert.deepEqual(kept, ["database", "destination", "username"]);
+
         // The link signs them in, and the profile says change it
         let person = new Session();
         let arrived = await person.raw(
@@ -427,6 +444,39 @@ describe("mail the system sends: invitations and forgotten passwords",
             (await new Session().signIn(name, "Invited-Pw-1")).status,
             200
         );
+    });
+
+    it("sends the sign-in link for a user account without its password " +
+            "or the instance's credentials", async function () {
+        await useSmtp(smtp.port);
+
+        let name = access.track(access.uniq("fbt_acc"));
+        let contact = await access.createContact(admin, name);
+        let sent = smtp.mails.length;
+        let resp = await admin.raw("POST", "/data/user-account", {
+            contact: {id: contact.id},
+            membership: [{role: "everyone"}],
+            name,
+            password: "Acc-Pw-Secret-1"
+        });
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        await access.poll(() => smtp.mails.length > sent, 5000);
+        assert.equal(smtp.mails.length, sent + 1, "a mail went out");
+
+        let text = decoded(smtp.mails[smtp.mails.length - 1].raw);
+        let said = claims(text);
+
+        assert.equal(said.username, name);
+        assert.equal(said.database, settings.testDb);
+
+        let all = JSON.stringify(said);
+
+        assert.ok(!all.includes("Acc-Pw-Secret-1"), "no password");
+        assert.ok(!all.includes("pgPassword"), "no database credentials");
+        assert.equal(said.tenant, undefined);
+        assert.equal(said.password, undefined);
     });
 
     it("says so when the mail cannot go, and keeps the user",

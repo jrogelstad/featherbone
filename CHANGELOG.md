@@ -5,6 +5,16 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Sign-in links no longer carry secrets.** The link mailed for a new
+  account, a password reset, an invitation or a second factor is signed
+  but readable by whoever holds it, and it used to carry the whole
+  request behind it: a new account's password, the password just typed
+  at sign-in, and the instance's Postgres credentials. It now says only
+  who it is for and which database, and the instance is looked up again
+  when it is used. A second-factor code travels as a keyed hash, so the
+  code can no longer be read out of the link it guards. Anyone who was
+  mailed one of the earlier links should treat the password it carried,
+  and the database password, as exposed.
 * **Install tells you how it went.** The Modules page's Install answers
   what it installed and where, and a deployment that fails says which
   package, which database, why, and that the instance is still held in
