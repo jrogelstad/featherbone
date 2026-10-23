@@ -144,6 +144,57 @@
 
         let that = {};
 
+        /*
+            The mail account the organization entered under Settings,
+            for a message sent from inside an instance -- a package's
+            trigger, say. Those used to go out through `config.json`
+            alone, which on a hosted server is a second place to set
+            the same account up and, when unset, a mail server on
+            localhost: Tracker's notice of a new issue failed on
+            "connect ECONNREFUSED 127.0.0.1:465" and took the save
+            with it (John, Oct 2026).
+
+            Read as the installation's own service account, never as
+            the person whose action sent the mail. The password is an
+            encrypted setting, blanked for anyone who may not change the
+            row, so reading it as an ordinary user -- the reporter of a
+            ticket, say -- found the account's host and user name but
+            an empty password, and the send failed with 'Missing
+            credentials for "PLAIN"'.
+
+            The instance is named by `data.tenant`, or is the one the
+            request came from. A message with neither (the system's own
+            mail, which reads the organization's account itself and
+            says so by passing it) falls through to `config.json`, as
+            does an organization with no account.
+        */
+        async function organizationSmtp(obj) {
+            let client = obj.client;
+            let tenant = obj.data.tenant || obj.tenant;
+
+            if (client && typeof client.tenant === "function") {
+                tenant = tenant || client.tenant();
+            }
+
+            if (!tenant || !tenant.pgDatabase) {
+                return;
+            }
+
+            try {
+                // Loaded here: notify needs the datasource, which
+                // needs this file
+                let {Notify} = require("./notify");
+                let conf = await config.read();
+
+                return await new Notify().smtpFor(tenant, conf.pgUser);
+            } catch (e) {
+                console.error(
+                    "Could not read the organization's mail settings: " +
+                    (e.message || e)
+                );
+            }
+        }
+
         // ..........................................................
         // PUBLIC
         //
@@ -177,7 +228,7 @@
         that.sendMail = async function (obj) {
             let message = obj.data.message;
             let opts = obj.data.pdf;
-            let theSmtp = obj.data.smtp || smtp;
+            let theSmtp = obj.data.smtp || await organizationSmtp(obj) || smtp;
             let thePath = false;
             message.from = message.from || theSmtp.auth.user;
 
@@ -219,6 +270,20 @@
                     }
                 } catch (e) {
                     console.error(e);
+                    // The server asked who is sending and was told
+                    // nothing: say what to do about it
+                    if (
+                        e.code === "EAUTH" &&
+                        theSmtp.auth &&
+                        !(theSmtp.auth.user && theSmtp.auth.pass)
+                    ) {
+                        e.message = (
+                            "The mail server asked for a sign-in but the " +
+                            "mail account has no user name or password. " +
+                            "Enter SMTP credentials under Settings, or " +
+                            "smtpAuthUser and smtpAuthPass in config.json."
+                        );
+                    }
                     return Promise.reject(e);
                 }
             }

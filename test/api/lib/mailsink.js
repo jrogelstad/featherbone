@@ -101,4 +101,16 @@ function decoded(raw) {
     );
 }
 
-module.exports = {decoded, sink};
+/*
+    What a mailed sign-in link says. The token is signed, not
+    encrypted, so anybody holding the link can read this too.
+*/
+function claims(link) {
+    let token = link.match(/token=([^&"\s]+)/)[1];
+
+    return JSON.parse(
+        Buffer.from(token.split(".")[1], "base64url").toString()
+    );
+}
+
+module.exports = {claims, decoded, sink};

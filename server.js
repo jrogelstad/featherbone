@@ -40,6 +40,7 @@
     const {Tools} = require("./server/services/tools");
     const {Admin} = require("./server/services/admin");
     const {Notify} = require("./server/services/notify");
+    const {SignInLink} = require("./server/services/sign-in-link");
     const {serialize} = require("./server/services/serialize");
     const admin = new Admin();
     const notify = new Notify();
@@ -760,18 +761,72 @@
                 if (!cntct) {
                     throw new Error("Contact not found");
                 }
-                req.body.destination = cntct.email;
-                req.body.user = {name: req.body.name};
-                req.body.username = req.body.name;
-                req.body.tenant = req.tenant;
-                req.body.newAccount = true;
-                await magicLogin.send(req, mailRes());
+                await magicLogin.send(linkRequest(req, {
+                    accountType: req.body.accountType,
+                    destination: cntct.email,
+                    message: req.body.message,
+                    newAccount: true,
+                    username: req.body.name
+                }), mailRes());
                 respond.bind(res, data)();
             }
         ).catch(
             error.bind(res)
         );
     }
+    /*
+        What a sign-in link says, and nothing more.
+
+        The strategy signs the request body it is given into the link,
+        and a signed token is readable by anyone who holds it: it is
+        not encrypted. The links used to be sent with the whole request
+        behind them -- the new account's password, a sign-in's password
+        and the instance object with the Postgres service's credentials
+        -- so an email, a proxy log or a browser history held them in
+        the clear.
+
+        The token now carries the user name, where the link goes and
+        the database it opens, and the instance is looked up again on
+        the way back in. A confirmation code travels as a keyed hash of
+        the code, so the second factor cannot be read out of the link
+        it guards. What the mail itself says (the code, an account's
+        type and message) rides on the request, not in the token.
+    */
+    function codeHash(code) {
+        return crypto.createHmac("sha256", thesecret).update(
+            String(code)
+        ).digest("hex");
+    }
+
+    function linkRequest(req, who) {
+        let linkReq = Object.create(req);
+        let tenant = req.tenant;
+        let body = {
+            database: (
+                tenant
+                ? tenant.pgDatabase
+                : undefined
+            ),
+            destination: who.destination,
+            username: who.username
+        };
+
+        if (who.confirmCode) {
+            body.confirm = codeHash(who.confirmCode);
+        }
+
+        linkReq.body = body;
+        linkReq.mail = {
+            accountType: who.accountType,
+            confirmCode: who.confirmCode,
+            message: who.message,
+            name: who.username,
+            newAccount: who.newAccount === true
+        };
+
+        return linkReq;
+    }
+
     /*
         A response stand-in for magic-link sends that answer the caller
         some other way. The strategy reports a failed send through
@@ -791,7 +846,16 @@
     }
 
     f.datasource.magicLoginSend = async function (opts) {
-        await magicLogin.send(opts, mailRes());
+        let given = opts.body || {};
+        let owner = given.user || {};
+
+        await magicLogin.send(linkRequest(opts, {
+            accountType: given.accountType,
+            destination: given.destination,
+            message: given.message,
+            newAccount: given.newAccount,
+            username: given.username || owner.name
+        }), mailRes());
     };
 
     function doPatchUserAccount(req, res) {
@@ -1798,13 +1862,11 @@
         the failure on the request), and has no promise to wait on.
     */
     async function sendLink(req, body) {
-        let linkReq = Object.create(req);
-
         /*
             Its own body, so nothing the caller typed (a password, say)
             rides along in the signed link.
         */
-        linkReq.body = body;
+        let linkReq = linkRequest(req, body);
 
         await new Promise(function (resolve) {
             magicLogin.send(linkReq, {
@@ -1848,7 +1910,6 @@
         try {
             await sendLink(req, {
                 destination,
-                tenant: req.tenant,
                 username
             });
         } catch (err) {
@@ -1959,17 +2020,19 @@
                     );
                 }
 
-                req.body.confirmCode = String(
-                    Math.floor(Math.random() * 90000) + 10000
-                );
-                req.body.destination = req.user.email;
-                req.body.tenant = req.tenant;
+                let linkReq = linkRequest(req, {
+                    confirmCode: String(
+                        Math.floor(Math.random() * 90000) + 10000
+                    ),
+                    destination: req.user.email,
+                    username: req.user.name
+                });
 
                 try {
-                    magicLogin.send(req, mailRes());
+                    magicLogin.send(linkReq, mailRes());
                     respond.bind(res)({
                         success: true,
-                        confirmUrl: req.magicHref,
+                        confirmUrl: linkReq.magicHref,
                         email: userEmail,
                         phone: userPhone,
                         smsEnabled: false
@@ -2559,8 +2622,6 @@
         await sendLink(req, {
             destination,
             newAccount: true,
-            tenant: req.tenant,
-            user: {name: username},
             username
         });
     }
@@ -3681,12 +3742,12 @@
             sendMagicLink: async function (destination, href, ignore, req) {
                 try {
                     // Confirmation mail only
-                    if (req.body.confirmCode) {
+                    if (req.mail.confirmCode) {
                         req.magicHref = href;
                         await notify.send(req.tenant, systemUser, {
                             html: (
                                 `<html><p>Your confirmation code is: ` +
-                                `<b>${req.body.confirmCode}</b>` +
+                                `<b>${req.mail.confirmCode}</b>` +
                                 `</p><html>`
                             ),
                             subject: "Featherbone confirmation code",
@@ -3702,15 +3763,15 @@
                     );
 
                     // New account
-                    if (req.body.newAccount) {
+                    if (req.mail.newAccount) {
                         let acctType = (
-                            req.body.accountType
-                            ? req.body.accountType + " "
+                            req.mail.accountType
+                            ? req.mail.accountType + " "
                             : ""
                         );
                         let msg = (
-                            req.body.message
-                            ? `${req.body.message}`
+                            req.mail.message
+                            ? `${req.mail.message}`
                             : ""
                         );
                         let theHtml = (
@@ -3718,7 +3779,7 @@
                             `account has been created` +
                             ` for you at: <b>${req.get("host")}</b></p>` +
                             `<p>Your user name is: ` +
-                            `<b>${req.body.user.name}</b></p>` +
+                            `<b>${req.mail.name}</b></p>` +
                             `${msg}` +
                             `<p>Click <a href=` +
                             `\"${url}\"` +
@@ -3756,15 +3817,32 @@
             verify: async function (payload, callback, req) {
                 try {
 
-                    if (
-                        payload.confirmCode &&
-                        payload.confirmCode !== req.query.confirmCode
-                    ) {
-                        callback(new Error("Invalid confirmation code"));
-                        return;
+                    if (payload.confirm) {
+                        let given = Buffer.from(
+                            codeHash(req.query.confirmCode || "")
+                        );
+                        let held = Buffer.from(String(payload.confirm));
+
+                        if (
+                            given.length !== held.length ||
+                            !crypto.timingSafeEqual(given, held)
+                        ) {
+                            callback(new Error("Invalid confirmation code"));
+                            return;
+                        }
                     }
 
-                    req.tenant = payload.tenant;
+                    /*
+                        The instance is found again here, from the
+                        registry, rather than read out of the link.
+                    */
+                    req.tenant = (
+                        payload.database
+                        ? tenants.find(
+                            (t) => t.pgDatabase === payload.database
+                        )
+                        : undefined
+                    );
                     let user = await datasource.deserializeUser(
                         req,
                         payload.username
@@ -3890,9 +3968,8 @@
         dbRouter.post("/:db/reset-password", doResetPassword);
         dbRouter.get(
             "/:db/auth/magiclink/callback",
-            passport.authenticate("magiclogin", {
-                session: true,
-                successRedirect: "../../"
+            SignInLink.callback(passport, {
+                error: (msg) => logger.error(msg)
             })
         );
 
