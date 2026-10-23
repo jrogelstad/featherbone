@@ -66,15 +66,95 @@
             other package's, because nothing is ever stored as rows.
         */
         let builtin = {};
+        /*
+            Modules carried inside another package. An umbrella such as
+            SupplyChain holds no code of its own but lists, as `install`
+            files, the manifests of the modules it is made of, each in a
+            subdirectory with its own services, client script and
+            routes. Deploying the umbrella deploys them all, and the
+            database then records each under its own name and version,
+            so each has to be found by that name. They are kept apart
+            from `index` because they are not installed on their own:
+            listing, removing and "newest" speak of what was installed.
+        */
+        let nested = {};
         const CHECKOUT = path.resolve(__dirname, "..", "..");
 
         // Installed under the modules directory, which Core is not
         function held(name, version) {
             return (
-                index[name]
-                ? index[name][version]
-                : undefined
-            );
+                (index[name] && index[name][version]) ||
+                (nested[name] && nested[name][version])
+            ) || undefined;
+        }
+
+        // Where a package's libraries are declared and installed
+        function libDirOf(pkg) {
+            return pkg.libDir || pkg.dir;
+        }
+
+        /*
+            Find the modules an installed package carries, by following
+            its `install` files to the manifests they name. A path that
+            leaves the package, a manifest that cannot be read and a
+            module already seen are skipped: the umbrella's own files
+            are somebody else's data.
+        */
+        function indexNested(top, pkg, libDir, depth) {
+            if (depth > 4) {
+                return;
+            }
+
+            let base = path.resolve(pkg.dir) + path.sep;
+            let files = pkg.manifest.files || [];
+
+            files.forEach(function (file) {
+                if (file.type !== "install" || !file.path) {
+                    return;
+                }
+
+                let mfile = path.resolve(pkg.dir, file.path);
+
+                if (!mfile.startsWith(base)) {
+                    return;
+                }
+
+                let dir = path.dirname(mfile);
+                let manifest = (
+                    path.basename(mfile) === "manifest.json"
+                    ? manifestOf(dir)
+                    : undefined
+                );
+
+                if (
+                    !manifest || !manifest.module || !manifest.version ||
+                    (
+                        index[manifest.module] &&
+                        index[manifest.module][manifest.version]
+                    )
+                ) {
+                    return;
+                }
+
+                if (!nested[manifest.module]) {
+                    nested[manifest.module] = {};
+                }
+
+                let own = path.join(dir, "package.json");
+                let inner = {
+                    dir,
+                    libDir: (
+                        fs.existsSync(own)
+                        ? dir
+                        : libDir
+                    ),
+                    manifest,
+                    parent: {name: top.name, version: top.version}
+                };
+
+                nested[manifest.module][manifest.version] = inner;
+                indexNested(top, inner, inner.libDir, depth + 1);
+            });
         }
 
         function manifestOf(dir) {
@@ -108,6 +188,7 @@
 
             root = dir || root;
             index = {};
+            nested = {};
             builtin = {};
 
             if (core && core.module && core.version) {
@@ -157,6 +238,22 @@
                     });
                 }
             );
+
+            /*
+                Nested modules after every top-level package, so one
+                installed on its own is never shadowed by a copy that
+                an umbrella happens to carry.
+            */
+            Object.keys(index).forEach(function (name) {
+                Object.keys(index[name]).forEach(function (version) {
+                    indexNested(
+                        {name, version},
+                        index[name][version],
+                        index[name][version].dir,
+                        0
+                    );
+                });
+            });
 
             return index;
         };
@@ -401,7 +498,7 @@
                 return ret;
             }
 
-            file = path.join(pkg.dir, "package.json");
+            file = path.join(libDirOf(pkg), "package.json");
 
             if (!fs.existsSync(file)) {
                 return ret;
@@ -470,7 +567,7 @@
 
             that.libraries(name, version).forEach(function (lib) {
                 let where = path.resolve(
-                    path.join(pkg.dir, "node_modules", lib.package)
+                    path.join(libDirOf(pkg), "node_modules", lib.package)
                 );
                 let mod;
 
