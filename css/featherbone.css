@@ -3271,6 +3271,35 @@ button:disabled .fb-ipicon,
   margin-top: 4px;
 }
 
+/* The pane below the users is two tabs: the organization's recent
+   changes and the selected person's roles in this instance. The strip
+   is the form tab strip (.fb-form-tabs), so it needs only the margin
+   that puts it where the "Recent changes" title used to sit. */
+.fb-admin-tabs {
+  margin: 8px 8px 0 8px;
+}
+
+/* The roles tab's own actions, over that list and nothing else -- the
+   same arrangement the platform console's panels use. */
+.fb-admin-roles-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 8px 6px 8px;
+}
+
+.fb-admin-role-picker {
+  min-width: 14em;
+  max-width: 22em;
+}
+
+/* An inherited membership is shown but is not the person's to lose, so
+   it reads as a second group rather than as another row of the first. */
+.fb-admin-role-inherited td {
+  font-style: italic;
+  opacity: 0.75;
+}
+
 /* The picker and the platform console (tenant plan G.1-G.3), which are
    their own page rather than part of the application bundle. */
 /* The console is a full-height column: its two lists share what the
