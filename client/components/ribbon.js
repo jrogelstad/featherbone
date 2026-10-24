@@ -922,6 +922,44 @@ ribbon.component = {
 
         let showBody = !collapsed || vm.isPopupOpen();
 
+        /*
+            The app's zoom, here rather than in a worksheet footer.
+
+            It started life scaling one sheet's type, and now scales the
+            whole interface -- at which point living on worksheets meant
+            it vanished on every other screen, the dashboard included,
+            which is where somebody most wants to make things bigger.
+            The ribbon's top bar is the one strip on every screen
+            (John, Oct 2026).
+        */
+        function zoomControl() {
+            let scale = f.catalog().store().global().appZoom;
+            let now;
+
+            if (!scale) {
+                return null;
+            }
+            now = scale();
+
+            return m("div", {
+                class: "fb-ribbon-zoom"
+            }, [
+                f.icon("zoom_out", "fb-zoom-icon"),
+                m("input", {
+                    class: "fb-zoom-control",
+                    title: "Zoom the app: " + now + "%",
+                    "aria-label": "Zoom the app",
+                    type: "range",
+                    step: "5",
+                    min: "75",
+                    max: "200",
+                    value: now,
+                    oninput: (e) => scale(e.target.value)
+                }),
+                f.icon("zoom_in", "fb-zoom-icon")
+            ]);
+        }
+
         return m("div", {
             // fb-rb-t-<tab> picks the hue for the tab being shown,
             // fb-rb-h-<n> the fallback for one with no named hue.
@@ -996,6 +1034,7 @@ ribbon.component = {
                     class: "fb-ribbon-spacer"
                 }),
                 attrs.topRight || [],
+                zoomControl(),
                 whoButton,
                 alertsButton,
                 m("button[type=button]", {
