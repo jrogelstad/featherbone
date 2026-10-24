@@ -450,15 +450,22 @@ describe("authorization", function () {
         });
 
         /*
-            The Core manifest installs scripts/feathers-bootstrap.json
-            once before populate.js creates the `everyone` role and again
-            after, so on a new database the first pass cannot resolve the
-            role a feather declares. Failing there stopped
-            `node install.js` on any new database; the grant is skipped
-            and the second pass applies it.
+            A feather may name a role that is not there yet, and saving
+            it must not fail -- that stopped `node install.js` on any
+            new database, because the Core manifest installs
+            scripts/feathers-bootstrap.json once before populate.js
+            creates `everyone` and again after.
+
+            What happens to the grant changed with the roles work: the
+            role is now created where it is declared (PR #291,
+            `isAutoCreateRole`) and the grant applied, rather than
+            dropped without a word. A database with no role at all is
+            the exception -- it is still being built, and the manifest's
+            second pass applies the grant -- which is not this database.
         */
-        it("saves a feather whose role does not exist yet",
+        it("creates the role a feather names, and grants it",
                 async function () {
+            const ROLE = "fbt_role_that_is_not_there";
             let name = access.featherName("FbtNoRole");
             let feather = await access.createFeather(admin, {
                 name,
@@ -469,7 +476,7 @@ describe("authorization", function () {
                     description: "Code"
                 }],
                 authorizations: [{
-                    role: "fbt_role_that_is_not_there",
+                    role: ROLE,
                     canCreate: true,
                     canRead: true,
                     canUpdate: true,
@@ -485,9 +492,25 @@ describe("authorization", function () {
                     "WHERE feather.id = $1 " +
                     "  AND feather._pk = auth.object_pk"
                 ), [access.toSpinal(name).replace(/-/g, "_")]);
-                assert.deepEqual(granted.rows, []);
+                assert.deepEqual(
+                    granted.rows.map((row) => row.role),
+                    [ROLE],
+                    "the declared grant is applied"
+                );
+
+                let made = await db.query(
+                    "SELECT is_login FROM \"role\" WHERE name = $1",
+                    [ROLE]
+                );
+                assert.equal(made.rows.length, 1, "the role was created");
+                assert.equal(
+                    made.rows[0].is_login,
+                    false,
+                    "a group role, with no login behind it"
+                );
             } finally {
                 await access.deleteFeather(admin, name);
+                await db.query("DELETE FROM \"role\" WHERE name = $1", [ROLE]);
             }
         });
 

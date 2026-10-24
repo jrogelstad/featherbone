@@ -65,6 +65,18 @@ describe("a new contact is an Employee where there is an Employee",
 
     before(async function () {
         admin = await signedIn();
+
+        /*
+            An installation with SupplyChain's Common module deployed
+            already has Employee, and that is the definition this is
+            about, so it is used where it is there. Only an
+            installation without one builds the feather, the way Common
+            defines it, and only that one takes it away again.
+        */
+        if (await admin.get("/feather/Employee")) {
+            return;
+        }
+
         employee = await access.createFeather(admin, {
             inherits: "Contact",
             name: "Employee",
@@ -91,7 +103,9 @@ describe("a new contact is an Employee where there is an Employee",
 
     after(async function () {
         await access.dropAll();
-        await access.deleteFeather(admin, employee);
+        if (employee) {
+            await access.deleteFeather(admin, employee);
+        }
     });
 
     it("saves an administrator's edit as an Employee", async function () {

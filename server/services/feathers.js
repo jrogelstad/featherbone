@@ -1949,7 +1949,21 @@
                                     unique.push(key);
                                 }
 
-                                if (prop.isIndexed) {
+                                /*
+                                    A relation's column is indexed
+                                    below with every other relation
+                                    column (item 3.1), and it is named
+                                    `token` rather than the property, so
+                                    isIndexed here would index a column
+                                    that does not exist and fail the
+                                    save (item 3.4).
+                                */
+                                let isRelation = Boolean(
+                                    typeof prop.type === "object" &&
+                                    type.relation
+                                );
+
+                                if (prop.isIndexed && !isRelation) {
                                     indices.push(key);
                                 }
 
@@ -2465,10 +2479,14 @@
                                     adds nothing. Naming the wrong column
                                     here failed the whole feather save.
                                 */
+                                let isRelation = Boolean(
+                                    typeof ptype === "object" &&
+                                    ptype.relation
+                                );
+
                                 if (
                                     ps[key].isIndexed &&
-                                    !(typeof ptype === "object" &&
-                                    ptype.relation) &&
+                                    !isRelation &&
                                     indices.indexOf(key) === -1
                                 ) {
                                     indices.push(key);

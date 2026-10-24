@@ -1,5 +1,4 @@
 {
-    "client/api.js": 5,
     "client/components/admin-instances-page.js": 8,
     "client/components/admin-page.js": 5,
     "client/components/button.js": 2,
@@ -13,6 +12,7 @@
     "docs/scram-verify.js": 5,
     "install.js": 9,
     "scripts/clean-numeric-bounds.js": 3,
+    "scripts/dev/load.js": 4,
     "scripts/manager-constraints.js": 1,
     "server.js": 23,
     "server/config.js": 2,
@@ -88,7 +88,6 @@
     "test/harness/fixtures.js": 82,
     "test/harness/golden.js": 5,
     "test/harness/http.js": 19,
-    "test/harness/reporter.js": 2,
     "test/harness/server.js": 5,
     "test/run.js": 8,
     "test/unit/client-core.test.js": 49,

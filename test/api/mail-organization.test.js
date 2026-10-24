@@ -21,19 +21,17 @@ const settings = require("../harness/env");
 const db = require("../harness/db");
 const {Session, signedIn} = require("../harness/http");
 const {decoded, sink} = require("./lib/mailsink");
+const authority = require("../harness/authority");
 
 const NAME = "globalSettings";
 const PLATFORM = "fbt_orgmail_platform";
 const MODULE = "FbtOrgMail";
 
 function flags(on) {
-    return db.withClient(settings.managerDb, (client) => client.query(
-        (
-            "UPDATE identity SET is_org_admin = $2, " +
-            "  is_platform_admin = $2 WHERE lower(username) = lower($1)"
-        ),
-        [PLATFORM, on]
-    ));
+    return authority.flags(PLATFORM, {
+        isOrgAdmin: on === true,
+        isPlatformAdmin: on === true
+    });
 }
 
 // A package whose trigger sends a mail the way Tracker's do: through
