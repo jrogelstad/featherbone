@@ -138,6 +138,10 @@ let refreshState = {status: "idle"};
 // inside the board's component, so the two meet here.
 let currentLayout = null;
 
+// Every saved layout the instance has, as last fetched. Held for whoever
+// is offering to switch between them; the board itself only needs one.
+let savedLayouts = [];
+
 /**
     The pinned reporting date, or null for "today". Storage can throw where
     a browser has it switched off, and a board that will not draw because a
@@ -329,7 +333,16 @@ function placeTiles(wanted) {
         let asked = Math.min(tile.rows || 3, DASH_ROWS);
         let cols = Math.min(tile.cols || 4, DASH_COLS);
         let rows = asked;
-        let at = findSpot(cols, rows);
+        // A saved layout says where its tiles go. Honoured when the spot
+        // is free and on the board, and packed like any other tile when
+        // it is not -- a layout saved on a wider board, or one whose
+        // tiles have since grown, should come back arranged rather than
+        // come back broken.
+        let at = (
+            (tile.col && tile.row && isFree(tile.col, tile.row, cols, rows))
+            ? {col: tile.col, row: tile.row}
+            : findSpot(cols, rows)
+        );
 
         while (at === null && cols >= DASH_MIN_COLS) {
             if (rows > DASH_MIN_ROWS) {
@@ -358,12 +371,15 @@ function placeTiles(wanted) {
 }
 
 /**
-    The default arrangement: the framework's own KPI tile, then whatever
-    tile each registered source asks to put on a fresh board. This is how a
-    package contributes to the dashboard until layouts are records -- install
-    SupplyChain and its sales tile is simply there.
+    The arrangement composed from whatever has registered: the framework's
+    own KPI tile, then the tile each registered source asks to put on a
+    fresh board. This is what a board with no saved layout shows -- install
+    SupplyChain and its sales tile is simply there, with nothing to set up.
+
+    It is also the starting point a saved layout is made from, which is why
+    it stays here now that layouts are records.
 */
-function defaultLayout() {
+function composeLayout() {
     let tiles = [{
         cols: 5,
         heading: "Key Metrics",
@@ -401,10 +417,159 @@ function defaultLayout() {
 
     return {
         asOf: storedAsOf(),
+        name: null,
         tiles: placeTiles(tiles),
         title: null,
         version: registryVersion
     };
+}
+
+/**
+    A layout built from a saved record.
+
+    A record's tiles are taken as asked for and run through the same packer
+    as a composed board, so the guarantee that nothing is drawn unreadably
+    small and nothing falls off the viewport holds for saved layouts too.
+    `version` is stamped with the registry as it stands, so a module
+    registering afterwards still recomposes the board rather than leaving
+    its tile missing.
+*/
+function layoutFromRecord(record) {
+    let config = record.config || {};
+
+    return withNewcomers({
+        asOf: config.asOf || null,
+        name: record.name,
+        seen: config.seen || [],
+        tiles: placeTiles(config.tiles || []),
+        title: config.title || null,
+        version: registryVersion
+    });
+}
+
+/**
+    What the board on screen would be saved as. Positions are included, so
+    a layout comes back arranged the way it was left rather than repacked
+    from scratch.
+*/
+function layoutSpec(layout) {
+    return {
+        asOf: layout.asOf || null,
+        // Which sources existed when this was saved. A source missing
+        // from a layout is ambiguous on its own -- it may be one somebody
+        // took off their board, or one that did not exist yet -- and the
+        // difference decides whether installing a package adds a tile or
+        // silently does nothing. Recording what was on offer at the time
+        // settles it without asking anybody.
+        seen: listSources().map(function (source) {
+            return source.key;
+        }),
+        tiles: layout.tiles.map(function (tile) {
+            let out = Object.assign({}, tile);
+
+            delete out.version;
+            return out;
+        }),
+        title: layout.title || null
+    };
+}
+
+/**
+    A saved layout plus a tile for any source that has registered since it
+    was saved.
+
+    Install a package on an instance whose default layout predates it and
+    its tile appears, in whatever room is left, rather than the package
+    arriving invisible. A tile somebody deliberately took off their board
+    stays off, because its source was on offer when they saved.
+*/
+function withNewcomers(layout) {
+    let known = layout.seen || [];
+    let extra = [];
+
+    listSources().forEach(function (source) {
+        if (source.defaultTile && known.indexOf(source.key) === -1) {
+            extra.push(Object.assign({
+                id: "src-" + source.key,
+                source: source.key,
+                type: "measure"
+            }, source.defaultTile));
+        }
+    });
+
+    if (!extra.length) {
+        return Object.assign({}, layout, {version: registryVersion});
+    }
+
+    return Object.assign({}, layout, {
+        seen: known.concat(extra.map(function (tile) {
+            return tile.source;
+        })),
+        tiles: placeTiles(layout.tiles.concat(extra)),
+        version: registryVersion
+    });
+}
+
+/**
+    The arrangement to show: the layout flagged as the instance's default
+    if there is one, otherwise whatever the registrations compose to.
+
+    A board that cannot reach the service still draws. Layouts are a
+    convenience over a board that already works, so a failed fetch costs
+    the saved arrangement and nothing else.
+*/
+function startingLayout() {
+    return f.datasource().request({
+        method: "GET",
+        path: "/dashboards"
+    }).then(function (rows) {
+        let list = rows || [];
+        let preferred = list.find(function (row) {
+            return row.isDefault;
+        });
+
+        savedLayouts = list;
+        if (preferred) {
+            return layoutFromRecord(preferred);
+        }
+        return composeLayout();
+    }).catch(function () {
+        return composeLayout();
+    });
+}
+
+/**
+    Saves the board as a named layout, and shows what was saved.
+
+    Saving is what makes an arrangement somebody else's starting point, so
+    it is the one place the board writes anything shared. The reply is
+    reloaded rather than assumed: the service decides whether the save was
+    allowed, and the board should show what is actually stored.
+*/
+function saveLayout(spec) {
+    let asked = spec || {};
+    let name = asked.name;
+    let layout = currentLayout || composeLayout();
+
+    if (!name) {
+        return Promise.reject(new Error("A layout needs a name."));
+    }
+
+    return f.datasource().request({
+        method: "PUT",
+        path: "/dashboard/" + encodeURIComponent(name),
+        body: {
+            config: layoutSpec(layout),
+            isDefault: Boolean(asked.isDefault),
+            label: asked.label || name
+        }
+    }).then(function () {
+        return startingLayout();
+    }).then(function (next) {
+        currentLayout = next;
+        loadAll(next);
+        m.redraw();
+    });
 }
 
 /**
@@ -565,7 +730,7 @@ function loadAll(layout) {
 */
 function runRefresh() {
     let jobs = listRefreshers();
-    let layout = currentLayout || defaultLayout();
+    let layout = currentLayout || composeLayout();
     let results = [];
     let next;
 
@@ -1059,16 +1224,30 @@ function measureTile(tile) {
 
 let dashboard = {
     oninit: function () {
-        currentLayout = defaultLayout();
+        // Draws the composed board straight away and swaps in the saved
+        // layout when it arrives: a dashboard that shows nothing until a
+        // round trip finishes is a dashboard that looks broken on a slow
+        // connection.
+        currentLayout = composeLayout();
         loadAll(currentLayout);
+        startingLayout().then(function (layout) {
+            currentLayout = layout;
+            loadAll(layout);
+            m.redraw();
+        });
     },
     view: function () {
-        let layout = currentLayout || defaultLayout();
+        let layout = currentLayout || composeLayout();
 
         // A module that registered after this board was built gets its tile
-        // without the page being reloaded.
+        // without the page being reloaded. A saved layout keeps its own
+        // arrangement and gains only what is new to it.
         if (layout.version !== registryVersion) {
-            layout = defaultLayout();
+            layout = (
+                layout.name
+                ? withNewcomers(layout)
+                : composeLayout()
+            );
             currentLayout = layout;
             loadAll(layout);
         }
@@ -1143,6 +1322,17 @@ f.catalog().register("global", "dashboardRefreshStatus", function () {
     return refreshState.status;
 });
 f.catalog().register("global", "dashboardAsOf", getAsOf);
+f.catalog().register("global", "dashboardLayouts", function () {
+    return savedLayouts;
+});
+f.catalog().register("global", "dashboardLayoutName", function () {
+    return (
+        currentLayout
+        ? currentLayout.name
+        : null
+    );
+});
+f.catalog().register("global", "dashboardSaveLayout", saveLayout);
 f.catalog().register("global", "dashboardSetAsOf", setAsOf);
 f.catalog().register("global", "dashboardTitle", dashboardTitle);
 f.catalog().register("components", "dashboard", dashboard);

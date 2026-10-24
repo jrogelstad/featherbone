@@ -46,6 +46,7 @@
     const {Packages} = require("./services/packages");
     const {Settings} = require("./services/settings");
     const {Role} = require("./services/role");
+    const {Dashboards} = require("./services/dashboards");
     const {Tools} = require("./services/tools");
     const {Workbooks} = require("./services/workbooks");
     const {Config} = require("./config");
@@ -60,6 +61,7 @@
     const config = new Config();
     const crud = new CRUD();
     const currency = new Currency();
+    const dashboards = new Dashboards();
     const exporter = new Exporter();
     const feathers = new Feathers();
     const importer = new Importer();
@@ -4374,6 +4376,8 @@
         "getSettingsDefinition",
         settings.getSettingsDefinition
     );
+    that.registerFunction("GET", "getDashboard", dashboards.getDashboard);
+    that.registerFunction("GET", "getDashboards", dashboards.getDashboards);
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction(
@@ -4419,6 +4423,7 @@
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
     that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
+    that.registerFunction("PUT", "saveDashboard", dashboards.saveDashboard);
     that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
     that.registerFunction(
         "PUT",
@@ -4427,6 +4432,11 @@
     );
     that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
     that.registerFunction("DELETE", "deleteModule", installer.deleteModule);
+    that.registerFunction(
+        "DELETE",
+        "deleteDashboard",
+        dashboards.deleteDashboard
+    );
     that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);
 
     /*
