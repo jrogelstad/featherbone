@@ -25,6 +25,7 @@
     const f = require("../../common/core");
     const ops = Object.keys(f.operators);
     const format = require("pg-format");
+    const crypto = require("crypto");
 
     const tools = {};
     const formats = {
@@ -907,32 +908,24 @@
             on the feather, the properties asked for and the shape of the
             filter and sort, and the same screen sends the same text.
 
-            A statement needs a name, and the thing being named is its
-            text, which is too long to be an identifier and full of
-            characters an identifier may not have. So the names are
-            handed out in order, `fb_1`, `fb_2`, and `names` remembers
-            which text got which: one name per distinct statement for the
-            life of the process, which is what every connection then
-            prepares it under. (It was a hash of the text before. Same
-            name, same statement, but a hash in a query path reads like
-            something is being encrypted, and nothing here is -- the SQL
-            and its parameters go to Postgres exactly as they did.)
-
             Prepared names live as long as the connection and
             node-postgres never drops them, so a connection stops naming
             new statements once it holds MAX_NAMED; further shapes run
-            unnamed, as before. The same cap bounds `names`.
+            unnamed, as before.
+
+            Handing the names out in order instead (`fb_1`, `fb_2`) was
+            tried and put back: it means remembering every statement's
+            text to know which name it was given, so the cap would bound
+            how many statements the whole process can ever name rather
+            than how many each connection holds, and an installation has
+            more shapes than that -- every feather, by every property
+            list, by every filter.
 
             FB_UNNAMED_SQL=1 turns it off, for comparing and for ruling it
             out.
         */
         const MAX_NAMED = 200;
-
-        // Statement text -> the name it is prepared under, process wide
-        const names = new Map();
-
-        // Which of those names a connection has prepared already
-        const prepared = new WeakMap();
+        const named = new WeakMap();
 
         /**
             Query config for `client.query` that prepares the statement
@@ -944,33 +937,33 @@
             @return {Object} `{text, values}`, plus `name` when named
         */
         tools.prepared = function (client, sql, params) {
+            let seen;
             let name;
-            let done;
             let ret = {text: sql, values: params || []};
 
             if (process.env.FB_UNNAMED_SQL === "1" || !client) {
                 return ret;
             }
 
-            name = names.get(sql);
+            /*
+                A unique name for the statement, nothing more: the digest
+                is the shortest thing that is unique to this text and
+                legal as an identifier, the way a guid would be. Nothing
+                in or about the statement is encrypted -- the SQL and its
+                parameters go to Postgres exactly as they would unnamed,
+                and show up in the log and in pg_stat_statements exactly
+                as they did before.
+            */
+            name = "fb_" + crypto.createHash("sha1").update(sql).digest("hex");
+            seen = named.get(client);
 
-            if (name === undefined) {
-                if (names.size >= MAX_NAMED) {
-                    return ret;
-                }
-                name = "fb_" + (names.size + 1);
-                names.set(sql, name);
+            if (seen === undefined) {
+                seen = new Set();
+                named.set(client, seen);
             }
 
-            done = prepared.get(client);
-
-            if (done === undefined) {
-                done = new Set();
-                prepared.set(client, done);
-            }
-
-            if (done.size < MAX_NAMED || done.has(name)) {
-                done.add(name);
+            if (seen.size < MAX_NAMED || seen.has(name)) {
+                seen.add(name);
                 ret.name = name;
             }
 
