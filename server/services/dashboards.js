@@ -117,6 +117,18 @@
             user, so a shared layout cannot be quietly rewritten under the
             people using it.
 
+            The default flag is governed separately, because it is not a
+            property of a layout but a decision about the instance --
+            what everyone who has expressed no preference sees:
+
+            - Only a super user may change which layout is the default.
+            - A package (`fromPackage`) claims the default only when no
+              default exists, or when the default is already its own
+              layout. So a fresh install arrives with a board, and a
+              reinstall can never override what an administrator chose.
+              The HTTP route strips `fromPackage`, so only the installer
+              can speak with a package's voice.
+
             @method saveDashboard
             @param {Object} payload Request payload
             @param {Client} payload.client Database client
@@ -129,6 +141,9 @@
             let theClient = obj.client;
             let name = spec.name;
             let user = theClient.currentUser();
+            let wantDefault = Boolean(spec.isDefault);
+            let hadDefault = false;
+            let standing;
             let found;
             let isSuper;
             let err;
@@ -144,12 +159,48 @@
                 client: theClient,
                 data: {name}
             });
+            hadDefault = Boolean(found && found.isDefault);
 
-            if (found) {
+            if (spec.fromPackage) {
+                /*
+                    A package's claim on the default is conditional, not
+                    an instruction: honoured only where there is nothing
+                    to override.
+                */
+                if (wantDefault && !hadDefault) {
+                    standing = await theClient.query(
+                        "SELECT name FROM \"$dashboard\" " +
+                        "WHERE is_default AND NOT is_deleted " +
+                        "AND name <> $1;",
+                        [name]
+                    );
+                    if (standing.rows.length) {
+                        wantDefault = false;
+                    }
+                }
+            } else if (wantDefault !== hadDefault) {
                 isSuper = await tools.isSuperUser({
                     client: theClient,
                     user: obj.user
                 });
+                if (!isSuper) {
+                    err = new Error(
+                        "The default layout is what everyone who has " +
+                        "not chosen one sees, so changing it takes an " +
+                        "administrator."
+                    );
+                    err.statusCode = 401;
+                    throw err;
+                }
+            }
+
+            if (found) {
+                if (isSuper === undefined) {
+                    isSuper = await tools.isSuperUser({
+                        client: theClient,
+                        user: obj.user
+                    });
+                }
 
                 if (found.createdBy !== user && !isSuper) {
                     err = new Error(
@@ -175,11 +226,11 @@
                     spec.description || found.description,
                     spec.module || found.module,
                     spec.sequence || found.sequence || 0,
-                    Boolean(spec.isDefault),
+                    wantDefault,
                     JSON.stringify(spec.config || found.config || {})
                 ]);
 
-                if (spec.isDefault) {
+                if (wantDefault) {
                     await that.clearOtherDefaults({
                         client: theClient,
                         data: {name}
@@ -205,12 +256,12 @@
                 spec.description || "",
                 spec.module || "",
                 spec.sequence || 0,
-                Boolean(spec.isDefault),
+                wantDefault,
                 JSON.stringify(spec.config || {}),
                 user
             ]);
 
-            if (spec.isDefault) {
+            if (wantDefault) {
                 await that.clearOtherDefaults({
                     client: theClient,
                     data: {name}

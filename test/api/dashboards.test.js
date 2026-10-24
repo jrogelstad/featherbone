@@ -207,6 +207,50 @@ describe("dashboards", function () {
         assert.equal(await admin.get(path(name)), false);
     });
 
+    it("keeps the default an administrator's decision", async function () {
+        let name = dashName("BasicDefault");
+        let resp;
+        let list;
+
+        // A basic user may offer a layout, but not decide what everyone
+        // without a preference sees.
+        resp = await basicS.raw("PUT", path(name), spec({isDefault: true}));
+        assert.equal(resp.status, 401);
+
+        // Without the claim, the same save goes through.
+        resp = await basicS.raw("PUT", path(name), spec());
+        assert.equal(resp.status, 200);
+
+        // An administrator flags it; the author's own resave must not
+        // read as demoting it, so the author echoes the flag as it
+        // stands and is left alone.
+        resp = await admin.raw("PUT", path(name), spec({isDefault: true}));
+        assert.equal(resp.status, 200);
+        resp = await basicS.raw("PUT", path(name), spec({isDefault: true}));
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        // But the author cannot take the flag away.
+        resp = await basicS.raw("PUT", path(name), spec());
+        assert.equal(resp.status, 401);
+
+        list = await admin.get("/dashboards");
+        assert.equal(
+            list.find((row) => row.name === name).isDefault,
+            true,
+            "still the default"
+        );
+
+        // Nobody borrows the installer's voice over HTTP: the route
+        // strips the package flag, so this claim is an ordinary one
+        // and is refused.
+        name = dashName("FakePackage");
+        resp = await basicS.raw("PUT", path(name), spec({
+            fromPackage: true,
+            isDefault: true
+        }));
+        assert.equal(resp.status, 401);
+    });
+
     it("stops one person deleting another's layout", async function () {
         let name = dashName("DeleteOwned");
         let resp = await admin.raw("PUT", path(name), spec());
