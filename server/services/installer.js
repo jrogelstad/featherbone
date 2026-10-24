@@ -311,6 +311,16 @@
                     deployment was enough.
                 */
                 function rollback(err) {
+                    /*
+                        The install is over, failed or not. Only the
+                        finish cleared this, so after any failure the
+                        process went on believing it was installing for
+                        the rest of its life -- and `f.isInstalling()`
+                        is what a module's own code asks before it
+                        starts anything (SupplyChain's ShipEngine
+                        initialiser), so that waited for a restart.
+                    */
+                    isInstalling = false;
                     pClient.query("ROLLBACK;", async function () {
                         if (conn) {
                             try {
@@ -805,6 +815,42 @@
                     ).catch(rollback);
                 }
 
+                /*
+                    Dashboard layouts a package carries. Saved one at a
+                    time, in order, because the default flag is a switch
+                    -- setting it on one layout takes it off the rest --
+                    and sending them together would make which one ends
+                    up the default depend on the order they happened to
+                    be written in.
+
+                    A layout the package has shipped before is replaced:
+                    the module owns it, and an upgrade that could not
+                    correct its own board would be worse than one that
+                    can. What a person has CHOSEN is in their profile and
+                    is untouched by this.
+                */
+                function saveDashboards(layouts) {
+                    let queue = layouts.slice();
+
+                    function next() {
+                        let layout = queue.shift();
+
+                        if (!layout) {
+                            processFile();
+                            return;
+                        }
+                        pDatasource.request({
+                            method: "PUT",
+                            name: "saveDashboard",
+                            user: pUser,
+                            client: pClient,
+                            data: layout
+                        }, true).then(next).catch(rollback);
+                    }
+
+                    next();
+                }
+
                 function execute(filename) {
                     let dep = path.resolve(filename);
                     let exp = require(dep);
@@ -1106,6 +1152,9 @@
                                 break;
                             case "workbook":
                                 saveWorkbooks(JSON.parse(content));
+                                break;
+                            case "dashboard":
+                                saveDashboards(JSON.parse(content));
                                 break;
                             case "settings":
                                 defineSettings(JSON.parse(content), module);

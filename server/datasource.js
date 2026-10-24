@@ -81,6 +81,27 @@
     const packages = new Packages();
     const tenants = [];
 
+    /*
+        The data type formats the server knows, hung on `f` so that a
+        module's code can add its own: SupplyChain's Common module
+        registers unitCost, salesPrice and purchasePrice this way, and
+        `feathers.js` builds a column from the format a property
+        declares.
+
+        It belongs here rather than in server.js because this is what
+        loads and runs module code, and install.js loads it too. When
+        only server.js set it, `f.formats` was undefined in every
+        install run from the command line, so SupplyChain's own money
+        formats were never registered and `feathers.js`, finding no
+        format by that name, fell back to the property's type and made
+        the column `json` instead of `mono` (improvement item 0.11).
+        The same install through the running server was correct, which
+        is exactly how the defect was first described.
+    */
+    if (!f.formats) {
+        f.formats = tools.formats;
+    }
+
     /**
         Server datasource class.
 
@@ -2474,95 +2495,124 @@
         resp = await db.connect(opts.tenant);
 
         /*
-            A trusted install acts as the service account, which is
-            what the command line has always done (install.js sets the
-            client's user to config's pgUser). The operator who asked
-            is recorded in the audit, not impersonated in the database:
-            a platform administrator deploying to a customer's instance
-            is generally not a user of it at all, and the row-level
-            ownership checks are written for users of the database.
+            Everything below runs through the connection just opened,
+            and it is given back at the end whatever happens. It used
+            to be given back only where the work finished: an install
+            that threw -- a package naming a feather nothing defines,
+            say -- left the client checked out of the instance's pool
+            for the life of the process. Eight failed deploys emptied a
+            ten-connection pool, and the next request that needed one
+            waited for it for ever, so the instance was finished until
+            the server restarted. Found 2026-10-24 by a suite that
+            deploys a package built to fail (`api/deploy-failure`), as
+            a hang in a later file.
         */
-        if (opts.isSuper === true) {
-            let conf = await config.read();
+        async function work() {
 
-            resp.client.currentUser = () => conf.pgUser;
+            /*
+                A trusted install acts as the service account, which is
+                what the command line has always done (install.js sets the
+                client's user to config's pgUser). The operator who asked
+                is recorded in the audit, not impersonated in the database:
+                a platform administrator deploying to a customer's instance
+                is generally not a user of it at all, and the row-level
+                ownership checks are written for users of the database.
+            */
+            if (opts.isSuper === true) {
+                let conf = await config.read();
+
+                resp.client.currentUser = () => conf.pgUser;
+            }
+
+            /*
+                Code is never stored in the database. What a module runs
+                is read from its package's files (ADR-002), so a directory
+                that carries services or a client script has to be a
+                package this server holds -- Core, or one put under the
+                modules directory -- or there would be nowhere for the
+                code to be served from. Refused here, before anything is
+                changed, rather than installing a module with no code.
+            */
+            let said;
+
+            await ensurePackagesScanned();
+
+            try {
+                said = JSON.parse(await fs.promises.readFile(
+                    path.join(filename, "manifest.json"),
+                    "utf8"
+                ));
+            } catch (ignore) {
+                // No readable manifest: the installer will say so
+                said = {};
+            }
+
+            let held = packages.resolve(said.module, said.version);
+            let listed = said.files || [];
+            let carriesCode = listed.some(
+                (file) => file.type === "service" || file.type === "module"
+            );
+
+            if (carriesCode && !(held && (
+                path.resolve(held.dir) === path.resolve(filename)
+            ))) {
+                return Promise.reject(new Error(
+                    "\"" + said.module + " " + said.version + "\" in " +
+                    filename + " is not a package this server holds, " +
+                    "and code is never stored in the database. Install " +
+                    "it as a package first, then deploy it."
+                ));
+            }
+
+            // Do the work
+            while (targets.length) {
+                await installer.install(
+                    that,
+                    resp.client,
+                    filename,
+                    username,
+                    {
+                        /*
+                            "Super" here means a caller the installer need
+                            not re-check: it skips the per-database super
+                            user lookup, which is what the command line has
+                            always passed. A Deploy has already required a
+                            platform administrator, and the database it is
+                            aimed at is not one the caller has to be a user
+                            of, so it passes it too. It used to also skip
+                            the ServerProcess progress record, on the
+                            reasoning that nothing was watching -- true for
+                            the command line, false for a platform admin
+                            watching Upgrade or Deploy from the screen, so
+                            that part now turns on progress tracking rather
+                            than off it whenever the caller hands over a
+                            processId to track it by (John, 2026-10-18: "I
+                            get no idea of whether it's working or not").
+                        */
+                        isSuper: opts.isSuper === true,
+                        processId: opts.processId,
+                        subscription: opts.subscription,
+                        tenant: targets.shift()
+                    }
+                );
+            }
+            return filename;
         }
 
-        /*
-            Code is never stored in the database. What a module runs
-            is read from its package's files (ADR-002), so a directory
-            that carries services or a client script has to be a
-            package this server holds -- Core, or one put under the
-            modules directory -- or there would be nowhere for the
-            code to be served from. Refused here, before anything is
-            changed, rather than installing a module with no code.
-        */
-        let said;
-
-        await ensurePackagesScanned();
+        let installed;
+        let failed;
 
         try {
-            said = JSON.parse(await fs.promises.readFile(
-                path.join(filename, "manifest.json"),
-                "utf8"
-            ));
-        } catch (ignore) {
-            // No readable manifest: the installer will say so
-            said = {};
+            installed = await work();
+        } catch (err) {
+            failed = err;
         }
 
-        let held = packages.resolve(said.module, said.version);
-        let listed = said.files || [];
-        let carriesCode = listed.some(
-            (file) => file.type === "service" || file.type === "module"
-        );
-
-        if (carriesCode && !(held && (
-            path.resolve(held.dir) === path.resolve(filename)
-        ))) {
-            resp.done();
-            return Promise.reject(new Error(
-                "\"" + said.module + " " + said.version + "\" in " +
-                filename + " is not a package this server holds, " +
-                "and code is never stored in the database. Install " +
-                "it as a package first, then deploy it."
-            ));
-        }
-
-        // Do the work
-        while (targets.length) {
-            await installer.install(
-                that,
-                resp.client,
-                filename,
-                username,
-                {
-                    /*
-                        "Super" here means a caller the installer need
-                        not re-check: it skips the per-database super
-                        user lookup, which is what the command line has
-                        always passed. A Deploy has already required a
-                        platform administrator, and the database it is
-                        aimed at is not one the caller has to be a user
-                        of, so it passes it too. It used to also skip
-                        the ServerProcess progress record, on the
-                        reasoning that nothing was watching -- true for
-                        the command line, false for a platform admin
-                        watching Upgrade or Deploy from the screen, so
-                        that part now turns on progress tracking rather
-                        than off it whenever the caller hands over a
-                        processId to track it by (John, 2026-10-18: "I
-                        get no idea of whether it's working or not").
-                    */
-                    isSuper: opts.isSuper === true,
-                    processId: opts.processId,
-                    subscription: opts.subscription,
-                    tenant: targets.shift()
-                }
-            );
-        }
         resp.done();
-        return filename;
+        if (failed !== undefined) {
+            throw failed;
+        }
+        return installed;
     };
 
     /**
