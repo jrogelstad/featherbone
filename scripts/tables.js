@@ -336,6 +336,51 @@
         "'Presentation order';"
     );
 
+    /*
+        Dashboard layouts -- the arrangement of tiles on the Home tab.
+
+        Deliberately shaped like `$workbook` rather than made a feather:
+        a layout is a deep nested structure whose tile types each bring
+        their own shape and their own editing, so it is handled as JSON
+        in one column and never presented as a table to anybody (John,
+        Oct 2026). `config` holds the whole spec -- title, reporting
+        date, and the tiles with their sizes and options.
+
+        `name` is the natural key, for the same reason as the navigation
+        category's: a package export references it, so a layout survives
+        ids differing between databases.
+
+        A user's OWN arrangement is not here. That lives in `$profiles`
+        under the user's role, next to their workbook column widths,
+        which is what keeps one person's board out of everybody else's.
+        This table is what is shipped and shared.
+    */
+    const createDashboardSql = (
+        "CREATE TABLE \"$dashboard\" (" +
+        "name text UNIQUE," +
+        "label text default '', " +
+        "description text," +
+        "module text," +
+        "sequence smallint," +
+        "is_default boolean default false, " +
+        "config json," +
+        "CONSTRAINT dashboard_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT dashboard_id_key UNIQUE (id)) INHERITS (object);" +
+        "COMMENT ON TABLE \"$dashboard\" IS " +
+        "'Internal table for storing dashboard layouts';" +
+        "COMMENT ON COLUMN \"$dashboard\".name IS 'Natural key';" +
+        "COMMENT ON COLUMN \"$dashboard\".label IS " +
+        "'What the layout is called on screen';" +
+        "COMMENT ON COLUMN \"$dashboard\".description IS 'Description';" +
+        "COMMENT ON COLUMN \"$dashboard\".module IS 'Module reference';" +
+        "COMMENT ON COLUMN \"$dashboard\".sequence IS " +
+        "'Presentation order';" +
+        "COMMENT ON COLUMN \"$dashboard\".is_default IS " +
+        "'Shown to anyone who has not chosen a layout';" +
+        "COMMENT ON COLUMN \"$dashboard\".config IS " +
+        "'Layout specification';"
+    );
+
     const createSessionSql = (
         "CREATE TABLE \"$session\" (" +
         "\"sid\" varchar NOT NULL COLLATE \"default\"," +
@@ -459,6 +504,7 @@
             let createAuth;
             let createWorkbook;
             let createNavigationCategory;
+            let createDashboard;
             let createSession;
             let createSubscription;
             let createSettings;
@@ -677,8 +723,24 @@
                     if (!exists) {
                         obj.client.query(
                             createNavigationCategorySql,
-                            createProfiles
+                            createDashboard
                         );
+                        return;
+                    }
+                    createDashboard();
+                });
+            };
+
+            // Create the dashboard layout table
+            createDashboard = function () {
+                sqlCheck("$dashboard", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!exists) {
+                        obj.client.query(createDashboardSql, createProfiles);
                         return;
                     }
                     createProfiles();
