@@ -782,6 +782,51 @@ adminPage.component = {
             });
         }
 
+        /*
+            One badge for the tier rather than one per flag. The
+            tiers are a hierarchy (ADR-001 section 3), so showing
+            "platform" and "admin" together on one person said the
+            same thing twice. The badge names the highest authority
+            the person holds, and its title says what that authority
+            reaches.
+
+            Only the two tiers this screen can appoint are named. The
+            third, an instance's own user_account.is_super ("tenant
+            super user"), is set on the User Account form and not
+            from here, so a badge for it would label something nobody
+            can grant on this screen (John, Oct 2026).
+        */
+        function tierTag(identity) {
+            let label = "";
+            let why = "";
+
+            if (identity.isPlatformAdmin) {
+                label = "platform";
+                why = (
+                    "Administers every organization, and every " +
+                    "instance of every organization"
+                );
+            } else if (identity.isOrgAdmin) {
+                label = "admin";
+                why = (
+                    "Administers " + (
+                        data.organization
+                        ? data.organization.name
+                        : "this organization"
+                    ) + ", and every instance it owns"
+                );
+            }
+
+            if (!label) {
+                return undefined;
+            }
+
+            return m("span", {
+                class: "fb-admin-tag",
+                title: why
+            }, label);
+        }
+
         function find(id) {
             return listed.find((one) => one.id === id);
         }
@@ -1205,20 +1250,7 @@ adminPage.component = {
                         return m("tr", rowEvents(identity.id), [
                             m("td", {title: identity.username}, [
                                 identity.username,
-                                (
-                                    identity.isPlatformAdmin
-                                    ? m("span", {
-                                        class: "fb-admin-tag"
-                                    }, "platform")
-                                    : undefined
-                                ),
-                                (
-                                    identity.isOrgAdmin
-                                    ? m("span", {
-                                        class: "fb-admin-tag"
-                                    }, "admin")
-                                    : undefined
-                                ),
+                                tierTag(identity),
                                 (
                                     identity.homeOrganization
                                     ? m("span", {

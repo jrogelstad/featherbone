@@ -63,3 +63,4 @@ claude-branches/
 
 # Ignore local featherbone modules
 modules
+scripts/dev/demo-data
