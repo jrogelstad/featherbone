@@ -320,8 +320,17 @@ describe("sales order shipping", function () {
 
         assert.match(bol.number, /^\d+$/);
         assert.equal(bol.salesOrders, so.number + "," + so.number);
-        assert.equal(bol.shipTo.id, so.shipTo.id);
-        assert.equal(bol.shipFrom.id, w.site.address.id);
+        /*
+            Where it ships from and to, by what the address says rather
+            than by its id: an address is a child record, so each
+            record that carries one carries its own row, and the ids
+            down a chain of copies are all different by design.
+        */
+        assert.equal(bol.shipTo.street, so.shipTo.street);
+        assert.equal(bol.shipTo.city, so.shipTo.city);
+        assert.equal(bol.shipTo.postalCode, so.shipTo.postalCode);
+        assert.equal(bol.shipFrom.street, w.site.address.street);
+        assert.equal(bol.shipFrom.city, w.site.address.city);
         assert.equal(bol.shipments.length, 2);
         assert.deepEqual(
             bol.shipments.map((r) => r.shipment.id).sort(),

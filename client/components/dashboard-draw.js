@@ -181,6 +181,31 @@ function dashBullet(opts) {
         }));
     }
 
+    /*
+        The target, if there is one. This is the mark the bullet graph
+        was designed around, and it is a different question from the
+        comparison: where we should be, rather than where we were. A
+        tile may carry both, so they cannot look alike -- the comparison
+        is a short bar across the measure, the target a full-height line
+        the whole way down, which also reads as a threshold rather than
+        as another data point.
+
+        Drawn last so it sits over everything else: a target hidden
+        behind the bar that passed it is the one case where the mark
+        matters most.
+    */
+    if (o.target !== undefined && o.target !== null) {
+        let aim = dashScale(o.target, o.max, width);
+
+        parts.push(m("line", {
+            class: "fb-dash-bullet-target",
+            x1: aim,
+            x2: aim,
+            y1: 0,
+            y2: height
+        }));
+    }
+
     if (o.title) {
         parts.push(m("title", o.title));
     }

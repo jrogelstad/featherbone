@@ -1032,6 +1032,23 @@ workbookPage.viewModel = function (options) {
         return w.zoom();
     };
 
+    /**
+        How large the whole interface is drawn, as a percentage. What
+        the footer's zoom control now moves.
+
+        @method appZoom
+        @param {Number} [value] New percentage
+        @return {Number}
+    */
+    vm.appZoom = function (value) {
+        let scale = f.catalog().store().global().appZoom;
+
+        if (!scale) {
+            return 100;
+        }
+        return scale(value);
+    };
+
     // ..........................................................
     // PRIVATE
     //
@@ -1930,25 +1947,20 @@ workbookPage.component = {
                         class: "fb-workbook-footer"
                     }, [
                         drawerForm,
+                        /*
+                            The zoom control used to sit here and scaled
+                            this sheet's type. It scales the whole app
+                            now, so it moved to the ribbon's top bar,
+                            which is on every screen -- it was invisible
+                            on the dashboard while it was down here, and
+                            the dashboard is where somebody most wants
+                            to make things bigger (John, Oct 2026).
+                        */
                         m("div", {
                             class: "fb-sheet-bar"
-                        }, [
-                            m("div", {
-                                class: "fb-toolbar-fill"
-                            }),
-                            f.icon("zoom_out", "fb-zoom-icon"),
-                            m("input", {
-                                class: "fb-zoom-control",
-                                title: "Zoom " + vm.zoom() + "%",
-                                type: "range",
-                                step: "5",
-                                min: "50",
-                                max: "150",
-                                value: vm.zoom(),
-                                oninput: (e) => vm.zoom(e.target.value)
-                            }),
-                            f.icon("zoom_in", "fb-zoom-icon")
-                        ])
+                        }, m("div", {
+                            class: "fb-toolbar-fill"
+                        }))
                     ])
                 ])
             ])

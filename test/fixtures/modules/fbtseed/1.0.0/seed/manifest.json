@@ -9,6 +9,10 @@
         {
             "type": "batch",
             "path": "records.json"
+        },
+        {
+            "type": "dashboard",
+            "path": "dashboards.json"
         }
     ]
 }

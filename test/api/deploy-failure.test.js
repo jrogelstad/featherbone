@@ -272,6 +272,42 @@ describe("a package that seeds records into its own feather", function () {
         );
     });
 
+    it("has the dashboard layout the package shipped", async function () {
+        let resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT name, label, module, config FROM \"$dashboard\" " +
+                "WHERE name = 'FbtSeedBoard' AND NOT is_deleted"
+            )
+        );
+        let found = resp.rows[0];
+
+        assert.ok(found, "the layout the package carried is there");
+        assert.equal(found.label, "Seed Board");
+        assert.equal(found.module, "fbtseed");
+        // The whole spec travels, not just the name: a layout that
+        // arrived without its tiles would be a board to assemble.
+        assert.equal(found.config.tiles.length, 1);
+        assert.equal(found.config.tiles[0].cols, 5);
+        assert.equal(found.config.asOf, "2027-05-31");
+    });
+
+    it("makes the shipped layout the default", async function () {
+        let resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT name FROM \"$dashboard\" " +
+                "WHERE is_default AND NOT is_deleted ORDER BY name"
+            )
+        );
+
+        assert.deepEqual(
+            resp.rows.map((row) => row.name),
+            ["FbtSeedBoard"],
+            "exactly one default, and it is the one shipped"
+        );
+    });
+
     it("leaves the instance open afterwards", async function () {
         let now = await fleetEntry(session);
 
