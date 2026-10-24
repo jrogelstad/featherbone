@@ -25,6 +25,7 @@
     const f = require("../../common/core");
     const ops = Object.keys(f.operators);
     const format = require("pg-format");
+    const crypto = require("crypto");
 
     const tools = {};
     const formats = {
@@ -894,6 +895,79 @@
             }
 
             return clause;
+        };
+
+        /*
+            Named prepared statements (improvement item 4.1).
+
+            Postgres plans an unnamed statement every time it is sent, and
+            the generated views are expensive to plan (75-150 ms against
+            1-9 ms to run, item 4). A named statement is parsed and
+            planned once per connection and reused. Every value in these
+            queries is already a bound parameter, so the text depends only
+            on the feather, the properties asked for and the shape of the
+            filter and sort, and the same screen sends the same text.
+
+            Prepared names live as long as the connection and
+            node-postgres never drops them, so a connection stops naming
+            new statements once it holds MAX_NAMED; further shapes run
+            unnamed, as before.
+
+            Handing the names out in order instead (`fb_1`, `fb_2`) was
+            tried and put back: it means remembering every statement's
+            text to know which name it was given, so the cap would bound
+            how many statements the whole process can ever name rather
+            than how many each connection holds, and an installation has
+            more shapes than that -- every feather, by every property
+            list, by every filter.
+
+            FB_UNNAMED_SQL=1 turns it off, for comparing and for ruling it
+            out.
+        */
+        const MAX_NAMED = 200;
+        const named = new WeakMap();
+
+        /**
+            Query config for `client.query` that prepares the statement
+            by name where it can.
+            @method prepared
+            @param {Object} client Database client
+            @param {String} sql Statement text with $n parameters
+            @param {Array} params Parameter values
+            @return {Object} `{text, values}`, plus `name` when named
+        */
+        tools.prepared = function (client, sql, params) {
+            let seen;
+            let name;
+            let ret = {text: sql, values: params || []};
+
+            if (process.env.FB_UNNAMED_SQL === "1" || !client) {
+                return ret;
+            }
+
+            /*
+                A unique name for the statement, nothing more: the digest
+                is the shortest thing that is unique to this text and
+                legal as an identifier, the way a guid would be. Nothing
+                in or about the statement is encrypted -- the SQL and its
+                parameters go to Postgres exactly as they would unnamed,
+                and show up in the log and in pg_stat_statements exactly
+                as they did before.
+            */
+            name = "fb_" + crypto.createHash("sha1").update(sql).digest("hex");
+            seen = named.get(client);
+
+            if (seen === undefined) {
+                seen = new Set();
+                named.set(client, seen);
+            }
+
+            if (seen.size < MAX_NAMED || seen.has(name)) {
+                seen.add(name);
+                ret.name = name;
+            }
+
+            return ret;
         };
 
         /**

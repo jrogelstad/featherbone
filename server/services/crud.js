@@ -1960,7 +1960,9 @@
                     sql = sql.split(KEY_PARAM).join("$2");
                     params.push(db.cryptoKey());
                 }
-                result = await theClient.query(sql, params);
+                result = await theClient.query(
+                    tools.prepared(theClient, sql, params)
+                );
                 result = mapKeys(result.rows[0]);
                 if (obj.sanitize !== false) {
                     result = tools.sanitize(result);
@@ -2007,7 +2009,9 @@
                     params.push(db.cryptoKey());
                     sql = sql.split(KEY_PARAM).join("$" + params.length);
                 }
-                result = await theClient.query(sql, params);
+                result = await theClient.query(
+                    tools.prepared(theClient, sql, params)
+                );
                 result = tools.sanitize(result.rows.map(mapKeys));
 
                 // Handle subscription
