@@ -93,6 +93,8 @@
     const check = [
         "admin",
         "currency",
+        "dashboard",
+        "dashboards",
         "data",
         "do",
         "feather",
@@ -1024,6 +1026,14 @@
         doGetMethod("getSettingsDefinition", req, res);
     }
 
+    function doGetDashboard(req, res) {
+        doGetMethod("getDashboard", req, res);
+    }
+
+    function doGetDashboards(req, res) {
+        doGetMethod("getDashboards", req, res);
+    }
+
     function doGetWorkbook(req, res) {
         doGetMethod("getWorkbook", req, res);
     }
@@ -1141,6 +1151,46 @@
             datasource against the request's own catalog, where it
             guards every database instead of one.
         */
+    }
+
+    /*
+        The layout's name comes from the route, not the body, so a
+        request cannot quietly save over a different layout than the
+        one it addressed.
+    */
+    function doSaveDashboard(req, res) {
+        let spec = Object.assign({}, req.body, {name: req.params.name});
+        let payload = {
+            method: "PUT",
+            name: "saveDashboard",
+            user: req.user.name,
+            data: spec,
+            tenant: req.tenant
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doDeleteDashboard(req, res) {
+        let payload = {
+            method: "DELETE",
+            name: "deleteDashboard",
+            user: req.user.name,
+            data: {name: req.params.name},
+            tenant: req.tenant
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
     }
 
     function doSaveWorkbook(req, res) {
@@ -4412,6 +4462,10 @@
             "/:db/settings/is-authorized/:name",
             doSettingIsAuthorized
         );
+        dbRouter.get("/:db/dashboards", doGetDashboards);
+        dbRouter.get("/:db/dashboard/:name", doGetDashboard);
+        dbRouter.put("/:db/dashboard/:name", doSaveDashboard);
+        dbRouter.delete("/:db/dashboard/:name", doDeleteDashboard);
         dbRouter.get("/:db/workbooks", doGetWorkbooks);
         dbRouter.get(
             "/:db/navigation-categories",
