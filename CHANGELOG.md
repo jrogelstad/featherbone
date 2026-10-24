@@ -5,6 +5,21 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The Users screen says what an administrator's badge reaches.** A
+  platform administrator wore "platform" and "admin" at once, which said
+  the same thing twice now that the tiers are a hierarchy. There is now
+  one badge for the highest authority the person holds, and hovering it
+  says what that authority covers -- every organization, or the named
+  organization and every instance it owns. Needs `"debug": true` until
+  `clientmin.js` is rebuilt.
+* **A platform administrator administers every instance.** Being a super
+  user inside an instance was raised from the owning organization's own
+  appointments, and a platform administrator is appointed over no
+  organization, so one could create, clone and drop an instance and still
+  not read a row in it. Sign-in and profile creation now recognise the
+  platform tier as well. A suspended platform administrator inherits
+  nothing, and anyone already marked a super user keeps it. ADR-001
+  revision 5.
 * **An organization administrator's profile is corrected at sign-in.**
   Being made a super user of the organization's instances happened only
   when someone was appointed or granted, so an administrator whose

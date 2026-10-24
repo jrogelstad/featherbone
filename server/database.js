@@ -1044,15 +1044,19 @@
         }
 
         /*
-            Is this person an administrator of the organization that
-            owns the instance? Asked of the manager, and remembered
-            briefly because deserializeUser runs on every request and
-            the answer for someone who is not one rarely changes.
+            Does this person administer this instance? Two ways, and
+            the tiers are a hierarchy (ADR-001 section 3): a platform
+            administrator answers for every organization, so every
+            instance is theirs, and anyone appointed over the
+            organization that owns this one administers it. Asked of
+            the manager, and remembered briefly because
+            deserializeUser runs on every request and the answer for
+            someone who is neither rarely changes.
         */
         const adminChecked = {};
         const ADMIN_RECHECK_MS = 60000;
 
-        async function isOrgAdminHere(req, username) {
+        async function administersInstance(req, username) {
             let key = req.tenant.id + ":" + String(username).toLowerCase();
             let last = adminChecked[key];
             let mgr;
@@ -1065,17 +1069,19 @@
 
             let resp = await mgr.client.query(
                 (
-                    "SELECT 1 FROM organization_admin a " +
-                    "JOIN identity i ON " +
-                    "  a._identity_identity_pk = i._pk " +
-                    "JOIN tenant t ON " +
-                    "  a._organization_organization_pk = " +
-                    "  t._organization_organization_pk " +
-                    "WHERE t.id = $1 " +
-                    "  AND lower(i.username) = lower($2) " +
+                    "SELECT 1 FROM identity i " +
+                    "WHERE lower(i.username) = lower($2) " +
                     "  AND i.status = 'active' AND NOT i.is_deleted " +
-                    "  AND a.is_active AND NOT a.is_deleted " +
-                    "  AND NOT t.is_deleted"
+                    "  AND (i.is_platform_admin OR EXISTS (" +
+                    "    SELECT 1 FROM organization_admin a " +
+                    "    JOIN tenant t ON " +
+                    "      a._organization_organization_pk = " +
+                    "      t._organization_organization_pk " +
+                    "    WHERE a._identity_identity_pk = i._pk " +
+                    "      AND t.id = $1 " +
+                    "      AND a.is_active AND NOT a.is_deleted " +
+                    "      AND NOT t.is_deleted" +
+                    "  ))"
                 ),
                 [req.tenant.id, username]
             ).then(function (answer) {
@@ -1096,12 +1102,13 @@
         }
 
         /*
-            Raise the profile of an organization administrator whose
-            row says otherwise. Never lowers anything, and a manager
-            that cannot be asked leaves the profile as it is.
+            Raise the profile of somebody who administers this
+            instance and whose row says otherwise. Never lowers
+            anything, and a manager that cannot be asked leaves the
+            profile as it is.
         */
         function healSuper(req, username) {
-            return isOrgAdminHere(req, username).then(function (yes) {
+            return administersInstance(req, username).then(function (yes) {
                 if (!yes) {
                     return false;
                 }
@@ -1195,14 +1202,18 @@
                 row = resp.rows[0];
 
                 /*
-                    An organization administrator is a super user of
-                    its own instances. The profile is raised when they
-                    are appointed or granted, but anyone appointed
-                    before that was so, or whose profile predates it,
-                    is still marked otherwise; bring it into line at
-                    sign-in instead of waiting for a re-grant. Never
-                    lowers anything, and a manager that cannot be
-                    asked leaves the profile as it is.
+                    Whoever administers this instance is a super
+                    user in it: a platform administrator, who answers
+                    for every organization, or anyone appointed over
+                    the organization that owns it (ADR-001 section 3).
+                    The profile is raised when they are appointed or
+                    granted, but a platform administrator is appointed
+                    over no organization, and anyone appointed before
+                    that behaviour existed, or whose profile predates
+                    it, is still marked otherwise; bring it into line
+                    at sign-in instead of waiting for a re-grant.
+                    Never lowers anything, and a manager that cannot
+                    be asked leaves the profile as it is.
                 */
                 if (!row.is_super && await healSuper(req, username)) {
                     row.is_super = true;
