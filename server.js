@@ -4316,6 +4316,14 @@
             "/:db/admin/identity/platform-admin",
             doAdmin("setPlatformAdmin")
         );
+        dbRouter.post(
+            "/:db/admin/identity/roles",
+            doAdmin("identityRoles")
+        );
+        dbRouter.post(
+            "/:db/admin/identity/role",
+            doAdmin("setRoleMembership")
+        );
         dbRouter.post("/:db/admin/grant", doAdmin("setGrant"));
         dbRouter.get("/:db/admin/instances", doAdmin("instanceOverview"));
         dbRouter.post(
