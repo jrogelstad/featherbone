@@ -14,7 +14,7 @@
     "install.js": 9,
     "scripts/clean-numeric-bounds.js": 3,
     "scripts/manager-constraints.js": 1,
-    "server.js": 24,
+    "server.js": 23,
     "server/config.js": 2,
     "server/database.js": 15,
     "server/datasource.js": 24,
