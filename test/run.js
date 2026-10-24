@@ -121,15 +121,44 @@ async function main() {
         );
         await db.clone();
         await db.bootstrap();
+        /*
+            The framework suites run against the fixture packages. The
+            SupplyChain suites run against the server's real packages: a
+            deployed module's code is read from its package on disk (it
+            is never written to the database), so a server that does not
+            hold SupplyChain has none of its functions registered.
+        */
+        let phases = [];
+        let apiFiles = integration.filter((f) => !f.includes("supplychain"));
+        let scFiles = integration.filter((f) => f.includes("supplychain"));
+
+        if (apiFiles.length) {
+            phases.push({files: apiFiles, options: {}});
+        }
+        if (scFiles.length) {
+            phases.push({
+                files: scFiles,
+                options: {modulesDir: settings.realModulesDir}
+            });
+        }
+
         try {
-            console.log("# starting server on port " + settings.port);
-            url = await server.start();
-            let s2 = runSerially(
-                integration,
-                {FB_TEST_URL: url},
-                server.isAlive
-            );
-            status = status || s2;
+            let at = 0;
+
+            while (at < phases.length) {
+                if (at > 0) {
+                    await server.stop();
+                }
+                console.log("# starting server on port " + settings.port);
+                url = await server.start(phases[at].options);
+                let s2 = runSerially(
+                    phases[at].files,
+                    {FB_TEST_URL: url},
+                    server.isAlive
+                );
+                status = status || s2;
+                at += 1;
+            }
         } finally {
             await server.stop();
             await db.drop();
