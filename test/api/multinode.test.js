@@ -24,26 +24,11 @@ const {spawn} = require("child_process");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
+const {flags} = require("../harness/authority");
 
 const PORT = settings.port + 4;
 const CLAIM_DB = (settings.testDb + "_claim").toLowerCase();
 
-function flags(username, data) {
-    return db.withClient(
-        settings.managerDb,
-        (client) => client.query(
-            (
-                "UPDATE identity SET is_org_admin = $2, " +
-                "is_platform_admin = $3 WHERE username = $1"
-            ),
-            [
-                username,
-                data.isOrgAdmin === true,
-                data.isPlatformAdmin === true
-            ]
-        )
-    );
-}
 
 /*
     One run of the claim contender: a bare process that loads the

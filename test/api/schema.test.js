@@ -304,24 +304,31 @@ describe("database schema", function () {
             let owner = access.featherName("FbtIdxOwner");
             let targetFeather;
             let ownerFeather;
+            let failed;
 
             try {
                 targetFeather = await access.createFeather(admin, {
                     name: target,
                     plural: target + "s",
-                    properties: [{name: "code", type: "string"}]
+                    properties: [{
+                        description: "Code",
+                        name: "code",
+                        type: "string"
+                    }]
                 });
                 ownerFeather = await access.createFeather(admin, {
                     name: owner,
                     plural: owner + "s",
                     properties: [{
+                        description: "Label",
+                        isIndexed: true,
                         name: "label",
-                        type: "string",
-                        isIndexed: true
+                        type: "string"
                     }, {
+                        description: "Partner",
+                        isIndexed: true,
                         name: "partner",
-                        type: {relation: target, properties: ["code"]},
-                        isIndexed: true
+                        type: {properties: ["code"], relation: target}
                     }]
                 });
                 assert.ok(ownerFeather, "feather was not saved");
@@ -345,9 +352,14 @@ describe("database schema", function () {
                     defs.some((d) => d.includes("(label)")),
                     "the scalar isIndexed index was lost"
                 );
-            } finally {
-                await access.deleteFeather(admin, ownerFeather);
-                await access.deleteFeather(admin, targetFeather);
+            } catch (err) {
+                failed = err;
+            }
+
+            await access.deleteFeather(admin, ownerFeather);
+            await access.deleteFeather(admin, targetFeather);
+            if (failed) {
+                throw failed;
             }
         });
     });
