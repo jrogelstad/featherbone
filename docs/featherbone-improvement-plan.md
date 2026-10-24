@@ -19,6 +19,10 @@
 
 **Progress 2026-10-09:** Tier 0 items 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 and 0.9 and Tier 1 items 1.2, 1.3, 1.7 and 1.8 are fixed (all merged except 0.4, which is pushed). Also merged: tenant plan A.2, a test reporter fix, ribbon component tests and a button label fix (see `featherbone-fix-branches.md`). Todo counts in the table below are as of the suite's creation and are not recalculated.
 
+**Progress 2026-10-24 (SupplyChain):** items 0.10 and 2.1, 2.2, 2.3, 2.4, 2.5, 2.7 and 2.8 are fixed and merged in `jrogelstad/SupplyChain` (PRs #21 to #28), one branch each, plus the pdfjs/table-layout port of the five print services (PR #29), the logo-pointer fix for the design prints (PR #31) and side margins for the product label (`fix/product-label-margins`). The framework needed three fixes before any of it could run (see `featherbone-fix-branches.md`, eighth round). John confirmed the bill of material and the indented BOM, with their prints, on `demo`; the SupplyChain suites have not yet been run over the merged code, and none of the Tier 2 fixes has been exercised on a live server. Details, judgment calls and what each branch left open are in `featherbone-supplychain-fix-branches.md`.
+
+**Also 2026-10-24:** 1.1 and 1.6 are ticked (done by the tenant-management plan, see their notes) and 0.11 is closed as not reproduced.
+
 **Progress 2026-10-13:** everything pushed through 2026-10-11 is merged (PRs #164-#177, #191-#194): 0.1, 0.4, 0.13, 0.16, 0.17, 1.2, 1.3, 1.7, 1.8, 2.6, 3.1, 3.3 and the 6.1 handler, plus tenant plan A.1-A.5 and B.1-B.3, the install fix for a brand new database, the `clean-numeric-bounds` script and test-helper fixes. Last verified run on John's machine (master at PR #194): API 262 pass / 0 fail, unit 306 pass. Pushed and **not yet merged**: tenant plan B.4/B.5 (`feat/b4-b5-identity-writes`), the manager admin API (`feat/manager-admin-api`) and the Users screen (`feat/manager-admin-ui`), stacked in that order. They finish what 0.1 and 1.1 started for the identity path: under `authStrategy: identity` users are identities, not Postgres roles. 1.1 stays open until the cutover is run (B.6) and `CREATEROLE` is withdrawn from the framework role. Still open from this tier: 0.10, 0.11 (could not reproduce), 0.12, 0.14, 0.15.
 
 As of 2026-09-27 · John · exported from the living doc (rev 12): https://claude.ai/code/artifact/0360df5d-d8ec-4a95-a4af-93d9d5dcbcbb
@@ -111,8 +115,8 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
     - Fixed on `fix/0.8-client-statecharts` (2026-10-08), including a re-entrancy bug in `client/state.js` that caused the `clear()` overflow. Settings still park in `/Error` after a failed save (pinned).
 - [x] **0.9 Common helpers:** `(-5).pad(3)` gives `0-5`; `'_foo'.toCamelCase()` drops the first letter; `netWorkDays` mutates its Date arguments; money `toType` rounds the conversion ratio to the currency scale (ratio 0.001 becomes 0, division by zero).
     - Fixed on `fix/0.9-common-helpers` (2026-10-08).
-- [ ] **0.10 SupplyChain:** `change-purchase-order-status` reads `ids[i]` so a single `id` gives 500; inbound move transactions have no `document`; a failed auto-post after save leaves no error on the record; `do-post-work-order-issue.js` rejects on-hold orders inside `try` without `await`, skipping error handling.
-- [ ] **0.12 A new feather still defaults to everyone-everything.** On
+- [x] **0.10 SupplyChain** *(done 2026-10-21, PR #21: wrong id variable, the inbound move's `document`, the on-hold message, and a failed auto-post now leaves an `error` on the record and raises an Alert)*: `change-purchase-order-status` reads `ids[i]` so a single `id` gives 500; inbound move transactions have no `document`; a failed auto-post after save leaves no error on the record; `do-post-work-order-issue.js` rejects on-hold orders inside `try` without `await`, skipping error handling.
+- [ ] **0.12 A new feather still defaults to everyone-everything.** *(Checked 2026-10-24 against master: `defaultAuth` is still applied on insert, `scripts/services.js` ~195. The roles work of PR #291 creates roles a feather names; it does not change the insert default. Still open.)* On
   insert, a feather that declares no `authorizations` gets `everyone` full
   CRUD (`scripts/services.js` `defaultAuth`). 0.4 fixed the update path
   only, because application modules may rely on the insert default --
@@ -132,7 +136,7 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   properties array no longer crashes either. **Reinstall Core after
   merging** -- the trigger is a deployed data service. Test in
   authorization.test.js.*
-- [ ] **0.14 User accounts have no column-level authorization.** With 0.4
+- [ ] **0.14 User accounts have no column-level authorization.** *(Checked 2026-10-24 against master after the users redo: `UserAccount` in `feathers-bootstrap.json` still grants `everyone` read on every column, `isSuper`, `isLocked`, `signInAttempts` and `lastSignIn` included. Not tested on a live server. Still open unless the picker has moved to a name-list route, which I did not find.)* With 0.4
   in, `everyone` reads `user_account` because the client's user-name picker
   needs it, which also exposes `isSuper`, `isLocked`, `signInAttempts` and
   `lastSignIn` to every signed-in user. Narrowing it to names needs either
@@ -186,7 +190,7 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   can have that column skipped. Fix is a copy rather than a reference; the
   care is in checking what already depends on the current behaviour, and
   whether polluted catalogs need cleaning.
-- [ ] **0.11 CLI install of SupplyChain** (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct. *Investigated 2026-10-11, could not reproduce without SupplyChain: a fixture module declaring `"type": "object", "format": "money"` installs as `mono` through `--dir` on current master, and a bare `"type": "money"` is refused with a clean error. So the defect needs SupplyChain's own declaration shape or install order (overloads? a property added to an existing table?) -- reproduce on a machine with the SupplyChain checkout before fixing. The `formats` map drives the DDL; `json` appears when a money property reaches the builder with its `format` lost, so look for where that path drops it.*
+- [x] **0.11 CLI install of SupplyChain** *(closed 2026-10-24 as not reproduced, John: if money columns installed as `json`, nothing would work. In `demo`, installed through Install and Deploy, all 284 money columns are `mono` and none is `json`; the `json` columns are genuine ones such as `links`, `gantt` and `filter`. The report was a one-off from a CLI install in the original review and was never seen again. Reopen if `node install.js --dir` is ever seen to do it.)* (`node install.js --dir`) creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct. *Investigated 2026-10-11, could not reproduce without SupplyChain: a fixture module declaring `"type": "object", "format": "money"` installs as `mono` through `--dir` on current master, and a bare `"type": "money"` is refused with a clean error. So the defect needs SupplyChain's own declaration shape or install order (overloads? a property added to an existing table?) -- reproduce on a machine with the SupplyChain checkout before fixing. The `formats` map drives the DDL; `json` appears when a money property reaches the builder with its `format` lost, so look for where that path drops it.*
 
 ## How to use this plan
 
@@ -207,7 +211,7 @@ Scope: framework at `867c146` (your `refactor` branch), SupplyChain `9de2417` (2
 
 The top item is tenant role isolation: one tenant's admin can reset another tenant's user password today. The rest are credential exposure and destructive failure paths.
 
-- [ ] **1.1 Isolate tenant users from each other.** **[superseded → tenant-management-plan; partial fix at A.5]** Users are cluster-wide Postgres roles, and creating a `UserAccount` whose role already exists runs `ALTER ROLE … PASSWORD` on it.
+- [x] **1.1 Isolate tenant users from each other.** **[superseded → tenant-management-plan]** *Done in code 2026-10-15/16 by the identity work: B.8 retired the role path (no Postgres login roles, no `CREATEROLE`, sign-in by identity with `access_grant` as the entry boundary), F.1 is the two-organization isolation test this item asked for (`test/api/isolation.test.js`, checked by mutation), and since `feat/global-usernames` (2026-10-21) a username is unique across the installation, so the original attack (creating a user in organization B with organization A's username) cannot be made. What remains is operations, not code: run `migrate-identities`/the self-upgrade switches on each real installation (see `tenant-management-plan.md`).* **[was: partial fix at A.5]** Users are cluster-wide Postgres roles, and creating a `UserAccount` whose role already exists runs `ALTER ROLE … PASSWORD` on it.
     - Where: `scripts/services.js` `createRole`; `server/services/role.js` ~212–232; authorization via `pg_has_role()` in `tools.js`, `feathers.js`, `workbooks.js`.
     - Quick fix: refuse to create a user whose role exists but has no `user_account` row in this database.
     - Real fix: per-tenant role prefix, or app-level authentication and authorization, or one cluster per tenant. Decide before the refactor goes further; it shapes the auth model.
@@ -223,10 +227,10 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
 - [x] **1.4 Remove drop-on-failure from `createDatabase`.** *Done 2026-10-13 on `fix/d2-database-api` (tenant plan D.2): a name already taken is refused and never dropped, the rollback drops only a database the call created, the name is normalized before `pg_database` is checked, and `conn2` is guarded in the `finally`.* If `CREATE DATABASE` fails because the name exists, the catch fires an un-awaited `DROP DATABASE IF EXISTS`.
     - Where: `server/datasource.js` ~332–400; duplicate check in Admin Console `triggers-tenant.js` runs before name normalization.
     - Fix: only drop a database this call created; check `pg_database` after normalizing the name; guard `conn2` in `finally`.
-- [ ] **1.5 Close the Zip2Tax path traversal.** The file path comes from the client's `filename`, is read, then deleted.
+- [ ] **1.5 Close the Zip2Tax path traversal.** *Still open (2026-10-24), and the same hole exists in `common/do-consolidate-print.js`, which reads, merges and deletes any PDF its client-supplied names reach.* The file path comes from the client's `filename`, is read, then deleted.
     - Where: SupplyChain `sell/do-zip2tax-import.js:22,116`.
     - Fix: accept only an upload id or `path.basename`, resolve inside the upload folder, and verify it stays there.
-- [ ] **1.6 Fix the login connection leak.** **[deleted by tenant-management-plan B.2 — no connection is opened as the user]** Each failed sign-in strands a pooled connection and creates two new pools.
+- [x] **1.6 Fix the login connection leak.** **[deleted by tenant-management-plan B.2 — no connection is opened as the user]** Each failed sign-in strands a pooled connection and creates two new pools.
     - Where: `server/database.js` `authenticate()` ~140–215.
     - Fix: `try/finally` release and end; reuse the service pool for the bookkeeping queries; use the tenant host, not `conf.pgHost`.
 - [x] **1.7 Remove default secrets from the repo config.** `server/config.json` ships a `secret` and `pgCryptoKey`.
@@ -239,23 +243,23 @@ The top item is tenant role isolation: one tenant's admin can reset another tena
     - Where: `crud.js` `doSelect` (~1810, `pgp_sym_decrypt(col, '<key>')`); `role.js` `ALTER ROLE … PASSWORD %L` and `CREATE ROLE … PASSWORD %L`.
     - Fix: pass the key as a parameter as `settings.js` does; for role passwords, send a pre-hashed SCRAM secret or set `log_statement = none` for that session.
 
-## Tier 2: Data correctness
+## Tier 2: Data correctness (done 2026-10-24; residuals listed under each item)
 
 These are SupplyChain bugs that change tax, cost, inventory and allocation figures, plus the framework's non-unique natural keys. Start with 2.1 and 2.2: they are small edits with large blast radius.
 
-- [ ] **2.1 Remove mid-transaction `COMMIT`s.** Four services commit on the request's own client, often un-awaited, so later work runs in autocommit and rollback hooks and advisory locks are lost.
+- [x] **2.1 Remove mid-transaction `COMMIT`s.** *Done 2026-10-21, `fix/2.1-no-mid-transaction-commit` (PR #22). Not run on a server.* Four services commit on the request's own client, often un-awaited, so later work runs in autocommit and rollback hooks and advisory locks are lost.
     - Where: `design/do-roll-up-costs.js:246`, `design/do-update-proposed-costs.js:39`, `sell/do-zip2tax-import.js:48` (also un-awaited `DELETE FROM tax_rate`), `plan/do-clear-allocations.js` (own `BEGIN`/`COMMIT`).
     - Fix: delete the `COMMIT`s and await the statements; if a subscription cleanup must be isolated, use a separate connection.
-- [ ] **2.2 Round tax correctly.** `Math.round(ttl, 2)` ignores the second argument, so tax rounds to whole units.
+- [x] **2.2 Round tax correctly.** *Done 2026-10-21, `fix/2.2-round-tax` (PR #23); also fixes the client's freight tax. Not run on a server.* `Math.round(ttl, 2)` ignores the second argument, so tax rounds to whole units.
     - Where: `bill/do-create-shipment-invoice.js:153`; unrounded line and discount amounts in `sell/triggers-sales-order.js` ~171–186.
     - Fix: `ttl.round(CURR_SCALE)` and round line amounts at the currency scale.
-- [ ] **2.3 Lock before reading in posting functions.** Status is read before the lock, so two concurrent posts can both see status P and both post inventory.
+- [x] **2.3 Lock before reading in posting functions.** *Done 2026-10-21, `fix/2.3-lock-before-reading` (PR #24), with a transaction-scoped advisory lock waited on before the read (sorted ids so overlapping posts cannot deadlock) rather than the application lock, which is only cleared when a record is updated. Shipment invoicing gained an `isInvoiced` guard. **Not yet done:** the ship functions still read the shipment before locking it, and the concurrent-posting test under Verification is still to run.* Status is read before the lock, so two concurrent posts can both see status P and both post inventory.
     - Where: `buy/do-post-purchase-order-receipt.js` ~66–135, `make/do-post-work-order-receipts.js`, `make/do-post-work-order-issue.js`, `stock/do-post-inventory-adjustment.js`, `count/do-post-physical-count.js`; same pattern in `bill/do-apply-invoice-payment.js` and prepaid application in `do-create-shipment-invoice.js`.
     - Fix: claim the document atomically, e.g. `UPDATE … SET status = 'R' WHERE id = $1 AND status = 'P' RETURNING`, or lock then re-read.
-- [ ] **2.4 Make actual-cost totals one shared calculation.** Three copies of backflush and cost logic accumulate totals differently; at least two double-count, and shipping never adds labor or overhead.
+- [x] **2.4 Make actual-cost totals one shared calculation.** *Done 2026-10-21, `fix/2.4-actual-cost-totals` (PR #25): total is the sum of the four buckets in WO receipts, operation completion, WO issue and shipping; shipping puts the unexplained part of an item's cost in material. Existing totals correct themselves only on their next posting. The three copies are still three copies (see 6.3).* Three copies of backflush and cost logic accumulate totals differently; at least two double-count, and shipping never adds labor or overhead.
     - Where: WO receipts ~609–801, `make/post-operation-completion.js` ~254–439, `make/do-post-work-order-issue.js` ~161–398, `ship/do-ship-sales-order-shipment.js` ~361–375.
     - Fix: one helper where total = material + labor + overhead + service, used by all paths.
-- [ ] **2.5 Fix allocation drift.** `inventory.allocated` and `supply.allocated` diverge from allocation rows; manual WO issue never relieves allocations.
+- [x] **2.5 Fix allocation drift.** *Done 2026-10-21, `fix/2.5-allocation-drift` (PR #26). Not run on a server.* `inventory.allocated` and `supply.allocated` diverge from allocation rows; manual WO issue never relieves allocations.
     - Where: `plan/do-transact-allocated.js` ~427–540; `make/do-post-work-order-issue.js:269` compares to `"issue"` but the value is `"issued"`.
     - Fix: accumulate after the negative on-hand adjustment; subtract only what was actually deallocated; fix the string.
 - [x] **2.6 Make natural keys unique in the database.** *Done 2026-10-11 on
@@ -271,10 +275,10 @@ These are SupplyChain bugs that change tax, cost, inventory and allocation figur
       table or a trigger. **This matters more since ADR-002**, which makes
       extension-by-inheritance the supported way for a customer to add
       columns -- a customer's subclass can otherwise escape the parent's key.
-- [ ] **2.7 Void ShipEngine labels on rollback.** Labels are bought over HTTP inside the ship transaction; the ids kept "in case of reject" are never voided.
+- [x] **2.7 Void ShipEngine labels on rollback.** *Done 2026-10-21, `fix/2.7-void-labels-on-rollback` (PR #27): every bought label is voided from a separate request on rollback, with a Critical Alert if ShipEngine refuses.* Labels are bought over HTTP inside the ship transaction; the ids kept "in case of reject" are never voided.
     - Where: `ship/do-ship-sales-order-shipment.js` ~193–237, `do-ship-outside-process-shipments.js` ~121–165, `do-print-shipment-labels.js` ~81–91.
     - Fix: void in `client.onRollback`, or buy labels in a separate committed step keyed on the shipment.
-- [ ] **2.8 Fix invoice, history and closure bugs.**
+- [x] **2.8 Fix invoice, history and closure bugs.** *Done 2026-10-22, `fix/2.8-invoice-history-closure` (PR #28), five commits. Left open: invoice history `shipment` and `site` are always empty (Invoice has no `shipment` property); the prepaid-invoice PATCH still uses `oldRec.total`; leftover locks after invoice payments.*
     - `bill/triggers-invoice.js` reads `ln.shipment` and `ln.unitPrice`, which don't exist, so sales history gets `shipmentLine` 0 and `unitPrice` null; several `number === object` comparisons never fire.
     - Prepayment loop in `do-create-shipment-invoice.js:171` never stops at zero balance.
     - `let del` outside loops writes history for the last allocation only: `make/triggers-work-order.js:68`, `buy/triggers-purchase-order.js:70`, `plan/triggers-planned-order.js:113`.
