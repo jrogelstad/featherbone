@@ -23,7 +23,7 @@
   "dependencies": {
     "adm-zip": "^0.6.1",
     "big.js": "^6.1.1",
-    "body-parser": "^1.20.4",
+    "body-parser": "^1.20.9",
     "codemirror": "^5.65.0",
     "connect-pg-simple": "^7.0.0",
     "cron": "^1.8.2",
