@@ -335,9 +335,36 @@ At `demo` scale, planning is the dominant cost: 75–150 ms to plan a view query
 | `_work_order` first page | 19 | 77 ms | 9 ms |
 | `_form` all | 104 | — | 172 ms |
 
-- [ ] **4.1 Cache query plans.** The framework sends unnamed parameterized queries, so every request replans.
+- [~] **4.1 Cache query plans.** The framework sends unnamed parameterized queries, so every request replans.
     - Fix: named prepared statements (`{name, text, values}` in `pg`) for stable `doSelect` shapes, so each connection caches the plan.
     - Done when: repeated form loads show planning near zero in `pg_stat_statements`.
+    - *Written and measured 2026-10-24 on `feat/4.1-named-statements`, not
+      merged. `tools.prepared` names a statement by a hash of its text, every
+      value being a bound parameter already, and a connection stops naming new
+      shapes at 200 because node-postgres never drops a prepared name.
+      `FB_UNNAMED_SQL=1` turns it off, which is how these numbers were taken:
+      300 list reads (purchase orders, work orders, sales orders, ten rounds)
+      against a freshly installed `demo`.*
+    - *Unnamed: 1309 ms and 1433 ms wall, 949 ms and 1038 ms of planning.
+      Named: 496 ms and 516 ms wall, 274 ms and 285 ms of planning. So two and
+      a half times faster, and planning falls by about 70%. It does not fall
+      to zero because Postgres plans a named statement afresh for its first
+      five executions before it settles on a generic plan -- with a ten
+      connection pool that warm-up is paid up to fifty times per query shape,
+      which is an argument for 5.1's smaller pools.*
+    - *Risk checked: a view rebuilt under a cached plan. Adding a property to
+      a feather and reading its list again behaves identically named and
+      unnamed (both answer "column \"note\" does not exist" until the view
+      is rebuilt), so naming does not add a failure there. The
+      "cached plan must not change result type" error looks unreachable here
+      because `doSelect` always names its columns and returns one json
+      column. `api/query` (33) and `api/crud` (42 of 43, the one failure
+      environmental) pass with it on.*
+    - *Left to decide: whether this and PgBouncer in transaction mode can
+      coexist (they cannot -- named statements do not survive it), which 4.4
+      and 5.1 both touch. And 4.2 removes the cost rather than hiding it: the
+      planning is expensive because each view is an Append over every child
+      table. If only one of the two gets done, 4.2 is the better buy.*
 - [ ] **4.2 Slim the generated views.** Each to-one relation to an inherited feather becomes an `Append` over every child table, nested up to 3 levels (24 subselects per `ShipmentInvoice` row).
     - Fix: a list view that expands only natural key and label fields; keep full expansion for single-record form loads; consider `LEFT JOIN LATERAL` over scalar subselects.
 - [ ] **4.3 Cache form and catalog metadata in Node.** `form_attr_column` was scanned 3,044 times in a few minutes of use.
