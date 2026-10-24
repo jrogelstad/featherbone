@@ -11,6 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "node server.js",
     "dev:load": "node scripts/dev/load.js",
     "test": "node test/run.js",
     "test:unit": "node test/run.js unit",
