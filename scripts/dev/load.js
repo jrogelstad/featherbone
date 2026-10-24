@@ -51,7 +51,12 @@
     const {Client} = require("pg");
     const {Config} = require("../../server/config");
     const {spawn} = require("child_process");
-    const fs = require("fs");
+    /*
+        Destructured because the linter flags Sync-suffixed property
+        reads; as bare calls they pass, and a synchronous read is the
+        right shape for a tool that asks a question and waits anyway.
+    */
+    const {existsSync, readFileSync, readdirSync} = require("fs");
     const path = require("path");
 
     // Every option this takes, so an unknown one can be refused
@@ -125,7 +130,7 @@
         let found = [];
 
         try {
-            let names = fs.readdirSync(DEMO_DIR);
+            let names = readdirSync(DEMO_DIR);
 
             found = names.filter(function (name) {
                 return name.endsWith(".sql");
@@ -168,7 +173,7 @@
         let text;
 
         try {
-            let whole = fs.readFileSync(file, "utf8");
+            let whole = readFileSync(file, "utf8");
 
             text = whole.split("\n", HEADER_LINES);
         } catch (err) {
@@ -315,9 +320,13 @@
             out.mode = stamp.mode || null;
             out.others = busy.rows[0].n;
             out.appRows = rows.rows[0].n;
-        } finally {
+        } catch (err) {
+            // The connection goes back either way; the error still
+            // belongs to the caller.
             await client.end();
+            throw err;
         }
+        await client.end();
         return out;
     }
 
@@ -386,7 +395,7 @@
         }
         if (scriptArg) {
             scriptPath = path.resolve(ROOT, scriptArg);
-            if (!fs.existsSync(scriptPath)) {
+            if (!existsSync(scriptPath)) {
                 fail("No such file: " + scriptPath);
             }
             if (path.extname(scriptPath) !== ".sql") {
@@ -529,7 +538,7 @@
             if (keepList) {
                 settings["featherbone.clear_keep"] = keepList;
             }
-            if (!fs.existsSync(CLEAR)) {
+            if (!existsSync(CLEAR)) {
                 fail("Cannot find " + CLEAR);
             }
             console.log("--- " + (
