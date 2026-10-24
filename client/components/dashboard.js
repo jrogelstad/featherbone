@@ -433,12 +433,24 @@ function placeTiles(wanted) {
     it stays here now that layouts are records.
 */
 function composeLayout() {
+    /*
+        Every registered metric, not a hard-coded list. A module that
+        contributes a KPI gets it on the standard board for the same
+        reason a module that contributes a source gets its tile: an
+        installed package should arrive showing something, not waiting
+        to be found in a dialog.
+    */
+    let metrics = listKpis().map(function (kpi) {
+        return kpi.key;
+    });
     let tiles = [{
         cols: 5,
         heading: "Key Metrics",
         id: "core-kpis",
-        kpis: ["userCount"],
-        rows: 3,
+        kpis: metrics,
+        // A row per metric, so a tile holding several is not one that
+        // silently clips the last of them.
+        rows: Math.min(DASH_ROWS, Math.max(3, metrics.length + 1)),
         type: "kpi"
     }];
 
@@ -1188,10 +1200,7 @@ function kpiTile(tile) {
     }
 
     return [
-        m("div", headingDrag(tile), [
-            m("span", tile.heading),
-            removeControl(tile)
-        ]),
+        m("div", headingDrag(tile), m("span", tile.heading)),
         body
     ];
 }
@@ -1442,8 +1451,7 @@ function measureTile(tile) {
                 total === null
                 ? null
                 : m("span", {class: "fb-dash-tile-total"}, fmt.amount(total))
-            ),
-            removeControl(tile)
+            )
         ]),
         body
     ];
@@ -1676,11 +1684,15 @@ function resizeHandle(tile) {
 /**
     The control that takes a tile off the board.
 
-    Lives in the tile's own heading rather than in a mode somebody has to
-    enter first: a board is arranged by trying things, and a tile you
-    cannot get rid of makes trying things expensive. It is faint until the
-    tile is hovered, so a board being read is not a board covered in
-    buttons.
+    In the tile's own top corner, opposite the resize grip, rather than
+    in a mode somebody has to enter first: a board is arranged by trying
+    things, and a tile you cannot get rid of makes trying things
+    expensive. It sat beside the heading while a tile had no boundary and
+    nothing but adjacency said which tile a control belonged to; now that
+    a tile is a card with an edge, the corner says it (John, Oct 2026).
+
+    Faint until the tile is hovered, so a board being read is not a board
+    covered in buttons.
 */
 /**
     The heading doubles as the handle a tile is dragged by.
@@ -1784,6 +1796,7 @@ let dashboard = {
                         ? kpiTile(tile)
                         : measureTile(tile)
                     ),
+                    removeControl(tile),
                     resizeHandle(tile)
                 ]);
             }).concat(dropOutline()))
