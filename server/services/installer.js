@@ -345,7 +345,22 @@
                             ended (John, Oct 2026: "Just said it was
                             deployed").
                         */
-                        let held = reqClient.rollbacks || [];
+                        /*
+                            Two connections, two sets of hooks. The
+                            caller's (reqClient) hold the progress
+                            record. The installer's own (pClient) hold
+                            whatever services registered while doing
+                            the work on it -- the settings service
+                            registers one per settings row it wrote, to
+                            drop that row's process-cache entry if the
+                            write is rolled back. Running only the
+                            caller's left the installer's cache entries
+                            poisoned, which is improvement-plan 6.7:
+                            one failed install making the next fail.
+                        */
+                        let held = (pClient.rollbacks || []).concat(
+                            reqClient.rollbacks || []
+                        );
                         let hooks = held.slice();
 
                         while (hooks.length) {
