@@ -105,9 +105,20 @@ function num(v) {
     return Number(v);
 }
 
-// Purchase order payload as the client posts it. lines: [{item, ordered,
-// price, unit, ratio}]
-function purchaseOrderData(w, supp, lines, overrides) {
+/*
+    Purchase order payload as the client posts it. lines: [{item,
+    ordered, price, unit, ratio}]
+
+    Each line carries an owner because a purchase order line is a
+    Document and Document requires one. A record posted on its own has
+    it filled in by the Document trigger, but a child row does not: a
+    child is inserted by its parent's insert, which does not go back
+    through the trigger traversal, so whoever posts the parent supplies
+    it -- as the client's own Document model does. A sales order line
+    is not a Document and needs none, which is why only this one says
+    so.
+*/
+function purchaseOrderData(w, supp, lines, overrides, owner) {
     return Object.assign({
         orderDate: today(),
         plannedDelivery: today(7),
@@ -118,6 +129,7 @@ function purchaseOrderData(w, supp, lines, overrides) {
         freight: money(0),
         lines: lines.map(function (ln) {
             return {
+                owner,
                 item: ref(ln.item),
                 site: ref(ln.site || w.site),
                 ordered: ln.ordered,
@@ -135,7 +147,7 @@ function purchaseOrderData(w, supp, lines, overrides) {
 async function purchaseOrder(session, w, supp, lines, overrides) {
     let po = await session.create(
         "PurchaseOrder",
-        purchaseOrderData(w, supp, lines, overrides)
+        purchaseOrderData(w, supp, lines, overrides, session.user.name)
     );
     return session.read("PurchaseOrder", po.id);
 }

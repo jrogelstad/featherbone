@@ -1960,7 +1960,9 @@
                     sql = sql.split(KEY_PARAM).join("$2");
                     params.push(db.cryptoKey());
                 }
-                result = await theClient.query(sql, params);
+                result = await theClient.query(
+                    tools.prepared(theClient, sql, params)
+                );
                 result = mapKeys(result.rows[0]);
                 if (obj.sanitize !== false) {
                     result = tools.sanitize(result);
@@ -2007,7 +2009,9 @@
                     params.push(db.cryptoKey());
                     sql = sql.split(KEY_PARAM).join("$" + params.length);
                 }
-                result = await theClient.query(sql, params);
+                result = await theClient.query(
+                    tools.prepared(theClient, sql, params)
+                );
                 result = tools.sanitize(result.rows.map(mapKeys));
 
                 // Handle subscription
@@ -2074,7 +2078,6 @@
             let params = [];
             let ary = [];
             let clen = 0;
-            let children = [];
             let p = 1;
             let n = 0;
             let theClient = obj.client;
@@ -2496,12 +2499,37 @@
                     }
                 }
 
-                // Done, move on
-                // Execute child changes first so all captured in any
-                // notification
-                children = doList.map(
-                    (item) => item.func(item.payload, true)
-                );
+                /*
+                    Child changes before the parent's own update, so a
+                    notification carries all of it.
+
+                    One at a time, and in the order they were listed,
+                    which is every delete before any insert. They were
+                    started together and awaited as a group: they share
+                    this connection, so nothing ran in parallel anyway
+                    -- they only interleaved, in whatever order their
+                    awaits happened to fall, which is also what
+                    node-postgres warns about ("client.query() when the
+                    client is already executing a query").
+
+                    It matters since item 2.6 put a unique index behind
+                    a natural key. A child whose key is derived rather
+                    than carried -- a work order operation is
+                    `<order number>#<sequence>` -- is replaced by a row
+                    with a new id and the same key, and the insert
+                    reaching the database before the delete it replaces
+                    is refused: re-exploding a work order answered
+                    `duplicate key value violates unique constraint
+                    "work_order_operation_index_number"`. The end state
+                    was always legal; only the order within the save
+                    was not.
+                */
+                let at = 0;
+
+                while (at < doList.length) {
+                    await doList[at].func(doList[at].payload, true);
+                    at += 1;
+                }
 
                 // Execute top level object change
                 sql = (
@@ -2512,7 +2540,6 @@
                 params.push(pk);
                 clen += 1;
 
-                await Promise.all(children);
                 // console.log("SQL", sql);
                 await theClient.query(sql, params);
 
