@@ -75,6 +75,31 @@ async function address(session, overrides) {
     return session.create("Address", addressData(overrides));
 }
 
+/*
+    The same address again, as its own record. A child address belongs
+    to the one record that carries it, so handing a second record the
+    first one's id does not point at it -- the server inserts what it
+    was given, which for an id alone is an empty address, and the
+    required street says so. Copying the values and taking a new id is
+    what the client does when it fills a ship-to from a customer.
+*/
+function addressCopy(from) {
+    let had = from || {};
+    let fields = [
+        "type", "name", "street", "unit", "city", "state",
+        "postalCode", "country", "phone"
+    ];
+    let copy = {};
+
+    fields.forEach(function (key) {
+        if (had[key] !== undefined && had[key] !== null) {
+            copy[key] = had[key];
+        }
+    });
+
+    return addressData(copy);
+}
+
 async function currency(session, code) {
     let found = await findOne(session, "Currencies", "code", code || "USD");
     if (!found) {
@@ -393,6 +418,7 @@ async function cabinetAssembly(session, w) {
 
 module.exports = {
     address,
+    addressCopy,
     addressData,
     cabinetAssembly,
     configure,
