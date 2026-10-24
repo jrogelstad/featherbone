@@ -86,6 +86,15 @@
     the point, not an edge case: targets and history are not to be a
     prerequisite for the dashboard being worth looking at.
 
+    **The reporting date.** The board reports as of a date, which is today
+    unless it has been pinned to a fixed one. Pinning is what makes a demo
+    database worth looking at -- sample data sits in its own years, and a
+    board stuck on the real today shows a year-to-date of nothing and no
+    prior-year comparison to mark. It is a property of the layout, passed
+    down to every tile, and a source is free to ignore it. Sources that
+    honour it resolve the date server side, so what a tile shows does not
+    depend on the clock of the browser asking.
+
     Layouts are held in code here for now, composed from whatever has
     registered. They become records (a feather, per-user, shareable,
     shippable in a package) in the next increment.
@@ -93,6 +102,11 @@
 const DASH_COLS = 12;
 const DASH_ROWS = 8;
 const DASH_SPARK_MONTHS = 12;
+
+// Where the pinned reporting date lives until layouts are records: per
+// browser, so a demo survives a reload without a round trip, and so one
+// person pinning a date does not move everybody else's board.
+const DASH_AS_OF_KEY = "fb-dashboard-as-of";
 
 // Percentage scale for a KPI tile's bullets, mirroring figure 8-1: a bar is
 // the measure as a percentage of its own comparison, so measures in
@@ -123,6 +137,69 @@ let refreshState = {status: "idle"};
 // The arrangement on screen. Refresh is pressed on the ribbon, which is not
 // inside the board's component, so the two meet here.
 let currentLayout = null;
+
+/**
+    The pinned reporting date, or null for "today". Storage can throw where
+    a browser has it switched off, and a board that will not draw because a
+    preference could not be read would be a poor trade.
+*/
+function storedAsOf() {
+    try {
+        return window.localStorage.getItem(DASH_AS_OF_KEY) || null;
+    } catch (ignore) {
+        return null;
+    }
+}
+
+function storeAsOf(value) {
+    try {
+        if (value) {
+            window.localStorage.setItem(DASH_AS_OF_KEY, value);
+        } else {
+            window.localStorage.removeItem(DASH_AS_OF_KEY);
+        }
+    } catch (ignore) {
+        return;
+    }
+}
+
+/**
+    The date a layout reports as of, as a Date: its own, or today.
+
+    Parsed as local midnight rather than handed to `new Date("2027-05-31")`,
+    which reads the string as UTC and so lands on the 30th for anyone west
+    of Greenwich -- a reporting date that is off by one for half the world
+    is worse than no reporting date at all.
+*/
+function asOfDate(layout) {
+    let pinned = layout && layout.asOf;
+    let when = (
+        pinned
+        ? new Date(String(pinned) + "T00:00:00")
+        : new Date()
+    );
+
+    if (!Number.isFinite(when.getTime())) {
+        return new Date();
+    }
+    return when;
+}
+
+/**
+    A pinned reporting date, said the way the board says it.
+*/
+function asOfText(value) {
+    let when = new Date(String(value) + "T00:00:00");
+
+    if (!Number.isFinite(when.getTime())) {
+        return String(value);
+    }
+    return when.toLocaleDateString([], {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
 
 /**
     Registers a KPI descriptor. Later registrations of the same key win, so
@@ -323,6 +400,7 @@ function defaultLayout() {
     });
 
     return {
+        asOf: storedAsOf(),
         tiles: placeTiles(tiles),
         title: null,
         version: registryVersion
@@ -352,6 +430,9 @@ function monthEnds(count, end) {
     comparison is that same count a year ago -- both genuine, which also
     means a young instance will show a nearly flat sparkline. That is the
     honest picture, and it exercises the near-flat path.
+
+    Counts as of the board's reporting date rather than as of now, so a
+    pinned board is pinned throughout rather than in some tiles only.
 */
 registerKpi({
     key: "userCount",
@@ -360,17 +441,17 @@ registerKpi({
     format: function (n) {
         return Number(n).toLocaleString();
     },
-    load: function () {
+    load: function (context) {
         let payload = {
             method: "POST",
             path: "/data/user-accounts",
             body: {properties: ["id", "created"]}
         };
+        let asOf = (context && context.asOf) || new Date();
 
         return f.datasource().request(payload).then(function (rows) {
             let list = rows || [];
-            let now = new Date();
-            let ends = monthEnds(DASH_SPARK_MONTHS, now);
+            let ends = monthEnds(DASH_SPARK_MONTHS, asOf);
             let stamps = list.map(function (row) {
                 return new Date(row.created).getTime();
             });
@@ -383,9 +464,13 @@ registerKpi({
 
                 return upTo.length;
             });
+            let today = asOf.getTime();
+            let counted = valid.filter(function (t) {
+                return t <= today;
+            });
 
             return {
-                value: list.length,
+                value: counted.length,
                 comparison: spark[0],
                 comparisonLabel: "a year ago",
                 spark
@@ -399,17 +484,21 @@ registerKpi({
     could not load says so in its own square rather than taking the board
     down with it.
 */
-function loadTile(tile) {
+function loadTile(tile, layout) {
     let source;
+    // A tile may pin itself -- "last year's close" beside live figures is a
+    // legitimate thing to want -- so its own date wins over the board's.
+    let asOf = tile.asOf || (layout && layout.asOf) || null;
 
     if (tile.type === "kpi") {
         let keys = tile.kpis || [];
+        let context = {asOf: asOfDate({asOf})};
         let wanted = keys.map(function (key) {
             return kpiRegistry[key];
         });
         let present = wanted.filter(Boolean);
         let loads = present.map(function (kpi) {
-            return kpi.load().then(function (result) {
+            return kpi.load(context).then(function (result) {
                 return Object.assign({kpi}, result);
             }).catch(function (err) {
                 return {kpi, error: err.message || String(err)};
@@ -429,9 +518,11 @@ function loadTile(tile) {
                 error: "No such data source: " + String(tile.source)
             });
         }
-        return source.load(tile).then(function (data) {
-            return {data};
-        }).catch(function (err) {
+        return source.load(Object.assign({}, tile, {asOf})).then(
+            function (data) {
+                return {data};
+            }
+        ).catch(function (err) {
             return {error: err.message || String(err)};
         });
     }
@@ -452,7 +543,7 @@ function loadAll(layout) {
 
     layout.tiles.forEach(function (tile) {
         tileState[tile.id] = {status: "loading"};
-        loadTile(tile).then(function (result) {
+        loadTile(tile, layout).then(function (result) {
             if (token !== loadToken) {
                 return;
             }
@@ -524,6 +615,32 @@ function runRefresh() {
 }
 
 /**
+    Pins the board to a reporting date, or hands it back to today when given
+    nothing, and reloads what is on screen from that date.
+*/
+function setAsOf(value) {
+    let next = value || null;
+
+    storeAsOf(next);
+    if (currentLayout) {
+        currentLayout.asOf = next;
+        loadAll(currentLayout);
+    }
+    m.redraw();
+}
+
+/**
+    The board's reporting date as stored, for whoever is offering to change
+    it. Null means today.
+*/
+function getAsOf() {
+    if (currentLayout) {
+        return currentLayout.asOf || null;
+    }
+    return storedAsOf();
+}
+
+/**
     A time said the way someone glancing at a dashboard wants it: the clock
     for today, the date as well for anything older.
 */
@@ -583,10 +700,19 @@ function dataRefreshedAt() {
     The line above the board saying what Refresh is doing, what it did, or
     how old the figures are. Silent when there is nothing to say.
 */
-function refreshBar() {
+function refreshBar(layout) {
     let built = dataRefreshedAt();
     let parts = [];
     let state = refreshState;
+
+    // Said first and said plainly. Figures that are not today's look like
+    // wrong figures to anyone who does not know the board is pinned, and
+    // the cost of missing it is someone acting on the wrong quarter.
+    if (layout && layout.asOf) {
+        parts.push(m("span", {class: "fb-dash-as-of"}, (
+            "As of " + asOfText(layout.asOf)
+        )));
+    }
 
     if (state.status === "running") {
         parts.push(m("span", {class: "fb-dash-refresh-note"}, (
@@ -948,7 +1074,7 @@ let dashboard = {
         }
 
         return m("div", {class: "fb-dash-frame"}, [
-            refreshBar(),
+            refreshBar(layout),
             m("div", {
                 class: "fb-dash-board",
                 style: {
@@ -1016,5 +1142,7 @@ f.catalog().register("global", "dashboardRefresh", runRefresh);
 f.catalog().register("global", "dashboardRefreshStatus", function () {
     return refreshState.status;
 });
+f.catalog().register("global", "dashboardAsOf", getAsOf);
+f.catalog().register("global", "dashboardSetAsOf", setAsOf);
 f.catalog().register("global", "dashboardTitle", dashboardTitle);
 f.catalog().register("components", "dashboard", dashboard);
