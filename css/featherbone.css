@@ -3541,6 +3541,11 @@ button:disabled .fb-ipicon,
 .fb-dash-kpi-table,
 .fb-dash-measure-table {
     border-collapse: collapse;
+    /* A flex item stretches to the tile's width by default, which spreads
+       the columns across the whole tile and puts a hand's breadth of empty
+       space between a name and its bar. Data that belongs together is read
+       together, so the table takes the width its content needs. */
+    align-self: flex-start;
 }
 
 .fb-dash-kpi-table td,
@@ -3560,7 +3565,7 @@ button:disabled .fb-ipicon,
 /* The tile's own total, stated once beside the heading rather than as
    another row competing with the members. */
 .fb-dash-tile-total {
-    float: right;
+    margin-left: 12px;
     font-weight: 400;
     font-variant-numeric: tabular-nums;
 }
