@@ -92,6 +92,75 @@ let isAdmin = false;
 // organization: Settings, Users, Instances (see main.js start-up)
 let canAdminister = false;
 
+/*
+    How large the whole interface is drawn, as a percentage.
+
+    The stylesheet carries the default (--fb-ui-scale); this overrides it
+    at the root when somebody moves the control. It is the whole app
+    rather than one worksheet: the old per-sheet zoom was never saved
+    anywhere, so nobody could have been relying on it, and wanting one
+    sheet bigger almost always means wanting everything bigger (John,
+    Oct 2026).
+
+    Kept per browser for now, next to the dashboard's reporting date.
+    Both belong in the user's profile, and go there together.
+*/
+const APP_ZOOM_KEY = "fb-app-zoom";
+const APP_ZOOM_DEFAULT = 125;
+
+/*
+    Storage is switched off in some browsers and throws rather than
+    returning nothing, and a preference that cannot be remembered is no
+    reason for the app not to run.
+*/
+function rememberZoom(pct) {
+    try {
+        window.localStorage.setItem(APP_ZOOM_KEY, String(pct));
+    } catch (ignore) {
+        return;
+    }
+}
+
+function recallZoom() {
+    try {
+        return window.localStorage.getItem(APP_ZOOM_KEY);
+    } catch (ignore) {
+        return null;
+    }
+}
+
+function appZoom(value) {
+    let root = document.documentElement;
+    let held;
+    let wanted;
+
+    if (value !== undefined) {
+        wanted = Math.round(Number(value));
+        if (Number.isFinite(wanted) && wanted >= 50 && wanted <= 200) {
+            root.style.setProperty("--fb-ui-scale", wanted / 100);
+            rememberZoom(wanted);
+        }
+    }
+
+    held = root.style.getPropertyValue("--fb-ui-scale");
+    if (held) {
+        return Math.round(Number(held) * 100);
+    }
+    return APP_ZOOM_DEFAULT;
+}
+
+/*
+    Applied before the first render rather than after: the app appearing
+    at one size and jumping to another is worse than either size.
+*/
+function applyStoredZoom() {
+    let held = recallZoom();
+
+    if (held) {
+        appZoom(held);
+    }
+}
+
 // For workbook management
 const template = f.prop("");
 const newname = f.prop("");
@@ -472,6 +541,86 @@ function homeRibbonGroups() {
     );
 
     return [{
+        label: "Dashboard",
+        buttons: [{
+            label: "Dashboard",
+            icon: "dashboard",
+            /*
+                The board is the Home route, and until now the only way
+                back to it from a workbook was the root URL. These
+                buttons show on every page's Home tab, so this is the
+                way back from wherever you are (John, Oct 2026).
+            */
+            title: "Open the dashboard",
+            onclick: () => m.route.set("/home")
+        }, {
+            label: "Add Tile",
+            icon: "add_chart",
+            title: "Put another tile on the dashboard",
+            onclick: function () {
+                addTileDlg.show();
+            }
+        }, {
+            label: "Refresh",
+            icon: "refresh",
+            /*
+                A rebuild can take a while, so the button says it is busy
+                rather than quietly accepting a second press. What it is
+                working on, and how it went, are on the board itself.
+            */
+            title: (
+                isRefreshing
+                ? "Rebuilding the figures now"
+                : "Rebuild the figures the dashboard shows"
+            ),
+            disabled: isRefreshing,
+            onclick: function () {
+                let refresh = catalog.store().global().dashboardRefresh;
+
+                if (refresh) {
+                    refresh();
+                }
+            }
+        }, {
+            label: "Save Layout",
+            icon: "bookmark_add",
+            /*
+                The board is composed from whatever has registered until
+                somebody saves an arrangement. Saving one is what turns it
+                into something the instance keeps and others can start
+                from -- which is why this is the only button here that
+                writes anything shared.
+            */
+            title: (
+                dashLayout
+                ? "Showing the \"" + dashLayout + "\" layout. Save it " +
+                "again, or under another name."
+                : "Save this arrangement as a layout"
+            ),
+            onclick: function () {
+                layoutName(dashLayout || "");
+                layoutIsDefault(!dashLayout);
+                saveLayoutDlg.show();
+            }
+        }, {
+            label: "As Of",
+            icon: "event",
+            /*
+                Says the date it is set to rather than "Set reporting
+                date", so the board's state can be read off the ribbon
+                without opening anything.
+            */
+            title: (
+                dashAsOf
+                ? "Reporting as of " + dashAsOf + ". Press to change."
+                : "Reporting as of today. Press to pick a fixed date."
+            ),
+            onclick: function () {
+                asOfPending(dashAsOf || "");
+                asOfDlg.show();
+            }
+        }]
+    }, {
         label: "Accounts",
         buttons: acctMenu.actionButtons()
     }, {
@@ -583,86 +732,6 @@ function homeRibbonGroups() {
                 ? () => m.route.set("/instances")
                 : undefined
             )
-        }]
-    }, {
-        label: "Dashboard",
-        buttons: [{
-            label: "Dashboard",
-            icon: "dashboard",
-            /*
-                The board is the Home route, and until now the only way
-                back to it from a workbook was the root URL. These
-                buttons show on every page's Home tab, so this is the
-                way back from wherever you are (John, Oct 2026).
-            */
-            title: "Open the dashboard",
-            onclick: () => m.route.set("/home")
-        }, {
-            label: "Add Tile",
-            icon: "add_chart",
-            title: "Put another tile on the dashboard",
-            onclick: function () {
-                addTileDlg.show();
-            }
-        }, {
-            label: "Refresh",
-            icon: "refresh",
-            /*
-                A rebuild can take a while, so the button says it is busy
-                rather than quietly accepting a second press. What it is
-                working on, and how it went, are on the board itself.
-            */
-            title: (
-                isRefreshing
-                ? "Rebuilding the figures now"
-                : "Rebuild the figures the dashboard shows"
-            ),
-            disabled: isRefreshing,
-            onclick: function () {
-                let refresh = catalog.store().global().dashboardRefresh;
-
-                if (refresh) {
-                    refresh();
-                }
-            }
-        }, {
-            label: "Save Layout",
-            icon: "bookmark_add",
-            /*
-                The board is composed from whatever has registered until
-                somebody saves an arrangement. Saving one is what turns it
-                into something the instance keeps and others can start
-                from -- which is why this is the only button here that
-                writes anything shared.
-            */
-            title: (
-                dashLayout
-                ? "Showing the \"" + dashLayout + "\" layout. Save it " +
-                "again, or under another name."
-                : "Save this arrangement as a layout"
-            ),
-            onclick: function () {
-                layoutName(dashLayout || "");
-                layoutIsDefault(!dashLayout);
-                saveLayoutDlg.show();
-            }
-        }, {
-            label: "As Of",
-            icon: "event",
-            /*
-                Says the date it is set to rather than "Set reporting
-                date", so the board's state can be read off the ribbon
-                without opening anything.
-            */
-            title: (
-                dashAsOf
-                ? "Reporting as of " + dashAsOf + ". Press to change."
-                : "Reporting as of today. Press to pick a fixed date."
-            ),
-            onclick: function () {
-                asOfPending(dashAsOf || "");
-                asOfDlg.show();
-            }
         }]
     }];
 }
@@ -1678,27 +1747,27 @@ function initApp() {
             ]));
 
             if (addTileWhat() === ADD_TILE_KPIS) {
-                parts.push(group("Metrics:", m("div", offer.kpis.map(
-                    function (kpi) {
-                        return m("div", [
-                            m("input", {
-                                type: "checkbox",
-                                checked: addTileKpis().indexOf(kpi.key) > -1,
-                                onchange: function (e) {
-                                    let held = addTileKpis().filter(
-                                        (key) => key !== kpi.key
-                                    );
+                parts.push(group("Metrics:", m("div", {
+                    class: "fb-dialog-checklist"
+                }, offer.kpis.map(function (kpi) {
+                    return m("label", [
+                        m("input", {
+                            type: "checkbox",
+                            checked: addTileKpis().indexOf(kpi.key) > -1,
+                            onchange: function (e) {
+                                let held = addTileKpis().filter(
+                                    (key) => key !== kpi.key
+                                );
 
-                                    if (e.target.checked) {
-                                        held.push(kpi.key);
-                                    }
-                                    addTileKpis(held);
+                                if (e.target.checked) {
+                                    held.push(kpi.key);
                                 }
-                            }),
-                            m("span", " " + kpi.label)
-                        ]);
-                    }
-                ))));
+                                addTileKpis(held);
+                            }
+                        }),
+                        m("span", " " + kpi.label)
+                    ]);
+                }))));
             } else if (picked) {
                 picked.options.forEach(function (option) {
                     let held = addTileOpts();
@@ -2043,6 +2112,7 @@ function initApp() {
             "addTileErrDlg",
             addTileErrDlg
         );
+        catalog.register("global", "appZoom", appZoom);
 
         m.route(document.body, "/home", routes);
     });
@@ -2054,6 +2124,7 @@ async function start() {
         return;
     }
 
+    applyStoredZoom();
     initPromises();
     await Promise.all([
         loadCatalog,

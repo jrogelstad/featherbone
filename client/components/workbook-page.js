@@ -1032,6 +1032,23 @@ workbookPage.viewModel = function (options) {
         return w.zoom();
     };
 
+    /**
+        How large the whole interface is drawn, as a percentage. What
+        the footer's zoom control now moves.
+
+        @method appZoom
+        @param {Number} [value] New percentage
+        @return {Number}
+    */
+    vm.appZoom = function (value) {
+        let scale = f.catalog().store().global().appZoom;
+
+        if (!scale) {
+            return 100;
+        }
+        return scale(value);
+    };
+
     // ..........................................................
     // PRIVATE
     //
@@ -1939,13 +1956,25 @@ workbookPage.component = {
                             f.icon("zoom_out", "fb-zoom-icon"),
                             m("input", {
                                 class: "fb-zoom-control",
-                                title: "Zoom " + vm.zoom() + "%",
+                                /*
+                                    Zooms the whole app, not this
+                                    worksheet. It used to scale this
+                                    sheet's type alone, which was never
+                                    saved anywhere and so could not
+                                    have been relied on; and somebody
+                                    who wants one sheet bigger almost
+                                    always wants everything bigger.
+                                    Sitting in the footer makes it far
+                                    easier to find than a browser's own
+                                    zoom (John, Oct 2026).
+                                */
+                                title: "Zoom the app: " + vm.appZoom() + "%",
                                 type: "range",
                                 step: "5",
-                                min: "50",
-                                max: "150",
-                                value: vm.zoom(),
-                                oninput: (e) => vm.zoom(e.target.value)
+                                min: "75",
+                                max: "200",
+                                value: vm.appZoom(),
+                                oninput: (e) => vm.appZoom(e.target.value)
                             }),
                             f.icon("zoom_in", "fb-zoom-icon")
                         ])
