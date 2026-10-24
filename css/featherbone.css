@@ -3443,3 +3443,73 @@ button:disabled .fb-ipicon,
     fill: var(--fb-text-muted);
     font-size: 9px;
 }
+
+/* The board. A fixed grid mapped onto whatever space the page gives it, so
+   a tile cannot be placed outside the viewport -- there is nowhere outside
+   it to go. Groups are delineated by white space (the gap) and NOT by
+   borders or fills, which is Few's "least visible means" rule: a border
+   earns its place only where density leaves no room for space. */
+.fb-dash-board {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+    height: 100%;
+    box-sizing: border-box;
+    background: var(--fb-bg);
+}
+
+.fb-dash-tile {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.fb-dash-tile-heading {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-text-secondary);
+    margin-bottom: 8px;
+}
+
+.fb-dash-tile-empty {
+    color: var(--fb-text-muted);
+    font-size: 12px;
+}
+
+/* No gridlines and no striping: both are non-data pixels that make a short
+   table harder to scan, not easier. */
+.fb-dash-kpi-table {
+    border-collapse: collapse;
+}
+
+.fb-dash-kpi-table td {
+    padding: 3px 10px 3px 0;
+    vertical-align: middle;
+}
+
+.fb-dash-cell-spark { width: 80px; }
+.fb-dash-cell-graphic { width: 150px; }
+.fb-dash-cell-name { white-space: nowrap; }
+
+.fb-dash-cell-value {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The one sanctioned exception to no-scrolling. Triggered on viewport WIDTH
+   rather than any attempt to detect a device: reliable phone detection does
+   not exist, and width is both dependable and right for a narrow desktop
+   window too. This is a fallback, not a mobile interface. */
+@media (max-width: 768px) {
+    .fb-dash-board {
+        display: block;
+        overflow-y: auto;
+    }
+
+    .fb-dash-tile {
+        margin-bottom: 18px;
+    }
+}
