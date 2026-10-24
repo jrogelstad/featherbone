@@ -526,6 +526,20 @@ function homeRibbonGroups() {
                 : undefined
             )
         }]
+    }, {
+        label: "Dashboard",
+        buttons: [{
+            label: "Refresh",
+            icon: "refresh",
+            title: "Recalculate the figures the dashboard shows",
+            onclick: function () {
+                let refresh = catalog.store().global().dashboardRefresh;
+
+                if (refresh) {
+                    refresh();
+                }
+            }
+        }]
     }];
 }
 
@@ -615,6 +629,12 @@ const home = {
 
         let toolbarClass = "fb-toolbar";
         let homeGroups = homeRibbonGroups();
+        let globals = catalog.store().global();
+        let dashTitle = (
+            globals.dashboardTitle
+            ? globals.dashboardTitle()
+            : f.currentUser().splashTitle
+        );
 
         return [
             m(components.envBanner),
@@ -636,20 +656,12 @@ const home = {
                         }, [
                             m("div", {
                                 class: "fb-header-home"
-                            }, f.currentUser().splashTitle),
+                            }, dashTitle),
                             m("div", {
                                 class: "fb-toolbar-fill"
                             })
                         ]),
-                        m("iframe", {
-                            style: {
-                                border: "none",
-                                display: "block",
-                                height: "100%",
-                                width: "100%"
-                            },
-                            src: f.currentUser().splashUrl
-                        })
+                        m(components.dashboard)
                     ])
                 ]
             ])
