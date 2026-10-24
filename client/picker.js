@@ -372,13 +372,40 @@
             "POST",
             path,
             Object.assign({processIds: ids}, body)
-        ).then(function () {
+        ).then(function (resp) {
+            /*
+                The fleet routes answer 200 whatever happened to the
+                instances: a failure is a result with `ok: false`, not
+                an error status, so the answer has to be read. Taking
+                any 200 for success is what said "Deployed" over an
+                install that had rolled back (John, Oct 2026).
+            */
+            let answer = resp || {};
+            let results = answer.results || [];
+            let failures = results.filter((one) => one.ok === false);
+            let skipped = answer.notAttempted || 0;
+
             live = false;
             window.clearTimeout(timer);
             vm.isBusy = false;
             vm.form = undefined;
-            vm.note = said;
             vm.progress = undefined;
+
+            if (failures.length) {
+                vm.error = failures.map(
+                    (one) => one.name + ": " + one.message
+                ).join(" ");
+                vm.note = (
+                    said + " " + (results.length - failures.length) +
+                    " of " + instances.length + (
+                        skipped
+                        ? "; " + skipped + " not attempted"
+                        : ""
+                    ) + "."
+                );
+            } else {
+                vm.note = said;
+            }
             return load();
         }).catch(function (err) {
             live = false;

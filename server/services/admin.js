@@ -446,6 +446,7 @@
         */
         async function ensureProfile(obj, pgDatabase, username) {
             let tenant;
+            let isSuper = false;
 
             if (!pgDatabase || !username) {
                 return;
@@ -466,13 +467,53 @@
             }
 
             try {
-                await db.makeProfile(tenant, username);
+                isSuper = await manager.run(async function (mclient) {
+                    return await administersInstance(
+                        mclient,
+                        username,
+                        pgDatabase
+                    );
+                });
+                await db.makeProfile(tenant, username, isSuper);
             } catch (e) {
                 console.error(
                     "Could not make the profile for " + username +
                     " in " + pgDatabase + ": " + (e.message || e)
                 );
             }
+        }
+
+        /*
+            Does this person administer this instance, which in the
+            application makes them a super user in it? The tiers are a
+            hierarchy (ADR-001 section 3): a platform administrator
+            answers for every organization, so every instance is
+            theirs, and anyone appointed over the organization that
+            owns this one administers it. A platform administrator is
+            appointed over no organization, so asking the appointment
+            table alone used to answer no for them -- they could
+            create and drop an instance and not read a row in it.
+        */
+        async function administersInstance(mclient, username, pgDatabase) {
+            let resp = await mclient.query(
+                (
+                    "SELECT 1 FROM identity i " +
+                    "WHERE lower(i.username) = lower($1) " +
+                    "  AND i.status = 'active' AND NOT i.is_deleted " +
+                    "  AND (i.is_platform_admin OR EXISTS (" +
+                    "    SELECT 1 FROM organization_admin a " +
+                    "    JOIN tenant t ON " +
+                    "      t._organization_organization_pk = " +
+                    "      a._organization_organization_pk " +
+                    "    WHERE a._identity_identity_pk = i._pk " +
+                    "      AND t.pg_database = $2 AND NOT t.is_deleted " +
+                    "      AND a.is_active AND NOT a.is_deleted" +
+                    "  ))"
+                ),
+                [username, pgDatabase]
+            );
+
+            return resp.rows.length > 0;
         }
 
         /*
@@ -485,6 +526,13 @@
             user name. Empty when there is no instance (the platform
             console) or it cannot be read: the screen then shows what
             the identity holds, as it always did.
+
+            `is_super` comes along because it is the third tier --
+            instance administrator -- and it lives here, on the
+            profile, not on the identity in the manager. It is read
+            with the contact details rather than in a query of its own
+            because it answers for the same set of people: those with a
+            profile in this instance.
         */
         async function instanceContacts(obj) {
             let found = {};
@@ -498,7 +546,8 @@
                 conn = await db.connect(obj.tenant);
 
                 let resp = await conn.client.query(
-                    "SELECT lower(u.name) AS name, c.first_name, " +
+                    "SELECT lower(u.name) AS name, u.is_super, " +
+                    "  c.first_name, " +
                     "  c.last_name, c.email, c.phone " +
                     "FROM user_account u " +
                     "LEFT OUTER JOIN contact c ON " +
@@ -535,6 +584,16 @@
             out.firstName = first;
             out.lastName = last;
             out.phone = contact.phone || "";
+            /*
+                Only ever said of somebody with a profile here, which
+                is the only place the flag exists. Left undefined
+                otherwise so the screen can tell "not an instance
+                administrator" from "this instance has never heard of
+                them" -- and so an organization reached by break-glass,
+                whose instances are not read, says nothing at all
+                rather than saying no.
+            */
+            out.isInstanceAdmin = contact.is_super === true;
 
             if (contact.email) {
                 out.email = contact.email;
@@ -1238,8 +1297,10 @@
         */
         that.setOrgAdmin = async function (obj) {
             let data = obj.data || {};
+            let reach = {instances: [], username: undefined};
+            let result;
 
-            return await manager.run(async function (mclient) {
+            result = await manager.run(async function (mclient) {
                 let ctx = await contextFor(mclient, obj);
 
                 if (ctx.tier === "instance") {
@@ -1278,8 +1339,574 @@
                     targetIdentityPk: target._pk
                 });
 
+                /*
+                    The instances they reach in this organization, to
+                    bring their profiles into step below.
+                */
+                let reached = await mclient.query(
+                    (
+                        "SELECT t.pg_database FROM access_grant g " +
+                        "JOIN tenant t ON t._pk = g._tenant_tenant_pk " +
+                        "WHERE g._identity_identity_pk = $1 " +
+                        "  AND g.is_active AND NOT g.is_deleted " +
+                        "  AND t._organization_organization_pk = $2 " +
+                        "  AND NOT t.is_deleted"
+                    ),
+                    [target._pk, ctx.organizationPk]
+                );
+
+                reach.username = target.username;
+                reach.instances = reached.rows.map((row) => row.pg_database);
+
                 return true;
             });
+
+            /*
+                An organization administrator is a super user in the
+                organization's instances (John, Oct 2026), and a profile
+                holds that as a flag, so appointing raises it and
+                standing down lowers it, in every instance they have
+                access to. Whoever was made a super user some other way
+                loses it with this, because the flag cannot say which
+                reason put it there.
+            */
+            let served = obj.registry || [];
+            let n = 0;
+
+            while (n < reach.instances.length) {
+                let entry = served.find(
+                    (one) => one.pgDatabase === reach.instances[n]
+                );
+
+                n += 1;
+
+                try {
+                    if (entry && data.isOrgAdmin === true) {
+                        await db.makeProfile(entry, reach.username, true);
+                    } else if (entry) {
+                        await db.setSuper(entry, reach.username, false);
+                    }
+                } catch (e) {
+                    console.error(
+                        "Could not bring " + reach.username + " in " +
+                        reach.instances[n - 1] + " into step: " +
+                        (e.message || e)
+                    );
+                }
+            }
+
+            return result;
+        };
+
+        /**
+            Make somebody an administrator of the instance this request
+            came through, or stand them down.
+
+            The third tier (ADR-001 section 3), and the only one that
+            lives in the instance rather than in the manager: it is
+            `user_account.is_super` on the profile they keep there.
+            Nothing on this screen could set it before -- it was a
+            checkbox on the User Account form, which is the form this
+            screen is meant to replace (John, Oct 2026) -- so the
+            infrastructure for the tier existed with no way to appoint
+            anybody to it.
+
+            Scoped to the signed-in instance deliberately. The flag is
+            per instance and an organization's instances are each
+            administered separately, so "make them an administrator"
+            has to name which one, and the one the caller is looking at
+            is the one they mean. An organization reached by break-glass
+            is refused for the same reason: its instances are not the
+            ones this request can write to.
+
+            Refused on somebody who already answers for more than this
+            instance. An organization administrator holds the flag in
+            every instance the organization owns (`setOrgAdmin` raises
+            it there), and a platform administrator answers for every
+            organization, so granting would say nothing and revoking
+            would be undone by the appointment behind it. Stand them
+            down from that tier first.
+
+            @method setInstanceAdmin
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {Boolean} payload.data.isInstanceAdmin
+            @return {Promise}
+        */
+        that.setInstanceAdmin = async function (obj) {
+            let data = obj.data || {};
+            let isAdmin = data.isInstanceAdmin === true;
+
+            if (!obj.tenant) {
+                throw forbidden(
+                    "An instance administrator administers one " +
+                    "instance, so this must be asked of that instance"
+                );
+            }
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                if (ctx.tier === "instance") {
+                    throw forbidden(
+                        "Only an organization administrator may appoint " +
+                        "administrators"
+                    );
+                }
+
+                if (ctx.organizationPk !== ctx.homeOrganizationPk) {
+                    throw forbidden(
+                        "This instance is not that organization's. Its " +
+                        "administrators are appointed from one of its " +
+                        "own instances."
+                    );
+                }
+
+                let target = await manager.identityById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such identity");
+                }
+
+                if (target.is_platform_admin) {
+                    throw forbidden(
+                        target.username + " administers every " +
+                        "organization, which carries this already"
+                    );
+                }
+
+                if (target.is_org_admin) {
+                    throw forbidden(
+                        target.username + " administers the " +
+                        "organization, which carries this in every " +
+                        "instance it owns"
+                    );
+                }
+
+                /*
+                    A profile is what the flag is written on, and a
+                    live grant to this instance is what entitles
+                    somebody to one (tenant plan B.7). Without the
+                    grant there is nothing to raise and nothing that
+                    should be raised: grant the instance first.
+                */
+                let granted = await mclient.query(
+                    (
+                        "SELECT 1 FROM access_grant " +
+                        "WHERE _identity_identity_pk = $1 " +
+                        "  AND _tenant_tenant_pk = $2 " +
+                        "  AND is_active AND NOT is_deleted"
+                    ),
+                    [target._pk, ctx.tenantPk]
+                );
+
+                if (!granted.rows.length) {
+                    throw forbidden(
+                        target.username + " has no access to " +
+                        obj.tenant.name + ". Grant the instance first."
+                    );
+                }
+
+                /*
+                    The instance first, then the audit row, both inside
+                    this transaction. A flag that cannot be written
+                    throws before anything is recorded, so the trail
+                    never claims an appointment that did not happen --
+                    the opposite order would leave exactly that behind
+                    when the instance could not be reached.
+                */
+                if (isAdmin) {
+                    await db.makeProfile(obj.tenant, target.username, true);
+                } else {
+                    await db.setSuper(obj.tenant, target.username, false);
+                }
+
+                await manager.audit(mclient, {
+                    action: (
+                        isAdmin
+                        ? "identity.instance_admin_granted"
+                        : "identity.instance_admin_revoked"
+                    ),
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: "Instance " + obj.tenant.name,
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: target._pk
+                });
+
+                return true;
+            });
+        };
+
+
+        /*
+            The roles of the instance a request came through, and who
+            is in them. Roles live in the instance database, not in the
+            manager (ADR-001), so everything here opens that instance
+            and nothing here touches the registry.
+
+            A group role and a user account are the same table: a
+            `user_account` row *is* a `role` row through Postgres table
+            inheritance, which is why `tableoid` is what tells them
+            apart. Only group roles are assignable; a person is not a
+            role to put somebody in.
+        */
+        const ROLE_SQL = (
+            "SELECT name FROM role " +
+            "WHERE tableoid::regclass::text = 'role' " +
+            "  AND NOT is_deleted " +
+            "ORDER BY name"
+        );
+
+        /*
+            Membership nests, so what somebody holds directly is not
+            what they can do. `administrator` in `demo` is itself a
+            member of thirteen other roles, so a person with two direct
+            memberships has fourteen effective ones -- and twelve of
+            those cannot be taken away from them here, because the row
+            that grants each one hangs off `administrator`, not off the
+            person.
+
+            Showing only the two would say they can do far less than
+            they can; offering Remove on all fourteen would offer
+            twelve buttons that do nothing. So this walks the same
+            graph tools.memberNames walks, and says of each role how it
+            was come by: `depth` 0 is a row on this person and can be
+            removed, deeper is inherited and `via` names the direct
+            membership it arrived through.
+
+            The depth guard stops a membership cycle walking forever;
+            UNION alone would not, because `via` and `depth` make each
+            lap's rows distinct.
+        */
+        const MEMBER_SQL = (
+            "WITH RECURSIVE member_of AS (" +
+            "  SELECT rm.role AS name, rm.role AS via, 0 AS depth " +
+            "  FROM role_membership rm " +
+            "  JOIN user_account u ON u._pk = rm._parent_role_pk " +
+            "  WHERE lower(u.name) = lower($1) " +
+            "    AND NOT rm.is_deleted AND NOT u.is_deleted " +
+            "  UNION " +
+            "  SELECT rm.role, m.via, m.depth + 1 " +
+            "  FROM role_membership rm " +
+            "  JOIN role r ON rm._parent_role_pk = r._pk " +
+            "  JOIN member_of m ON r.name = m.name " +
+            "  WHERE NOT rm.is_deleted AND NOT r.is_deleted " +
+            "    AND m.depth < 20" +
+            ") " +
+            "SELECT name, min(depth) AS depth, " +
+            "  (array_agg(via ORDER BY depth, via))[1] AS via " +
+            "FROM member_of GROUP BY name ORDER BY name"
+        );
+
+        /*
+            Run something against the instance this request came
+            through. Every roles call needs that connection and each
+            one must give it back, so the borrowing is written once.
+        */
+        async function inInstance(obj, run) {
+            let conn = await db.connect(obj.tenant);
+
+            return await Promise.resolve(
+                run(conn.client)
+            ).then(function (result) {
+                conn.done();
+                return result;
+            }, function (err) {
+                conn.done();
+                return Promise.reject(err);
+            });
+        }
+
+        function membersOut(rows) {
+            return rows.map(function (row) {
+                return {
+                    isDirect: row.depth === 0,
+                    role: row.name,
+                    via: (
+                        row.depth === 0
+                        ? undefined
+                        : row.via
+                    )
+                };
+            });
+        }
+
+        /**
+            The roles the selected person holds in the instance this
+            screen is served from, direct ones marked as such.
+
+            Scoped to that one instance on purpose. An identity may be
+            granted several (tenant plan B.4) and each keeps its own
+            roles, so "their roles" has to name a database; showing
+            every instance's would mean opening a pool into each, which
+            is not worth it to fill a tab (John, Oct 2026).
+
+            @method identityRoles
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @return {Promise}
+        */
+        that.identityRoles = async function (obj) {
+            let data = obj.data || {};
+            let target;
+
+            if (!obj.tenant) {
+                throw forbidden(
+                    "Roles belong to an instance, so this must be " +
+                    "asked of one"
+                );
+            }
+
+            target = await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                return await targetFor(
+                    mclient,
+                    ctx,
+                    data.id,
+                    obj.tenant
+                );
+            });
+
+            return await inInstance(obj, async function (client) {
+                let held = await client.query(MEMBER_SQL, [target.username]);
+                let all = await client.query(ROLE_SQL);
+
+                return {
+                    /*
+                        What could still be added, worked out here so
+                        the picker cannot offer something that is
+                        already held and then fail on it.
+                    */
+                    available: all.rows.map(
+                        (row) => row.name
+                    ).filter(function (name) {
+                        return !held.rows.some(
+                            (row) => row.name === name && row.depth === 0
+                        );
+                    }),
+                    instance: obj.tenant.name,
+                    roles: membersOut(held.rows),
+                    username: target.username
+                };
+            });
+        };
+
+        /**
+            Put somebody in one of this instance's roles, or take them
+            out of it.
+
+            Writes the `role_membership` row itself rather than going
+            through `/data` CRUD, for two reasons. Child records under
+            CRUD are executed with `isChild` true and `isSuperUser`
+            undefined, so every child-level authorization check
+            short-circuits and the only gate is `canUpdate` on the
+            parent user account -- which would mean anyone who can edit
+            a user account could put themselves in `administrator`.
+            And a privilege being handed out is a thing to have a
+            record of: this writes `admin_audit`, which CRUD does not.
+
+            Membership is a row hanging off the member naming the group
+            as text: `_parent_role_pk` points at the `user_account` row
+            and `role` holds the name, with no foreign key. Removing is
+            a soft delete, which is what every reader of the table
+            already filters on.
+
+            Direct memberships only. An inherited one is a row on some
+            other role and is not this person's to lose; the tab marks
+            those and offers no Remove.
+
+            @method setRoleMembership
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {String} payload.data.role Group role name
+            @param {Boolean} payload.data.isMember
+            @return {Promise}
+        */
+        that.setRoleMembership = async function (obj) {
+            let data = obj.data || {};
+            let isMember = data.isMember === true;
+            let role = cleaned(data.role);
+            let actor;
+            let target;
+
+            if (!obj.tenant) {
+                throw forbidden(
+                    "Roles belong to an instance, so this must be " +
+                    "asked of one"
+                );
+            }
+
+            if (!role) {
+                throw forbidden("Name the role");
+            }
+
+            let ctx = await manager.run(async function (mclient) {
+                let found = await contextFor(mclient, obj);
+
+                target = await targetFor(
+                    mclient,
+                    found,
+                    data.id,
+                    obj.tenant
+                );
+
+                return found;
+            });
+
+            actor = (
+                ctx.actor
+                ? ctx.actor.username
+                : obj.user
+            );
+
+            /*
+                `is_admin` on a session is a direct `role_membership`
+                row for `administrator` and nothing else
+                (server/database.js), and it is what opens the ribbon's
+                Settings, Users and Instances buttons. Taking your own
+                away would take away the screen you took it from, with
+                no way back in short of SQL -- so it is refused rather
+                than merely warned about (John, Oct 2026). Somebody
+                else may still do it for you.
+            */
+            if (
+                !isMember &&
+                role === "administrator" &&
+                String(target.username).toLowerCase() ===
+                String(actor).toLowerCase()
+            ) {
+                throw forbidden(
+                    "That is the membership that lets you administer " +
+                    "this instance. Another administrator can take it " +
+                    "away; taking it away yourself would shut you out."
+                );
+            }
+
+            let changed = await inInstance(obj, async function (client) {
+                let member = await client.query(
+                    (
+                        "SELECT _pk FROM user_account " +
+                        "WHERE lower(name) = lower($1) AND NOT is_deleted"
+                    ),
+                    [target.username]
+                );
+
+                if (!member.rows.length) {
+                    throw forbidden(
+                        target.username + " has no profile in " +
+                        obj.tenant.name + ". Grant the instance first."
+                    );
+                }
+
+                let memberPk = member.rows[0]._pk;
+                let held = await client.query(
+                    (
+                        "SELECT _pk FROM role_membership " +
+                        "WHERE _parent_role_pk = $1 AND role = $2 " +
+                        "  AND NOT is_deleted"
+                    ),
+                    [memberPk, role]
+                );
+
+                if (isMember) {
+                    if (held.rows.length) {
+                        return false;
+                    }
+
+                    /*
+                        Assignment only: the role has to be one that
+                        exists, and a group role rather than somebody's
+                        account. "$auth".role and role_membership.role
+                        are both name-keyed text with no foreign key,
+                        so a name that is not a role is a membership of
+                        nothing that no reader will ever match.
+                    */
+                    let known = await client.query(
+                        (
+                            "SELECT 1 FROM role " +
+                            "WHERE name = $1 AND NOT is_deleted " +
+                            "  AND tableoid::regclass::text = 'role'"
+                        ),
+                        [role]
+                    );
+
+                    if (!known.rows.length) {
+                        throw notFound(
+                            "\"" + role + "\" is not a role in " +
+                            obj.tenant.name
+                        );
+                    }
+
+                    await client.query(
+                        (
+                            "INSERT INTO role_membership (" +
+                            "  _pk, id, created, created_by, updated, " +
+                            "  updated_by, is_deleted, _parent_role_pk, " +
+                            "  role" +
+                            ") VALUES (" +
+                            "  nextval('object__pk_seq'), $1, now(), " +
+                            "  $2, now(), $2, false, $3, $4" +
+                            ")"
+                        ),
+                        [f.createId(), actor || "system", memberPk, role]
+                    );
+
+                    return true;
+                }
+
+                if (!held.rows.length) {
+                    return false;
+                }
+
+                await client.query(
+                    (
+                        "UPDATE role_membership SET is_deleted = true, " +
+                        "  updated = now(), updated_by = $2 " +
+                        "WHERE _parent_role_pk = $1 AND role = $3 " +
+                        "  AND NOT is_deleted"
+                    ),
+                    [memberPk, actor || "system", role]
+                );
+
+                return true;
+            });
+
+            /*
+                Audited only where something moved. Pressing Add on a
+                role somebody already holds is not an event, and a
+                trail full of changes that were not changes is a trail
+                nobody reads.
+            */
+            if (changed) {
+                await manager.run(async function (mclient) {
+                    await manager.audit(mclient, {
+                        action: (
+                            isMember
+                            ? "role.membership_granted"
+                            : "role.membership_revoked"
+                        ),
+                        actorPk: actorPk(ctx),
+                        by: obj.user,
+                        detail: (
+                            "Role " + role + " in instance " +
+                            obj.tenant.name
+                        ),
+                        organizationPk: ctx.organizationPk,
+                        targetIdentityPk: target._pk
+                    });
+                });
+            }
+
+            return changed;
         };
 
         /**

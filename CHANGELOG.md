@@ -5,6 +5,29 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The Users screen says what an administrator's badge reaches.** A
+  platform administrator wore "platform" and "admin" at once, which said
+  the same thing twice now that the tiers are a hierarchy. There is now
+  one badge for the highest authority the person holds, and hovering it
+  says what that authority covers -- every organization, or the named
+  organization and every instance it owns. Needs `"debug": true` until
+  `clientmin.js` is rebuilt.
+* **A platform administrator administers every instance.** Being a super
+  user inside an instance was raised from the owning organization's own
+  appointments, and a platform administrator is appointed over no
+  organization, so one could create, clone and drop an instance and still
+  not read a row in it. Sign-in and profile creation now recognise the
+  platform tier as well. A suspended platform administrator inherits
+  nothing, and anyone already marked a super user keeps it. ADR-001
+  revision 5.
+* **An organization administrator's profile is corrected at sign-in.**
+  Being made a super user of the organization's instances happened only
+  when someone was appointed or granted, so an administrator whose
+  profile predates that (or who was appointed before it) still saw few
+  workbooks. Signing in now raises the profile when the manager says the
+  person administers the organization. It never lowers anything, and
+  asks the manager at most once a minute for anyone who is not one.
+
 * **A sign-in link that no longer works lands on the sign-in screen.**
   An emailed link (new account, invitation, password reset) that is two
   days old, or that the server can no longer honour after a restart, used
@@ -29,6 +52,19 @@ Notable changes to Featherbone. Dates are the day the work landed on
   package, which database, why, and that the instance is still held in
   maintenance. The page shows both as a dialog (the bundled
   `clientmin.js` is not rebuilt, so that needs `"debug": true` until it is).
+* **An organization administrator is a super user in the organization's
+  instances.** The platform is administered from its own console, but
+  an instance is administered by the people its organization appointed,
+  and who may open a workbook is set on the workbook, so they have to
+  see them all. Appointing somebody raises the flag on their profile in
+  every instance they reach, a profile made for them (on a grant or a
+  first sign-in) has it, and standing them down lowers it. Whoever was
+  made a super user some other way loses it when stood down, because the
+  flag cannot say which reason put it there. Appoint again, or grant the
+  instance again, to repair a profile made before this.
+* **The ribbon shows a category only when you have a workbook in it.**
+  Somebody who may open one workbook of a dozen categories sees one tab,
+  not eleven empty ones.
 * **A package's mail no longer fails for people who may not change
   Settings.** The organization's mail account is now read as the
   installation's service account, not as whoever's action sent the

@@ -486,22 +486,32 @@
             @param {String} version Version
             @return {Array} [{property, package, export}]
         */
-        that.libraries = function (name, version) {
-            // Core's dependencies are the server's own, not libraries
-            let pkg = held(name, version);
-            let file;
+        /*
+            The property a manifest `npm` entry has always been given,
+            exactly as the `ModuleNpm` loader names it, so code written
+            against `f.Fs` or `f.NodeFetch` keeps finding it.
+        */
+        function legacyProperty(entry) {
+            let str = String(
+                entry.property || entry.export || entry.package
+            ).replace(/[_,\-]+(.)?/g, function (ignore, chr) {
+                return (
+                    chr
+                    ? chr.toUpperCase()
+                    : ""
+                );
+            });
+
+            return str.slice(0, 1).toUpperCase() + str.slice(1);
+        }
+
+        function fromPackageJson(pkg, ret) {
+            let file = path.join(libDirOf(pkg), "package.json");
             let json;
             let declared;
-            let ret = [];
-
-            if (!pkg) {
-                return ret;
-            }
-
-            file = path.join(libDirOf(pkg), "package.json");
 
             if (!fs.existsSync(file)) {
-                return ret;
+                return;
             }
 
             try {
@@ -510,7 +520,7 @@
                 console.error(
                     "Package " + file + " is unreadable: " + err.message
                 );
-                return ret;
+                return;
             }
 
             declared = (json.featherbone || {}).libraries;
@@ -520,12 +530,12 @@
                     let one = declared[property] || {};
 
                     ret.push({
-                        export: one.export,
+                        export: one.export || undefined,
                         package: one.package || property,
                         property
                     });
                 });
-                return ret;
+                return;
             }
 
             Object.keys(json.dependencies || {}).forEach(function (dep) {
@@ -533,6 +543,50 @@
                     export: undefined,
                     package: dep,
                     property: propertyFor(dep)
+                });
+            });
+        }
+
+        that.libraries = function (name, version) {
+            // Core's dependencies are the server's own, not libraries
+            let pkg = held(name, version);
+            let ret = [];
+
+            if (!pkg) {
+                return ret;
+            }
+
+            fromPackageJson(pkg, ret);
+
+            /*
+                The manifest's own `npm` list, read from the file on
+                disk. Installing a package stops its `ModuleNpm` rows
+                being read, and a module inside an umbrella shares the
+                umbrella's package.json, which names only what the
+                umbrella thought to: without this, every library a
+                module had declared for itself was lost the moment the
+                module was found on disk. A package.json wins where
+                both name the same property.
+            */
+            let npm = pkg.manifest.npm || [];
+
+            npm.forEach(function (entry) {
+                let property;
+
+                if (!entry || !entry.package) {
+                    return;
+                }
+
+                property = legacyProperty(entry);
+
+                if (ret.some((one) => one.property === property)) {
+                    return;
+                }
+
+                ret.push({
+                    export: entry.export || undefined,
+                    package: entry.package,
+                    property
                 });
             });
 

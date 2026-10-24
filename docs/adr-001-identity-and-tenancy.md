@@ -501,3 +501,54 @@ federated subjects and administration; the others are soft-deleted; each merge
 is printed and written to the audit. John chose merging over reporting for
 resolution by hand (2026-10-21), the duplicates in practice being one person
 entered twice by a command-line install.
+
+## Revision 5: the tiers are a hierarchy (2026-10-24)
+
+Section 3 says a platform administrator "can do anything an organization
+administrator can". Nothing made that true inside an instance. Authority there
+is `user_account.is_super`, and the two places that raised it -- when a
+profile is made, and at sign-in -- asked the `organization_admin` appointment
+table alone. A platform administrator is appointed over no organization, so
+both answered no for them: they could create, clone and drop an instance and
+not read a row in it.
+
+John, 2026-10-24: *"By definition a platform admin has all admin to all orgs
+and all instances. By definition an org admin has all admin to all instances
+in its org. Beyond that, an org admin can assign additional instance
+admins."*
+
+**The rule.** Somebody administers an instance when any of these holds:
+
+- they are a platform administrator (`identity.is_platform_admin`), or
+- they are appointed over the organization that owns the instance
+  (`organization_admin`), or
+- the instance's own profile says so (`user_account.is_super`), which is how
+  an organization administrator names anyone else.
+
+The first two are read from the manager; the third is instance-local. An
+identity that is not active satisfies none of them.
+
+**Why it is written into the profile rather than answered on demand.** The
+tempting shape is to stop storing instance authority and derive it at every
+check. Rejected: `tools.isSuperUser` is the chokepoint for every
+authorization decision and runs inside the instance, while the first two legs
+of the rule live in the manager. Deriving per check means a cross-database
+query per authorization, or a session flag threaded through every place
+`currentUser` is set. The answer is resolved where it already was -- once per
+request at sign-in, with a one-minute memo for anyone who is not an
+administrator -- and written to the profile. Materialising is deliberate; its
+cost is the next paragraph.
+
+**What this does not fix.** `is_super` is one boolean with two causes and no
+record of which: raised by the rule above, or set by hand to name an instance
+administrator. Standing an organization administrator down lowers it either
+way, so an assignment made by hand goes with it. Separating the two needs
+somewhere to record the cause -- a `$`-prefixed framework table rather than a
+feather property, so that it costs no migration -- and is a follow-on.
+
+**Not renamed.** `is_super` keeps its column and property name: renaming means
+a migration, which is why `isLogin` is still called that. In documentation and
+on screen the tier is the **instance administrator**. "Super" is avoided
+because it also reads as Postgres superuser, which no tier is and no
+Featherbone user needs: privileged DDL runs as the server's own `config.json`
+credential, never as the acting identity.

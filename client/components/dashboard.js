@@ -1,0 +1,1148 @@
+/*
+    Framework for building object relational database apps
+    Copyright (C) 2027  Featherbone LLC
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/*jslint browser, unordered*/
+/*global f, m*/
+/**
+    The dashboard board that fills the Home tab, the tiles that sit on it,
+    and the Refresh action behind the Home ribbon's button. Draws with the
+    marks in dashboard-draw.js.
+
+    The board is a fixed grid mapped onto whatever space the page gives it:
+    cell width is the area divided by DASH_COLS, cell height by DASH_ROWS, so
+    tiles cannot be placed outside the viewport because there is nowhere
+    outside it to go. That is how "no scrolling" is enforced here -- by
+    construction rather than by policing drags. Below a narrow breakpoint the
+    grid is abandoned and tiles stack in one column, which is the single
+    sanctioned exception (see the CSS).
+
+    **Three things a module contributes, all open-ended.**
+
+    A *KPI* (`dashboardKpis`) is one number with an optional comparison and
+    history, shown as a row in a KPI tile:
+
+        {
+            key:    unique string
+            module: who contributed it
+            name:   what the row is called
+            format: (Number) -> String
+            load:   () -> Promise of {value, comparison, comparisonLabel,
+                    spark}
+        }
+
+    A *source* (`dashboardSources`) feeds a grouped measure tile -- a measure
+    broken down by some dimension, which is figure 8-1's "Revenue YTD by
+    region" and everything shaped like it:
+
+        {
+            key:         unique string
+            module:      who contributed it
+            name:        what the measure is called
+            format:      {amount, compact, units} formatters, all optional
+            headingFor:  (tile) -> String, optional, names a tile from its
+                         own options
+            defaultTile: a tile to put on the default layout, or omitted
+            load:        (tile) -> Promise of {rows, total, asOf,
+                         refreshedAt, comparison, comparisonLabel,
+                         needsRefresh}
+        }
+
+    where each row is `{key, label, amount, units, comparison, pctOfTotal,
+    spark}`. `needsRefresh` is how a source says its aggregates have never
+    been built, which is a different thing from an error and is shown as an
+    instruction rather than a failure.
+
+    A *refresher* (`dashboardRefreshers`) is a routine that rebuilds those
+    aggregates, run by the ribbon's Refresh button:
+
+        {
+            key:      unique string
+            module:   who contributed it
+            label:    what Refresh says it is working on
+            run:      () -> Promise of whatever the service returns
+            describe: (outcome) -> String, optional, for the status line
+        }
+
+    `comparison` and `spark` are optional throughout, and absent means
+    absent: a KPI with no comparison draws no marker rather than a zero, and
+    if NO KPI in a tile has one the whole percentage column disappears and
+    the tile falls back to name-and-number -- the plain badge John described
+    as the standard form. The same degradation runs through the measure tile:
+    no comparison anywhere means bullets become plain ranked bars. That is
+    the point, not an edge case: targets and history are not to be a
+    prerequisite for the dashboard being worth looking at.
+
+    **The reporting date.** The board reports as of a date, which is today
+    unless it has been pinned to a fixed one. Pinning is what makes a demo
+    database worth looking at -- sample data sits in its own years, and a
+    board stuck on the real today shows a year-to-date of nothing and no
+    prior-year comparison to mark. It is a property of the layout, passed
+    down to every tile, and a source is free to ignore it. Sources that
+    honour it resolve the date server side, so what a tile shows does not
+    depend on the clock of the browser asking.
+
+    Layouts are held in code here for now, composed from whatever has
+    registered. They become records (a feather, per-user, shareable,
+    shippable in a package) in the next increment.
+*/
+const DASH_COLS = 12;
+const DASH_ROWS = 8;
+const DASH_SPARK_MONTHS = 12;
+
+// Where the pinned reporting date lives until layouts are records: per
+// browser, so a demo survives a reload without a round trip, and so one
+// person pinning a date does not move everybody else's board.
+const DASH_AS_OF_KEY = "fb-dashboard-as-of";
+
+// Percentage scale for a KPI tile's bullets, mirroring figure 8-1: a bar is
+// the measure as a percentage of its own comparison, so measures in
+// different units stay comparable on one scale, and the marker sits at 100
+// where the middle band begins.
+const DASH_PCT_MAX = 150;
+const DASH_PCT_BANDS = [1 / 3, 2 / 3];
+
+// Nothing legible is smaller than this, so a tile that cannot be given at
+// least this much is left off the board rather than drawn unreadable.
+const DASH_MIN_COLS = 3;
+const DASH_MIN_ROWS = 2;
+
+let kpiRegistry = {};
+let sourceRegistry = {};
+let refresherRegistry = {};
+let tileState = {};
+let loadToken = 0;
+
+// Bumped by every registration, so a board already on screen when a module
+// registers late recomposes rather than sitting there missing a tile.
+let registryVersion = 0;
+
+// What Refresh is doing, or last did: {status: "idle"|"running"|"done",
+// label, at, results}. Read by the ribbon button as well as the board.
+let refreshState = {status: "idle"};
+
+// The arrangement on screen. Refresh is pressed on the ribbon, which is not
+// inside the board's component, so the two meet here.
+let currentLayout = null;
+
+/**
+    The pinned reporting date, or null for "today". Storage can throw where
+    a browser has it switched off, and a board that will not draw because a
+    preference could not be read would be a poor trade.
+*/
+function storedAsOf() {
+    try {
+        return window.localStorage.getItem(DASH_AS_OF_KEY) || null;
+    } catch (ignore) {
+        return null;
+    }
+}
+
+function storeAsOf(value) {
+    try {
+        if (value) {
+            window.localStorage.setItem(DASH_AS_OF_KEY, value);
+        } else {
+            window.localStorage.removeItem(DASH_AS_OF_KEY);
+        }
+    } catch (ignore) {
+        return;
+    }
+}
+
+/**
+    The date a layout reports as of, as a Date: its own, or today.
+
+    Parsed as local midnight rather than handed to `new Date("2027-05-31")`,
+    which reads the string as UTC and so lands on the 30th for anyone west
+    of Greenwich -- a reporting date that is off by one for half the world
+    is worse than no reporting date at all.
+*/
+function asOfDate(layout) {
+    let pinned = layout && layout.asOf;
+    let when = (
+        pinned
+        ? new Date(String(pinned) + "T00:00:00")
+        : new Date()
+    );
+
+    if (!Number.isFinite(when.getTime())) {
+        return new Date();
+    }
+    return when;
+}
+
+/**
+    A pinned reporting date, said the way the board says it.
+*/
+function asOfText(value) {
+    let when = new Date(String(value) + "T00:00:00");
+
+    if (!Number.isFinite(when.getTime())) {
+        return String(value);
+    }
+    return when.toLocaleDateString([], {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
+
+/**
+    Registers a KPI descriptor. Later registrations of the same key win, so
+    a module may override a framework KPI deliberately.
+*/
+function registerKpi(kpi) {
+    if (kpi && kpi.key) {
+        kpiRegistry[kpi.key] = kpi;
+        registryVersion += 1;
+    }
+}
+
+function listKpis() {
+    let keys = Object.keys(kpiRegistry);
+    let sorted = keys.sort();
+
+    return sorted.map(function (key) {
+        return kpiRegistry[key];
+    });
+}
+
+/**
+    Registers a grouped measure source. See the file comment for its shape.
+*/
+function registerSource(source) {
+    if (source && source.key) {
+        sourceRegistry[source.key] = source;
+        registryVersion += 1;
+    }
+}
+
+function listSources() {
+    let keys = Object.keys(sourceRegistry);
+    let sorted = keys.sort();
+
+    return sorted.map(function (key) {
+        return sourceRegistry[key];
+    });
+}
+
+/**
+    Registers an aggregate refresh routine for the Refresh button to run.
+*/
+function registerRefresher(refresher) {
+    if (refresher && refresher.key) {
+        refresherRegistry[refresher.key] = refresher;
+        registryVersion += 1;
+    }
+}
+
+function listRefreshers() {
+    let keys = Object.keys(refresherRegistry);
+    let sorted = keys.sort();
+
+    return sorted.map(function (key) {
+        return refresherRegistry[key];
+    });
+}
+
+/**
+    Lays tiles out in the order given, each taking the first free space big
+    enough for it, scanning left to right and top to bottom.
+
+    A tile that will not fit at its asked-for size is shrunk rather than
+    refused, down to the legibility floor above; one that will not fit even
+    then is left off. Tiles therefore cannot overlap and cannot run off the
+    board, which is the whole no-scrolling bargain, and a module that
+    contributes an over-large tile costs itself space rather than breaking
+    the board for everyone.
+*/
+function placeTiles(wanted) {
+    let taken = {};
+    let placed = [];
+
+    function isFree(col, row, cols, rows) {
+        let down = 0;
+
+        if (col + cols - 1 > DASH_COLS || row + rows - 1 > DASH_ROWS) {
+            return false;
+        }
+        while (down < rows) {
+            let across = 0;
+
+            while (across < cols) {
+                if (taken[(row + down) + ":" + (col + across)]) {
+                    return false;
+                }
+                across += 1;
+            }
+            down += 1;
+        }
+        return true;
+    }
+
+    function claim(col, row, cols, rows) {
+        let down = 0;
+
+        while (down < rows) {
+            let across = 0;
+
+            while (across < cols) {
+                taken[(row + down) + ":" + (col + across)] = true;
+                across += 1;
+            }
+            down += 1;
+        }
+    }
+
+    function findSpot(cols, rows) {
+        let row = 1;
+
+        while (row <= DASH_ROWS) {
+            let col = 1;
+
+            while (col <= DASH_COLS) {
+                if (isFree(col, row, cols, rows)) {
+                    return {col, row};
+                }
+                col += 1;
+            }
+            row += 1;
+        }
+        return null;
+    }
+
+    wanted.forEach(function (tile) {
+        let asked = Math.min(tile.rows || 3, DASH_ROWS);
+        let cols = Math.min(tile.cols || 4, DASH_COLS);
+        let rows = asked;
+        let at = findSpot(cols, rows);
+
+        while (at === null && cols >= DASH_MIN_COLS) {
+            if (rows > DASH_MIN_ROWS) {
+                rows -= 1;
+            } else {
+                cols -= 1;
+                rows = asked;
+            }
+            if (cols >= DASH_MIN_COLS) {
+                at = findSpot(cols, rows);
+            }
+        }
+
+        if (at !== null) {
+            claim(at.col, at.row, cols, rows);
+            placed.push(Object.assign({}, tile, {
+                col: at.col,
+                cols,
+                row: at.row,
+                rows
+            }));
+        }
+    });
+
+    return placed;
+}
+
+/**
+    The default arrangement: the framework's own KPI tile, then whatever
+    tile each registered source asks to put on a fresh board. This is how a
+    package contributes to the dashboard until layouts are records -- install
+    SupplyChain and its sales tile is simply there.
+*/
+function defaultLayout() {
+    let tiles = [{
+        cols: 5,
+        heading: "Key Metrics",
+        id: "core-kpis",
+        kpis: ["userCount"],
+        rows: 3,
+        type: "kpi"
+    }];
+
+    let offered = [];
+
+    listSources().forEach(function (source) {
+        if (source.defaultTile) {
+            offered.push(Object.assign({
+                id: "src-" + source.key,
+                sequence: 0,
+                source: source.key,
+                type: "measure"
+            }, source.defaultTile));
+        }
+    });
+
+    // A module says where its tile belongs with `sequence`; ties fall back
+    // to the source key, so the order is at least stable.
+    offered.sort(function (a, b) {
+        if (a.sequence !== b.sequence) {
+            return a.sequence - b.sequence;
+        }
+        return a.source.localeCompare(b.source);
+    });
+
+    offered.forEach(function (tile) {
+        tiles.push(tile);
+    });
+
+    return {
+        asOf: storedAsOf(),
+        tiles: placeTiles(tiles),
+        title: null,
+        version: registryVersion
+    };
+}
+
+/**
+    The last day of each of `count` months ending with `end`'s month.
+*/
+function monthEnds(count, end) {
+    let out = [];
+    let index = count - 1;
+
+    while (index >= 0) {
+        out.push(new Date(end.getFullYear(), end.getMonth() - index + 1, 0));
+        index -= 1;
+    }
+    return out;
+}
+
+/**
+    A framework KPI: how many user accounts this instance has.
+
+    Deliberately built from data the framework already holds rather than
+    invented, so it is a real measure on every installation. Its history is
+    the cumulative count derived from each account's `created` stamp, and its
+    comparison is that same count a year ago -- both genuine, which also
+    means a young instance will show a nearly flat sparkline. That is the
+    honest picture, and it exercises the near-flat path.
+
+    Counts as of the board's reporting date rather than as of now, so a
+    pinned board is pinned throughout rather than in some tiles only.
+*/
+registerKpi({
+    key: "userCount",
+    module: "Core",
+    name: "User Accounts",
+    format: function (n) {
+        return Number(n).toLocaleString();
+    },
+    load: function (context) {
+        let payload = {
+            method: "POST",
+            path: "/data/user-accounts",
+            body: {properties: ["id", "created"]}
+        };
+        let asOf = (context && context.asOf) || new Date();
+
+        return f.datasource().request(payload).then(function (rows) {
+            let list = rows || [];
+            let ends = monthEnds(DASH_SPARK_MONTHS, asOf);
+            let stamps = list.map(function (row) {
+                return new Date(row.created).getTime();
+            });
+            let valid = stamps.filter(Number.isFinite);
+            let spark = ends.map(function (end) {
+                let cutoff = end.getTime();
+                let upTo = valid.filter(function (t) {
+                    return t <= cutoff;
+                });
+
+                return upTo.length;
+            });
+            let today = asOf.getTime();
+            let counted = valid.filter(function (t) {
+                return t <= today;
+            });
+
+            return {
+                value: counted.length,
+                comparison: spark[0],
+                comparisonLabel: "a year ago",
+                spark
+            };
+        });
+    }
+});
+
+/**
+    Loads one tile, whatever kind it is, and never rejects: a tile that
+    could not load says so in its own square rather than taking the board
+    down with it.
+*/
+function loadTile(tile, layout) {
+    let source;
+    // A tile may pin itself -- "last year's close" beside live figures is a
+    // legitimate thing to want -- so its own date wins over the board's.
+    let asOf = tile.asOf || (layout && layout.asOf) || null;
+
+    if (tile.type === "kpi") {
+        let keys = tile.kpis || [];
+        let context = {asOf: asOfDate({asOf})};
+        let wanted = keys.map(function (key) {
+            return kpiRegistry[key];
+        });
+        let present = wanted.filter(Boolean);
+        let loads = present.map(function (kpi) {
+            return kpi.load(context).then(function (result) {
+                return Object.assign({kpi}, result);
+            }).catch(function (err) {
+                return {kpi, error: err.message || String(err)};
+            });
+        });
+
+        return Promise.all(loads).then(function (rows) {
+            return {rows};
+        });
+    }
+
+    if (tile.type === "measure") {
+        source = sourceRegistry[tile.source];
+
+        if (!source) {
+            return Promise.resolve({
+                error: "No such data source: " + String(tile.source)
+            });
+        }
+        return source.load(Object.assign({}, tile, {asOf})).then(
+            function (data) {
+                return {data};
+            }
+        ).catch(function (err) {
+            return {error: err.message || String(err)};
+        });
+    }
+
+    return Promise.resolve({
+        error: "Unknown tile type: " + String(tile.type)
+    });
+}
+
+/**
+    Loads every tile on the layout. A token guards against an earlier, slower
+    load landing after a later one and overwriting fresher numbers.
+*/
+function loadAll(layout) {
+    let token = loadToken + 1;
+
+    loadToken = token;
+
+    layout.tiles.forEach(function (tile) {
+        tileState[tile.id] = {status: "loading"};
+        loadTile(tile, layout).then(function (result) {
+            if (token !== loadToken) {
+                return;
+            }
+            tileState[tile.id] = Object.assign({status: "ready"}, result);
+            m.redraw();
+        });
+    });
+}
+
+/**
+    Runs every registered refresh routine, one after another, then reloads
+    the board from the rebuilt aggregates.
+
+    One at a time rather than together: these are table rebuilds, a slow
+    instance should not have several running at once, and a failure then
+    names the one routine that failed instead of arriving as an anonymous
+    rejection. Whatever happens, every routine is attempted and the board is
+    reloaded -- a refresh that half worked should still show what it managed.
+*/
+function runRefresh() {
+    let jobs = listRefreshers();
+    let layout = currentLayout || defaultLayout();
+    let results = [];
+    let next;
+
+    if (refreshState.status === "running") {
+        return;
+    }
+
+    function finish() {
+        refreshState = {
+            at: new Date(),
+            results,
+            status: "done"
+        };
+        loadAll(layout);
+        m.redraw();
+    }
+
+    next = function () {
+        let job = jobs.shift();
+        let name;
+
+        if (!job) {
+            finish();
+            return;
+        }
+        name = job.label || job.key;
+        refreshState = {label: name, status: "running"};
+        m.redraw();
+
+        job.run().then(function (outcome) {
+            let note = "";
+
+            if (job.describe) {
+                note = job.describe(outcome) || "";
+            }
+            results.push({label: name, note, ok: true});
+        }).catch(function (err) {
+            results.push({
+                label: name,
+                note: err.message || String(err),
+                ok: false
+            });
+        }).then(next);
+    };
+
+    next();
+}
+
+/**
+    Pins the board to a reporting date, or hands it back to today when given
+    nothing, and reloads what is on screen from that date.
+*/
+function setAsOf(value) {
+    let next = value || null;
+
+    storeAsOf(next);
+    if (currentLayout) {
+        currentLayout.asOf = next;
+        loadAll(currentLayout);
+    }
+    m.redraw();
+}
+
+/**
+    The board's reporting date as stored, for whoever is offering to change
+    it. Null means today.
+*/
+function getAsOf() {
+    if (currentLayout) {
+        return currentLayout.asOf || null;
+    }
+    return storedAsOf();
+}
+
+/**
+    A time said the way someone glancing at a dashboard wants it: the clock
+    for today, the date as well for anything older.
+*/
+function whenText(value) {
+    let when = new Date(value);
+    let now = new Date();
+    let sameDay = (
+        when.getFullYear() === now.getFullYear() &&
+        when.getMonth() === now.getMonth() &&
+        when.getDate() === now.getDate()
+    );
+
+    if (!Number.isFinite(when.getTime())) {
+        return "";
+    }
+    if (sameDay) {
+        return when.toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit"
+        });
+    }
+    return when.toLocaleString([], {
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        month: "short"
+    });
+}
+
+/**
+    The newest "last rebuilt" stamp any loaded tile reported, so the board
+    can say how old the figures on it are. Server-side time, deliberately:
+    the question is when the aggregates were last built for everyone, not
+    when this browser last pressed a button.
+*/
+function dataRefreshedAt() {
+    let newest = null;
+
+    Object.keys(tileState).forEach(function (id) {
+        let state = tileState[id];
+        let data = state.data;
+        let stamp;
+
+        if (!data || !data.refreshedAt) {
+            return;
+        }
+        stamp = new Date(data.refreshedAt).getTime();
+        if (Number.isFinite(stamp) && (newest === null || stamp > newest)) {
+            newest = stamp;
+        }
+    });
+
+    return newest;
+}
+
+/**
+    The line above the board saying what Refresh is doing, what it did, or
+    how old the figures are. Silent when there is nothing to say.
+*/
+function refreshBar(layout) {
+    let built = dataRefreshedAt();
+    let parts = [];
+    let state = refreshState;
+
+    // Said first and said plainly. Figures that are not today's look like
+    // wrong figures to anyone who does not know the board is pinned, and
+    // the cost of missing it is someone acting on the wrong quarter.
+    if (layout && layout.asOf) {
+        parts.push(m("span", {class: "fb-dash-as-of"}, (
+            "As of " + asOfText(layout.asOf)
+        )));
+    }
+
+    if (state.status === "running") {
+        parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+            "Refreshing " + state.label + "…"
+        )));
+    } else {
+        if (built !== null) {
+            parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+                "Figures rebuilt " + whenText(built)
+            )));
+        }
+        if (state.status === "done") {
+            let failed = state.results.filter(function (one) {
+                return !one.ok;
+            });
+            let notes = state.results.filter(function (one) {
+                return one.ok && one.note;
+            });
+
+            if (!state.results.length) {
+                parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+                    "Nothing to rebuild; the board was reloaded " +
+                    whenText(state.at)
+                )));
+            }
+            notes.forEach(function (one) {
+                parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+                    one.label + ": " + one.note
+                )));
+            });
+            failed.forEach(function (one) {
+                parts.push(m("span", {class: "fb-dash-refresh-fail"}, (
+                    one.label + " failed: " + one.note
+                )));
+            });
+        }
+    }
+
+    if (!parts.length) {
+        return null;
+    }
+    return m("div", {class: "fb-dash-refresh-bar"}, parts);
+}
+
+/**
+    One KPI tile: a row per metric, sharing one percentage scale with the
+    axis stated once beneath them rather than repeated per row.
+*/
+function kpiTile(tile) {
+    let state = tileState[tile.id] || {status: "loading"};
+    let draw = f.catalog().store().global().dashboardDraw;
+    let rows = state.rows || [];
+    let anyComparison = rows.some(function (row) {
+        return row.comparison !== undefined && row.comparison !== null;
+    });
+    let body;
+
+    if (state.status !== "ready") {
+        body = m("div", {class: "fb-dash-tile-empty"}, "Loading…");
+    } else if (!rows.length) {
+        body = m("div", {class: "fb-dash-tile-empty"}, "No metrics selected");
+    } else {
+        let lines = rows.map(function (row) {
+            let pct = (
+                row.comparison
+                ? (row.value / row.comparison) * 100
+                : null
+            );
+
+            return m("tr", [
+                m("td", {class: "fb-dash-cell-spark"}, (
+                    (row.spark && row.spark.length > 1)
+                    ? draw.sparkline({points: row.spark, width: 76, height: 16})
+                    : null
+                )),
+                m("td", {class: "fb-dash-cell-name"}, row.kpi.name),
+                (
+                    anyComparison
+                    ? m("td", {class: "fb-dash-cell-graphic"}, (
+                        pct === null
+                        ? null
+                        : draw.bullet({
+                            comparison: 100,
+                            max: DASH_PCT_MAX,
+                            ranges: DASH_PCT_BANDS,
+                            title: (
+                                row.kpi.name + ": " +
+                                Math.round(pct) + "% of " +
+                                (row.comparisonLabel || "comparison")
+                            ),
+                            value: pct,
+                            width: 150,
+                            height: 14
+                        })
+                    ))
+                    : null
+                ),
+                m("td", {class: "fb-dash-cell-value"}, (
+                    row.error
+                    ? "—"
+                    : row.kpi.format(row.value)
+                ))
+            ]);
+        });
+
+        if (anyComparison) {
+            lines.push(m("tr", [
+                m("td"),
+                m("td"),
+                m("td", {class: "fb-dash-cell-graphic"}, draw.axis({
+                    format: function (n) {
+                        return Math.round(n) + "%";
+                    },
+                    max: DASH_PCT_MAX,
+                    ticks: 3,
+                    width: 150
+                })),
+                m("td")
+            ]));
+        }
+
+        body = m("table", {class: "fb-dash-kpi-table"}, lines);
+    }
+
+    return [
+        m("div", {class: "fb-dash-tile-heading"}, tile.heading),
+        body
+    ];
+}
+
+/**
+    Formatters for a measure tile, taken from the source where it supplies
+    them. A source that says nothing gets plain localized numbers, which is
+    wrong for money and right for everything else -- so money sources supply
+    their own.
+*/
+function measureFormats(source) {
+    let given = (source && source.format) || {};
+    let plain = function (n) {
+        return Number(n).toLocaleString();
+    };
+
+    return {
+        amount: given.amount || plain,
+        compact: given.compact || given.amount || plain,
+        units: given.units || plain
+    };
+}
+
+/**
+    One grouped measure tile: a measure broken down by a dimension, drawn as
+    bullet rows against a comparison, as ranked bars, or as a plain numeric
+    table.
+
+    All three share one quantitative scale across the rows, with the axis
+    stated once underneath -- the rows are being compared with each other, so
+    a scale per row would make the comparison a lie. The bars are zero-based
+    because a bar encodes by length.
+*/
+function measureTile(tile) {
+    let state = tileState[tile.id] || {status: "loading"};
+    let source = sourceRegistry[tile.source] || {};
+    let draw = f.catalog().store().global().dashboardDraw;
+    let fmt = measureFormats(source);
+    let data = state.data;
+    let display = tile.display || "bullets";
+    // The tile may be titled outright; failing that a source gets to name
+    // the tile from its own options, so a heading follows the dimension and
+    // window rather than going stale when they change.
+    let named = (
+        source.headingFor
+        ? source.headingFor(tile)
+        : source.name
+    );
+    let heading = tile.heading || named || "Measure";
+    // Wide enough for the axis beneath it to label five intervals without
+    // the labels running into each other, which at 150 they do.
+    let width = 220;
+    let body;
+    let total = null;
+
+    if (state.status !== "ready") {
+        body = m("div", {class: "fb-dash-tile-empty"}, "Loading…");
+    } else if (state.error) {
+        body = m("div", {class: "fb-dash-tile-error"}, state.error);
+    } else if (data.needsRefresh) {
+        body = m("div", {class: "fb-dash-tile-empty"}, (
+            "No figures yet. Press Refresh on the Home tab to build them."
+        ));
+    } else if (!data.rows || !data.rows.length) {
+        body = m("div", {class: "fb-dash-tile-empty"}, (
+            "Nothing in this period"
+        ));
+    } else {
+        let rows = data.rows;
+        let hasComparison = rows.some(function (row) {
+            return row.comparison !== undefined && row.comparison !== null;
+        });
+        // Opt-in rather than opt-out: a sparkline beside a bar says
+        // something the bar does not, but on every row of every tile it is
+        // just ink.
+        let hasSpark = tile.showSpark === true && rows.some(function (row) {
+            return row.spark && row.spark.length > 1;
+        });
+        let showPct = tile.showPercent !== false;
+        let top = 0;
+        let lines;
+        let max;
+        let mode = display;
+
+        rows.forEach(function (row) {
+            let against = row.comparison || 0;
+            let candidate = Math.max(Number(row.amount), Number(against));
+
+            if (candidate > top) {
+                top = candidate;
+            }
+        });
+        max = draw.niceMax(top);
+        total = data.total;
+
+        // Absent means absent: with nothing to compare against, bullets are
+        // just bars with a marker that would never be drawn, so say bars.
+        if (mode === "bullets" && !hasComparison) {
+            mode = "bars";
+        }
+
+        lines = rows.map(function (row) {
+            let amount = Number(row.amount);
+            let label = row.label || row.key || "—";
+            let history = row.spark || [];
+            let points = history.map(function (point) {
+                return Number(point.amount);
+            });
+            let against = (
+                row.comparison === null
+                ? undefined
+                : row.comparison
+            );
+            let said = label + ": " + fmt.amount(amount);
+            let graphic;
+            let cells = [];
+
+            if (against !== undefined) {
+                said += (
+                    " against " + fmt.amount(against) + " " +
+                    (data.comparisonLabel || "prior year")
+                );
+            }
+
+            if (mode === "bullets") {
+                graphic = draw.bullet({
+                    comparison: against,
+                    max,
+                    ranges: [],
+                    title: said,
+                    value: amount,
+                    width,
+                    height: 14
+                });
+            } else if (mode === "bars") {
+                graphic = draw.bar({
+                    max,
+                    title: said,
+                    value: amount,
+                    width,
+                    height: 11
+                });
+            }
+
+            if (hasSpark) {
+                cells.push(m("td", {class: "fb-dash-cell-spark"}, (
+                    points.length > 1
+                    ? draw.sparkline({points, width: 76, height: 16})
+                    : null
+                )));
+            }
+            cells.push(m("td", {class: "fb-dash-cell-name"}, label));
+            if (graphic) {
+                cells.push(m("td", {class: "fb-dash-cell-graphic"}, graphic));
+            }
+            cells.push(m("td", {class: "fb-dash-cell-value"}, (
+                fmt.amount(amount)
+            )));
+            if (showPct) {
+                cells.push(m("td", {class: "fb-dash-cell-pct"}, (
+                    Math.round(row.pctOfTotal || 0) + "%"
+                )));
+            }
+
+            return m("tr", cells);
+        });
+
+        if (mode !== "table") {
+            let lead = [];
+            let trail = [m("td")];
+            let index = 0;
+            let span = (
+                hasSpark
+                ? 2
+                : 1
+            );
+
+            while (index < span) {
+                lead.push(m("td"));
+                index += 1;
+            }
+            if (showPct) {
+                trail.push(m("td"));
+            }
+            lines.push(m("tr", lead.concat([
+                m("td", {class: "fb-dash-cell-graphic"}, draw.axis({
+                    format: fmt.compact,
+                    max,
+                    width
+                }))
+            ]).concat(trail)));
+        }
+
+        body = [
+            m("table", {class: "fb-dash-measure-table"}, lines),
+            (
+                mode === "bullets"
+                ? m("div", {class: "fb-dash-caption"}, (
+                    "Marker: " + (data.comparisonLabel || "prior year")
+                ))
+                : null
+            )
+        ];
+    }
+
+    return [
+        m("div", {class: "fb-dash-tile-heading"}, [
+            m("span", heading),
+            (
+                total === null
+                ? null
+                : m("span", {class: "fb-dash-tile-total"}, fmt.amount(total))
+            )
+        ]),
+        body
+    ];
+}
+
+let dashboard = {
+    oninit: function () {
+        currentLayout = defaultLayout();
+        loadAll(currentLayout);
+    },
+    view: function () {
+        let layout = currentLayout || defaultLayout();
+
+        // A module that registered after this board was built gets its tile
+        // without the page being reloaded.
+        if (layout.version !== registryVersion) {
+            layout = defaultLayout();
+            currentLayout = layout;
+            loadAll(layout);
+        }
+
+        return m("div", {class: "fb-dash-frame"}, [
+            refreshBar(layout),
+            m("div", {
+                class: "fb-dash-board",
+                style: {
+                    "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
+                    "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
+                }
+            }, layout.tiles.map(function (tile) {
+                return m("section", {
+                    class: "fb-dash-tile",
+                    key: tile.id,
+                    style: {
+                        "grid-column": tile.col + " / span " + tile.cols,
+                        "grid-row": tile.row + " / span " + tile.rows
+                    }
+                }, (
+                    tile.type === "kpi"
+                    ? kpiTile(tile)
+                    : measureTile(tile)
+                ));
+            }))
+        ]);
+    }
+};
+
+/**
+    The company name for the dashboard's title, read from the instance's own
+    global settings -- no manager round trip. A layout may override it, which
+    is why this is only the default.
+*/
+function dashboardTitle(layout) {
+    let models = f.catalog().store().models();
+    let settings = (
+        models.globalSettings
+        ? models.globalSettings()
+        : null
+    );
+    let company = "";
+
+    if (layout && layout.title) {
+        return layout.title;
+    }
+    if (settings && settings.data && settings.data.name) {
+        company = settings.data.name() || "";
+    }
+    return (
+        company
+        ? company + " Dashboard"
+        : "Dashboard"
+    );
+}
+
+f.catalog().register("global", "dashboardKpis", {
+    list: listKpis,
+    register: registerKpi
+});
+f.catalog().register("global", "dashboardSources", {
+    list: listSources,
+    register: registerSource
+});
+f.catalog().register("global", "dashboardRefreshers", {
+    list: listRefreshers,
+    register: registerRefresher
+});
+f.catalog().register("global", "dashboardRefresh", runRefresh);
+f.catalog().register("global", "dashboardRefreshStatus", function () {
+    return refreshState.status;
+});
+f.catalog().register("global", "dashboardAsOf", getAsOf);
+f.catalog().register("global", "dashboardSetAsOf", setAsOf);
+f.catalog().register("global", "dashboardTitle", dashboardTitle);
+f.catalog().register("components", "dashboard", dashboard);

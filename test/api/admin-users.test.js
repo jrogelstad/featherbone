@@ -150,6 +150,138 @@ describe("administrator edits a user's details", function () {
         assert.equal(found.rows[0].n, 1);
     });
 
+    /*
+        At the application level an organization administrator is a
+        super user in the organization's instances: they administer
+        what is in them, and who may open a workbook is set on the
+        workbook, so they have to see them all (John, Oct 2026). The
+        platform's own administration is another application and does
+        not come into it.
+    */
+    // Appointing an organization administrator is for an organization
+    // or platform administrator, which the suite's own user is not
+    async function appointer() {
+        let name = access.track(access.uniq("fbt_pa"));
+
+        await db.ensureIdentity(name, settings.password, settings.testDb);
+        await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                "UPDATE identity SET is_platform_admin = true " +
+                "WHERE lower(username) = lower($1)",
+                [name]
+            )
+        );
+
+        let session = new Session();
+        let resp = await session.signIn(name, settings.password, "FBTest");
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        return session;
+    }
+
+    async function isSuper(name) {
+        let resp = await db.query(
+            "SELECT is_super FROM user_account WHERE name = $1",
+            [name]
+        );
+
+        return resp.rows.length && resp.rows[0].is_super;
+    }
+
+    it("makes an appointed organization administrator a super user in " +
+            "their instances, and stands them down again", async function () {
+        let name = access.track(access.uniq("fbt_oa"));
+        let made = await admin.raw("POST", "/admin/identity", {
+            password: "Info-Pw-5",
+            username: name
+        });
+
+        assert.ok(made.status < 300, JSON.stringify(made.body));
+        assert.equal(await isSuper(name), false, "an ordinary user to begin");
+
+        let who = await row(name);
+        let boss = await appointer();
+        let resp = await boss.raw("POST", "/admin/identity/org-admin", {
+            id: who.id,
+            isOrgAdmin: true
+        });
+
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+        assert.equal(await isSuper(name), true, "appointed");
+
+        resp = await boss.raw("POST", "/admin/identity/org-admin", {
+            id: who.id,
+            isOrgAdmin: false
+        });
+        assert.ok(resp.status < 300, JSON.stringify(resp.body));
+        assert.equal(await isSuper(name), false, "stood down");
+    });
+
+    it("gives an organization administrator a super user profile when " +
+            "they are granted an instance", async function () {
+        let name = access.track(access.uniq("fbt_og"));
+
+        await admin.raw("POST", "/admin/identity", {
+            password: "Info-Pw-6",
+            username: name
+        });
+
+        let who = await row(name);
+        let boss = await appointer();
+        let appointed = await boss.raw("POST", "/admin/identity/org-admin", {
+            id: who.id,
+            isOrgAdmin: true
+        });
+
+        assert.ok(appointed.status < 300, JSON.stringify(appointed.body));
+
+        // As if their profile here had never been made
+        await db.query(
+            "DELETE FROM role_membership WHERE _parent_role_pk IN (" +
+            "SELECT _pk FROM user_account WHERE name = $1)",
+            [name]
+        );
+        await db.query("DELETE FROM user_account WHERE name = $1", [name]);
+
+        let granted = await boss.raw("POST", "/admin/grant", {id: who.id});
+
+        assert.ok(granted.status < 300, JSON.stringify(granted.body));
+        assert.equal(await isSuper(name), true);
+    });
+
+    it("corrects an organization administrator's stale profile when " +
+            "they sign in", async function () {
+        let name = access.track(access.uniq("fbt_oh"));
+
+        await admin.raw("POST", "/admin/identity", {
+            password: "Info-Pw-7",
+            username: name
+        });
+
+        let who = await row(name);
+        let boss = await appointer();
+        let appointed = await boss.raw("POST", "/admin/identity/org-admin", {
+            id: who.id,
+            isOrgAdmin: true
+        });
+
+        assert.ok(appointed.status < 300, JSON.stringify(appointed.body));
+
+        // As it was left by an earlier version
+        await db.query(
+            "UPDATE user_account SET is_super = false WHERE name = $1",
+            [name]
+        );
+        assert.equal(await isSuper(name), false, "stale to begin");
+
+        assert.equal(
+            (await new Session().signIn(name, "Info-Pw-7")).status,
+            200
+        );
+        assert.equal(await isSuper(name), true, "healed at sign-in");
+    });
+
     it("writes the profile once there is one, phone included",
             async function () {
         let name = access.track(access.uniq("fbt_prof"));

@@ -592,6 +592,22 @@
                                         data: {
                                             id: theId,
                                             role: auth.role,
+                                            /*
+                                                The workbook declares
+                                                the role, so the role is
+                                                made if it is not there
+                                                (John, Oct 2026). Until
+                                                this, naming a role no
+                                                database had yet failed
+                                                the whole install with
+                                                "Role not found", which
+                                                made a package that was
+                                                perfectly well formed
+                                                depend on the order its
+                                                roles happened to be
+                                                created in.
+                                            */
+                                            isAutoCreateRole: true,
                                             isInternal: true,
                                             actions: {
                                                 canCreate: null,
@@ -640,6 +656,8 @@
                                     data: {
                                         id: nme,
                                         role: auth.data.role,
+                                        // Same declaration, same role
+                                        isAutoCreateRole: true,
                                         isInternal: true,
                                         actions: {
                                             canCreate: false,
