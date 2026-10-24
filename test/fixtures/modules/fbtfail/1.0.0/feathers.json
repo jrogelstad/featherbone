@@ -1,0 +1,18 @@
+[
+    {
+        "name": "FbtFailRelation",
+        "description": "Points at a feather nothing defines, so the install fails here",
+        "plural": "FbtFailRelations",
+        "module": "fbtfail",
+        "inherits": "Document",
+        "properties": {
+            "thing": {
+                "description": "A relation that cannot resolve",
+                "type": {
+                    "properties": ["name"],
+                    "relation": "FbtNoSuchFeather"
+                }
+            }
+        }
+    }
+]
