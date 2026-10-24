@@ -257,6 +257,17 @@ describe("a package that seeds records into its own feather", function () {
         }
     );
 
+    it("ran the install script the package carried", async function () {
+        let resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT to_regclass('fbt_seed_marker') AS found"
+            )
+        );
+
+        assert.ok(resp.rows[0].found, "the script ran from the package");
+    });
+
     it("has the records the package carried", async function () {
         let resp = await db.withClient(
             settings.testDb,
