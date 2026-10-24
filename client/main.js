@@ -106,8 +106,24 @@ let canAdminister = false;
     two settings saved from two tabs do not overwrite each other
     wholesale.
 */
+/*
+    The profile is registered in the catalog's data store while the app
+    loads, so anything that runs earlier finds no store at all -- not an
+    empty one. Asked before then, these say "nothing yet" rather than
+    throwing, because a preference that cannot be read is never a reason
+    for the app not to start.
+*/
+function heldProfile() {
+    let store = catalog.store();
+
+    if (typeof store.data !== "function" || !store.data().profile) {
+        return null;
+    }
+    return store.data().profile();
+}
+
 function profileValue(key) {
-    let held = catalog.store().data().profile();
+    let held = heldProfile();
 
     if (!held || !held.data) {
         return undefined;
@@ -116,9 +132,13 @@ function profileValue(key) {
 }
 
 function profileSave(key, value) {
-    let held = catalog.store().data().profile();
+    let held = heldProfile();
     let next;
     let patch;
+
+    if (typeof catalog.store().data !== "function") {
+        return Promise.resolve();
+    }
 
     function kept(etag) {
         next.etag = etag;
@@ -203,19 +223,39 @@ function recallZoom() {
     }
 }
 
+/*
+    Drawing the app at a scale, and CHOOSING that scale, are two
+    different acts and only the second is worth recording.
+
+    Applying one that was already remembered -- at start-up, or when the
+    profile arrives -- must write nothing: there is nothing new to save,
+    and at start-up the attempt ran before the catalog's data store
+    existed and took the whole app down with it.
+*/
+function applyZoom(value) {
+    let wanted = Math.round(Number(value));
+
+    if (
+        !Number.isFinite(wanted) ||
+        wanted < APP_ZOOM_MIN ||
+        wanted > APP_ZOOM_MAX
+    ) {
+        return false;
+    }
+    document.documentElement.style.setProperty(
+        "--fb-ui-scale",
+        wanted / 100
+    );
+    return wanted;
+}
+
 function appZoom(value) {
-    let root = document.documentElement;
     let held;
     let wanted;
 
     if (value !== undefined) {
-        wanted = Math.round(Number(value));
-        if (
-            Number.isFinite(wanted) &&
-            wanted >= APP_ZOOM_MIN &&
-            wanted <= APP_ZOOM_MAX
-        ) {
-            root.style.setProperty("--fb-ui-scale", wanted / 100);
+        wanted = applyZoom(value);
+        if (wanted !== false) {
             rememberZoom(wanted);
             profileSave("appZoom", wanted).catch(function () {
                 // Kept in this browser regardless; a profile that would
@@ -225,7 +265,7 @@ function appZoom(value) {
         }
     }
 
-    held = root.style.getPropertyValue("--fb-ui-scale");
+    held = document.documentElement.style.getPropertyValue("--fb-ui-scale");
     if (held) {
         return Math.round(Number(held) * 100);
     }
@@ -234,13 +274,15 @@ function appZoom(value) {
 
 /*
     Applied before the first render rather than after: the app appearing
-    at one size and jumping to another is worse than either size.
+    at one size and jumping to another is worse than either size. This
+    runs before anything else is loaded, so it must touch nothing but
+    the stylesheet.
 */
 function applyStoredZoom() {
     let held = recallZoom();
 
     if (held) {
-        appZoom(held);
+        applyZoom(held);
     }
 }
 
@@ -253,7 +295,9 @@ function applyProfileZoom() {
     let held = profileValue("appZoom");
 
     if (held) {
-        appZoom(held);
+        // Already what the profile says, so applied and not saved back.
+        applyZoom(held);
+        rememberZoom(held);
     }
 }
 
