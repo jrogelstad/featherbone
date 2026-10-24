@@ -80,6 +80,8 @@ let deleteWbTemplateDlg;
 let navCategoryDlg;
 let navCategoryErrDlg;
 let asOfDlg;
+let saveLayoutDlg;
+let saveLayoutErrDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
@@ -96,6 +98,12 @@ const newname = f.prop("");
 // today. Only written back to the board when the dialog is accepted.
 const asOfPending = f.prop("");
 const asOfId = f.createId();
+
+// For saving the board's arrangement as a layout everyone can start from
+const layoutName = f.prop("");
+const layoutIsDefault = f.prop(false);
+const layoutNameId = f.createId();
+const layoutDefaultId = f.createId();
 function templates() {
     return Object.keys(workbooks).filter(
         (k) => workbooks[k].data.isTemplate()
@@ -426,9 +434,15 @@ function homeRibbonGroups() {
         ? dashStatus() === "running"
         : false
     );
+    let getLayoutName = catalog.store().global().dashboardLayoutName;
     let dashAsOf = (
         getAsOf
         ? getAsOf()
+        : null
+    );
+    let dashLayout = (
+        getLayoutName
+        ? getLayoutName()
         : null
     );
 
@@ -569,6 +583,27 @@ function homeRibbonGroups() {
                 }
             }
         }, {
+            label: "Save Layout",
+            icon: "bookmark_add",
+            /*
+                The board is composed from whatever has registered until
+                somebody saves an arrangement. Saving one is what turns it
+                into something the instance keeps and others can start
+                from -- which is why this is the only button here that
+                writes anything shared.
+            */
+            title: (
+                dashLayout
+                ? "Showing the \"" + dashLayout + "\" layout. Save it " +
+                "again, or under another name."
+                : "Save this arrangement as a layout"
+            ),
+            onclick: function () {
+                layoutName(dashLayout || "");
+                layoutIsDefault(!dashLayout);
+                saveLayoutDlg.show();
+            }
+        }, {
             label: "As Of",
             icon: "event",
             /*
@@ -628,6 +663,12 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.asOfDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.saveLayoutDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.saveLayoutErrDlg
             })
         ];
     }
@@ -1520,6 +1561,81 @@ function initApp() {
                 ))
             ]);
         };
+        /*
+            View model for saving the board's arrangement. The error
+            dialog is its own, in the idiom of the navigation category
+            dialogs above: a save that the service refused -- somebody
+            else's layout, most often -- has to say so without the
+            arrangement being lost behind a closed dialog.
+        */
+        saveLayoutErrDlg = viewModels.dialog({
+            icon: "error",
+            title: "Error"
+        });
+        saveLayoutDlg = viewModels.dialog({
+            icon: "bookmark_add",
+            title: "Save dashboard layout"
+        });
+        saveLayoutDlg.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: layoutNameId
+                    }, "Name:"),
+                    m("input", {
+                        id: layoutNameId,
+                        autocomplete: "off",
+                        oninput: (e) => layoutName(e.target.value),
+                        value: layoutName()
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: layoutDefaultId
+                    }, "Default:"),
+                    m("input", {
+                        id: layoutDefaultId,
+                        type: "checkbox",
+                        checked: layoutIsDefault(),
+                        onchange: (e) => layoutIsDefault(e.target.checked)
+                    })
+                ]),
+                m("div", {
+                    class: "fb-dialog-note"
+                }, (
+                    "The default layout is what anyone who has not " +
+                    "chosen one sees. Saving under a new name leaves " +
+                    "the old layout alone."
+                ))
+            ]);
+        };
+        saveLayoutDlg.onOk(function () {
+            let save = catalog.store().global().dashboardSaveLayout;
+
+            if (!save) {
+                return;
+            }
+            save({
+                isDefault: layoutIsDefault(),
+                name: layoutName().trim()
+            }).catch(function (err) {
+                saveLayoutErrDlg.message(err.message);
+                saveLayoutErrDlg.show();
+            });
+        });
+        saveLayoutDlg.buttonOk().isDisabled = () => !layoutName().trim();
+        saveLayoutDlg.buttonOk().title = function () {
+            if (!layoutName().trim()) {
+                return "A layout needs a name";
+            }
+        };
+
         asOfDlg.onOk(function () {
             let setAsOf = catalog.store().global().dashboardSetAsOf;
 
@@ -1647,6 +1763,16 @@ function initApp() {
             "global",
             "asOfDlg",
             asOfDlg
+        );
+        catalog.register(
+            "global",
+            "saveLayoutDlg",
+            saveLayoutDlg
+        );
+        catalog.register(
+            "global",
+            "saveLayoutErrDlg",
+            saveLayoutErrDlg
         );
 
         m.route(document.body, "/home", routes);
