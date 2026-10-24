@@ -157,6 +157,132 @@ adminPage.viewModel = function () {
     */
     vm.selection = f.prop("");
     /**
+        Which of the two tabs the pane below the users shows: the
+        organization's recent changes, or the selected person's roles
+        in this instance.
+
+        @method paneTab
+        @return {String} "audit" or "roles"
+    */
+    vm.paneTab = f.prop("audit");
+    /**
+        The selected person's roles, as the server resolved them:
+        which are theirs directly and which they hold through another
+        role. Undefined until something has been selected and read.
+
+        @method roleData
+        @return {Object}
+    */
+    vm.roleData = f.prop();
+    /**
+        The role the roles tab's own toolbar acts on. Roles are picked
+        the way users are, so Remove belongs to the selection and not
+        to a button in every row (John, Oct 2026).
+
+        @method roleSelection
+        @return {String}
+    */
+    vm.roleSelection = f.prop("");
+    /**
+        The role the picker would add.
+        @method roleToAdd
+        @return {String}
+    */
+    vm.roleToAdd = f.prop("");
+    /**
+        True while the roles tab is reading.
+        @method isReadingRoles
+        @return {Boolean}
+    */
+    vm.isReadingRoles = f.prop(false);
+    /**
+        Read the selected person's roles. Nothing selected clears the
+        tab rather than leaving the last person's roles under somebody
+        else's name.
+
+        @method loadRoles
+    */
+    vm.loadRoles = function () {
+        let id = vm.selection();
+
+        vm.roleSelection("");
+        vm.roleToAdd("");
+
+        if (!id) {
+            vm.roleData(undefined);
+            return Promise.resolve();
+        }
+
+        vm.isReadingRoles(true);
+
+        return request("POST", "/admin/identity/roles", {
+            id
+        }).then(function (resp) {
+            vm.isReadingRoles(false);
+            /*
+                The answer is only wanted while it is still about the
+                row that is selected: clicking down a list faster than
+                the server answers must not leave one person's roles
+                showing under another's name.
+            */
+            if (vm.selection() === id) {
+                vm.roleData(resp);
+            }
+            m.redraw();
+        }).catch(function (err) {
+            vm.isReadingRoles(false);
+            vm.roleData(undefined);
+            fail(err);
+            m.redraw();
+        });
+    };
+    /**
+        Select a user, and bring the roles tab along if it is the one
+        showing.
+
+        @method select
+        @param {String} id
+    */
+    vm.select = function (id) {
+        vm.selection(id);
+
+        if (vm.paneTab() === "roles") {
+            vm.loadRoles();
+        }
+    };
+    /**
+        Show one of the two tabs, reading the roles the first time
+        that tab is asked for rather than on every selection.
+
+        @method showTab
+        @param {String} name
+    */
+    vm.showTab = function (name) {
+        vm.paneTab(name);
+
+        if (name === "roles") {
+            vm.loadRoles();
+        }
+    };
+    /**
+        Put the selected person in a role, or take them out of it.
+
+        @method doSetRole
+        @param {String} role
+        @param {Boolean} isMember
+    */
+    vm.doSetRole = function (role, isMember) {
+        if (!vm.selection() || !role) {
+            return;
+        }
+
+        request("POST", "/admin/identity/role", {
+            id: vm.selection(),
+            isMember,
+            role
+        }).then(vm.loadRoles).catch(fail);
+    };
+    /**
         Style of the right-click menu: where it is, or not shown.
         @method menuStyle
         @return {Object}
@@ -840,6 +966,202 @@ adminPage.component = {
             );
         }
 
+        /*
+            The pane below the users is two tabs now: the organization's
+            recent changes, and the selected person's roles in this
+            instance. Built from the form tab strip
+            (.fb-form-tabs / .fb-group-tab) so it looks like the tabs on
+            a form rather than a second idea about what a tab is.
+        */
+        function paneTabs() {
+            function tab(key, label, side) {
+                let classes = [
+                    "pure-button",
+                    "fb-group-tab",
+                    "fb-group-tab-form",
+                    side
+                ];
+
+                if (vm.paneTab() === key) {
+                    classes.push("fb-group-tab-active");
+                }
+
+                return m("button", {
+                    class: classes.join(" "),
+                    onclick: () => vm.showTab(key)
+                }, label);
+            }
+
+            return m("div", {class: "fb-form-tabs fb-admin-tabs"}, [
+                tab("audit", "Recent changes", "fb-group-tab-left"),
+                tab(
+                    "roles",
+                    /*
+                        Roles are an instance's, not an organization's,
+                        and this screen lists an organization's people
+                        -- so the tab says which instance it is talking
+                        about rather than leaving it to be assumed.
+                    */
+                    "Roles in " + hereCalled(),
+                    "fb-group-tab-right"
+                )
+            ]);
+        }
+
+        function rolesPane() {
+            let held = vm.roleData();
+            let none = !vm.selection();
+            let rows = (
+                held
+                ? held.roles
+                : []
+            );
+            let picked = rows.find(
+                (row) => row.role === vm.roleSelection()
+            );
+            let offered = (
+                held
+                ? held.available
+                : []
+            );
+
+            if (none) {
+                return m("div", {
+                    class: "fb-admin-note"
+                }, "Select a user to see the roles they hold here.");
+            }
+
+            if (vm.isReadingRoles() && !held) {
+                return m("div", {class: "fb-admin-note"}, "Reading roles…");
+            }
+
+            return m("div", [
+                m("div", {
+                    class: "fb-toolbar fb-admin-roles-toolbar"
+                }, [
+                    m("select", {
+                        class: "fb-admin-role-picker",
+                        disabled: !offered.length,
+                        onchange: (e) => vm.roleToAdd(e.target.value),
+                        title: (
+                            offered.length
+                            ? "A role to put " + held.username + " in"
+                            : held.username + " is already in every " +
+                                "role this instance has"
+                        ),
+                        value: vm.roleToAdd()
+                    }, [
+                        m("option", {value: ""}, "Choose a role…")
+                    ].concat(offered.map(function (name) {
+                        /*
+                            No key: the fixed first option has none,
+                            and Mithril refuses a fragment where some
+                            children are keyed and others are not.
+                        */
+                        return m("option", {value: name}, name);
+                    }))),
+                    m("button", {
+                        class: (
+                            "pure-button fb-toolbar-button" + (
+                                vm.roleToAdd()
+                                ? ""
+                                : " fb-button-disabled"
+                            )
+                        ),
+                        disabled: !vm.roleToAdd(),
+                        onclick: () => vm.doSetRole(vm.roleToAdd(), true),
+                        title: (
+                            vm.roleToAdd()
+                            ? "Put " + held.username + " in " +
+                                vm.roleToAdd()
+                            : "Choose a role first"
+                        )
+                    }, "Add"),
+                    m("div", {class: "fb-toolbar-fill"}),
+                    /*
+                        Remove acts on the selected row and is offered
+                        only for a membership that is this person's own.
+                        An inherited one is a row on another role; a
+                        Remove for it would have nothing to delete, and
+                        a button that quietly does nothing is worse than
+                        one that says why it cannot.
+                    */
+                    m("button", {
+                        class: (
+                            "pure-button fb-toolbar-button" + (
+                                (picked && picked.isDirect)
+                                ? ""
+                                : " fb-button-disabled"
+                            )
+                        ),
+                        disabled: !picked || !picked.isDirect,
+                        onclick: () => vm.doSetRole(
+                            vm.roleSelection(),
+                            false
+                        ),
+                        title: (
+                            !picked
+                            ? "Select a role"
+                            : (
+                                picked.isDirect
+                                ? "Take " + held.username + " out of " +
+                                    picked.role
+                                : picked.role + " comes with " +
+                                    picked.via + ", so it is removed " +
+                                    "by editing " + picked.via +
+                                    " itself"
+                            )
+                        )
+                    }, "Remove")
+                ]),
+                m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
+                    m("table", {class: "fb-table fb-admin-table"}, [
+                        m("thead", [
+                            m("tr", [
+                                m("th", {
+                                    class: "fb-admin-col-user"
+                                }, "Role"),
+                                m("th", "How")
+                            ])
+                        ]),
+                        m("tbody", rows.map(function (row) {
+                            return m("tr", {
+                                class: (
+                                    "fb-admin-row" + (
+                                        vm.roleSelection() === row.role
+                                        ? " fb-table-row-selected"
+                                        : ""
+                                    ) + (
+                                        row.isDirect
+                                        ? ""
+                                        : " fb-admin-role-inherited"
+                                    )
+                                ),
+                                key: row.role,
+                                onclick: () => vm.roleSelection(row.role)
+                            }, [
+                                m("td", row.role),
+                                m("td", (
+                                    row.isDirect
+                                    ? "assigned here"
+                                    : m("span", {
+                                        class: "fb-admin-muted"
+                                    }, "via " + row.via)
+                                ))
+                            ]);
+                        }))
+                    ])
+                ]),
+                (
+                    rows.length
+                    ? undefined
+                    : m("div", {
+                        class: "fb-admin-note"
+                    }, held.username + " is in no roles here.")
+                )
+            ]);
+        }
+
         function tierTag(identity) {
             let label = "";
             let why = "";
@@ -1151,14 +1473,14 @@ adminPage.component = {
                 key: id,
                 oncontextmenu: function (e) {
                     e.preventDefault();
-                    vm.selection(id);
+                    vm.select(id);
                     vm.menuStyle({
                         display: "block",
                         left: e.pageX + "px",
                         top: e.pageY + "px"
                     });
                 },
-                onclick: () => vm.selection(id)
+                onclick: () => vm.select(id)
             };
         }
 
@@ -1410,32 +1732,41 @@ adminPage.component = {
                     }))
                 ])
             ]),
-            m("div", {class: "fb-title fb-admin-subtitle"}, [
-                f.icon("history", "fb-title-icon"),
-                m("label", "Recent changes")
-            ]),
-            m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
-                m("table", {class: "fb-table fb-admin-table"}, [
-                    m("thead", [
-                        m("tr", [
-                            m("th", {class: "fb-admin-col-seen"}, "When"),
-                            m("th", {class: "fb-admin-col-status"}, "Action"),
-                            m("th", {class: "fb-admin-col-user"}, "By"),
-                            m("th", {class: "fb-admin-col-user"}, "To"),
-                            m("th", "Detail")
-                        ])
-                    ]),
-                    m("tbody", audit.map(function (row) {
-                        return m("tr", {key: row.id}, [
-                            m("td", new Date(row.occurred).toLocaleString()),
-                            m("td", {title: row.action}, row.action),
-                            m("td", row.actor || ""),
-                            m("td", row.target || ""),
-                            m("td", {title: row.detail || ""}, row.detail || "")
-                        ]);
-                    }))
+            paneTabs(),
+            (
+                vm.paneTab() === "roles"
+                ? rolesPane()
+                : m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
+                    m("table", {class: "fb-table fb-admin-table"}, [
+                        m("thead", [
+                            m("tr", [
+                                m("th", {
+                                    class: "fb-admin-col-seen"
+                                }, "When"),
+                                m("th", {
+                                    class: "fb-admin-col-status"
+                                }, "Action"),
+                                m("th", {class: "fb-admin-col-user"}, "By"),
+                                m("th", {class: "fb-admin-col-user"}, "To"),
+                                m("th", "Detail")
+                            ])
+                        ]),
+                        m("tbody", audit.map(function (row) {
+                            return m("tr", {key: row.id}, [
+                                m("td", (
+                                    new Date(row.occurred).toLocaleString()
+                                )),
+                                m("td", {title: row.action}, row.action),
+                                m("td", row.actor || ""),
+                                m("td", row.target || ""),
+                                m("td", {
+                                    title: row.detail || ""
+                                }, row.detail || "")
+                            ]);
+                        }))
+                    ])
                 ])
-            ]),
+            ),
             m("div", {class: "fb-admin-note"}, (
                 "Instances in this organization: " + (
                     instances.length

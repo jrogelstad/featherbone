@@ -1543,6 +1543,372 @@
             });
         };
 
+
+        /*
+            The roles of the instance a request came through, and who
+            is in them. Roles live in the instance database, not in the
+            manager (ADR-001), so everything here opens that instance
+            and nothing here touches the registry.
+
+            A group role and a user account are the same table: a
+            `user_account` row *is* a `role` row through Postgres table
+            inheritance, which is why `tableoid` is what tells them
+            apart. Only group roles are assignable; a person is not a
+            role to put somebody in.
+        */
+        const ROLE_SQL = (
+            "SELECT name FROM role " +
+            "WHERE tableoid::regclass::text = 'role' " +
+            "  AND NOT is_deleted " +
+            "ORDER BY name"
+        );
+
+        /*
+            Membership nests, so what somebody holds directly is not
+            what they can do. `administrator` in `demo` is itself a
+            member of thirteen other roles, so a person with two direct
+            memberships has fourteen effective ones -- and twelve of
+            those cannot be taken away from them here, because the row
+            that grants each one hangs off `administrator`, not off the
+            person.
+
+            Showing only the two would say they can do far less than
+            they can; offering Remove on all fourteen would offer
+            twelve buttons that do nothing. So this walks the same
+            graph tools.memberNames walks, and says of each role how it
+            was come by: `depth` 0 is a row on this person and can be
+            removed, deeper is inherited and `via` names the direct
+            membership it arrived through.
+
+            The depth guard stops a membership cycle walking forever;
+            UNION alone would not, because `via` and `depth` make each
+            lap's rows distinct.
+        */
+        const MEMBER_SQL = (
+            "WITH RECURSIVE member_of AS (" +
+            "  SELECT rm.role AS name, rm.role AS via, 0 AS depth " +
+            "  FROM role_membership rm " +
+            "  JOIN user_account u ON u._pk = rm._parent_role_pk " +
+            "  WHERE lower(u.name) = lower($1) " +
+            "    AND NOT rm.is_deleted AND NOT u.is_deleted " +
+            "  UNION " +
+            "  SELECT rm.role, m.via, m.depth + 1 " +
+            "  FROM role_membership rm " +
+            "  JOIN role r ON rm._parent_role_pk = r._pk " +
+            "  JOIN member_of m ON r.name = m.name " +
+            "  WHERE NOT rm.is_deleted AND NOT r.is_deleted " +
+            "    AND m.depth < 20" +
+            ") " +
+            "SELECT name, min(depth) AS depth, " +
+            "  (array_agg(via ORDER BY depth, via))[1] AS via " +
+            "FROM member_of GROUP BY name ORDER BY name"
+        );
+
+        /*
+            Run something against the instance this request came
+            through. Every roles call needs that connection and each
+            one must give it back, so the borrowing is written once.
+        */
+        async function inInstance(obj, run) {
+            let conn = await db.connect(obj.tenant);
+
+            return await Promise.resolve(
+                run(conn.client)
+            ).then(function (result) {
+                conn.done();
+                return result;
+            }, function (err) {
+                conn.done();
+                return Promise.reject(err);
+            });
+        }
+
+        function membersOut(rows) {
+            return rows.map(function (row) {
+                return {
+                    isDirect: row.depth === 0,
+                    role: row.name,
+                    via: (
+                        row.depth === 0
+                        ? undefined
+                        : row.via
+                    )
+                };
+            });
+        }
+
+        /**
+            The roles the selected person holds in the instance this
+            screen is served from, direct ones marked as such.
+
+            Scoped to that one instance on purpose. An identity may be
+            granted several (tenant plan B.4) and each keeps its own
+            roles, so "their roles" has to name a database; showing
+            every instance's would mean opening a pool into each, which
+            is not worth it to fill a tab (John, Oct 2026).
+
+            @method identityRoles
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @return {Promise}
+        */
+        that.identityRoles = async function (obj) {
+            let data = obj.data || {};
+            let target;
+
+            if (!obj.tenant) {
+                throw forbidden(
+                    "Roles belong to an instance, so this must be " +
+                    "asked of one"
+                );
+            }
+
+            target = await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                return await targetFor(
+                    mclient,
+                    ctx,
+                    data.id,
+                    obj.tenant
+                );
+            });
+
+            return await inInstance(obj, async function (client) {
+                let held = await client.query(MEMBER_SQL, [target.username]);
+                let all = await client.query(ROLE_SQL);
+
+                return {
+                    /*
+                        What could still be added, worked out here so
+                        the picker cannot offer something that is
+                        already held and then fail on it.
+                    */
+                    available: all.rows.map(
+                        (row) => row.name
+                    ).filter(function (name) {
+                        return !held.rows.some(
+                            (row) => row.name === name && row.depth === 0
+                        );
+                    }),
+                    instance: obj.tenant.name,
+                    roles: membersOut(held.rows),
+                    username: target.username
+                };
+            });
+        };
+
+        /**
+            Put somebody in one of this instance's roles, or take them
+            out of it.
+
+            Writes the `role_membership` row itself rather than going
+            through `/data` CRUD, for two reasons. Child records under
+            CRUD are executed with `isChild` true and `isSuperUser`
+            undefined, so every child-level authorization check
+            short-circuits and the only gate is `canUpdate` on the
+            parent user account -- which would mean anyone who can edit
+            a user account could put themselves in `administrator`.
+            And a privilege being handed out is a thing to have a
+            record of: this writes `admin_audit`, which CRUD does not.
+
+            Membership is a row hanging off the member naming the group
+            as text: `_parent_role_pk` points at the `user_account` row
+            and `role` holds the name, with no foreign key. Removing is
+            a soft delete, which is what every reader of the table
+            already filters on.
+
+            Direct memberships only. An inherited one is a row on some
+            other role and is not this person's to lose; the tab marks
+            those and offers no Remove.
+
+            @method setRoleMembership
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {String} payload.data.role Group role name
+            @param {Boolean} payload.data.isMember
+            @return {Promise}
+        */
+        that.setRoleMembership = async function (obj) {
+            let data = obj.data || {};
+            let isMember = data.isMember === true;
+            let role = cleaned(data.role);
+            let actor;
+            let target;
+
+            if (!obj.tenant) {
+                throw forbidden(
+                    "Roles belong to an instance, so this must be " +
+                    "asked of one"
+                );
+            }
+
+            if (!role) {
+                throw forbidden("Name the role");
+            }
+
+            let ctx = await manager.run(async function (mclient) {
+                let found = await contextFor(mclient, obj);
+
+                target = await targetFor(
+                    mclient,
+                    found,
+                    data.id,
+                    obj.tenant
+                );
+
+                return found;
+            });
+
+            actor = (
+                ctx.actor
+                ? ctx.actor.username
+                : obj.user
+            );
+
+            /*
+                `is_admin` on a session is a direct `role_membership`
+                row for `administrator` and nothing else
+                (server/database.js), and it is what opens the ribbon's
+                Settings, Users and Instances buttons. Taking your own
+                away would take away the screen you took it from, with
+                no way back in short of SQL -- so it is refused rather
+                than merely warned about (John, Oct 2026). Somebody
+                else may still do it for you.
+            */
+            if (
+                !isMember &&
+                role === "administrator" &&
+                String(target.username).toLowerCase() ===
+                String(actor).toLowerCase()
+            ) {
+                throw forbidden(
+                    "That is the membership that lets you administer " +
+                    "this instance. Another administrator can take it " +
+                    "away; taking it away yourself would shut you out."
+                );
+            }
+
+            let changed = await inInstance(obj, async function (client) {
+                let member = await client.query(
+                    (
+                        "SELECT _pk FROM user_account " +
+                        "WHERE lower(name) = lower($1) AND NOT is_deleted"
+                    ),
+                    [target.username]
+                );
+
+                if (!member.rows.length) {
+                    throw forbidden(
+                        target.username + " has no profile in " +
+                        obj.tenant.name + ". Grant the instance first."
+                    );
+                }
+
+                let memberPk = member.rows[0]._pk;
+                let held = await client.query(
+                    (
+                        "SELECT _pk FROM role_membership " +
+                        "WHERE _parent_role_pk = $1 AND role = $2 " +
+                        "  AND NOT is_deleted"
+                    ),
+                    [memberPk, role]
+                );
+
+                if (isMember) {
+                    if (held.rows.length) {
+                        return false;
+                    }
+
+                    /*
+                        Assignment only: the role has to be one that
+                        exists, and a group role rather than somebody's
+                        account. "$auth".role and role_membership.role
+                        are both name-keyed text with no foreign key,
+                        so a name that is not a role is a membership of
+                        nothing that no reader will ever match.
+                    */
+                    let known = await client.query(
+                        (
+                            "SELECT 1 FROM role " +
+                            "WHERE name = $1 AND NOT is_deleted " +
+                            "  AND tableoid::regclass::text = 'role'"
+                        ),
+                        [role]
+                    );
+
+                    if (!known.rows.length) {
+                        throw notFound(
+                            "\"" + role + "\" is not a role in " +
+                            obj.tenant.name
+                        );
+                    }
+
+                    await client.query(
+                        (
+                            "INSERT INTO role_membership (" +
+                            "  _pk, id, created, created_by, updated, " +
+                            "  updated_by, is_deleted, _parent_role_pk, " +
+                            "  role" +
+                            ") VALUES (" +
+                            "  nextval('object__pk_seq'), $1, now(), " +
+                            "  $2, now(), $2, false, $3, $4" +
+                            ")"
+                        ),
+                        [f.createId(), actor || "system", memberPk, role]
+                    );
+
+                    return true;
+                }
+
+                if (!held.rows.length) {
+                    return false;
+                }
+
+                await client.query(
+                    (
+                        "UPDATE role_membership SET is_deleted = true, " +
+                        "  updated = now(), updated_by = $2 " +
+                        "WHERE _parent_role_pk = $1 AND role = $3 " +
+                        "  AND NOT is_deleted"
+                    ),
+                    [memberPk, actor || "system", role]
+                );
+
+                return true;
+            });
+
+            /*
+                Audited only where something moved. Pressing Add on a
+                role somebody already holds is not an event, and a
+                trail full of changes that were not changes is a trail
+                nobody reads.
+            */
+            if (changed) {
+                await manager.run(async function (mclient) {
+                    await manager.audit(mclient, {
+                        action: (
+                            isMember
+                            ? "role.membership_granted"
+                            : "role.membership_revoked"
+                        ),
+                        actorPk: actorPk(ctx),
+                        by: obj.user,
+                        detail: (
+                            "Role " + role + " in instance " +
+                            obj.tenant.name
+                        ),
+                        organizationPk: ctx.organizationPk,
+                        targetIdentityPk: target._pk
+                    });
+                });
+            }
+
+            return changed;
+        };
+
         /**
             Make an identity a platform administrator, or stop it being
             one -- the authority over every organization at once, so
