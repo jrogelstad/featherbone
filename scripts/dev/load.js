@@ -28,10 +28,13 @@
     .js file by accident. It prints what it is about to do, to which
     database, and asks before doing it.
 
-        npm run dev:load -- --script scripts/dev/demo-data/teardrop-campers.sql --db demo
-        npm run dev:load -- --clear --script scripts/dev/demo-data/teardrop-campers.sql --db demo
-        npm run dev:load -- --clear --db demo            (empty it, load nothing)
+        npm run dev:load -- --script <script> --db demo
+        npm run dev:load -- --clear --script <script> --db demo
+        npm run dev:load -- --clear --db demo   (empty it, load nothing)
         npm run dev:load -- --list
+
+    where <script> is a file under scripts/dev/demo-data, such as
+    teardrop-campers.sql.
 
     Connection settings come from server/config.json (and the environment,
     as everywhere else), so there is nothing to configure here. The data
@@ -50,6 +53,13 @@
     const {spawn} = require("child_process");
     const fs = require("fs");
     const path = require("path");
+
+    // Every option this takes, so an unknown one can be refused
+    const KNOWN = [
+        "--help", "--list", "--clear", "--dry-run", "--yes",
+        "--allow-prod", "--clear-orphans", "--script", "--db",
+        "--instance", "--keep", "--anchor"
+    ];
     const readline = require("readline");
 
     const MARKER = "@featherbone-dev-script";
@@ -87,23 +97,27 @@
     function usage() {
         console.log(
             "\nUsage: npm run dev:load -- [options]\n\n" +
-            "  --script <file>   developer data script to run; must carry the\n" +
-            "                    \"" + MARKER + "\" header marker\n" +
+            "  --script <file>   developer data script to run; it must\n" +
+            "                    carry the \"" + MARKER + "\" marker\n" +
             "  --db <database>   instance database to run it against\n" +
-            "  --clear           empty the application tables first, with\n" +
-            "                    scripts/dev/clear-instance-data.sql\n" +
-            "  --keep <list>     comma separated feather names the clear step\n" +
-            "                    should leave alone, e.g. Terms,ShipMethod,Site\n" +
-            "  --clear-orphans   let the clear step also empty object-derived\n" +
-            "                    tables that no installed feather accounts for\n" +
-            "  --anchor <date>   the date the data script should treat as \"today\",\n" +
-        "                    e.g. 2027-07-05; a script that carries no anchor\n" +
-        "                    ignores it\n" +
-        "  --allow-prod      permit a database whose $db.mode is \"prod\"\n" +
-            "  --dry-run         show the plan and the clear step's report;\n" +
-            "                    change nothing\n" +
-            "  --yes             skip the confirmation prompt (for scripted use)\n" +
-            "  --list            list the data scripts that are available\n"
+            "  --clear           empty the application tables first,\n" +
+            "                    with scripts/dev/clear-instance-data.sql\n" +
+            "  --keep <list>     comma separated feather names the clear\n" +
+            "                    step should leave alone, for example\n" +
+            "                    Terms,ShipMethod,Site\n" +
+            "  --clear-orphans   let the clear step also empty\n" +
+            "                    object-derived tables that no installed\n" +
+            "                    feather accounts for\n" +
+            "  --anchor <date>   the date the data script should treat\n" +
+            "                    as today, for example 2027-07-05; a\n" +
+            "                    script carrying no anchor ignores it\n" +
+            "  --allow-prod      permit a database whose $db.mode is\n" +
+            "                    \"prod\"\n" +
+            "  --dry-run         show the plan and the clear step's\n" +
+            "                    report; change nothing\n" +
+            "  --yes             skip the confirmation prompt, for\n" +
+            "                    scripted use\n" +
+            "  --list            list the data scripts available\n"
         );
     }
 
@@ -111,7 +125,9 @@
         let found = [];
 
         try {
-            found = fs.readdirSync(DEMO_DIR).filter(function (name) {
+            let names = fs.readdirSync(DEMO_DIR);
+
+            found = names.filter(function (name) {
                 return name.endsWith(".sql");
             }).sort();
         } catch (ignore) {
@@ -152,7 +168,9 @@
         let text;
 
         try {
-            text = fs.readFileSync(file, "utf8").split("\n", HEADER_LINES);
+            let whole = fs.readFileSync(file, "utf8");
+
+            text = whole.split("\n", HEADER_LINES);
         } catch (err) {
             fail("Cannot read " + file + ": " + err.message);
         }
@@ -271,7 +289,8 @@
             });
             let busy = await client.query(
                 "SELECT count(*)::int AS n FROM pg_stat_activity " +
-                " WHERE datname = current_database() AND pid <> pg_backend_pid()" +
+                " WHERE datname = current_database()" +
+                "   AND pid <> pg_backend_pid()" +
                 "   AND backend_type = 'client backend'"
             );
             let rows = await client.query(
@@ -282,15 +301,18 @@
                 "  FROM pg_class c" +
                 "  JOIN public.feather f ON lower(regexp_replace(f.name," +
                 "        '([a-z0-9])([A-Z])', '\\1_\\2', 'g')) = c.relname" +
-                "  WHERE c.relkind = 'r' AND c.relnamespace = 'public'::regnamespace" +
+                "  WHERE c.relkind = 'r'" +
+                "    AND c.relnamespace = 'public'::regnamespace" +
                 "    AND NOT f.is_deleted AND f.module IS NOT NULL" +
                 "    AND f.module <> 'Core') z"
             ).catch(function () {
                 return {rows: [{n: null}]};
             });
 
-            out.kind = (marker.rows[0] || {}).kind || null;
-            out.mode = (marker.rows[0] || {}).mode || null;
+            let stamp = marker.rows[0] || {};
+
+            out.kind = stamp.kind || null;
+            out.mode = stamp.mode || null;
             out.others = busy.rows[0].n;
             out.appRows = rows.rows[0].n;
         } finally {
@@ -335,11 +357,7 @@
                 keepList = flagValue("--keep");
             } else if (arg === "--anchor") {
                 anchor = flagValue("--anchor");
-            } else if (arg.startsWith("--") && [
-                "--help", "--list", "--clear", "--dry-run", "--yes",
-                "--allow-prod", "--clear-orphans", "--script", "--db",
-                "--instance", "--keep", "--anchor"
-            ].indexOf(arg) === -1) {
+            } else if (arg.startsWith("--") && !KNOWN.includes(arg)) {
                 usage();
                 fail("Unknown option " + arg + ".");
             }
@@ -361,7 +379,10 @@
         }
 
         if (anchor && !(/^\d{4}-\d{2}-\d{2}$/).test(anchor)) {
-            fail("--anchor wants a date as YYYY-MM-DD, not \"" + anchor + "\".");
+            fail(
+                "--anchor wants a date as YYYY-MM-DD, not \"" +
+                anchor + "\"."
+            );
         }
         if (scriptArg) {
             scriptPath = path.resolve(ROOT, scriptArg);
@@ -380,7 +401,8 @@
                 fail(
                     "Refusing to run " + path.basename(scriptPath) + ": its " +
                     "first " + HEADER_LINES + " lines carry no \"" + MARKER +
-                    "\" marker.\nThat marker is what distinguishes a developer " +
+                    "\" marker.\nThat marker is what distinguishes a " +
+                    "developer " +
                     "data script from any other SQL file, so this tool will " +
                     "not run a file without it."
                 );
@@ -408,13 +430,15 @@
         }
         if (state.mode === "prod" && !allowProd) {
             fail(
-                "\"" + dbName + "\" is marked mode=prod. Pass --allow-prod if " +
+                "\"" + dbName + "\" is marked mode=prod. Pass " +
+                "--allow-prod if " +
                 "you really mean to change it."
             );
         }
         if (state.others > 0) {
             console.log(
-                "\nNote: " + state.others + " other connection(s) are open on " +
+                "\nNote: " + state.others +
+                " other connection(s) are open on " +
                 dbName + ". Stop the Featherbone server first, or the clear " +
                 "step will refuse to run."
             );

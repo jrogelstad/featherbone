@@ -69,18 +69,18 @@ const settings = Object.freeze({
     // Encrypts the fixture service's password the same way the
     // framework encrypts it
     pgCryptoKey: config.pgCryptoKey,
-    // The packages this server holds for real, which is where the
-    // SupplyChain suites find the code they exercise
-    realModulesDir: path.resolve(
-        ROOT,
-        env.FB_TEST_MODULES || config.modulesDir || "./modules"
-    ),
     pgHost: env.FB_TEST_PGHOST || config.pgHost,
     pgPort: Number(env.FB_TEST_PGPORT || config.pgPort),
     // Must be able to CREATE/DROP DATABASE and CREATE ROLE
     pgUser: env.FB_TEST_PGUSER || config.pgUser,
     pgPassword: env.FB_TEST_PGPASSWORD || config.pgPassword,
     port: Number(env.FB_TEST_PORT || 3990),
+    // The packages this server holds for real, which is where the
+    // SupplyChain suites find the code they exercise
+    realModulesDir: path.resolve(
+        ROOT,
+        env.FB_TEST_MODULES || config.modulesDir || "./modules"
+    ),
     keepDb: env.FB_TEST_KEEP_DB === "1",
     updateGolden: env.FB_UPDATE_GOLDEN === "1",
     // Test users: identities in the harness manager. The harness also

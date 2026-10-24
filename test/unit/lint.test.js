@@ -5,21 +5,33 @@
     editor uses) is run over each `.js` and `.mjs` file, honouring the
     jslint directive comment the file carries. node_modules, the
     vendored archives, logs, the tests of modules that live in other
-    repositories (`test/supplychain`) and the generated
-    `client/clientmin.js` are not the project's to lint.
+    repositories (`test/supplychain`), the packages installed into
+    `modules` at the root (each belongs to the repository it was built
+    from -- the fixture packages under `test/fixtures` are this
+    project's and are linted) and the
+    generated `client/clientmin.js` and `client/api.js` are not the
+    project's to lint. Nor is `test/harness/reporter.js`: a
+    `node --test` reporter is an async generator, which jslint cannot
+    parse at all -- it stops at the `*` and reports only what it read
+    before that, which is worse than not checking the file. Everything skipped here is either git-ignored or
+    another repository's.
 
     Not every file is clean yet, so the rule is a ratchet rather than
     zero: `test/lint-baseline.json` holds the warnings each file is
-    known to have, a file may not have more than that, and a file the
-    baseline does not name (a new one) must have none. Fixing warnings
-    never fails; it just makes the baseline stale, and the report says
-    so. To record the current state after fixing a file:
+    known to have, and a file may not have more than that. Fixing
+    warnings never fails; it just makes the baseline stale, and the
+    report says so. To record the current state after fixing a file:
 
         FB_UPDATE_LINT=1 node test/run.js unit/lint
 
-    The update only ever lowers a count or drops a file -- it will not
-    write down a regression, so the baseline cannot be used to hide
-    one.
+    For a file the baseline already names the update only ever lowers
+    the count, or drops the file, so the baseline cannot be used to
+    hide a regression. A file it has never seen is recorded at what it
+    has, because some warnings cannot be cleared at all: Node's `fs`
+    calls each raise "Weird property name", and a `try`/`finally` with
+    no `catch` is flagged whatever it guards. Recording a new file is
+    therefore a deliberate act -- the run names what it wrote down --
+    and the number is the ceiling from then on.
 */
 /*jslint node*/
 "use strict";
@@ -44,16 +56,25 @@ const SKIP_DIRS = new Set([
 ]);
 
 /*
-    Directories whose tests belong to modules that live in their own
-    repositories (SupplyChain's Design, Billing and the rest) and are
-    linted there. The tests will be split the same way eventually.
+    Paths, relative to the root, that are not the project's own source:
+    the tests of modules that live in their own repositories
+    (SupplyChain's Design, Billing and the rest), which are linted
+    there and will be split out the same way eventually, and the
+    packages installed on this server, which belong to whichever
+    repository each was built from.
 */
-const SKIP_PATHS = ["test/supplychain"];
+const SKIP_PATHS = ["modules", "test/supplychain"];
 
-// The linter itself, and a bundle generated from the client files.
+/*
+    The linter itself, and two files the build writes: the client bundle
+    and the API specification, which is generated from whatever modules
+    are installed and so is not the same file twice.
+*/
 const SKIP_FILES = new Set([
+    "client/api.js",
     "client/clientmin.js",
-    "client/jslint.mjs"
+    "client/jslint.mjs",
+    "test/harness/reporter.js"
 ]);
 
 async function sources(dir) {
@@ -136,10 +157,20 @@ describe("jslint: every project file", function () {
         if (process.env.FB_UPDATE_LINT === "1") {
             let next = {};
 
-            Object.keys(counts).forEach(function (rel) {
-                let was = baseline[rel] || 0;
-                let now = Math.min(counts[rel], was);
+            let added = [];
 
+            Object.keys(counts).forEach(function (rel) {
+                let known = baseline.hasOwnProperty(rel);
+                let was = baseline[rel] || 0;
+                let now = (
+                    known
+                    ? Math.min(counts[rel], was)
+                    : counts[rel]
+                );
+
+                if (!known && now > 0) {
+                    added.push(rel + " (" + now + ")");
+                }
                 if (now > 0) {
                     next[rel] = now;
                 }
@@ -149,7 +180,11 @@ describe("jslint: every project file", function () {
                 JSON.stringify(next, null, 4) + "\n"
             );
             console.log(
-                "lint baseline lowered for " + better.length + " file(s)"
+                "lint baseline lowered for " + better.length + " file(s)" + (
+                    added.length
+                    ? "; recorded for the first time: " + added.join(", ")
+                    : ""
+                )
             );
         } else if (better.length) {
             console.log(

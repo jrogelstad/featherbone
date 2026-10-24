@@ -22,6 +22,7 @@ const path = require("path");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
+const {flags} = require("../harness/authority");
 
 const PLATFORM = "fbt_webinst_platform";
 const PLAIN = "fbt_webinst_plain";
@@ -29,21 +30,6 @@ const MODULE = "FbtWebInstall";
 
 let work;
 
-function flags(username, data) {
-    return db.withClient(settings.managerDb, (client) => client.query(
-        (
-            "UPDATE identity SET is_org_admin = $2, " +
-            "  is_platform_admin = $3, updated = now(), " +
-            "  updated_by = 'fbtest' " +
-            "WHERE lower(username) = lower($1)"
-        ),
-        [
-            username,
-            data.isOrgAdmin === true,
-            data.isPlatformAdmin === true
-        ]
-    ));
-}
 
 function samplePackage(version, withCode) {
     let file = path.join(work, MODULE + "-" + version + ".zip");
