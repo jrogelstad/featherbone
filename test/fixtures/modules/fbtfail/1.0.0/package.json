@@ -1,0 +1,6 @@
+{
+    "name": "fbtfail",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Fixture package whose install fails after writing records"
+}

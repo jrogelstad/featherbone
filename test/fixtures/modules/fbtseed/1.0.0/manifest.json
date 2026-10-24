@@ -1,0 +1,13 @@
+{
+    "module": "fbtseed",
+    "version": "1.0.0",
+    "dependencies": [
+        "FbtSeedCore"
+    ],
+    "files": [
+        {
+            "type": "install",
+            "path": "seed/manifest.json"
+        }
+    ]
+}

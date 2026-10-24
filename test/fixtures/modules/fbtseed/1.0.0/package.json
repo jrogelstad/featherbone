@@ -1,0 +1,6 @@
+{
+    "name": "fbtseed",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Fixture umbrella package seeding records into its own feather"
+}
