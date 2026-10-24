@@ -1,0 +1,16 @@
+[
+    {
+        "name": "HelpLink",
+        "method": "POST",
+        "module": "fbtfail",
+        "id": "fbtfailhelp1",
+        "data": {
+            "id": "fbtfailhelp1",
+            "module": "fbtfail",
+            "icon": "article",
+            "displayValue": "FBT Fail",
+            "label": "FBT Fail",
+            "resource": "/help/fbtfail.html#written-before-the-failure"
+        }
+    }
+]
