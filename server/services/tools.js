@@ -25,6 +25,7 @@
     const f = require("../../common/core");
     const ops = Object.keys(f.operators);
     const format = require("pg-format");
+    const crypto = require("crypto");
 
     const tools = {};
     const formats = {
@@ -894,6 +895,64 @@
             }
 
             return clause;
+        };
+
+        /*
+            Named prepared statements (improvement item 4.1).
+
+            Postgres plans an unnamed statement every time it is sent, and
+            the generated views are expensive to plan (75-150 ms against
+            1-9 ms to run, item 4). A named statement is parsed and
+            planned once per connection and reused. Every value in these
+            queries is already a bound parameter, so the text depends only
+            on the feather, the properties asked for and the shape of the
+            filter and sort, and the same screen sends the same text.
+
+            The name is a hash of the text, so two different statements
+            can never meet under one name. Prepared names live as long as
+            the connection and node-postgres never drops them, so a
+            connection stops naming new statements once it holds
+            MAX_NAMED; further shapes run unnamed, as before.
+
+            FB_UNNAMED_SQL=1 turns it off, for comparing and for ruling it
+            out.
+        */
+        const MAX_NAMED = 200;
+        const named = new WeakMap();
+
+        /**
+            Query config for `client.query` that prepares the statement
+            by name where it can.
+            @method prepared
+            @param {Object} client Database client
+            @param {String} sql Statement text with $n parameters
+            @param {Array} params Parameter values
+            @return {Object} `{text, values}`, plus `name` when named
+        */
+        tools.prepared = function (client, sql, params) {
+            let seen;
+            let name;
+            let ret = {text: sql, values: params || []};
+
+            if (process.env.FB_UNNAMED_SQL === "1" || !client) {
+                return ret;
+            }
+
+            name = "fb_" + crypto.createHash("sha1").update(sql).digest("hex");
+            seen = named.get(client);
+            if (!seen) {
+                seen = new Set();
+                named.set(client, seen);
+            }
+
+            if (seen.has(name)) {
+                ret.name = name;
+            } else if (seen.size < MAX_NAMED) {
+                seen.add(name);
+                ret.name = name;
+            }
+
+            return ret;
         };
 
         /**
