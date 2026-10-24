@@ -81,6 +81,27 @@
     const packages = new Packages();
     const tenants = [];
 
+    /*
+        The data type formats the server knows, hung on `f` so that a
+        module's code can add its own: SupplyChain's Common module
+        registers unitCost, salesPrice and purchasePrice this way, and
+        `feathers.js` builds a column from the format a property
+        declares.
+
+        It belongs here rather than in server.js because this is what
+        loads and runs module code, and install.js loads it too. When
+        only server.js set it, `f.formats` was undefined in every
+        install run from the command line, so SupplyChain's own money
+        formats were never registered and `feathers.js`, finding no
+        format by that name, fell back to the property's type and made
+        the column `json` instead of `mono` (improvement item 0.11).
+        The same install through the running server was correct, which
+        is exactly how the defect was first described.
+    */
+    if (!f.formats) {
+        f.formats = tools.formats;
+    }
+
     /**
         Server datasource class.
 
