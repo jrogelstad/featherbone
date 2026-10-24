@@ -433,12 +433,24 @@ function placeTiles(wanted) {
     it stays here now that layouts are records.
 */
 function composeLayout() {
+    /*
+        Every registered metric, not a hard-coded list. A module that
+        contributes a KPI gets it on the standard board for the same
+        reason a module that contributes a source gets its tile: an
+        installed package should arrive showing something, not waiting
+        to be found in a dialog.
+    */
+    let metrics = listKpis().map(function (kpi) {
+        return kpi.key;
+    });
     let tiles = [{
         cols: 5,
         heading: "Key Metrics",
         id: "core-kpis",
-        kpis: ["userCount"],
-        rows: 3,
+        kpis: metrics,
+        // A row per metric, so a tile holding several is not one that
+        // silently clips the last of them.
+        rows: Math.min(DASH_ROWS, Math.max(3, metrics.length + 1)),
         type: "kpi"
     }];
 
