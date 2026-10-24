@@ -1164,6 +1164,10 @@
             @param {String} payload.data.role Role
             @param {Boolean} [payload.data.isInternal] Not a feather
             @param {Boolean} [payload.data.isSilentError] Silence errors
+            @param {Boolean} [payload.data.isAutoCreateRole] Create the
+            group role when it does not exist, for an authorization a
+            feather or a workbook declares. Not for a grant made by
+            hand against a record.
             @param {Object} payload.data.actions
             @param {Boolean} [payload.data.actions.canCreate]
             @param {Boolean} [payload.data.actions.canRead]
@@ -1196,6 +1200,71 @@
                 let actions = obj.data.actions || {};
                 let hasAuth = false;
                 let theClient = obj.client;
+                let roleMade = false;
+
+                /*
+                    Make the group role a declaration names. Written
+                    straight to the table, as services/installer.js
+                    writes a navigation category and scripts/populate.js
+                    writes `everyone`: a group role is a row and
+                    nothing else, and the Role insert trigger returns
+                    without doing anything for one that is not a login
+                    (services/role.js createRole).
+
+                    ON CONFLICT DO NOTHING because two installs can
+                    name the same role at once; the lookup is run again
+                    afterwards either way, so whichever row won is the
+                    one the grant is written against.
+                */
+                /*
+                    Whether this database is far enough along to carry
+                    a grant, which is asked as: has it any role at all?
+
+                    The Core manifest installs
+                    scripts/feathers-bootstrap.json once before
+                    scripts/populate.js has run and again afterwards. On
+                    that first pass nothing has made `everyone` yet, and
+                    nothing has made the administrator's `user_account`
+                    row either -- so the checks below the role lookup,
+                    which read that table by way of tools.isSuperUser,
+                    have nothing to read. Making the role on that pass
+                    would not help the grant along; it would only carry
+                    execution into those checks early and fail the
+                    install. A database with no roles in it is being
+                    built, and the second pass applies the grant, as it
+                    always did.
+
+                    Every database that is actually in use has
+                    `everyone`, so this costs one cheap query the first
+                    time a declaration names a role that is missing,
+                    and changes nothing else.
+                */
+                function whenReady() {
+                    return theClient.query(
+                        "SELECT 1 FROM \"role\" LIMIT 1"
+                    ).then(function (resp) {
+                        return resp.rows.length > 0;
+                    });
+                }
+
+                function makeRole() {
+                    let by = theClient.currentUser() || "system";
+
+                    return theClient.query(
+                        (
+                            "INSERT INTO \"role\" (" +
+                            "  _pk, id, created, created_by, updated, " +
+                            "  updated_by, is_deleted, lock, owner, " +
+                            "  etag, name, is_login" +
+                            ") VALUES (" +
+                            "  nextval('object__pk_seq'), $1, now(), " +
+                            "  $2, now(), $2, false, null, $2, $3, $4, " +
+                            "  false" +
+                            ") ON CONFLICT DO NOTHING"
+                        ),
+                        [f.createId(), by, f.createId(), obj.data.role]
+                    );
+                }
 
                 afterGetObjKey = function (resp) {
                     objPk = resp;
@@ -1212,9 +1281,55 @@
                     ).then(afterGetRoleKey).catch(reject);
                 };
 
-                afterGetRoleKey = function (resp) {
+                afterGetRoleKey = function (resp, isTooSoon) {
                     // Validation
                     if (!resp.rows.length) {
+                        /*
+                            A role a feather or a workbook declares an
+                            authorization for is created here rather
+                            than refused, the way a navigation category
+                            a package names is created in
+                            services/installer.js (John, Oct 2026). A
+                            package that grants `shipping_clerk` means
+                            there to be such a role, and before this the
+                            same declaration got two different wrong
+                            answers: the feather path dropped the grant
+                            without a word (isSilentError below) and the
+                            workbook path failed the whole install with
+                            "Role not found".
+
+                            Only ever for a declaration. `isAutoCreateRole`
+                            is set by saveFeather and by saveWorkbooks and
+                            by nothing else, so a role misspelt in a grant
+                            typed at a record still says it is not a role
+                            rather than quietly becoming one.
+
+                            `roleMade` stops this going round twice if
+                            the row still cannot be read after writing
+                            it, which would otherwise be a loop.
+                        */
+                        if (
+                            obj.data.isAutoCreateRole && !roleMade &&
+                            !isTooSoon
+                        ) {
+                            roleMade = true;
+                            whenReady().then(function (ready) {
+                                if (!ready) {
+                                    afterGetRoleKey(resp, true);
+                                    return;
+                                }
+
+                                makeRole().then(function () {
+                                    theClient.query(
+                                        "SELECT _pk FROM \"role\" " +
+                                        "WHERE name = $1",
+                                        [obj.data.role]
+                                    ).then(afterGetRoleKey).catch(reject);
+                                }).catch(reject);
+                            }).catch(reject);
+                            return;
+                        }
+
                         /*
                             A grant declared by a feather is skipped when
                             its role does not exist yet, the way the owner
@@ -2623,6 +2738,15 @@
                             spec.authorizations.forEach(function (auth) {
                                 auth.feather = theName;
                                 auth.isSilentError = true;
+                                /*
+                                    The feather declares the role, so
+                                    the role is made if it is not there
+                                    (John, Oct 2026). isSilentError stays
+                                    for the bootstrap case it was put
+                                    there for and for anything else that
+                                    cannot be resolved.
+                                */
+                                auth.isAutoCreateRole = true;
                                 requests.push(that.saveAuthorization({
                                     client: theClient,
                                     data: auth

@@ -79,6 +79,7 @@ let addWbFromTemplateDlg;
 let deleteWbTemplateDlg;
 let navCategoryDlg;
 let navCategoryErrDlg;
+let asOfDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
@@ -90,6 +91,11 @@ let canAdminister = false;
 // For workbook management
 const template = f.prop("");
 const newname = f.prop("");
+
+// The dashboard's reporting date while its dialog is open; empty means
+// today. Only written back to the board when the dialog is accepted.
+const asOfPending = f.prop("");
+const asOfId = f.createId();
 function templates() {
     return Object.keys(workbooks).filter(
         (k) => workbooks[k].data.isTemplate()
@@ -413,6 +419,19 @@ function goGlobalSettings() {
     @return {Array}
 */
 function homeRibbonGroups() {
+    let dashStatus = catalog.store().global().dashboardRefreshStatus;
+    let getAsOf = catalog.store().global().dashboardAsOf;
+    let isRefreshing = (
+        dashStatus
+        ? dashStatus() === "running"
+        : false
+    );
+    let dashAsOf = (
+        getAsOf
+        ? getAsOf()
+        : null
+    );
+
     return [{
         label: "Accounts",
         buttons: acctMenu.actionButtons()
@@ -526,6 +545,47 @@ function homeRibbonGroups() {
                 : undefined
             )
         }]
+    }, {
+        label: "Dashboard",
+        buttons: [{
+            label: "Refresh",
+            icon: "refresh",
+            /*
+                A rebuild can take a while, so the button says it is busy
+                rather than quietly accepting a second press. What it is
+                working on, and how it went, are on the board itself.
+            */
+            title: (
+                isRefreshing
+                ? "Rebuilding the figures now"
+                : "Rebuild the figures the dashboard shows"
+            ),
+            disabled: isRefreshing,
+            onclick: function () {
+                let refresh = catalog.store().global().dashboardRefresh;
+
+                if (refresh) {
+                    refresh();
+                }
+            }
+        }, {
+            label: "As Of",
+            icon: "event",
+            /*
+                Says the date it is set to rather than "Set reporting
+                date", so the board's state can be read off the ribbon
+                without opening anything.
+            */
+            title: (
+                dashAsOf
+                ? "Reporting as of " + dashAsOf + ". Press to change."
+                : "Reporting as of today. Press to pick a fixed date."
+            ),
+            onclick: function () {
+                asOfPending(dashAsOf || "");
+                asOfDlg.show();
+            }
+        }]
     }];
 }
 
@@ -565,6 +625,9 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.navCategoryErrDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.asOfDlg
             })
         ];
     }
@@ -615,6 +678,12 @@ const home = {
 
         let toolbarClass = "fb-toolbar";
         let homeGroups = homeRibbonGroups();
+        let globals = catalog.store().global();
+        let dashTitle = (
+            globals.dashboardTitle
+            ? globals.dashboardTitle()
+            : f.currentUser().splashTitle
+        );
 
         return [
             m(components.envBanner),
@@ -636,20 +705,12 @@ const home = {
                         }, [
                             m("div", {
                                 class: "fb-header-home"
-                            }, f.currentUser().splashTitle),
+                            }, dashTitle),
                             m("div", {
                                 class: "fb-toolbar-fill"
                             })
                         ]),
-                        m("iframe", {
-                            style: {
-                                border: "none",
-                                display: "block",
-                                height: "100%",
-                                width: "100%"
-                            },
-                            src: f.currentUser().splashUrl
-                        })
+                        m(components.dashboard)
                     ])
                 ]
             ])
@@ -1422,6 +1483,51 @@ function initApp() {
         deleteWbTemplateDlg.buttonOk().style().background = "red";
         deleteWbTemplateDlg.buttonOk().class("fb-button-delete");
 
+        /*
+            View model for the dashboard's reporting date. Empty means
+            today, which is both the default and the way back from a
+            pinned date -- a second control to unpin would be a second
+            thing to explain.
+        */
+        asOfDlg = viewModels.dialog({
+            icon: "event",
+            title: "Dashboard reporting date"
+        });
+        asOfDlg.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: asOfId
+                    }, "As of:"),
+                    m("input", {
+                        id: asOfId,
+                        type: "date",
+                        onchange: (e) => asOfPending(e.target.value),
+                        value: asOfPending()
+                    })
+                ]),
+                m("div", {
+                    class: "fb-dialog-note"
+                }, (
+                    "Leave this empty to report as of today. A fixed " +
+                    "date is what makes year-to-date figures and " +
+                    "prior-year comparisons worth showing on a " +
+                    "database whose sample data sits in another year."
+                ))
+            ]);
+        };
+        asOfDlg.onOk(function () {
+            let setAsOf = catalog.store().global().dashboardSetAsOf;
+
+            if (setAsOf) {
+                setAsOf(asOfPending() || null);
+            }
+        });
+
         // View model for maintaining navigation categories -- the
         // ribbon's tabs. Dropping down from the top of the viewport
         // started here and is now how every dialog behaves, so there
@@ -1536,6 +1642,11 @@ function initApp() {
             "global",
             "navCategoryErrDlg",
             navCategoryErrDlg
+        );
+        catalog.register(
+            "global",
+            "asOfDlg",
+            asOfDlg
         );
 
         m.route(document.body, "/home", routes);

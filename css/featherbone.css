@@ -1010,6 +1010,16 @@ button:disabled .fb-ipicon,
   color: var(--fb-text-muted);
 }
 
+/* A sentence under a dialog's fields saying what the setting is for.
+   Narrow on purpose: prose set the full width of a dialog is a wall. */
+.fb-dialog-note {
+  max-width: 34em;
+  margin-top: 12px;
+  color: var(--fb-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .fb-filter-dialog-input {
   max-width: 200px;
 }
@@ -3271,6 +3281,35 @@ button:disabled .fb-ipicon,
   margin-top: 4px;
 }
 
+/* The pane below the users is two tabs: the organization's recent
+   changes and the selected person's roles in this instance. The strip
+   is the form tab strip (.fb-form-tabs), so it needs only the margin
+   that puts it where the "Recent changes" title used to sit. */
+.fb-admin-tabs {
+  margin: 8px 8px 0 8px;
+}
+
+/* The roles tab's own actions, over that list and nothing else -- the
+   same arrangement the platform console's panels use. */
+.fb-admin-roles-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 8px 6px 8px;
+}
+
+.fb-admin-role-picker {
+  min-width: 14em;
+  max-width: 22em;
+}
+
+/* An inherited membership is shown but is not the person's to lose, so
+   it reads as a second group rather than as another row of the first. */
+.fb-admin-role-inherited td {
+  font-style: italic;
+  opacity: 0.75;
+}
+
 /* The picker and the platform console (tenant plan G.1-G.3), which are
    their own page rather than part of the application bundle. */
 /* The console is a full-height column: its two lists share what the
@@ -3354,4 +3393,245 @@ button:disabled .fb-ipicon,
 
 .fb-platform-panel:first-of-type .fb-platform-section {
   margin-top: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dashboard                                                           */
+/*                                                                     */
+/* The marks drawn by client/components/dashboard-draw.js. Every one   */
+/* takes its colour from here rather than from JS, so a theme change   */
+/* needs no code change -- the same arrangement ddom uses for its zone */
+/* chart.                                                              */
+/*                                                                     */
+/* The qualitative bands are intensities of ONE hue, never a red/amber */
+/* /green set: around a tenth of men cannot separate those hues        */
+/* reliably, while an intensity ramp stays readable for everyone. The  */
+/* ramp inverts for dark mode so that band 1 (the worst range) is      */
+/* always the one furthest from the background, and so keeps the same  */
+/* perceptual weight in either theme.                                  */
+/* ------------------------------------------------------------------ */
+
+:root {
+    --fb-dash-band-1: #dadada;
+    --fb-dash-band-2: #e7e7e7;
+    --fb-dash-band-3: #f1f1f1;
+    --fb-dash-band-4: #f7f7f7;
+    --fb-dash-band-5: #fbfbfb;
+    --fb-dash-measure: var(--fb-text);
+    --fb-dash-marker: var(--fb-text);
+    --fb-dash-bar: #9a9a9a;
+    --fb-dash-spark: var(--fb-text);
+    --fb-dash-spark-band: #ededed;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fb-dash-band-1: #3c4149;
+        --fb-dash-band-2: #343841;
+        --fb-dash-band-3: #2c3038;
+        --fb-dash-band-4: #262a31;
+        --fb-dash-band-5: #21242a;
+        --fb-dash-bar: #7c838d;
+        --fb-dash-spark-band: #2a2e35;
+    }
+}
+
+.fb-dash-bullet,
+.fb-dash-bar-svg,
+.fb-dash-spark {
+    display: block;
+}
+
+.fb-dash-band-1 { fill: var(--fb-dash-band-1); }
+.fb-dash-band-2 { fill: var(--fb-dash-band-2); }
+.fb-dash-band-3 { fill: var(--fb-dash-band-3); }
+.fb-dash-band-4 { fill: var(--fb-dash-band-4); }
+.fb-dash-band-5 { fill: var(--fb-dash-band-5); }
+
+.fb-dash-bullet-value,
+.fb-dash-bullet-point {
+    fill: var(--fb-dash-measure);
+}
+
+.fb-dash-bullet-marker {
+    stroke: var(--fb-dash-marker);
+    stroke-width: 2;
+}
+
+.fb-dash-spark-line {
+    stroke: var(--fb-dash-spark);
+    stroke-width: 1;
+    fill: none;
+}
+
+/* Neutral by default. Red is reserved for an alert, so a sparkline that
+   is merely reporting history must not borrow it. */
+.fb-dash-spark-dot { fill: var(--fb-dash-spark); }
+.fb-dash-spark-dot-alert { fill: var(--fb-danger); }
+.fb-dash-spark-band { fill: var(--fb-dash-spark-band); }
+
+.fb-dash-bar { fill: var(--fb-dash-bar); }
+.fb-dash-bar-emphasis { fill: var(--fb-dash-measure); }
+
+.fb-dash-axis-line {
+    stroke: var(--fb-text-muted);
+    stroke-width: 1;
+}
+
+.fb-dash-axis-text {
+    fill: var(--fb-text-muted);
+    font-size: 9px;
+}
+
+/* The board. A fixed grid mapped onto whatever space the page gives it, so
+   a tile cannot be placed outside the viewport -- there is nowhere outside
+   it to go. Groups are delineated by white space (the gap) and NOT by
+   borders or fills, which is Few's "least visible means" rule: a border
+   earns its place only where density leaves no room for space. */
+.fb-dash-board {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+    height: 100%;
+    box-sizing: border-box;
+    background: var(--fb-bg);
+}
+
+.fb-dash-tile {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.fb-dash-tile-heading {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-text-secondary);
+    margin-bottom: 8px;
+}
+
+.fb-dash-tile-empty {
+    color: var(--fb-text-muted);
+    font-size: 12px;
+}
+
+/* The board and its status line share a column, so the line takes the
+   height it needs and the grid takes the rest. */
+.fb-dash-frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+/* What Refresh is doing, or how old the figures are: one quiet line, said
+   once, above the board rather than repeated on every tile. */
+.fb-dash-refresh-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 6px 14px 0 14px;
+    font-size: 11px;
+}
+
+.fb-dash-refresh-note {
+    color: var(--fb-text-muted);
+}
+
+/* The reporting date, when the board has been pinned to one. Weighted
+   rather than muted, because a board showing a date other than today has
+   to say so where the eye lands first -- figures from another quarter are
+   indistinguishable from wrong figures otherwise. Not the loud
+   .fb-env-banner treatment: pinning is a legitimate thing to do, not a
+   hazard. */
+.fb-dash-as-of {
+    color: var(--fb-text);
+    font-weight: 600;
+}
+
+/* Red is reserved for things that are wrong, which this is. */
+.fb-dash-refresh-fail {
+    color: var(--fb-danger);
+}
+
+/* No gridlines and no striping: both are non-data pixels that make a short
+   table harder to scan, not easier. */
+.fb-dash-kpi-table,
+.fb-dash-measure-table {
+    border-collapse: collapse;
+    /* A flex item stretches to the tile's width by default, which spreads
+       the columns across the whole tile and puts a hand's breadth of empty
+       space between a name and its bar. Data that belongs together is read
+       together, so the table takes the width its content needs. */
+    align-self: flex-start;
+}
+
+.fb-dash-kpi-table td,
+.fb-dash-measure-table td {
+    padding: 3px 10px 3px 0;
+    vertical-align: middle;
+}
+
+/* A grouped measure tile has no qualitative ranges to show -- there are no
+   targets -- so its bullets carry a single band, which is a plot backdrop
+   and not a judgement. Drawn light, so the measure stays the darkest thing
+   in the row. */
+.fb-dash-measure-table .fb-dash-band-1 {
+    fill: var(--fb-dash-band-4);
+}
+
+/* The tile's own total, stated once beside the heading rather than as
+   another row competing with the members. */
+.fb-dash-tile-total {
+    margin-left: 12px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+/* What the marker means, said once under the table. */
+.fb-dash-caption {
+    margin-top: 2px;
+    font-size: 10px;
+    color: var(--fb-text-muted);
+}
+
+.fb-dash-tile-error {
+    font-size: 12px;
+    color: var(--fb-danger);
+}
+
+.fb-dash-cell-pct {
+    text-align: right;
+    white-space: nowrap;
+    color: var(--fb-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.fb-dash-cell-spark { width: 80px; }
+.fb-dash-cell-graphic { width: 150px; }
+.fb-dash-measure-table .fb-dash-cell-graphic { width: 220px; }
+.fb-dash-cell-name { white-space: nowrap; }
+
+.fb-dash-cell-value {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The one sanctioned exception to no-scrolling. Triggered on viewport WIDTH
+   rather than any attempt to detect a device: reliable phone detection does
+   not exist, and width is both dependable and right for a narrow desktop
+   window too. This is a fallback, not a mobile interface. */
+@media (max-width: 768px) {
+    .fb-dash-board {
+        display: block;
+        overflow-y: auto;
+    }
+
+    .fb-dash-tile {
+        margin-bottom: 18px;
+    }
 }

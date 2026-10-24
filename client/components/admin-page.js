@@ -35,7 +35,7 @@ const adminPage = {};
 
 // The right-click menu offers what the toolbar does, in that order
 const MENU_KEYS = [
-    "edit", "status", "password", "grant", "admin", "platform"
+    "edit", "status", "password", "grant", "instance", "admin", "platform"
 ];
 
 /*
@@ -156,6 +156,132 @@ adminPage.viewModel = function () {
         @return {String}
     */
     vm.selection = f.prop("");
+    /**
+        Which of the two tabs the pane below the users shows: the
+        organization's recent changes, or the selected person's roles
+        in this instance.
+
+        @method paneTab
+        @return {String} "audit" or "roles"
+    */
+    vm.paneTab = f.prop("audit");
+    /**
+        The selected person's roles, as the server resolved them:
+        which are theirs directly and which they hold through another
+        role. Undefined until something has been selected and read.
+
+        @method roleData
+        @return {Object}
+    */
+    vm.roleData = f.prop();
+    /**
+        The role the roles tab's own toolbar acts on. Roles are picked
+        the way users are, so Remove belongs to the selection and not
+        to a button in every row (John, Oct 2026).
+
+        @method roleSelection
+        @return {String}
+    */
+    vm.roleSelection = f.prop("");
+    /**
+        The role the picker would add.
+        @method roleToAdd
+        @return {String}
+    */
+    vm.roleToAdd = f.prop("");
+    /**
+        True while the roles tab is reading.
+        @method isReadingRoles
+        @return {Boolean}
+    */
+    vm.isReadingRoles = f.prop(false);
+    /**
+        Read the selected person's roles. Nothing selected clears the
+        tab rather than leaving the last person's roles under somebody
+        else's name.
+
+        @method loadRoles
+    */
+    vm.loadRoles = function () {
+        let id = vm.selection();
+
+        vm.roleSelection("");
+        vm.roleToAdd("");
+
+        if (!id) {
+            vm.roleData(undefined);
+            return Promise.resolve();
+        }
+
+        vm.isReadingRoles(true);
+
+        return request("POST", "/admin/identity/roles", {
+            id
+        }).then(function (resp) {
+            vm.isReadingRoles(false);
+            /*
+                The answer is only wanted while it is still about the
+                row that is selected: clicking down a list faster than
+                the server answers must not leave one person's roles
+                showing under another's name.
+            */
+            if (vm.selection() === id) {
+                vm.roleData(resp);
+            }
+            m.redraw();
+        }).catch(function (err) {
+            vm.isReadingRoles(false);
+            vm.roleData(undefined);
+            fail(err);
+            m.redraw();
+        });
+    };
+    /**
+        Select a user, and bring the roles tab along if it is the one
+        showing.
+
+        @method select
+        @param {String} id
+    */
+    vm.select = function (id) {
+        vm.selection(id);
+
+        if (vm.paneTab() === "roles") {
+            vm.loadRoles();
+        }
+    };
+    /**
+        Show one of the two tabs, reading the roles the first time
+        that tab is asked for rather than on every selection.
+
+        @method showTab
+        @param {String} name
+    */
+    vm.showTab = function (name) {
+        vm.paneTab(name);
+
+        if (name === "roles") {
+            vm.loadRoles();
+        }
+    };
+    /**
+        Put the selected person in a role, or take them out of it.
+
+        @method doSetRole
+        @param {String} role
+        @param {Boolean} isMember
+    */
+    vm.doSetRole = function (role, isMember) {
+        if (!vm.selection() || !role) {
+            return;
+        }
+
+        request("POST", "/admin/identity/role", {
+            id: vm.selection(),
+            isMember,
+            role
+        }).then(vm.loadRoles).catch(fail);
+    };
     /**
         Style of the right-click menu: where it is, or not shown.
         @method menuStyle
@@ -373,6 +499,25 @@ adminPage.viewModel = function () {
         request("POST", "/admin/identity/org-admin", {
             id: identity.id,
             isOrgAdmin
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
+        Make this person an administrator of the instance this screen
+        is served from, or stand them down.
+
+        The flag is per instance and lives on their profile there, so
+        there is nothing to pick: it is the instance in `data.instance`
+        and the title on the button says which (John, Oct 2026).
+
+        @method doInstanceAdmin
+        @param {Object} identity
+        @param {Boolean} isInstanceAdmin
+    */
+    vm.doInstanceAdmin = function (identity, isInstanceAdmin) {
+        request("POST", "/admin/identity/instance-admin", {
+            id: identity.id,
+            isInstanceAdmin
         }).then(vm.refresh).catch(fail);
     };
 
@@ -782,6 +927,277 @@ adminPage.component = {
             });
         }
 
+        /*
+            One badge for the tier rather than one per flag. The
+            tiers are a hierarchy (ADR-001 section 3), so showing
+            "platform" and "admin" together on one person said the
+            same thing twice. The badge names the highest authority
+            the person holds, and its title says what that authority
+            reaches.
+
+            All three tiers are named now that all three can be
+            appointed from here (John, Oct 2026). "admin" is the
+            instance tier -- `user_account.is_super` on the profile in
+            the signed-in instance -- and the organization tier, which
+            used to wear that word, says "organization": the badge
+            named the wider authority with the narrower word, which
+            read as though an organization administrator answered for
+            this instance alone.
+
+            The instance tier is known only for the instance this
+            screen is served from, and only for somebody with a
+            profile there, so `isInstanceAdmin` being absent means
+            unknown rather than no -- an organization reached by
+            break-glass gets no badge for it, correctly.
+        */
+        /*
+            What to call the instance this screen is served from.
+            `data.instance` is its id, which is what a grant carries
+            and so what the code compares, but it is not a thing to
+            show anybody: the registry's name is.
+        */
+        function hereCalled() {
+            let found = instances.find((one) => one.id === data.instance);
+
+            return (
+                found
+                ? found.name
+                : "this instance"
+            );
+        }
+
+        /*
+            The pane below the users is two tabs now: the organization's
+            recent changes, and the selected person's roles in this
+            instance. Built from the form tab strip
+            (.fb-form-tabs / .fb-group-tab) so it looks like the tabs on
+            a form rather than a second idea about what a tab is.
+        */
+        function paneTabs() {
+            function tab(key, label, side) {
+                let classes = [
+                    "pure-button",
+                    "fb-group-tab",
+                    "fb-group-tab-form",
+                    side
+                ];
+
+                if (vm.paneTab() === key) {
+                    classes.push("fb-group-tab-active");
+                }
+
+                return m("button", {
+                    class: classes.join(" "),
+                    onclick: () => vm.showTab(key)
+                }, label);
+            }
+
+            return m("div", {class: "fb-form-tabs fb-admin-tabs"}, [
+                tab("audit", "Recent changes", "fb-group-tab-left"),
+                tab(
+                    "roles",
+                    /*
+                        Roles are an instance's, not an organization's,
+                        and this screen lists an organization's people
+                        -- so the tab says which instance it is talking
+                        about rather than leaving it to be assumed.
+                    */
+                    "Roles in " + hereCalled(),
+                    "fb-group-tab-right"
+                )
+            ]);
+        }
+
+        function rolesPane() {
+            let held = vm.roleData();
+            let none = !vm.selection();
+            let rows = (
+                held
+                ? held.roles
+                : []
+            );
+            let picked = rows.find(
+                (row) => row.role === vm.roleSelection()
+            );
+            let offered = (
+                held
+                ? held.available
+                : []
+            );
+
+            if (none) {
+                return m("div", {
+                    class: "fb-admin-note"
+                }, "Select a user to see the roles they hold here.");
+            }
+
+            if (vm.isReadingRoles() && !held) {
+                return m("div", {class: "fb-admin-note"}, "Reading roles…");
+            }
+
+            return m("div", [
+                m("div", {
+                    class: "fb-toolbar fb-admin-roles-toolbar"
+                }, [
+                    m("select", {
+                        class: "fb-admin-role-picker",
+                        disabled: !offered.length,
+                        onchange: (e) => vm.roleToAdd(e.target.value),
+                        title: (
+                            offered.length
+                            ? "A role to put " + held.username + " in"
+                            : held.username + " is already in every " +
+                                "role this instance has"
+                        ),
+                        value: vm.roleToAdd()
+                    }, [
+                        m("option", {value: ""}, "Choose a role…")
+                    ].concat(offered.map(function (name) {
+                        /*
+                            No key: the fixed first option has none,
+                            and Mithril refuses a fragment where some
+                            children are keyed and others are not.
+                        */
+                        return m("option", {value: name}, name);
+                    }))),
+                    m("button", {
+                        class: (
+                            "pure-button fb-toolbar-button" + (
+                                vm.roleToAdd()
+                                ? ""
+                                : " fb-button-disabled"
+                            )
+                        ),
+                        disabled: !vm.roleToAdd(),
+                        onclick: () => vm.doSetRole(vm.roleToAdd(), true),
+                        title: (
+                            vm.roleToAdd()
+                            ? "Put " + held.username + " in " +
+                                vm.roleToAdd()
+                            : "Choose a role first"
+                        )
+                    }, "Add"),
+                    m("div", {class: "fb-toolbar-fill"}),
+                    /*
+                        Remove acts on the selected row and is offered
+                        only for a membership that is this person's own.
+                        An inherited one is a row on another role; a
+                        Remove for it would have nothing to delete, and
+                        a button that quietly does nothing is worse than
+                        one that says why it cannot.
+                    */
+                    m("button", {
+                        class: (
+                            "pure-button fb-toolbar-button" + (
+                                (picked && picked.isDirect)
+                                ? ""
+                                : " fb-button-disabled"
+                            )
+                        ),
+                        disabled: !picked || !picked.isDirect,
+                        onclick: () => vm.doSetRole(
+                            vm.roleSelection(),
+                            false
+                        ),
+                        title: (
+                            !picked
+                            ? "Select a role"
+                            : (
+                                picked.isDirect
+                                ? "Take " + held.username + " out of " +
+                                    picked.role
+                                : picked.role + " comes with " +
+                                    picked.via + ", so it is removed " +
+                                    "by editing " + picked.via +
+                                    " itself"
+                            )
+                        )
+                    }, "Remove")
+                ]),
+                m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
+                    m("table", {class: "fb-table fb-admin-table"}, [
+                        m("thead", [
+                            m("tr", [
+                                m("th", {
+                                    class: "fb-admin-col-user"
+                                }, "Role"),
+                                m("th", "How")
+                            ])
+                        ]),
+                        m("tbody", rows.map(function (row) {
+                            return m("tr", {
+                                class: (
+                                    "fb-admin-row" + (
+                                        vm.roleSelection() === row.role
+                                        ? " fb-table-row-selected"
+                                        : ""
+                                    ) + (
+                                        row.isDirect
+                                        ? ""
+                                        : " fb-admin-role-inherited"
+                                    )
+                                ),
+                                key: row.role,
+                                onclick: () => vm.roleSelection(row.role)
+                            }, [
+                                m("td", row.role),
+                                m("td", (
+                                    row.isDirect
+                                    ? "assigned here"
+                                    : m("span", {
+                                        class: "fb-admin-muted"
+                                    }, "via " + row.via)
+                                ))
+                            ]);
+                        }))
+                    ])
+                ]),
+                (
+                    rows.length
+                    ? undefined
+                    : m("div", {
+                        class: "fb-admin-note"
+                    }, held.username + " is in no roles here.")
+                )
+            ]);
+        }
+
+        function tierTag(identity) {
+            let label = "";
+            let why = "";
+
+            if (identity.isPlatformAdmin) {
+                label = "platform";
+                why = (
+                    "Administers every organization, and every " +
+                    "instance of every organization"
+                );
+            } else if (identity.isOrgAdmin) {
+                label = "organization";
+                why = (
+                    "Administers " + (
+                        data.organization
+                        ? data.organization.name
+                        : "this organization"
+                    ) + ", and every instance it owns"
+                );
+            } else if (identity.isInstanceAdmin) {
+                label = "admin";
+                why = (
+                    "Administers " + hereCalled() + ", and no other"
+                );
+            }
+
+            if (!label) {
+                return undefined;
+            }
+
+            return m("span", {
+                class: "fb-admin-tag",
+                title: why
+            }, label);
+        }
+
         function find(id) {
             return listed.find((one) => one.id === id);
         }
@@ -890,12 +1306,81 @@ adminPage.component = {
                 () => vm.doGrant(identity)
             );
 
+            /*
+                The instance tier. Offered only for somebody who can
+                already reach this instance -- the flag lives on the
+                profile they keep here, and there is no profile
+                without a grant -- and not for the two tiers above it,
+                which carry it already and would take it straight
+                back. The title says which of those is in the way, so
+                a disabled button is never a mystery.
+            */
+            entry(
+                "instance",
+                (
+                    (
+                        !none && identity.isInstanceAdmin &&
+                        !identity.isOrgAdmin && !identity.isPlatformAdmin
+                    )
+                    ? "Revoke instance"
+                    : "Instance admin"
+                ),
+                (
+                    none
+                    ? "Select a user"
+                    : (
+                        !orgWide
+                        ? (
+                            "Only an organization administrator may " +
+                            "appoint an instance administrator"
+                        )
+                        : (
+                            identity.isPlatformAdmin
+                            ? identity.username +
+                                " administers every organization," +
+                                " which carries this already"
+                            : (
+                                identity.isOrgAdmin
+                                ? identity.username +
+                                    " administers the organization," +
+                                    " which carries this in every" +
+                                    " instance it owns"
+                                : (
+                                    !mine
+                                    ? identity.username +
+                                        " has no access to " +
+                                        hereCalled() +
+                                        ". Grant the instance first."
+                                    : (
+                                        identity.isInstanceAdmin
+                                        ? "Stop " + identity.username +
+                                            " administering " +
+                                            hereCalled()
+                                        : "Let " + identity.username +
+                                            " administer " +
+                                            hereCalled() + " and no other"
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+                (
+                    none || !orgWide || !mine ||
+                    identity.isOrgAdmin || identity.isPlatformAdmin
+                ),
+                () => vm.doInstanceAdmin(
+                    identity,
+                    !identity.isInstanceAdmin
+                )
+            );
+
             entry(
                 "admin",
                 (
                     !none && identity.isOrgAdmin
-                    ? "Unadmin"
-                    : "Make admin"
+                    ? "Revoke organization"
+                    : "Organization admin"
                 ),
                 (
                     none
@@ -923,7 +1408,7 @@ adminPage.component = {
                 "platform",
                 (
                     (!none && identity.isPlatformAdmin)
-                    ? "Stand down"
+                    ? "Revoke platform"
                     : "Platform admin"
                 ),
                 (
@@ -988,14 +1473,14 @@ adminPage.component = {
                 key: id,
                 oncontextmenu: function (e) {
                     e.preventDefault();
-                    vm.selection(id);
+                    vm.select(id);
                     vm.menuStyle({
                         display: "block",
                         left: e.pageX + "px",
                         top: e.pageY + "px"
                     });
                 },
-                onclick: () => vm.selection(id)
+                onclick: () => vm.select(id)
             };
         }
 
@@ -1062,6 +1547,7 @@ adminPage.component = {
                 toolbarButton(current.status),
                 toolbarButton(current.password),
                 toolbarButton(current.grant),
+                toolbarButton(current.instance),
                 toolbarButton(current.admin),
                 (
                     isPlatform
@@ -1205,20 +1691,7 @@ adminPage.component = {
                         return m("tr", rowEvents(identity.id), [
                             m("td", {title: identity.username}, [
                                 identity.username,
-                                (
-                                    identity.isPlatformAdmin
-                                    ? m("span", {
-                                        class: "fb-admin-tag"
-                                    }, "platform")
-                                    : undefined
-                                ),
-                                (
-                                    identity.isOrgAdmin
-                                    ? m("span", {
-                                        class: "fb-admin-tag"
-                                    }, "admin")
-                                    : undefined
-                                ),
+                                tierTag(identity),
                                 (
                                     identity.homeOrganization
                                     ? m("span", {
@@ -1259,32 +1732,41 @@ adminPage.component = {
                     }))
                 ])
             ]),
-            m("div", {class: "fb-title fb-admin-subtitle"}, [
-                f.icon("history", "fb-title-icon"),
-                m("label", "Recent changes")
-            ]),
-            m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
-                m("table", {class: "fb-table fb-admin-table"}, [
-                    m("thead", [
-                        m("tr", [
-                            m("th", {class: "fb-admin-col-seen"}, "When"),
-                            m("th", {class: "fb-admin-col-status"}, "Action"),
-                            m("th", {class: "fb-admin-col-user"}, "By"),
-                            m("th", {class: "fb-admin-col-user"}, "To"),
-                            m("th", "Detail")
-                        ])
-                    ]),
-                    m("tbody", audit.map(function (row) {
-                        return m("tr", {key: row.id}, [
-                            m("td", new Date(row.occurred).toLocaleString()),
-                            m("td", {title: row.action}, row.action),
-                            m("td", row.actor || ""),
-                            m("td", row.target || ""),
-                            m("td", {title: row.detail || ""}, row.detail || "")
-                        ]);
-                    }))
+            paneTabs(),
+            (
+                vm.paneTab() === "roles"
+                ? rolesPane()
+                : m("div", {class: "fb-table-scroll fb-admin-scroll"}, [
+                    m("table", {class: "fb-table fb-admin-table"}, [
+                        m("thead", [
+                            m("tr", [
+                                m("th", {
+                                    class: "fb-admin-col-seen"
+                                }, "When"),
+                                m("th", {
+                                    class: "fb-admin-col-status"
+                                }, "Action"),
+                                m("th", {class: "fb-admin-col-user"}, "By"),
+                                m("th", {class: "fb-admin-col-user"}, "To"),
+                                m("th", "Detail")
+                            ])
+                        ]),
+                        m("tbody", audit.map(function (row) {
+                            return m("tr", {key: row.id}, [
+                                m("td", (
+                                    new Date(row.occurred).toLocaleString()
+                                )),
+                                m("td", {title: row.action}, row.action),
+                                m("td", row.actor || ""),
+                                m("td", row.target || ""),
+                                m("td", {
+                                    title: row.detail || ""
+                                }, row.detail || "")
+                            ]);
+                        }))
+                    ])
                 ])
-            ]),
+            ),
             m("div", {class: "fb-admin-note"}, (
                 "Instances in this organization: " + (
                     instances.length

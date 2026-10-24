@@ -830,14 +830,26 @@
             checked in `provisionProfile` on the sign-in path and given
             by the administrator on the grant path.
 
+            At the application level an organization administrator is a
+            super user (John, Oct 2026): the platform is administered
+            from its own console, but the instances of an organization
+            are administered by the people the organization appointed,
+            and they have to see everything there to do it -- who may
+            open a workbook is set on the workbook. So `isSuper` is
+            what the caller says the manager holds, written when the
+            profile is made and raised on one that is already there.
+            It is never lowered here; `setSuper` does that when
+            somebody is stood down.
+
             @method makeProfile
             @for Database
             @param {Object} tenant The instance's registry entry
             @param {String} username
+            @param {Boolean} [isSuper] They administer the organization
             @return {Promise} True when a row was made, false when one
                 was already there
         */
-        that.makeProfile = async function (tenant, username) {
+        that.makeProfile = async function (tenant, username, isSuper) {
             let made;
             let obj = await that.connect(tenant);
 
@@ -858,11 +870,22 @@
                         ") VALUES (" +
                         "  nextval('object__pk_seq'), $1, now(), " +
                         "  'system', now(), 'system', false, $2, $1, $2, " +
-                        "  true, false, true, false, 0, false" +
+                        "  true, $3, true, false, 0, false" +
                         ") ON CONFLICT DO NOTHING RETURNING _pk"
                     ),
-                    [f.createId(), username]
+                    [f.createId(), username, isSuper === true]
                 );
+
+                if (!made.rows.length && isSuper === true) {
+                    await obj.client.query(
+                        (
+                            "UPDATE user_account SET is_super = true, " +
+                            "  updated = now(), updated_by = 'system' " +
+                            "WHERE name = $1 AND NOT is_super"
+                        ),
+                        [username]
+                    );
+                }
 
                 if (made.rows.length) {
                     await obj.client.query(
@@ -883,6 +906,38 @@
             }
 
             return made.rows.length > 0;
+        };
+
+        /**
+            Raise or lower the super user flag on a profile that
+            exists. For somebody appointed or stood down as an
+            organization administrator, whose instances should agree.
+            A name with no profile is left alone: there is nothing to
+            change, and one is made when they are granted or sign in.
+
+            @method setSuper
+            @for Database
+            @param {Object} tenant The instance's registry entry
+            @param {String} username
+            @param {Boolean} isSuper
+            @return {Promise}
+        */
+        that.setSuper = async function (tenant, username, isSuper) {
+            let obj = await that.connect(tenant);
+            let done = obj.client.query(
+                (
+                    "UPDATE user_account SET is_super = $2, " +
+                    "  updated = now(), updated_by = 'system' " +
+                    "WHERE name = $1 AND is_super <> $2"
+                ),
+                [username, isSuper === true]
+            );
+
+            // Given back whether it worked or not
+            await done.then(obj.done, function (err) {
+                obj.done();
+                throw err;
+            });
         };
 
         /*
@@ -916,7 +971,13 @@
             try {
                 let resp = await mgr.client.query(
                     (
-                        "SELECT i._pk, i.full_name, i.email " +
+                        "SELECT i._pk, i.full_name, i.email, " +
+                        "  EXISTS (SELECT 1 FROM organization_admin a " +
+                        "    WHERE a._identity_identity_pk = i._pk " +
+                        "      AND a._organization_organization_pk = " +
+                        "        t._organization_organization_pk " +
+                        "      AND a.is_active AND NOT a.is_deleted" +
+                        "  ) AS is_org_admin " +
                         "FROM identity i " +
                         "JOIN access_grant g ON " +
                         "  g._identity_identity_pk = i._pk " +
@@ -941,7 +1002,11 @@
                 mgr.done();
             }
 
-            await that.makeProfile(req.tenant, username);
+            await that.makeProfile(
+                req.tenant,
+                username,
+                allowed.is_org_admin === true
+            );
 
             // Recorded where the other privileged writes are
             let audit = await that.connect();
@@ -976,6 +1041,88 @@
             }
 
             return true;
+        }
+
+        /*
+            Does this person administer this instance? Two ways, and
+            the tiers are a hierarchy (ADR-001 section 3): a platform
+            administrator answers for every organization, so every
+            instance is theirs, and anyone appointed over the
+            organization that owns this one administers it. Asked of
+            the manager, and remembered briefly because
+            deserializeUser runs on every request and the answer for
+            someone who is neither rarely changes.
+        */
+        const adminChecked = {};
+        const ADMIN_RECHECK_MS = 60000;
+
+        async function administersInstance(req, username) {
+            let key = req.tenant.id + ":" + String(username).toLowerCase();
+            let last = adminChecked[key];
+            let mgr;
+
+            if (last && Date.now() - last < ADMIN_RECHECK_MS) {
+                return false;
+            }
+
+            mgr = await that.connect();
+
+            let resp = await mgr.client.query(
+                (
+                    "SELECT 1 FROM identity i " +
+                    "WHERE lower(i.username) = lower($2) " +
+                    "  AND i.status = 'active' AND NOT i.is_deleted " +
+                    "  AND (i.is_platform_admin OR EXISTS (" +
+                    "    SELECT 1 FROM organization_admin a " +
+                    "    JOIN tenant t ON " +
+                    "      a._organization_organization_pk = " +
+                    "      t._organization_organization_pk " +
+                    "    WHERE a._identity_identity_pk = i._pk " +
+                    "      AND t.id = $1 " +
+                    "      AND a.is_active AND NOT a.is_deleted " +
+                    "      AND NOT t.is_deleted" +
+                    "  ))"
+                ),
+                [req.tenant.id, username]
+            ).then(function (answer) {
+                mgr.done();
+                return answer;
+            }, function (err) {
+                mgr.done();
+                return Promise.reject(err);
+            });
+
+            if (!resp.rows.length) {
+                adminChecked[key] = Date.now();
+                return false;
+            }
+
+            delete adminChecked[key];
+            return true;
+        }
+
+        /*
+            Raise the profile of somebody who administers this
+            instance and whose row says otherwise. Never lowers
+            anything, and a manager that cannot be asked leaves the
+            profile as it is.
+        */
+        function healSuper(req, username) {
+            return administersInstance(req, username).then(function (yes) {
+                if (!yes) {
+                    return false;
+                }
+
+                return that.setSuper(req.tenant, username, true).then(
+                    () => true
+                );
+            }).catch(function (err) {
+                console.error(
+                    "Could not check organization administration for " +
+                    username + ": " + (err.message || err)
+                );
+                return false;
+            });
         }
 
         /**
@@ -1053,6 +1200,25 @@
                 }
 
                 row = resp.rows[0];
+
+                /*
+                    Whoever administers this instance is a super
+                    user in it: a platform administrator, who answers
+                    for every organization, or anyone appointed over
+                    the organization that owns it (ADR-001 section 3).
+                    The profile is raised when they are appointed or
+                    granted, but a platform administrator is appointed
+                    over no organization, and anyone appointed before
+                    that behaviour existed, or whose profile predates
+                    it, is still marked otherwise; bring it into line
+                    at sign-in instead of waiting for a re-grant.
+                    Never lowers anything, and a manager that cannot
+                    be asked leaves the profile as it is.
+                */
+                if (!row.is_super && await healSuper(req, username)) {
+                    row.is_super = true;
+                }
+
                 row.isAdmin = row.is_admin;
                 row.isSuper = row.is_super;
                 row.firstName = row.first_name || "";

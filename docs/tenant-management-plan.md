@@ -26,7 +26,7 @@ branch and date, `[~]` part done, `[ ]` not started. The tally:
 | D Tenant lifecycle | D.1–D.5 | — | — |
 | E Multi-node readiness | E.2, E.3, E.4 | E.1, E.5 | — |
 | F Verification | F.1–F.4 | — | — |
-| G Platform administration | G.1–G.4 | — | — |
+| G Platform administration | G.1–G.5 | — | — |
 
 **2026-10-16, the second half of the day: John answered every open
 question in this plan and in ADR-002, and the answers are built.** The
@@ -994,6 +994,10 @@ one", and "Managing orgs is obviously essential". The plan described
 the picker in section 9 and never made it an item; organizations were
 the command line's alone. All four are done.*
 
+*G.5 added 2026-10-24, after John read back the administration model:
+the tiers were described as a hierarchy and were not one inside an
+instance.*
+
 - [x] **G.1 The instance picker.** (M) *Done 2026-10-16 on
   `feat/g1-instance-picker`.* A URL with no database answers with a
   sign-in against the manager alone and the instances the identity's
@@ -1050,6 +1054,32 @@ the command line's alone. All four are done.*
       `client/components/admin-page.js` and would only appear in debug
       mode until `client/clientmin.js` is rebuilt, which is why it was
       left out rather than shipped half-visible.*
+
+- [x] **G.5 A platform administrator administers every instance.** (S)
+  *Done 2026-10-24 on `fix/platform-admin-instance-authority`.* The two
+  places that decide instance authority -- `administersInstance` in
+  `server/services/admin.js` (was `orgAdminOf`, used when a profile is
+  made) and `administersInstance` in `server/database.js` (was
+  `isOrgAdminHere`, used by `healSuper` at sign-in) -- asked the
+  `organization_admin` appointment table alone, and a platform
+  administrator is appointed over no organization. Both now answer for
+  `identity.is_platform_admin` too, keeping the status gate so a suspended
+  platform administrator inherits nothing. Code only: no feather, property
+  or schema change. Recorded as ADR-001 revision 5.*
+    - *Changes nothing in John's own installation, checked read-only
+      against the manager on 2026-10-24: old and new logic agree on every
+      identity-instance pair there, because the one platform administrator
+      (`ncuser_12161`) is appointed over all three organizations and the
+      appointment leg already covered it. The loophole is latent, and
+      bites the first platform administrator who is not appointed -- a
+      Featherbone staff account, or revision 4's reseller.*
+    - Done when: a platform administrator with no appointment over an
+      organization signs in to one of that organization's instances and is
+      a super user there.
+    - **Follow-on, not done.** `is_super` carries no provenance, so
+      standing an organization administrator down still clears an instance
+      administrator named by hand. Recording the cause needs a
+      `$`-prefixed framework table; no feather change either way.
 
 ## 7. What the improvement plan loses to this plan
 
