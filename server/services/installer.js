@@ -311,6 +311,16 @@
                     deployment was enough.
                 */
                 function rollback(err) {
+                    /*
+                        The install is over, failed or not. Only the
+                        finish cleared this, so after any failure the
+                        process went on believing it was installing for
+                        the rest of its life -- and `f.isInstalling()`
+                        is what a module's own code asks before it
+                        starts anything (SupplyChain's ShipEngine
+                        initialiser), so that waited for a restart.
+                    */
+                    isInstalling = false;
                     pClient.query("ROLLBACK;", async function () {
                         if (conn) {
                             try {
