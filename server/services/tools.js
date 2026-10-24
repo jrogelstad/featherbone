@@ -25,7 +25,6 @@
     const f = require("../../common/core");
     const ops = Object.keys(f.operators);
     const format = require("pg-format");
-    const crypto = require("crypto");
 
     const tools = {};
     const formats = {
@@ -908,17 +907,32 @@
             on the feather, the properties asked for and the shape of the
             filter and sort, and the same screen sends the same text.
 
-            The name is a hash of the text, so two different statements
-            can never meet under one name. Prepared names live as long as
-            the connection and node-postgres never drops them, so a
-            connection stops naming new statements once it holds
-            MAX_NAMED; further shapes run unnamed, as before.
+            A statement needs a name, and the thing being named is its
+            text, which is too long to be an identifier and full of
+            characters an identifier may not have. So the names are
+            handed out in order, `fb_1`, `fb_2`, and `names` remembers
+            which text got which: one name per distinct statement for the
+            life of the process, which is what every connection then
+            prepares it under. (It was a hash of the text before. Same
+            name, same statement, but a hash in a query path reads like
+            something is being encrypted, and nothing here is -- the SQL
+            and its parameters go to Postgres exactly as they did.)
+
+            Prepared names live as long as the connection and
+            node-postgres never drops them, so a connection stops naming
+            new statements once it holds MAX_NAMED; further shapes run
+            unnamed, as before. The same cap bounds `names`.
 
             FB_UNNAMED_SQL=1 turns it off, for comparing and for ruling it
             out.
         */
         const MAX_NAMED = 200;
-        const named = new WeakMap();
+
+        // Statement text -> the name it is prepared under, process wide
+        const names = new Map();
+
+        // Which of those names a connection has prepared already
+        const prepared = new WeakMap();
 
         /**
             Query config for `client.query` that prepares the statement
@@ -930,25 +944,33 @@
             @return {Object} `{text, values}`, plus `name` when named
         */
         tools.prepared = function (client, sql, params) {
-            let seen;
             let name;
+            let done;
             let ret = {text: sql, values: params || []};
 
             if (process.env.FB_UNNAMED_SQL === "1" || !client) {
                 return ret;
             }
 
-            name = "fb_" + crypto.createHash("sha1").update(sql).digest("hex");
-            seen = named.get(client);
-            if (!seen) {
-                seen = new Set();
-                named.set(client, seen);
+            name = names.get(sql);
+
+            if (name === undefined) {
+                if (names.size >= MAX_NAMED) {
+                    return ret;
+                }
+                name = "fb_" + (names.size + 1);
+                names.set(sql, name);
             }
 
-            if (seen.has(name)) {
-                ret.name = name;
-            } else if (seen.size < MAX_NAMED) {
-                seen.add(name);
+            done = prepared.get(client);
+
+            if (done === undefined) {
+                done = new Set();
+                prepared.set(client, done);
+            }
+
+            if (done.size < MAX_NAMED || done.has(name)) {
+                done.add(name);
                 ret.name = name;
             }
 
