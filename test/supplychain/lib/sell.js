@@ -54,18 +54,19 @@ async function employee(session, user) {
 }
 
 // A customer shipping to its bill-to address. opts.taxable, opts.address
-async function customer(session, w, opts) {
+function customer(session, w, opts) {
     opts = opts || {};
-    let billTo = await fx.address(session, Object.assign({
+    // Each address is its own record, so each needs an id of its own
+    let make = () => fx.addressData(Object.assign({
         name: "Regression Customer"
     }, opts.address));
     return session.create("Customer", {
         number: uniq("CUST"),
         name: "Regression Customer",
         isActive: true,
-        billTo: ref(billTo),
+        billTo: make(),
         billToIsShipto: true,
-        shipTo: ref(billTo),
+        shipTo: make(),
         terms: ref(w.terms),
         currency: ref(w.currency),
         site: ref(w.site),

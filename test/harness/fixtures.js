@@ -10,6 +10,8 @@
 /*jslint node*/
 "use strict";
 
+const {createId} = require("../../common/core");
+
 let counter = 0;
 
 // Unique, short, sortable suffix for natural keys
@@ -51,8 +53,14 @@ async function ensure(session, feather, plural, key, data) {
     return session.create(feather, data);
 }
 
-async function address(session, overrides) {
-    return session.create("Address", Object.assign({
+// Address is a child feather: a Site, a Customer's billTo and shipTo carry
+// their own, embedded in the record, so a fixture passes the values and
+// never a reference to an Address made on its own. The server inserts the
+// embedded record and then finds it by the id it arrived with, so each one
+// carries an id of its own.
+function addressData(overrides) {
+    return Object.assign({
+        id: createId(),
         type: "W",
         name: "Regression Test",
         street: "100 Test Way",
@@ -60,7 +68,11 @@ async function address(session, overrides) {
         state: "IL",
         postalCode: "62701",
         country: "United States"
-    }, overrides));
+    }, overrides);
+}
+
+async function address(session, overrides) {
+    return session.create("Address", addressData(overrides));
 }
 
 async function currency(session, code) {
@@ -79,12 +91,11 @@ async function location(session, name) {
 }
 
 async function site(session) {
-    let addr = await address(session);
     let stock = await location(session);
     return session.create("Site", {
         code: uniq("WH"),
         description: "Regression test warehouse",
-        address: ref(addr),
+        address: addressData(),
         locationControlled: false,
         defaultLocation: ref(stock),
         defaultReceiveLocation: ref(stock),
@@ -268,15 +279,14 @@ async function supplier(session, world) {
     });
 }
 
-async function customer(session, world) {
-    let billTo = await address(session, {name: "Regression Customer"});
+function customer(session, world) {
     return session.create("Customer", {
         number: uniq("CUST"),
         name: "Regression Customer",
         isActive: true,
-        billTo: ref(billTo),
+        billTo: addressData({name: "Regression Customer"}),
         billToIsShipto: true,
-        shipTo: ref(billTo),
+        shipTo: addressData({name: "Regression Customer"}),
         terms: ref(world.terms),
         currency: ref(world.currency),
         site: ref(world.site),
@@ -383,6 +393,7 @@ async function cabinetAssembly(session, w) {
 
 module.exports = {
     address,
+    addressData,
     cabinetAssembly,
     configure,
     currency,

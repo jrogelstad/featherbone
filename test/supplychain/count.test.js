@@ -399,11 +399,10 @@ describe("physical count", function () {
             }
             bin1 = await fx.location(s);
             bin2 = await fx.location(s);
-            let addr = await fx.address(s);
             lc = await s.create("Site", {
                 code: fx.uniq("LC"),
                 description: "Location controlled warehouse",
-                address: {id: addr.id},
+                address: fx.addressData(),
                 locationControlled: true,
                 defaultLocation: {id: bin1.id},
                 defaultReceiveLocation: {id: bin1.id},
