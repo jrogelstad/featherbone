@@ -35,7 +35,7 @@ const adminPage = {};
 
 // The right-click menu offers what the toolbar does, in that order
 const MENU_KEYS = [
-    "edit", "status", "password", "grant", "admin", "platform"
+    "edit", "status", "password", "grant", "instance", "admin", "platform"
 ];
 
 /*
@@ -373,6 +373,25 @@ adminPage.viewModel = function () {
         request("POST", "/admin/identity/org-admin", {
             id: identity.id,
             isOrgAdmin
+        }).then(vm.refresh).catch(fail);
+    };
+
+    /**
+        Make this person an administrator of the instance this screen
+        is served from, or stand them down.
+
+        The flag is per instance and lives on their profile there, so
+        there is nothing to pick: it is the instance in `data.instance`
+        and the title on the button says which (John, Oct 2026).
+
+        @method doInstanceAdmin
+        @param {Object} identity
+        @param {Boolean} isInstanceAdmin
+    */
+    vm.doInstanceAdmin = function (identity, isInstanceAdmin) {
+        request("POST", "/admin/identity/instance-admin", {
+            id: identity.id,
+            isInstanceAdmin
         }).then(vm.refresh).catch(fail);
     };
 
@@ -790,12 +809,37 @@ adminPage.component = {
             the person holds, and its title says what that authority
             reaches.
 
-            Only the two tiers this screen can appoint are named. The
-            third, an instance's own user_account.is_super ("tenant
-            super user"), is set on the User Account form and not
-            from here, so a badge for it would label something nobody
-            can grant on this screen (John, Oct 2026).
+            All three tiers are named now that all three can be
+            appointed from here (John, Oct 2026). "admin" is the
+            instance tier -- `user_account.is_super` on the profile in
+            the signed-in instance -- and the organization tier, which
+            used to wear that word, says "organization": the badge
+            named the wider authority with the narrower word, which
+            read as though an organization administrator answered for
+            this instance alone.
+
+            The instance tier is known only for the instance this
+            screen is served from, and only for somebody with a
+            profile there, so `isInstanceAdmin` being absent means
+            unknown rather than no -- an organization reached by
+            break-glass gets no badge for it, correctly.
         */
+        /*
+            What to call the instance this screen is served from.
+            `data.instance` is its id, which is what a grant carries
+            and so what the code compares, but it is not a thing to
+            show anybody: the registry's name is.
+        */
+        function hereCalled() {
+            let found = instances.find((one) => one.id === data.instance);
+
+            return (
+                found
+                ? found.name
+                : "this instance"
+            );
+        }
+
         function tierTag(identity) {
             let label = "";
             let why = "";
@@ -807,13 +851,18 @@ adminPage.component = {
                     "instance of every organization"
                 );
             } else if (identity.isOrgAdmin) {
-                label = "admin";
+                label = "organization";
                 why = (
                     "Administers " + (
                         data.organization
                         ? data.organization.name
                         : "this organization"
                     ) + ", and every instance it owns"
+                );
+            } else if (identity.isInstanceAdmin) {
+                label = "admin";
+                why = (
+                    "Administers " + hereCalled() + ", and no other"
                 );
             }
 
@@ -935,12 +984,81 @@ adminPage.component = {
                 () => vm.doGrant(identity)
             );
 
+            /*
+                The instance tier. Offered only for somebody who can
+                already reach this instance -- the flag lives on the
+                profile they keep here, and there is no profile
+                without a grant -- and not for the two tiers above it,
+                which carry it already and would take it straight
+                back. The title says which of those is in the way, so
+                a disabled button is never a mystery.
+            */
+            entry(
+                "instance",
+                (
+                    (
+                        !none && identity.isInstanceAdmin &&
+                        !identity.isOrgAdmin && !identity.isPlatformAdmin
+                    )
+                    ? "Revoke instance"
+                    : "Instance admin"
+                ),
+                (
+                    none
+                    ? "Select a user"
+                    : (
+                        !orgWide
+                        ? (
+                            "Only an organization administrator may " +
+                            "appoint an instance administrator"
+                        )
+                        : (
+                            identity.isPlatformAdmin
+                            ? identity.username +
+                                " administers every organization," +
+                                " which carries this already"
+                            : (
+                                identity.isOrgAdmin
+                                ? identity.username +
+                                    " administers the organization," +
+                                    " which carries this in every" +
+                                    " instance it owns"
+                                : (
+                                    !mine
+                                    ? identity.username +
+                                        " has no access to " +
+                                        hereCalled() +
+                                        ". Grant the instance first."
+                                    : (
+                                        identity.isInstanceAdmin
+                                        ? "Stop " + identity.username +
+                                            " administering " +
+                                            hereCalled()
+                                        : "Let " + identity.username +
+                                            " administer " +
+                                            hereCalled() + " and no other"
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+                (
+                    none || !orgWide || !mine ||
+                    identity.isOrgAdmin || identity.isPlatformAdmin
+                ),
+                () => vm.doInstanceAdmin(
+                    identity,
+                    !identity.isInstanceAdmin
+                )
+            );
+
             entry(
                 "admin",
                 (
                     !none && identity.isOrgAdmin
-                    ? "Unadmin"
-                    : "Make admin"
+                    ? "Revoke organization"
+                    : "Organization admin"
                 ),
                 (
                     none
@@ -968,7 +1086,7 @@ adminPage.component = {
                 "platform",
                 (
                     (!none && identity.isPlatformAdmin)
-                    ? "Stand down"
+                    ? "Revoke platform"
                     : "Platform admin"
                 ),
                 (
@@ -1107,6 +1225,7 @@ adminPage.component = {
                 toolbarButton(current.status),
                 toolbarButton(current.password),
                 toolbarButton(current.grant),
+                toolbarButton(current.instance),
                 toolbarButton(current.admin),
                 (
                     isPlatform
