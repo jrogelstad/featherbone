@@ -16,7 +16,9 @@
  *   - A small list of Core master-data feathers: Contact (and its email, phone,
  *     address and social account rows), Address, Comment, Kind.
  *     Override with featherbone.clear_core_data.
- *   - Document-number sequences (autonumber) are restarted at their start value.
+ *   - Document-number sequences are restarted: only the autonumber sequences of the
+ *     feathers being cleared, never a sequence that backs a column default and never
+ *     object__pk_seq or "$auth_pk_seq", which the control tables share.
  *   - $auth rows that belong to cleared records (row-level authorization).
  *   - Relation columns in KEPT tables that point at cleared records are set to
  *     NULL (for example user_account.contact), so users still sign in.
@@ -31,8 +33,8 @@
  *     base_currency, currency_conversion).
  *   - Run history (server_process, send_mail, notice, log) unless
  *     featherbone.clear_history = on.
- *   - object__pk_seq and every other sequence owned by a table. (_pk is shared
- *     by the control tables, so it is never reset.)
+ *   - object__pk_seq and "$auth_pk_seq" (shared with the control tables), and any
+ *     other sequence that backs a column default or a kept feather's autonumber.
  *
  * HOW IT IS SAFE
  *   - Dry run by default. It prints what it would do and changes nothing.
@@ -65,6 +67,10 @@
  *   featherbone.clear_allow_clients off  allow other connections to be open
  *   featherbone.clear_history      off   also clear server_process, send_mail, notice, log
  *   featherbone.clear_reset_seqs   on    restart document-number sequences
+ *   featherbone.clear_orphans      off   also clear object-derived tables that no
+ *                                        installed feather accounts for. Without it,
+ *                                        such a table holding rows aborts the run
+ *                                        rather than leaving data behind.
  *   featherbone.clear_core_data    Contact,ContactAddress,ContactEmail,
  *                                  ContactPhone,ContactSocialAccount,Address,
  *                                  Comment,Kind     (Core feathers to clear)
@@ -99,6 +105,8 @@ DECLARE
     v_history_names text[]  := ARRAY['ServerProcess', 'SendMail', 'Notice', 'Log'];
 
     r               record;
+    v_orphans       boolean := lower(coalesce(nullif(current_setting('featherbone.clear_orphans', true), ''), 'off')) IN ('on', 'true', 'yes', '1');
+    v_orphan_rows   bigint := 0;
     v_kind          text;
     v_mode          text;
     v_others        integer;
@@ -233,8 +241,23 @@ BEGIN
                 AND lower(regexp_replace(f.name, '([a-z0-9])([A-Z])', '\1_\2', 'g')) = c.relname)
         ORDER BY 1
     LOOP
-        v_report := v_report || format(E'  NOTE     table %s belongs to no installed feather, left alone\n', r.relname);
+        EXECUTE format('SELECT count(*) FROM ONLY %I', r.relname) INTO v_cnt;
+        IF v_cnt = 0 THEN
+            v_report := v_report || format(E'  NOTE     table %s belongs to no installed feather (empty)\n', r.relname);
+        ELSIF v_orphans THEN
+            v_tables  := v_tables || to_regclass(format('public.%I', r.relname));
+            v_ntables := v_ntables + 1;
+            v_rows    := v_rows + v_cnt;
+            v_report  := v_report || format(E'  clear    %-12s %-34s %8s rows  (no feather; clear_orphans=on)\n', '(orphan)', r.relname, v_cnt);
+        ELSE
+            v_report := v_report || format(E'  ORPHAN   table %s holds %s row(s) but belongs to no installed feather\n', r.relname, v_cnt);
+            v_orphan_rows := v_orphan_rows + v_cnt;
+        END IF;
     END LOOP;
+
+    IF v_orphan_rows > 0 AND NOT v_orphans THEN
+        RAISE EXCEPTION 'Found % application row(s) in table(s) that belong to no installed feather (listed as ORPHAN above, run the dry run to see them). They would be left behind, so this is not a clean instance. Re-run with featherbone.clear_orphans=on to clear them too, or fix the feather catalog. Nothing done.', v_orphan_rows;
+    END IF;
 
     ----------------------------------------------------------------------
     -- 3. Relation columns in KEPT tables that point at cleared records
@@ -312,22 +335,45 @@ BEGIN
     -- 6. Document-number sequences (not owned by a table, not used by kept feathers)
     ----------------------------------------------------------------------
     IF v_reset_seqs THEN
+        -- Only document-number (autonumber) sequences of the feathers being cleared,
+        -- and never one that backs a column default anywhere -- object__pk_seq and
+        -- "$auth_pk_seq" are shared with the control tables and resetting either
+        -- would collide new rows with kept ones.
         FOR r IN
+            WITH owned AS (
+                SELECT d.objid AS seqid
+                FROM pg_depend d
+                JOIN pg_class s ON s.oid = d.objid AND s.relkind = 'S'
+                WHERE d.classid = 'pg_class'::regclass
+                  AND d.refclassid = 'pg_class'::regclass
+                UNION
+                SELECT s.oid
+                FROM pg_class s
+                JOIN pg_attrdef ad ON pg_get_expr(ad.adbin, ad.adrelid) LIKE '%' || s.relname || '%'
+                WHERE s.relkind = 'S' AND s.relnamespace = 'public'::regnamespace
+            ), autonum AS (
+                SELECT DISTINCT p.autonumber::jsonb ->> 'sequence' AS seqname
+                FROM public.feather f
+                JOIN public.feather_property p ON p._parent_feather_pk = f._pk
+                WHERE NOT f.is_deleted
+                  AND f.name = ANY (v_cleared)
+                  AND p.autonumber IS NOT NULL
+            )
             SELECT s.oid::regclass AS seq
             FROM pg_class s
+            JOIN autonum a ON a.seqname = s.relname
             WHERE s.relkind = 'S'
               AND s.relnamespace = 'public'::regnamespace
-              AND NOT EXISTS (SELECT 1 FROM pg_depend d
-                              WHERE d.objid = s.oid AND d.deptype IN ('a', 'i')
-                                AND d.refclassid = 'pg_class'::regclass)
+              AND s.relname NOT IN ('object__pk_seq', '$auth_pk_seq')
+              AND NOT EXISTS (SELECT 1 FROM owned o WHERE o.seqid = s.oid)
               AND NOT EXISTS (
                   SELECT 1
-                  FROM public.feather f
-                  JOIN public.feather_property p ON p._parent_feather_pk = f._pk
-                  WHERE NOT f.is_deleted
-                    AND NOT (f.name = ANY (v_cleared))
-                    AND p.autonumber IS NOT NULL
-                    AND p.autonumber::jsonb ->> 'sequence' = s.relname)
+                  FROM public.feather f2
+                  JOIN public.feather_property p2 ON p2._parent_feather_pk = f2._pk
+                  WHERE NOT f2.is_deleted
+                    AND NOT (f2.name = ANY (v_cleared))
+                    AND p2.autonumber IS NOT NULL
+                    AND p2.autonumber::jsonb ->> 'sequence' = s.relname)
             ORDER BY s.relname
         LOOP
             v_report := v_report || format(E'  restart  sequence %s\n', r.seq);
@@ -341,7 +387,10 @@ BEGIN
     -- 7. Clear the tables
     ----------------------------------------------------------------------
     IF v_execute THEN
-        EXECUTE 'TRUNCATE ONLY ' || (SELECT string_agg(t::text, ', ') FROM unnest(v_tables) t);
+        -- ONLY binds to each name separately in Postgres: "TRUNCATE ONLY a, b" would
+        -- truncate b's descendants too, which is how a kept child table (currency
+        -- under kind, say) gets wiped. Repeat ONLY for every name.
+        EXECUTE 'TRUNCATE ' || (SELECT string_agg('ONLY ' || t::text, ', ') FROM unnest(v_tables) t);
 
         FOREACH v_tbl IN ARRAY v_tables LOOP
             EXECUTE format('SELECT count(*) FROM ONLY %s', v_tbl::text) INTO v_n;

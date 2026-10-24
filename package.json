@@ -11,6 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev:load": "node scripts/dev/load.js",
     "test": "node test/run.js",
     "test:unit": "node test/run.js unit",
     "test:integration": "node test/run.js integration"

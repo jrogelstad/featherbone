@@ -468,7 +468,11 @@
 
             try {
                 isSuper = await manager.run(async function (mclient) {
-                    return await orgAdminOf(mclient, username, pgDatabase);
+                    return await administersInstance(
+                        mclient,
+                        username,
+                        pgDatabase
+                    );
                 });
                 await db.makeProfile(tenant, username, isSuper);
             } catch (e) {
@@ -480,22 +484,31 @@
         }
 
         /*
-            Whether somebody administers the organization an instance
-            belongs to -- which, in the application, makes them a super
-            user there.
+            Does this person administer this instance, which in the
+            application makes them a super user in it? The tiers are a
+            hierarchy (ADR-001 section 3): a platform administrator
+            answers for every organization, so every instance is
+            theirs, and anyone appointed over the organization that
+            owns this one administers it. A platform administrator is
+            appointed over no organization, so asking the appointment
+            table alone used to answer no for them -- they could
+            create and drop an instance and not read a row in it.
         */
-        async function orgAdminOf(mclient, username, pgDatabase) {
+        async function administersInstance(mclient, username, pgDatabase) {
             let resp = await mclient.query(
                 (
-                    "SELECT 1 FROM organization_admin a " +
-                    "JOIN identity i ON i._pk = a._identity_identity_pk " +
-                    "JOIN tenant t ON " +
-                    "  t._organization_organization_pk = " +
-                    "  a._organization_organization_pk " +
+                    "SELECT 1 FROM identity i " +
                     "WHERE lower(i.username) = lower($1) " +
-                    "  AND t.pg_database = $2 AND NOT t.is_deleted " +
-                    "  AND a.is_active AND NOT a.is_deleted " +
-                    "  AND i.status = 'active' AND NOT i.is_deleted"
+                    "  AND i.status = 'active' AND NOT i.is_deleted " +
+                    "  AND (i.is_platform_admin OR EXISTS (" +
+                    "    SELECT 1 FROM organization_admin a " +
+                    "    JOIN tenant t ON " +
+                    "      t._organization_organization_pk = " +
+                    "      a._organization_organization_pk " +
+                    "    WHERE a._identity_identity_pk = i._pk " +
+                    "      AND t.pg_database = $2 AND NOT t.is_deleted " +
+                    "      AND a.is_active AND NOT a.is_deleted" +
+                    "  ))"
                 ),
                 [username, pgDatabase]
             );
