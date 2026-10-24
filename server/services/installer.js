@@ -96,6 +96,25 @@
                     base: MANIFEST
                 });
                 let installedFeathers = false;
+                /*
+                    Views are not made as each feather is saved when a
+                    package is installed under an umbrella: that was
+                    deferred to the end, to stay inside the database's
+                    shared memory. A batch of records for a feather the
+                    install itself created has no view to write through
+                    until then, so it waits here and runs once the
+                    views exist (`runDeferred`).
+
+                    What it looked like: a package that seeded records
+                    into its own new feather failed the whole install
+                    on `relation "_sales_region" does not exist`
+                    (John, Oct 2026). Nothing had done that before;
+                    every batch wrote to a framework feather (Form,
+                    Route, Style), whose views were already there.
+                */
+                let viewsDeferred = false;
+                let newFeathers = [];
+                let deferredBatches = [];
                 let pProcess;
                 let pIsSuper = opts.isSuper;
                 let pSubscr = opts.subscription;
@@ -292,7 +311,7 @@
                     deployment was enough.
                 */
                 function rollback(err) {
-                    pClient.query("ROLLBACK;", function () {
+                    pClient.query("ROLLBACK;", async function () {
                         if (conn) {
                             try {
                                 conn.done();
@@ -303,14 +322,73 @@
                         }
                         console.error(err);
                         console.error("Installation failed.");
+
+                        /*
+                            Say so on the install's progress record.
+                            The hooks that mark it failed belong to the
+                            caller's connection and run only when a
+                            request rolls back through crud.rollback;
+                            this ROLLBACK is the installer's own, on
+                            the connection it opened, so the record was
+                            left "processing" for ever and a screen
+                            watching it never learned the install had
+                            ended (John, Oct 2026: "Just said it was
+                            deployed").
+                        */
+                        let held = reqClient.rollbacks || [];
+                        let hooks = held.slice();
+
+                        while (hooks.length) {
+                            try {
+                                await hooks.shift()(err);
+                            } catch (hookErr) {
+                                console.error(hookErr);
+                            }
+                        }
+
                         reject(err);
                     });
                 }
 
-                function runBatch(data) {
+                function runBatch(data, after) {
                     let nextItem;
                     let len = data.length;
                     let b = 0;
+
+                    /*
+                        Records for a feather this install created, whose
+                        view is not made yet, wait for the end. Only
+                        those: the same feather being saved again by an
+                        upgrade still has the view it had, and a batch
+                        that already worked keeps its place in the order.
+                    */
+                    let all = data.map((payload) => payload.name);
+                    let names = all.filter((nm, idx) => (
+                        newFeathers.includes(nm) &&
+                        all.indexOf(nm) === idx
+                    ));
+
+                    if (!after && viewsDeferred && names.length) {
+                        pClient.query(
+                            (
+                                "SELECT viewname FROM pg_views " +
+                                "WHERE schemaname = 'public' " +
+                                "  AND viewname = ANY($1);"
+                            ),
+                            [names.map((nm) => "_" + nm.toSnakeCase())]
+                        ).then(function (resp) {
+                            if (resp.rows.length < names.length) {
+                                deferredBatches.push(data);
+                                processFile();
+                                return;
+                            }
+
+                            runBatch(data, processFile);
+                        }).catch(rollback);
+                        return;
+                    }
+
+                    after = after || processFile;
 
                     /*
                         A package's data is the package's to assert.
@@ -375,7 +453,7 @@
                         }
 
                         // We're done here
-                        processFile();
+                        after();
                     };
 
                     // Start processing
@@ -493,6 +571,8 @@
 
                         // Map feather structure to table structure
                         feathers.forEach(function (feather) {
+                            newFeathers.push(feather.name);
+
                             let keys = Object.keys(feather.properties || {});
                             let auths = feather.authorizations;
                             let props = feather.properties;
@@ -748,6 +828,7 @@
                     let n = i;
 
                     feathers.disablePropagation(true);
+                    viewsDeferred = true;
                     fs.readFile(subfilepath, "utf8", function (err, data) {
                         if (err) {
                             console.error(err);
@@ -909,6 +990,7 @@
                     function handleFeathers() {
                         return new Promise(function (resolve, reject) {
                             feathers.disablePropagation(false);
+                            viewsDeferred = false;
                             if (installedFeathers) {
                                 feathers.propagateViews(pClient).then(
                                     resolve
@@ -917,6 +999,22 @@
                             }
 
                             resolve();
+                        });
+                    }
+
+                    // The batches that waited for the views above
+                    function runDeferred() {
+                        return new Promise(function (resolve) {
+                            function next() {
+                                if (!deferredBatches.length) {
+                                    resolve();
+                                    return;
+                                }
+
+                                runBatch(deferredBatches.shift(), next);
+                            }
+
+                            next();
                         });
                     }
 
@@ -935,7 +1033,7 @@
 
                     // If we've processed all the files, wrap this up
                     if (!file) {
-                        handleFeathers().then(function () {
+                        handleFeathers().then(runDeferred).then(function () {
                             return new Promise(function (resolve) {
                                 pClient.query("COMMIT;").then(resolve);
                             });
