@@ -135,7 +135,7 @@ describe("a package install that fails", function () {
             async function () {
         let held = await fleetEntry(session);
         let resp;
-        let after;
+        let released;
 
         assert.equal(held.isMaintenance, true, "held after the failure");
 
@@ -145,8 +145,8 @@ describe("a package install that fails", function () {
         });
         assert.equal(resp.status, 200, JSON.stringify(resp.body));
 
-        after = await fleetEntry(session);
-        assert.equal(after.isMaintenance, false);
+        released = await fleetEntry(session);
+        assert.equal(released.isMaintenance, false);
     });
 
     it("reports the failure in the fleet answer, which is a 200",
