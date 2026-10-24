@@ -193,6 +193,8 @@ Defects the suite found that are not in the tiers below (each has a todo test; f
   care is in checking what already depends on the current behaviour, and
   whether polluted catalogs need cleaning.
 - [x] **0.18 A failed install never gives its connection back, and eight of them finish an instance.** Found 2026-10-24 by the new `api/deploy-failure` suite, as a hang in a later file. `datasource.install` opens a pooled client for the work and gave it back only where the work finished, so an install that threw -- a dependency in the wrong order, a relation to a feather nothing defines, anything the installer refuses -- left it checked out for the life of the process. One connection per failure, a default pool of ten, and then every request needing a connection to that instance waits for one that is never coming: no error, no timeout, a request that never answers. Measured on a live server, deploying a package built to fail: 2 connections, then one more per failure, and at ten the next deploy never answered. *Fixed on `fix/install-connection-leak`: the work moved into a function and the connection is given back on every path out of it, the error rethrown after. Flat at 3 across twelve failures. Claim added to `deploy-failure.test.js`; it needs that suite's fixture packages, so merge `fix/stale-api-suites` first.* **Still open beside it:** `installer.js` sets `isInstalling = true` and clears it only on success, so after any failed install the process believes it is installing for ever. The one reader is SupplyChain's ShipEngine initialiser, which then waits for a restart. One line in `rollback`.
+- [ ] **0.19 A read-only feather is not read only to a super user.** Found 2026-10-24 by `supplychain/inventory.test.js` ("transactions are read only over the data API"), which could not run until today. `PATCH /data/alert/<id>` as a signed-in super user answers 200 and changes the row, and `Alert` declares `isReadOnly: true`. The same goes for `InventoryTransaction`, `SalesHistory`, `InvoicePayment`, `InventoryLocation`, `InventoryValueDetail`, `PrepaidInvoiceApplication` and `ShipEnginePackage` -- the records the application computes, which is exactly where read-only matters. Two reasons, and each alone would be enough: `server.js registerDataRoute` mounts only the GET route for a read-only feather, but the write routes are there anyway (the catalog those routes were built from did not mark it, which is what the newer guard's comment anticipates); and the newer guard in `datasource.js` (405 "Feather X is read only") is skipped when `isSuperUser`, which it reads as "an internal call" although an ordinary human super user over HTTP is also `isSuperUser`. The fix wants a marker for "this request came in over HTTP" -- the route handlers know, nothing else does -- rather than super-ness, because module code legitimately writes these rows through `f.datasource.request`. Needs John's call: it changes what a super user may do, and a support fix by hand may be something you want to keep.
+- [ ] **0.20 A record that is not there answers 500.** `PATCH` or `DELETE` of an id nothing matches answers 500 with "Record <id> not found." (`crud.js` ~1057 and ~2639 reject a bare string or Error with no `statusCode`, and `server.js error()` defaults to 500). 0.7 fixed the message -- it used to be `"undefined" is not valid JSON` -- but not the status. 404 is the answer, and a client cannot tell "no such record" from "the server broke" until it is.
 - [x] **0.11 CLI install of SupplyChain** creates money columns as `json` instead of `mono`; installing the same zip through the server's install route is correct. *Fixed 2026-10-24, and it was never the installer: `f.formats` -- the registry `feathers.js` reads to turn a property's declared format into a column type -- was set in `server.js` and nowhere else, so a process started by `install.js` had none. SupplyChain's Common module registers three formats of its own (`unitCost`, `salesPrice`, `purchasePrice`) by writing them onto `f.formats`, found nothing to write to, and gave up; the installer then found no format by that name, fell back to the property's type and wrote `json`. Every price and cost column, on any command line install. Two branches: framework `fix/0.11-money-formats-on-install` hangs the registry on `f` in `datasource.js`, which `install.js` loads as well as `server.js`; SupplyChain `fix/money-formats-registered-on-load` (root 2.2.17, Common 2.1.11) registers the formats as that module loads rather than after an awaited settings read, which could otherwise lose the race against the install even with the registry present. Verified end to end on a fresh CLI install: `product.price` was `json`, is now `mono`, 26 money columns `mono` and none `json`. `api/schema.test.js` "stores every money-format property as mono" catches a regression. The earlier closure as "not reproduced" was fair from a database installed through the server, which is the path that works.*
 
 ## How to use this plan
@@ -333,9 +335,36 @@ At `demo` scale, planning is the dominant cost: 75–150 ms to plan a view query
 | `_work_order` first page | 19 | 77 ms | 9 ms |
 | `_form` all | 104 | — | 172 ms |
 
-- [ ] **4.1 Cache query plans.** The framework sends unnamed parameterized queries, so every request replans.
+- [~] **4.1 Cache query plans.** The framework sends unnamed parameterized queries, so every request replans.
     - Fix: named prepared statements (`{name, text, values}` in `pg`) for stable `doSelect` shapes, so each connection caches the plan.
     - Done when: repeated form loads show planning near zero in `pg_stat_statements`.
+    - *Written and measured 2026-10-24 on `feat/4.1-named-statements`, not
+      merged. `tools.prepared` names a statement by a hash of its text, every
+      value being a bound parameter already, and a connection stops naming new
+      shapes at 200 because node-postgres never drops a prepared name.
+      `FB_UNNAMED_SQL=1` turns it off, which is how these numbers were taken:
+      300 list reads (purchase orders, work orders, sales orders, ten rounds)
+      against a freshly installed `demo`.*
+    - *Unnamed: 1309 ms and 1433 ms wall, 949 ms and 1038 ms of planning.
+      Named: 496 ms and 516 ms wall, 274 ms and 285 ms of planning. So two and
+      a half times faster, and planning falls by about 70%. It does not fall
+      to zero because Postgres plans a named statement afresh for its first
+      five executions before it settles on a generic plan -- with a ten
+      connection pool that warm-up is paid up to fifty times per query shape,
+      which is an argument for 5.1's smaller pools.*
+    - *Risk checked: a view rebuilt under a cached plan. Adding a property to
+      a feather and reading its list again behaves identically named and
+      unnamed (both answer "column \"note\" does not exist" until the view
+      is rebuilt), so naming does not add a failure there. The
+      "cached plan must not change result type" error looks unreachable here
+      because `doSelect` always names its columns and returns one json
+      column. `api/query` (33) and `api/crud` (42 of 43, the one failure
+      environmental) pass with it on.*
+    - *Left to decide: whether this and PgBouncer in transaction mode can
+      coexist (they cannot -- named statements do not survive it), which 4.4
+      and 5.1 both touch. And 4.2 removes the cost rather than hiding it: the
+      planning is expensive because each view is an Append over every child
+      table. If only one of the two gets done, 4.2 is the better buy.*
 - [ ] **4.2 Slim the generated views.** Each to-one relation to an inherited feather becomes an `Append` over every child table, nested up to 3 levels (24 subselects per `ShipmentInvoice` row).
     - Fix: a list view that expands only natural key and label fields; keep full expansion for single-record form loads; consider `LEFT JOIN LATERAL` over scalar subselects.
 - [ ] **4.3 Cache form and catalog metadata in Node.** `form_attr_column` was scanned 3,044 times in a few minutes of use.
@@ -397,7 +426,7 @@ One stray rejected promise can take down every tenant on the server, so 6.1 is w
 - [~] **6.5 Upgrade the runtime and dependencies.** `npm audit` reports 20 vulnerabilities, 11 high, including `ws`. Pin the `shipengine` version in the ShipEngine manifest.
     - *Note (2026-10-18): the Node floor moved to 20 for 3.0 (`package.json` engines, README) -- the part of this item the README staleness was about. The `npm audit`/`ws` and `shipengine`-pin work is still open, and is a SupplyChain concern rather than the framework's.*
     - Note (2026-10-06): do not use `npm audit fix --force`; it downgraded `pdfjs` to 0.5.4 and broke the server. Take dependency bumps one at a time (dependabot PRs), with `npm test` after each.
-- [ ] **6.6 Add tests and CI.** Start with the paths this plan touches: posting (2.3), cost totals (2.4), allocations (2.5), tenant create and delete (1.4, 5.3), and the two-tenant role test (1.1). Split `crud.js`, `datasource.js`, `server.js` and `table-widget.js` (2.5–3k lines each) as you go, and settle on `async`/`await` over the `afterX` callback chains.
+- [ ] **6.6 Add tests and CI.** *Before CI: the integration suites only run against a `demo` that was once a combined database. A `demo` built by a current installation is an instance and carries no registry tables, so `identity-model` (12 claims), `manager`, `security` and `users` read tables and feathers that are not there -- the suites ask the instance for `identity`, `organization`, `access_grant` and `TenantService`, which now live in the manager. Found 2026-10-24 by running the suites against a database built with `node install --instance`. They need to ask the manager copy (the harness already brings it current) before any machine but John's can run them.*  Start with the paths this plan touches: posting (2.3), cost totals (2.4), allocations (2.5), tenant create and delete (1.4, 5.3), and the two-tenant role test (1.1). Split `crud.js`, `datasource.js`, `server.js` and `table-widget.js` (2.5–3k lines each) as you go, and settle on `async`/`await` over the `afterX` callback chains.
 
 - [ ] **6.7 Rethink how settings are saved, starting with the "changed by another user" failure.** Long-standing (John, 2026-10-24): `Settings for "catalog" changed by another user. Save failed.` turns up whenever an install fails, and after other complex transactions that roll back. Nobody else changed anything.
     - Cause (read from `server/services/settings.js`, not yet reproduced): `saveSettings` writes the new data and etag into the process-wide `dbsettings` cache as soon as its `UPDATE` runs, inside the request's transaction (`done()`, ~line 770). Nothing undoes that on rollback. The database row goes back to its old etag while the cache keeps the new one, so the next save compares the cache's etag with the row's (~line 845) and refuses. It keeps refusing until the process restarts or something reloads the entry. The cache also hands out the rolled-back values to readers in the meantime, and a second server process holds its own copy.
