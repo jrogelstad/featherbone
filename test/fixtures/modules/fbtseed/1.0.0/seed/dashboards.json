@@ -1,0 +1,22 @@
+[
+    {
+        "name": "FbtSeedBoard",
+        "label": "Seed Board",
+        "description": "A dashboard layout a package carried",
+        "module": "fbtseed",
+        "sequence": 1,
+        "isDefault": true,
+        "config": {
+            "asOf": "2027-05-31",
+            "tiles": [
+                {
+                    "id": "fbtseedtile01",
+                    "cols": 5,
+                    "rows": 2,
+                    "kind": "chart",
+                    "label": "Seeded tile"
+                }
+            ]
+        }
+    }
+]
