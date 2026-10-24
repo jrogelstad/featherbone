@@ -2120,7 +2120,9 @@ function initApp() {
                         onchange: (e) => layoutToDelete(e.target.value),
                         value: layoutToDelete()
                     }, [
-                        m("option", {value: ""}, "")
+                        // Named, not blank: an empty first row reads
+                        // as a glitch rather than as "nothing chosen".
+                        m("option", {value: ""}, "(choose a layout)")
                     ].concat(rows.map(function (row) {
                         return m("option", {
                             value: row.name
