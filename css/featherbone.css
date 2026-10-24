@@ -3470,6 +3470,12 @@ button:disabled .fb-ipicon,
        this" everywhere else in the app, and data is not clickable. */
     --fb-dash-measure: #0d6e74;
     --fb-dash-marker: #a8560f;
+    /* Near-black rather than a third hue. Two hues on a tile is a
+       scheme; three is a chart that has to be decoded. The target is
+       told apart by its shape -- full height and dashed -- which also
+       survives being printed or being looked at by somebody who cannot
+       tell teal from amber. */
+    --fb-dash-target: #2b2f36;
     --fb-dash-bar: #6aa6aa;
     --fb-dash-spark: #5c8f93;
     --fb-dash-spark-band: #ededed;
@@ -3486,6 +3492,7 @@ button:disabled .fb-ipicon,
            at the lightness a dark surface needs to keep contrast. */
         --fb-dash-measure: #4fb3b8;
         --fb-dash-marker: #e09a5a;
+        --fb-dash-target: #e8eaed;
         --fb-dash-bar: #3f7f83;
         --fb-dash-spark: #74a9ad;
         --fb-dash-spark-band: #2a2e35;
@@ -3512,6 +3519,15 @@ button:disabled .fb-ipicon,
 .fb-dash-bullet-marker {
     stroke: var(--fb-dash-marker);
     stroke-width: 2;
+}
+
+/* The target: full height where the comparison is a short bar, so the
+   two never have to be told apart by colour alone, and reading as a
+   threshold the bar either reaches or does not. */
+.fb-dash-bullet-target {
+    stroke: var(--fb-dash-target);
+    stroke-width: 2;
+    stroke-dasharray: 3 2;
 }
 
 .fb-dash-spark-line {

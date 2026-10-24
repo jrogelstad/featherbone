@@ -79,9 +79,13 @@
     dialog collects is handed straight back to `load` as tile properties,
     so a source that invents a new option needs no change here.
 
-    where each row is `{key, label, amount, units, comparison, pctOfTotal,
-    spark}`. `needsRefresh` is how a source says its aggregates have never
-    been built, which is a different thing from an error and is shown as an
+    where each row is `{key, label, amount, units, comparison, target,
+    pctOfTotal, spark}`. `target` is where the row should be and
+    `comparison` is where it was: different questions, drawn as different
+    marks, and a row may carry either, both or neither.
+
+    `needsRefresh` is how a source says its aggregates have never been
+    built, which is a different thing from an error and is shown as an
     instruction rather than a failure.
 
     A *refresher* (`dashboardRefreshers`) is a routine that rebuilds those
@@ -1212,6 +1216,28 @@ function measureFormats(source) {
 }
 
 /**
+    What the marks on a bullet tile mean, naming only the ones that are
+    actually drawn.
+
+    A legend for a mark the tile does not carry is worse than no legend:
+    it sends somebody looking for something that is not there.
+*/
+function markerCaption(data, hasComparison, hasTarget) {
+    let said = [];
+
+    if (hasComparison) {
+        said.push("short bar: " + (data.comparisonLabel || "prior year"));
+    }
+    if (hasTarget) {
+        said.push("full line: target");
+    }
+    if (!said.length) {
+        return "";
+    }
+    return said.join(" \u00b7 ");
+}
+
+/**
     One grouped measure tile: a measure broken down by a dimension, drawn as
     bullet rows against a comparison, as ranked bars, or as a plain numeric
     table.
@@ -1260,6 +1286,9 @@ function measureTile(tile) {
         let hasComparison = rows.some(function (row) {
             return row.comparison !== undefined && row.comparison !== null;
         });
+        let hasTarget = rows.some(function (row) {
+            return row.target !== undefined && row.target !== null;
+        });
         // Opt-in rather than opt-out: a sparkline beside a bar says
         // something the bar does not, but on every row of every tile it is
         // just ink.
@@ -1283,9 +1312,11 @@ function measureTile(tile) {
         max = draw.niceMax(top);
         total = data.total;
 
-        // Absent means absent: with nothing to compare against, bullets are
-        // just bars with a marker that would never be drawn, so say bars.
-        if (mode === "bullets" && !hasComparison) {
+        // Absent means absent: with nothing to compare against and
+        // nothing to aim at, bullets are just bars with marks that would
+        // never be drawn, so say bars. A target alone is reason enough
+        // to keep them -- it is the mark the bullet was designed for.
+        if (mode === "bullets" && !hasComparison && !hasTarget) {
             mode = "bars";
         }
 
@@ -1301,6 +1332,11 @@ function measureTile(tile) {
                 ? undefined
                 : row.comparison
             );
+            let aim = (
+                row.target === null
+                ? undefined
+                : row.target
+            );
             let said = label + ": " + fmt.amount(amount);
             let graphic;
             let cells = [];
@@ -1311,12 +1347,16 @@ function measureTile(tile) {
                     (data.comparisonLabel || "prior year")
                 );
             }
+            if (aim !== undefined) {
+                said += ", target " + fmt.amount(aim);
+            }
 
             if (mode === "bullets") {
                 graphic = draw.bullet({
                     comparison: against,
                     max,
                     ranges: [],
+                    target: aim,
                     title: said,
                     value: amount,
                     width,
@@ -1385,8 +1425,10 @@ function measureTile(tile) {
             m("table", {class: "fb-dash-measure-table"}, lines),
             (
                 mode === "bullets"
-                ? m("div", {class: "fb-dash-caption"}, (
-                    "Marker: " + (data.comparisonLabel || "prior year")
+                ? m("div", {class: "fb-dash-caption"}, markerCaption(
+                    data,
+                    hasComparison,
+                    hasTarget
                 ))
                 : null
             )
