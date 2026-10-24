@@ -35,7 +35,9 @@ Settings, all optional:
 | `FB_TEST_PGHOST`, `FB_TEST_PGPORT`, `FB_TEST_PGUSER`, `FB_TEST_PGPASSWORD` | from `server/config.json` | Postgres connection |
 | `FB_TEST_KEEP_DB=1` | | Keep the copy after the run for inspection |
 | `FB_UPDATE_GOLDEN=1` | | Rewrite golden files instead of comparing |
-| `FB_TEST_REPORTER` | `test/harness/reporter.js` | Any `node --test` reporter, e.g. `spec` (stock output, lists every todo's stack trace at the end) or `tap` |
+| `FB_TEST_REPORTER` | `test/harness/reporter.js` | Any `node --test` reporter, e.g. `spec` (every test, full errors, SQL and stacks) or `tap` |
+
+The default reporter prints results only: one line per test file, then each failure once (test name, the first lines of its message cut to 240 characters, and where in the tests it was thrown), then one set of totals. Known-defect (todo) tests are counted, and any that now pass are named so they can be promoted. Console output from the tests is dropped. Use `FB_TEST_REPORTER=spec` when you need the full detail.
 
 Server output goes to `test/.artifacts/server-<db>.log`.
 
