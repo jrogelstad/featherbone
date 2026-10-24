@@ -121,10 +121,17 @@ const DASH_COLS = 12;
 const DASH_ROWS = 8;
 const DASH_SPARK_MONTHS = 12;
 
-// Where the pinned reporting date lives until layouts are records: per
-// browser, so a demo survives a reload without a round trip, and so one
-// person pinning a date does not move everybody else's board.
-const DASH_AS_OF_KEY = "fb-dashboard-as-of";
+/*
+    What this user has chosen about the board -- which layout, and what
+    date it reports as of -- lives in their profile, beside their
+    worksheet column widths. So it follows them to another machine, and
+    one person pinning a date or picking a layout moves nobody else's
+    board.
+
+    The `$dashboard` table holds the layouts themselves, which are the
+    instance's; this is the one line saying which of them is yours.
+*/
+const DASH_PROFILE_KEY = "dashboard";
 
 // Percentage scale for a KPI tile's bullets, mirroring figure 8-1: a bar is
 // the measure as a percentage of its own comparison, so measures in
@@ -161,28 +168,52 @@ let currentLayout = null;
 let savedLayouts = [];
 
 /**
-    The pinned reporting date, or null for "today". Storage can throw where
-    a browser has it switched off, and a board that will not draw because a
-    preference could not be read would be a poor trade.
+    What this user has chosen about the board, as last loaded.
 */
-function storedAsOf() {
-    try {
-        return window.localStorage.getItem(DASH_AS_OF_KEY) || null;
-    } catch (ignore) {
-        return null;
+function dashProfile() {
+    let read = f.catalog().store().global().profileValue;
+
+    if (!read) {
+        return {};
     }
+    return read(DASH_PROFILE_KEY) || {};
 }
 
-function storeAsOf(value) {
-    try {
-        if (value) {
-            window.localStorage.setItem(DASH_AS_OF_KEY, value);
-        } else {
-            window.localStorage.removeItem(DASH_AS_OF_KEY);
-        }
-    } catch (ignore) {
-        return;
+/**
+    Records a choice about the board against this user.
+
+    Never allowed to fail loudly: the board already shows what was asked
+    for by the time this runs, and a preference that could not be written
+    should cost the next session's convenience, not this one's work.
+*/
+function saveDashProfile(changes) {
+    let write = f.catalog().store().global().profileSave;
+    let next = Object.assign({}, dashProfile(), changes);
+
+    if (!write) {
+        return Promise.resolve();
     }
+    return write(DASH_PROFILE_KEY, next).catch(function () {
+        return;
+    });
+}
+
+/**
+    The pinned reporting date this user last chose, or null for "today".
+*/
+function storedAsOf() {
+    return dashProfile().asOf || null;
+}
+
+/**
+    Whether this user has said anything about the reporting date.
+
+    Having chosen "Now" is a choice, and a different thing from never
+    having been asked -- the first has to override a layout that carries
+    a date of its own, and the second must not.
+*/
+function hasChosenAsOf() {
+    return Object.prototype.hasOwnProperty.call(dashProfile(), "asOf");
 }
 
 /**
@@ -542,18 +573,78 @@ function startingLayout() {
         path: "/dashboards"
     }).then(function (rows) {
         let list = rows || [];
-        let preferred = list.find(function (row) {
-            return row.isDefault;
-        });
+        let chosen = dashProfile().layout;
+        // In order: the layout this user picked, the one the instance
+        // calls its default, then what the registrations compose to.
+        // A picked layout somebody has since deleted falls through to
+        // the default rather than leaving the board empty.
+        let preferred = (
+            chosen
+            ? list.find(function (row) {
+                return row.name === chosen;
+            })
+            : null
+        );
 
         savedLayouts = list;
+        if (!preferred) {
+            preferred = list.find(function (row) {
+                return row.isDefault;
+            });
+        }
         if (preferred) {
-            return layoutFromRecord(preferred);
+            return withChosenAsOf(layoutFromRecord(preferred));
         }
         return composeLayout();
     }).catch(function () {
         return composeLayout();
     });
+}
+
+/**
+    A layout reporting as of the date this user picked rather than the
+    one the layout was saved with.
+
+    A layout may carry a date -- a board built for a demo, pinned to when
+    the sample data lives -- and that is the right starting point. But
+    once somebody has said what date they want to see, that is what they
+    want to see, whichever layout they are looking at.
+*/
+function withChosenAsOf(layout) {
+    if (!hasChosenAsOf()) {
+        return layout;
+    }
+    return Object.assign({}, layout, {asOf: storedAsOf()});
+}
+
+/**
+    Switches this user to a saved layout, or back to the composed board
+    when given nothing, and remembers the choice.
+
+    Choosing is deliberately not the same as editing: it records which
+    arrangement this person starts from, and leaves the arrangement
+    itself alone for everyone else using it.
+*/
+function useLayout(name) {
+    let record = savedLayouts.find(function (row) {
+        return row.name === name;
+    });
+    let next = (
+        record
+        ? withChosenAsOf(layoutFromRecord(record))
+        : composeLayout()
+    );
+
+    saveDashProfile({
+        layout: (
+            record
+            ? name
+            : null
+        )
+    });
+    currentLayout = next;
+    loadAll(next);
+    m.redraw();
 }
 
 /**
@@ -876,7 +967,7 @@ function runRefresh() {
 function setAsOf(value) {
     let next = value || null;
 
-    storeAsOf(next);
+    saveDashProfile({asOf: next});
     if (currentLayout) {
         currentLayout.asOf = next;
         loadAll(currentLayout);
@@ -1458,6 +1549,7 @@ f.catalog().register("global", "dashboardLayoutName", function () {
     );
 });
 f.catalog().register("global", "dashboardSaveLayout", saveLayout);
+f.catalog().register("global", "dashboardUseLayout", useLayout);
 f.catalog().register("global", "dashboardAddTile", addTile);
 f.catalog().register("global", "dashboardRemoveTile", removeTile);
 f.catalog().register("global", "dashboardTileChoices", tileChoices);

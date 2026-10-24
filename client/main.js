@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser, eval, devel, unordered*/
-/*global f, WebSocket, m*/
+/*global f, WebSocket, jsonpatch, m*/
 import model from "./models/model.js";
 import settings from "./models/settings.js";
 
@@ -84,6 +84,7 @@ let saveLayoutDlg;
 let saveLayoutErrDlg;
 let addTileDlg;
 let addTileErrDlg;
+let pickLayoutDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
@@ -91,6 +92,69 @@ let isAdmin = false;
 // Whether to open the screens that belong to whoever administers the
 // organization: Settings, Users, Instances (see main.js start-up)
 let canAdminister = false;
+
+/*
+    The user's profile is one JSON document per user, already carrying
+    their worksheet column widths. Anything else that is theirs rather
+    than the instance's goes in it under its own key, so a preference
+    follows them to another machine instead of living in one browser's
+    storage.
+
+    Reads are from the copy loaded at sign-in; writes go as a patch, so
+    two settings saved from two tabs do not overwrite each other
+    wholesale.
+*/
+function profileValue(key) {
+    let held = catalog.store().data().profile();
+
+    if (!held || !held.data) {
+        return undefined;
+    }
+    return held.data[key];
+}
+
+function profileSave(key, value) {
+    let held = catalog.store().data().profile();
+    let next;
+    let patch;
+
+    function kept(etag) {
+        next.etag = etag;
+        catalog.store().data().profile(next);
+    }
+
+    // No profile yet: the first thing anybody saves creates one.
+    if (!held) {
+        next = {data: {}};
+        next.data[key] = f.copy(value);
+        return f.datasource().request({
+            method: "PUT",
+            path: "/profile",
+            body: next.data
+        }).then(kept);
+    }
+
+    next = f.copy(held);
+    next.data = next.data || {};
+    if (value === undefined) {
+        delete next.data[key];
+    } else {
+        next.data[key] = f.copy(value);
+    }
+
+    patch = jsonpatch.compare(held.data, next.data);
+    if (!patch || !patch.length) {
+        return Promise.resolve();
+    }
+    return f.datasource().request({
+        method: "PATCH",
+        path: "/profile",
+        body: {
+            etag: held.etag,
+            patch
+        }
+    }).then(kept);
+}
 
 /*
     How large the whole interface is drawn, as a percentage.
@@ -109,6 +173,11 @@ const APP_ZOOM_KEY = "fb-app-zoom";
 const APP_ZOOM_DEFAULT = 125;
 
 /*
+    The scale is also kept in browser storage, not instead of the profile
+    but ahead of it: it has to be applied before the first paint, and the
+    profile has not arrived that early. The profile is what carries it to
+    another machine; storage is what stops this one flashing.
+
     Storage is switched off in some browsers and throws rather than
     returning nothing, and a preference that cannot be remembered is no
     reason for the app not to run.
@@ -139,6 +208,11 @@ function appZoom(value) {
         if (Number.isFinite(wanted) && wanted >= 50 && wanted <= 200) {
             root.style.setProperty("--fb-ui-scale", wanted / 100);
             rememberZoom(wanted);
+            profileSave("appZoom", wanted).catch(function () {
+                // Kept in this browser regardless; a profile that would
+                // not save is not a reason to refuse to resize.
+                return;
+            });
         }
     }
 
@@ -155,6 +229,19 @@ function appZoom(value) {
 */
 function applyStoredZoom() {
     let held = recallZoom();
+
+    if (held) {
+        appZoom(held);
+    }
+}
+
+/*
+    Run once the profile is in: what this machine remembered may be
+    stale, or there may be nothing remembered here at all because this
+    is a machine the user has not signed in on before.
+*/
+function applyProfileZoom() {
+    let held = profileValue("appZoom");
 
     if (held) {
         appZoom(held);
@@ -195,6 +282,8 @@ const addTileId = f.createId();
 
 // For saving the board's arrangement as a layout everyone can start from
 const layoutName = f.prop("");
+const layoutPicked = f.prop("");
+const layoutPickId = f.createId();
 const layoutIsDefault = f.prop(false);
 const layoutNameId = f.createId();
 const layoutDefaultId = f.createId();
@@ -582,6 +671,18 @@ function homeRibbonGroups() {
                 }
             }
         }, {
+            label: "Layout",
+            icon: "dashboard_customize",
+            title: (
+                dashLayout
+                ? "Showing \"" + dashLayout + "\". Press to choose another."
+                : "Choose which saved layout you start from"
+            ),
+            onclick: function () {
+                layoutPicked(dashLayout || "");
+                pickLayoutDlg.show();
+            }
+        }, {
             label: "Save Layout",
             icon: "bookmark_add",
             /*
@@ -787,6 +888,9 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.addTileErrDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.pickLayoutDlg
             })
         ];
     }
@@ -1680,6 +1784,69 @@ function initApp() {
             ]);
         };
         /*
+            View model for choosing which saved layout this person
+            starts from. The choice is theirs and is kept in their
+            profile; the layouts themselves belong to the instance, so
+            choosing one changes nobody else's board.
+        */
+        pickLayoutDlg = viewModels.dialog({
+            icon: "dashboard",
+            title: "Choose a dashboard layout"
+        });
+        pickLayoutDlg.content = function () {
+            let listed = catalog.store().global().dashboardLayouts;
+            let rows = (
+                listed
+                ? listed()
+                : []
+            );
+
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: layoutPickId
+                    }, "Layout:"),
+                    m("select", {
+                        id: layoutPickId,
+                        onchange: (e) => layoutPicked(e.target.value),
+                        value: layoutPicked()
+                    }, [
+                        m("option", {
+                            value: ""
+                        }, "Standard arrangement")
+                    ].concat(rows.map(function (row) {
+                        return m("option", {
+                            value: row.name
+                        }, (
+                            row.isDefault
+                            ? row.label + " (default)"
+                            : row.label
+                        ));
+                    })))
+                ]),
+                m("div", {
+                    class: "fb-dialog-note"
+                }, (
+                    "The standard arrangement is composed from whatever " +
+                    "is installed, so a package's tile appears on it " +
+                    "with nothing to set up. Your choice is remembered " +
+                    "against your account, not this browser."
+                ))
+            ]);
+        };
+        pickLayoutDlg.onOk(function () {
+            let use = catalog.store().global().dashboardUseLayout;
+
+            if (use) {
+                use(layoutPicked() || null);
+            }
+        });
+
+        /*
             View model for putting a tile on the board.
 
             Everything it offers comes from what has registered: the
@@ -2113,6 +2280,13 @@ function initApp() {
             addTileErrDlg
         );
         catalog.register("global", "appZoom", appZoom);
+        catalog.register("global", "profileValue", profileValue);
+        catalog.register("global", "profileSave", profileSave);
+        catalog.register(
+            "global",
+            "pickLayoutDlg",
+            pickLayoutDlg
+        );
 
         m.route(document.body, "/home", routes);
     });
@@ -2134,6 +2308,7 @@ async function start() {
         loadWorkbooks,
         loadNavigationCategories
     ]);
+    applyProfileZoom();
     initApp();
 }
 
