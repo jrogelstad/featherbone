@@ -144,6 +144,28 @@
    exactly what started cutting column headers off with ellipses. Controls
    that need a fixed outer size (buttons, inputs) opt in individually below.
    ========================================================================= */
+/* The whole interface is drawn 25% larger than its CSS sizes say.
+
+   Everything here is in px -- some 500 values of it -- so there is no
+   root font size to raise and no rem to scale: the only lever that moves
+   type, controls, borders and spacing together, in proportion, is zoom.
+   That is exactly what a browser's own zoom does, and the app at a
+   browser's 125% is what this reproduces at 100%, so nobody has to set
+   it per machine to get something that sits properly beside the rest of
+   the desktop (John, Oct 2026).
+
+   A variable rather than a literal so it is one place to change, and so
+   a future preference has something to write to. Browser zoom still
+   works on top of it and compounds, which is the behaviour anybody
+   pressing ctrl-plus expects. */
+:root {
+    --fb-ui-scale: 1.25;
+}
+
+html {
+    zoom: var(--fb-ui-scale);
+}
+
 html,
 body {
     height: 100%;
@@ -1008,6 +1030,22 @@ button:disabled .fb-ipicon,
 .fb-dialog-icon {
   font-size: 18px;
   color: var(--fb-text-muted);
+}
+
+/* A list of checkboxes standing where a single control would in an
+   aligned form. Without this the list is a block, so it drops to the
+   line below its own label and the form stops looking like a form. */
+.fb-dialog-checklist {
+  display: inline-block;
+  vertical-align: top;
+  text-align: left;
+}
+
+.fb-dialog-checklist label {
+  display: block;
+  margin: 0 0 2px 0;
+  font-weight: 400;
+  cursor: pointer;
 }
 
 /* A sentence under a dialog's fields saying what the setting is for.
@@ -3417,10 +3455,29 @@ button:disabled .fb-ipicon,
     --fb-dash-band-3: #f1f1f1;
     --fb-dash-band-4: #f7f7f7;
     --fb-dash-band-5: #fbfbfb;
-    --fb-dash-measure: var(--fb-text);
-    --fb-dash-marker: var(--fb-text);
-    --fb-dash-bar: #9a9a9a;
-    --fb-dash-spark: var(--fb-text);
+    /* Colour on this board encodes rather than decorates, which is the
+       only kind Few has no argument with.
+
+       The measure and its comparison are two different kinds of thing --
+       what happened, and what it is being judged against -- so they are
+       told apart by hue as well as by shape: a deep teal bar under a
+       warm amber marker, which are near enough complementary to be
+       unmistakable at a glance and dark enough to stay legible on a
+       white card. Within a tile the bars remain one hue, so nothing
+       suggests that South and West are different KINDS of thing.
+
+       Deliberately not --fb-accent: that blue means "you can click
+       this" everywhere else in the app, and data is not clickable. */
+    --fb-dash-measure: #0d6e74;
+    --fb-dash-marker: #a8560f;
+    /* Near-black rather than a third hue. Two hues on a tile is a
+       scheme; three is a chart that has to be decoded. The target is
+       told apart by its shape -- full height and dashed -- which also
+       survives being printed or being looked at by somebody who cannot
+       tell teal from amber. */
+    --fb-dash-target: #2b2f36;
+    --fb-dash-bar: #6aa6aa;
+    --fb-dash-spark: #5c8f93;
     --fb-dash-spark-band: #ededed;
 }
 
@@ -3431,7 +3488,13 @@ button:disabled .fb-ipicon,
         --fb-dash-band-3: #2c3038;
         --fb-dash-band-4: #262a31;
         --fb-dash-band-5: #21242a;
-        --fb-dash-bar: #7c838d;
+        /* Lifted and desaturated for a dark ground: the same two hues,
+           at the lightness a dark surface needs to keep contrast. */
+        --fb-dash-measure: #4fb3b8;
+        --fb-dash-marker: #e09a5a;
+        --fb-dash-target: #e8eaed;
+        --fb-dash-bar: #3f7f83;
+        --fb-dash-spark: #74a9ad;
         --fb-dash-spark-band: #2a2e35;
     }
 }
@@ -3456,6 +3519,15 @@ button:disabled .fb-ipicon,
 .fb-dash-bullet-marker {
     stroke: var(--fb-dash-marker);
     stroke-width: 2;
+}
+
+/* The target: full height where the comparison is a short bar, so the
+   two never have to be told apart by colour alone, and reading as a
+   threshold the bar either reaches or does not. */
+.fb-dash-bullet-target {
+    stroke: var(--fb-dash-target);
+    stroke-width: 2;
+    stroke-dasharray: 3 2;
 }
 
 .fb-dash-spark-line {
@@ -3497,12 +3569,35 @@ button:disabled .fb-ipicon,
     background: var(--fb-bg);
 }
 
+/* Each tile is a surface floating over the page's background rather
+   than a region of it. The point is not decoration: a tile has no other
+   boundary, and without one the eye has to work out from spacing alone
+   which heading owns which numbers. Surface and background are both
+   variables, so this inverts in dark mode -- a lighter card on darker
+   ground -- rather than being white anywhere. */
 .fb-dash-tile {
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
+    /* The resize grip sits in the corner of this box. */
+    position: relative;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    background: var(--fb-surface);
+    border: 1px solid var(--fb-border-subtle);
+    border-radius: 10px;
+    /* Shallow and soft. A card that looks like it is hovering a
+       centimetre off the page turns a quiet board into a noisy one. */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+    .fb-dash-tile {
+        border-color: var(--fb-border);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
 }
 
 .fb-dash-tile-heading {
@@ -3541,6 +3636,58 @@ button:disabled .fb-ipicon,
 
 .fb-dash-tile-remove:hover {
     color: var(--fb-danger);
+}
+
+/* The heading is the handle, so it says so by the cursor rather than by
+   growing a grip. Its text is not selectable: dragging across a heading
+   should move the tile, not highlight the words. */
+.fb-dash-tile-heading {
+    cursor: grab;
+    user-select: none;
+}
+
+.fb-dash-tile-dragging .fb-dash-tile-heading {
+    cursor: grabbing;
+}
+
+/* Faded rather than hidden while it is being dragged, so the board
+   still reads as a whole and the tile is visibly the thing moving. */
+.fb-dash-tile-dragging {
+    opacity: 0.55;
+}
+
+/* The corner grip. Two short strokes drawn with a gradient rather than
+   an icon, so it costs nothing and scales with the app. */
+.fb-dash-tile-resize {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    opacity: 0;
+    transition: opacity 120ms ease-in;
+    background: linear-gradient(
+        135deg,
+        transparent 0 45%,
+        var(--fb-text-muted) 45% 55%,
+        transparent 55% 70%,
+        var(--fb-text-muted) 70% 80%,
+        transparent 80%
+    );
+}
+
+.fb-dash-tile:hover .fb-dash-tile-resize {
+    opacity: 0.7;
+}
+
+/* Where a dragged tile would land. Drawn in the grid itself, so it
+   cannot disagree with where the tile actually goes. */
+.fb-dash-drop {
+    border: 2px dashed var(--fb-dash-measure);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--fb-dash-measure) 8%, transparent);
+    pointer-events: none;
 }
 
 .fb-dash-tile-empty {
@@ -3617,6 +3764,7 @@ button:disabled .fb-ipicon,
 /* The tile's own total, stated once beside the heading rather than as
    another row competing with the members. */
 .fb-dash-tile-total {
+    color: var(--fb-dash-measure);
     margin-left: 12px;
     font-weight: 400;
     font-variant-numeric: tabular-nums;

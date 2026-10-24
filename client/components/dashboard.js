@@ -79,9 +79,13 @@
     dialog collects is handed straight back to `load` as tile properties,
     so a source that invents a new option needs no change here.
 
-    where each row is `{key, label, amount, units, comparison, pctOfTotal,
-    spark}`. `needsRefresh` is how a source says its aggregates have never
-    been built, which is a different thing from an error and is shown as an
+    where each row is `{key, label, amount, units, comparison, target,
+    pctOfTotal, spark}`. `target` is where the row should be and
+    `comparison` is where it was: different questions, drawn as different
+    marks, and a row may carry either, both or neither.
+
+    `needsRefresh` is how a source says its aggregates have never been
+    built, which is a different thing from an error and is shown as an
     instruction rather than a failure.
 
     A *refresher* (`dashboardRefreshers`) is a routine that rebuilds those
@@ -121,10 +125,17 @@ const DASH_COLS = 12;
 const DASH_ROWS = 8;
 const DASH_SPARK_MONTHS = 12;
 
-// Where the pinned reporting date lives until layouts are records: per
-// browser, so a demo survives a reload without a round trip, and so one
-// person pinning a date does not move everybody else's board.
-const DASH_AS_OF_KEY = "fb-dashboard-as-of";
+/*
+    What this user has chosen about the board -- which layout, and what
+    date it reports as of -- lives in their profile, beside their
+    worksheet column widths. So it follows them to another machine, and
+    one person pinning a date or picking a layout moves nobody else's
+    board.
+
+    The `$dashboard` table holds the layouts themselves, which are the
+    instance's; this is the one line saying which of them is yours.
+*/
+const DASH_PROFILE_KEY = "dashboard";
 
 // Percentage scale for a KPI tile's bullets, mirroring figure 8-1: a bar is
 // the measure as a percentage of its own comparison, so measures in
@@ -161,28 +172,52 @@ let currentLayout = null;
 let savedLayouts = [];
 
 /**
-    The pinned reporting date, or null for "today". Storage can throw where
-    a browser has it switched off, and a board that will not draw because a
-    preference could not be read would be a poor trade.
+    What this user has chosen about the board, as last loaded.
 */
-function storedAsOf() {
-    try {
-        return window.localStorage.getItem(DASH_AS_OF_KEY) || null;
-    } catch (ignore) {
-        return null;
+function dashProfile() {
+    let read = f.catalog().store().global().profileValue;
+
+    if (!read) {
+        return {};
     }
+    return read(DASH_PROFILE_KEY) || {};
 }
 
-function storeAsOf(value) {
-    try {
-        if (value) {
-            window.localStorage.setItem(DASH_AS_OF_KEY, value);
-        } else {
-            window.localStorage.removeItem(DASH_AS_OF_KEY);
-        }
-    } catch (ignore) {
-        return;
+/**
+    Records a choice about the board against this user.
+
+    Never allowed to fail loudly: the board already shows what was asked
+    for by the time this runs, and a preference that could not be written
+    should cost the next session's convenience, not this one's work.
+*/
+function saveDashProfile(changes) {
+    let write = f.catalog().store().global().profileSave;
+    let next = Object.assign({}, dashProfile(), changes);
+
+    if (!write) {
+        return Promise.resolve();
     }
+    return write(DASH_PROFILE_KEY, next).catch(function () {
+        return;
+    });
+}
+
+/**
+    The pinned reporting date this user last chose, or null for "today".
+*/
+function storedAsOf() {
+    return dashProfile().asOf || null;
+}
+
+/**
+    Whether this user has said anything about the reporting date.
+
+    Having chosen "Now" is a choice, and a different thing from never
+    having been asked -- the first has to override a layout that carries
+    a date of its own, and the second must not.
+*/
+function hasChosenAsOf() {
+    return Object.prototype.hasOwnProperty.call(dashProfile(), "asOf");
 }
 
 /**
@@ -542,18 +577,78 @@ function startingLayout() {
         path: "/dashboards"
     }).then(function (rows) {
         let list = rows || [];
-        let preferred = list.find(function (row) {
-            return row.isDefault;
-        });
+        let chosen = dashProfile().layout;
+        // In order: the layout this user picked, the one the instance
+        // calls its default, then what the registrations compose to.
+        // A picked layout somebody has since deleted falls through to
+        // the default rather than leaving the board empty.
+        let preferred = (
+            chosen
+            ? list.find(function (row) {
+                return row.name === chosen;
+            })
+            : null
+        );
 
         savedLayouts = list;
+        if (!preferred) {
+            preferred = list.find(function (row) {
+                return row.isDefault;
+            });
+        }
         if (preferred) {
-            return layoutFromRecord(preferred);
+            return withChosenAsOf(layoutFromRecord(preferred));
         }
         return composeLayout();
     }).catch(function () {
         return composeLayout();
     });
+}
+
+/**
+    A layout reporting as of the date this user picked rather than the
+    one the layout was saved with.
+
+    A layout may carry a date -- a board built for a demo, pinned to when
+    the sample data lives -- and that is the right starting point. But
+    once somebody has said what date they want to see, that is what they
+    want to see, whichever layout they are looking at.
+*/
+function withChosenAsOf(layout) {
+    if (!hasChosenAsOf()) {
+        return layout;
+    }
+    return Object.assign({}, layout, {asOf: storedAsOf()});
+}
+
+/**
+    Switches this user to a saved layout, or back to the composed board
+    when given nothing, and remembers the choice.
+
+    Choosing is deliberately not the same as editing: it records which
+    arrangement this person starts from, and leaves the arrangement
+    itself alone for everyone else using it.
+*/
+function useLayout(name) {
+    let record = savedLayouts.find(function (row) {
+        return row.name === name;
+    });
+    let next = (
+        record
+        ? withChosenAsOf(layoutFromRecord(record))
+        : composeLayout()
+    );
+
+    saveDashProfile({
+        layout: (
+            record
+            ? name
+            : null
+        )
+    });
+    currentLayout = next;
+    loadAll(next);
+    m.redraw();
 }
 
 /**
@@ -876,7 +971,7 @@ function runRefresh() {
 function setAsOf(value) {
     let next = value || null;
 
-    storeAsOf(next);
+    saveDashProfile({asOf: next});
     if (currentLayout) {
         currentLayout.asOf = next;
         loadAll(currentLayout);
@@ -1093,7 +1188,7 @@ function kpiTile(tile) {
     }
 
     return [
-        m("div", {class: "fb-dash-tile-heading"}, [
+        m("div", headingDrag(tile), [
             m("span", tile.heading),
             removeControl(tile)
         ]),
@@ -1118,6 +1213,28 @@ function measureFormats(source) {
         compact: given.compact || given.amount || plain,
         units: given.units || plain
     };
+}
+
+/**
+    What the marks on a bullet tile mean, naming only the ones that are
+    actually drawn.
+
+    A legend for a mark the tile does not carry is worse than no legend:
+    it sends somebody looking for something that is not there.
+*/
+function markerCaption(data, hasComparison, hasTarget) {
+    let said = [];
+
+    if (hasComparison) {
+        said.push("short bar: " + (data.comparisonLabel || "prior year"));
+    }
+    if (hasTarget) {
+        said.push("full line: target");
+    }
+    if (!said.length) {
+        return "";
+    }
+    return said.join(" \u00b7 ");
 }
 
 /**
@@ -1169,6 +1286,9 @@ function measureTile(tile) {
         let hasComparison = rows.some(function (row) {
             return row.comparison !== undefined && row.comparison !== null;
         });
+        let hasTarget = rows.some(function (row) {
+            return row.target !== undefined && row.target !== null;
+        });
         // Opt-in rather than opt-out: a sparkline beside a bar says
         // something the bar does not, but on every row of every tile it is
         // just ink.
@@ -1192,9 +1312,11 @@ function measureTile(tile) {
         max = draw.niceMax(top);
         total = data.total;
 
-        // Absent means absent: with nothing to compare against, bullets are
-        // just bars with a marker that would never be drawn, so say bars.
-        if (mode === "bullets" && !hasComparison) {
+        // Absent means absent: with nothing to compare against and
+        // nothing to aim at, bullets are just bars with marks that would
+        // never be drawn, so say bars. A target alone is reason enough
+        // to keep them -- it is the mark the bullet was designed for.
+        if (mode === "bullets" && !hasComparison && !hasTarget) {
             mode = "bars";
         }
 
@@ -1210,6 +1332,11 @@ function measureTile(tile) {
                 ? undefined
                 : row.comparison
             );
+            let aim = (
+                row.target === null
+                ? undefined
+                : row.target
+            );
             let said = label + ": " + fmt.amount(amount);
             let graphic;
             let cells = [];
@@ -1220,12 +1347,16 @@ function measureTile(tile) {
                     (data.comparisonLabel || "prior year")
                 );
             }
+            if (aim !== undefined) {
+                said += ", target " + fmt.amount(aim);
+            }
 
             if (mode === "bullets") {
                 graphic = draw.bullet({
                     comparison: against,
                     max,
                     ranges: [],
+                    target: aim,
                     title: said,
                     value: amount,
                     width,
@@ -1294,8 +1425,10 @@ function measureTile(tile) {
             m("table", {class: "fb-dash-measure-table"}, lines),
             (
                 mode === "bullets"
-                ? m("div", {class: "fb-dash-caption"}, (
-                    "Marker: " + (data.comparisonLabel || "prior year")
+                ? m("div", {class: "fb-dash-caption"}, markerCaption(
+                    data,
+                    hasComparison,
+                    hasTarget
                 ))
                 : null
             )
@@ -1303,7 +1436,7 @@ function measureTile(tile) {
     }
 
     return [
-        m("div", {class: "fb-dash-tile-heading"}, [
+        m("div", headingDrag(tile), [
             m("span", heading),
             (
                 total === null
@@ -1316,6 +1449,230 @@ function measureTile(tile) {
     ];
 }
 
+/*
+    While a tile is being dragged: which tile, whether it is being moved
+    or resized, where the pointer started, and where it would land.
+    Null the rest of the time, which is also how the board knows not to
+    draw the outline.
+*/
+let dragState = null;
+
+/**
+    The board's grid geometry, measured rather than assumed.
+
+    Padding and gap are in the stylesheet, and a copy of them here would
+    be a second place to change and a silent half-cell error the day
+    somebody changed only one. Measured from the element, this follows
+    the stylesheet and the app's scale without being told about either.
+*/
+function gridMetrics(board) {
+    let box = board.getBoundingClientRect();
+    let style = window.getComputedStyle(board);
+    let padLeft = parseFloat(style.paddingLeft) || 0;
+    let padTop = parseFloat(style.paddingTop) || 0;
+    let padRight = parseFloat(style.paddingRight) || 0;
+    let padBottom = parseFloat(style.paddingBottom) || 0;
+    let gapX = parseFloat(style.columnGap) || 0;
+    let gapY = parseFloat(style.rowGap) || 0;
+    let usableW = box.width - padLeft - padRight - gapX * (DASH_COLS - 1);
+    let usableH = box.height - padTop - padBottom - gapY * (DASH_ROWS - 1);
+
+    return {
+        box,
+        gapX,
+        gapY,
+        padLeft,
+        padTop,
+        cellW: usableW / DASH_COLS,
+        cellH: usableH / DASH_ROWS
+    };
+}
+
+/**
+    How many whole cells a pointer has travelled since the drag began.
+*/
+function cellDelta(metrics, fromX, fromY, toX, toY) {
+    return {
+        cols: Math.round((toX - fromX) / (metrics.cellW + metrics.gapX)),
+        rows: Math.round((toY - fromY) / (metrics.cellH + metrics.gapY))
+    };
+}
+
+function clamp(value, low, high) {
+    return Math.max(low, Math.min(high, value));
+}
+
+/**
+    Follows the pointer, working out where the tile would land.
+
+    Clamped to the board rather than allowed to run off it, because the
+    board is a fixed grid with nowhere outside it to go -- which is the
+    same reason the packer shrinks rather than overflows.
+*/
+function dragMove(event) {
+    let state = dragState;
+    let board;
+    let metrics;
+    let moved;
+
+    if (!state) {
+        return;
+    }
+    board = document.querySelector(".fb-dash-board");
+    if (!board) {
+        return;
+    }
+    metrics = gridMetrics(board);
+    moved = cellDelta(
+        metrics,
+        state.startX,
+        state.startY,
+        event.clientX,
+        event.clientY
+    );
+
+    if (state.mode === "move") {
+        state.cols = state.fromCols;
+        state.rows = state.fromRows;
+        state.col = clamp(
+            state.fromCol + moved.cols,
+            1,
+            DASH_COLS - state.cols + 1
+        );
+        state.row = clamp(
+            state.fromRow + moved.rows,
+            1,
+            DASH_ROWS - state.rows + 1
+        );
+    } else {
+        state.col = state.fromCol;
+        state.row = state.fromRow;
+        state.cols = clamp(
+            state.fromCols + moved.cols,
+            DASH_MIN_COLS,
+            DASH_COLS - state.col + 1
+        );
+        state.rows = clamp(
+            state.fromRows + moved.rows,
+            DASH_MIN_ROWS,
+            DASH_ROWS - state.row + 1
+        );
+    }
+    m.redraw();
+}
+
+/**
+    Drops the tile where the outline says.
+
+    The dragged tile is placed first and the rest packed around it, so
+    the tile somebody just moved always gets the spot they chose and the
+    others tidy up -- rather than the move silently failing because
+    something was already there.
+*/
+function dragEnd() {
+    let state = dragState;
+    let layout;
+    let moved;
+    let others;
+
+    window.removeEventListener("pointermove", dragMove);
+    window.removeEventListener("pointerup", dragEnd);
+    window.removeEventListener("pointercancel", dragEnd);
+    dragState = null;
+
+    if (!state || !currentLayout) {
+        m.redraw();
+        return;
+    }
+
+    layout = currentLayout;
+    moved = layout.tiles.find(function (tile) {
+        return tile.id === state.id;
+    });
+    if (!moved) {
+        m.redraw();
+        return;
+    }
+
+    others = layout.tiles.filter(function (tile) {
+        return tile.id !== state.id;
+    });
+    currentLayout = Object.assign({}, layout, {
+        tiles: placeTiles([Object.assign({}, moved, {
+            col: state.col,
+            cols: state.cols,
+            row: state.row,
+            rows: state.rows
+        })].concat(others.map(function (tile) {
+            // Their own positions are a preference, not a claim: the
+            // moved tile has first call on the space.
+            return Object.assign({}, tile);
+        })))
+    });
+    loadAll(currentLayout);
+    m.redraw();
+}
+
+function dragBegin(event, tile, mode) {
+    // Only the primary button, and never a drag that starts on the
+    // control whose whole job is to be clicked.
+    if (event.button !== 0) {
+        return;
+    }
+    event.preventDefault();
+    dragState = {
+        col: tile.col,
+        cols: tile.cols,
+        fromCol: tile.col,
+        fromCols: tile.cols,
+        fromRow: tile.row,
+        fromRows: tile.rows,
+        id: tile.id,
+        mode,
+        row: tile.row,
+        rows: tile.rows,
+        startX: event.clientX,
+        startY: event.clientY
+    };
+    window.addEventListener("pointermove", dragMove);
+    window.addEventListener("pointerup", dragEnd);
+    window.addEventListener("pointercancel", dragEnd);
+}
+
+/**
+    The outline showing where a dragged tile would land, drawn in the
+    grid itself so it cannot disagree with where the tile actually goes.
+*/
+function dropOutline() {
+    if (!dragState) {
+        return [];
+    }
+    // Keyed like the tiles it sits among: Mithril wants every child of
+    // a list keyed or none of them, and an unkeyed hole here takes the
+    // whole board down rather than just losing the outline.
+    return [m("div", {
+        class: "fb-dash-drop",
+        key: "fb-dash-drop",
+        style: {
+            "grid-column": dragState.col + " / span " + dragState.cols,
+            "grid-row": dragState.row + " / span " + dragState.rows
+        }
+    })];
+}
+
+/**
+    The corner somebody drags to resize a tile.
+*/
+function resizeHandle(tile) {
+    return m("div", {
+        class: "fb-dash-tile-resize",
+        title: "Drag to resize",
+        onpointerdown: function (e) {
+            dragBegin(e, tile, "resize");
+        }
+    });
+}
+
 /**
     The control that takes a tile off the board.
 
@@ -1325,6 +1682,26 @@ function measureTile(tile) {
     tile is hovered, so a board being read is not a board covered in
     buttons.
 */
+/**
+    The heading doubles as the handle a tile is dragged by.
+
+    No separate grip: the heading is the only part of a tile that is not
+    data, it is in the same place on every tile, and a board people are
+    meant to arrange should not need a mode or a grip to be discovered
+    first.
+*/
+function headingDrag(tile) {
+    return {
+        class: "fb-dash-tile-heading",
+        onpointerdown: function (e) {
+            if (e.target.closest(".fb-dash-tile-remove")) {
+                return;
+            }
+            dragBegin(e, tile, "move");
+        }
+    };
+}
+
 function removeControl(tile) {
     return m("button", {
         class: "fb-dash-tile-remove",
@@ -1386,19 +1763,30 @@ let dashboard = {
                     "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
                 }
             }, layout.tiles.map(function (tile) {
+                let dragging = (
+                    dragState !== null && dragState.id === tile.id
+                );
+
                 return m("section", {
-                    class: "fb-dash-tile",
+                    class: (
+                        dragging
+                        ? "fb-dash-tile fb-dash-tile-dragging"
+                        : "fb-dash-tile"
+                    ),
                     key: tile.id,
                     style: {
                         "grid-column": tile.col + " / span " + tile.cols,
                         "grid-row": tile.row + " / span " + tile.rows
                     }
-                }, (
-                    tile.type === "kpi"
-                    ? kpiTile(tile)
-                    : measureTile(tile)
-                ));
-            }))
+                }, [
+                    (
+                        tile.type === "kpi"
+                        ? kpiTile(tile)
+                        : measureTile(tile)
+                    ),
+                    resizeHandle(tile)
+                ]);
+            }).concat(dropOutline()))
         ]);
     }
 };
@@ -1458,6 +1846,7 @@ f.catalog().register("global", "dashboardLayoutName", function () {
     );
 });
 f.catalog().register("global", "dashboardSaveLayout", saveLayout);
+f.catalog().register("global", "dashboardUseLayout", useLayout);
 f.catalog().register("global", "dashboardAddTile", addTile);
 f.catalog().register("global", "dashboardRemoveTile", removeTile);
 f.catalog().register("global", "dashboardTileChoices", tileChoices);
