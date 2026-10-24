@@ -851,9 +851,9 @@
                     next();
                 }
 
-                function execute(filename) {
-                    let dep = path.resolve(filename);
-                    let exp = require(dep);
+                // Given the path inside the package dir, not the cwd's
+                function execute(filepath) {
+                    let exp = require(path.resolve(filepath));
 
                     exp.execute({
                         user: pUser,
@@ -1122,7 +1122,7 @@
                                 install(filename);
                                 break;
                             case "execute":
-                                execute(filename);
+                                execute(filepath);
                                 break;
                             case "module":
                                 // The record of the module, never its code
