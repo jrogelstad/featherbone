@@ -18,6 +18,8 @@ const assert = require("node:assert/strict");
 const db = require("../harness/db");
 const {matchGolden} = require("../harness/golden");
 const {runStarted} = require("./lib/data-api");
+const {signedIn} = require("../harness/http");
+const access = require("./lib/access");
 
 const KEEP_ALL = {drop: new Set()};
 
@@ -284,6 +286,69 @@ describe("database schema", function () {
                 });
             });
             assert.deepEqual(missing, []);
+        });
+    });
+
+    describe("isIndexed on a relation property", function () {
+        /*
+            Improvement item 3.4. The index list named the column
+            key.toSnakeCase(), which a relation does not have (its column
+            is _<key>_<relation>_pk), so declaring isIndexed on a relation
+            failed the whole feather save. A relation column is indexed
+            anyway (3.1); the flag now adds nothing and breaks nothing.
+        */
+        it("saves, and leaves the relation column indexed once",
+                async function () {
+            let admin = await signedIn();
+            let target = access.featherName("FbtIdxTarget");
+            let owner = access.featherName("FbtIdxOwner");
+            let targetFeather;
+            let ownerFeather;
+
+            try {
+                targetFeather = await access.createFeather(admin, {
+                    name: target,
+                    plural: target + "s",
+                    properties: [{name: "code", type: "string"}]
+                });
+                ownerFeather = await access.createFeather(admin, {
+                    name: owner,
+                    plural: owner + "s",
+                    properties: [{
+                        name: "label",
+                        type: "string",
+                        isIndexed: true
+                    }, {
+                        name: "partner",
+                        type: {relation: target, properties: ["code"]},
+                        isIndexed: true
+                    }]
+                });
+                assert.ok(ownerFeather, "feather was not saved");
+
+                let table = toSnake(owner);
+                let resp = await db.query(
+                    "SELECT indexdef FROM pg_indexes " +
+                    "WHERE schemaname = 'public' AND tablename = $1",
+                    [table]
+                );
+                let defs = resp.rows.map((r) => r.indexdef);
+                let onRelation = defs.filter(
+                    (d) => d.includes("(_partner_" + toSnake(target) + "_pk)")
+                );
+                assert.equal(
+                    onRelation.length,
+                    1,
+                    "relation column indexes: " + JSON.stringify(defs)
+                );
+                assert.ok(
+                    defs.some((d) => d.includes("(label)")),
+                    "the scalar isIndexed index was lost"
+                );
+            } finally {
+                await access.deleteFeather(admin, ownerFeather);
+                await access.deleteFeather(admin, targetFeather);
+            }
         });
     });
 
