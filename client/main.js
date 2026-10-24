@@ -85,6 +85,8 @@ let saveLayoutErrDlg;
 let addTileDlg;
 let addTileErrDlg;
 let pickLayoutDlg;
+let deleteLayoutDlg;
+let deleteLayoutErrDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
@@ -170,7 +172,10 @@ function profileSave(key, value) {
     Both belong in the user's profile, and go there together.
 */
 const APP_ZOOM_KEY = "fb-app-zoom";
-const APP_ZOOM_DEFAULT = 125;
+const APP_ZOOM_DEFAULT = 113;
+const APP_ZOOM_MIN = 50;
+const APP_ZOOM_MAX = 200;
+const APP_ZOOM_STEP = 5;
 
 /*
     The scale is also kept in browser storage, not instead of the profile
@@ -205,7 +210,11 @@ function appZoom(value) {
 
     if (value !== undefined) {
         wanted = Math.round(Number(value));
-        if (Number.isFinite(wanted) && wanted >= 50 && wanted <= 200) {
+        if (
+            Number.isFinite(wanted) &&
+            wanted >= APP_ZOOM_MIN &&
+            wanted <= APP_ZOOM_MAX
+        ) {
             root.style.setProperty("--fb-ui-scale", wanted / 100);
             rememberZoom(wanted);
             profileSave("appZoom", wanted).catch(function () {
@@ -272,6 +281,20 @@ const ADD_TILE_SIZES = [
     {value: "wide", label: "Wide", cols: 9, rows: 3},
     {value: "tall", label: "Tall", cols: 4, rows: 5}
 ];
+/*
+    How a tile is judged. These are the framework's own options rather
+    than a source's: the framework works the target out from them, so
+    they apply to any source and to a metrics tile alike.
+*/
+const ADD_TILE_TARGETS = [
+    {value: "history", label: "Against prior period"},
+    {value: "growth", label: "A percentage above prior period"},
+    {value: "fixed", label: "A number I set"},
+    {value: "none", label: "Nothing"}
+];
+const addTileTarget = f.prop("history");
+const addTileTargetValue = f.prop("");
+const addTileFilter = f.prop("");
 const addTileWhat = f.prop(ADD_TILE_KPIS);
 const addTileOpts = f.prop({});
 const addTileKpis = f.prop([]);
@@ -284,6 +307,8 @@ const addTileId = f.createId();
 const layoutName = f.prop("");
 const layoutPicked = f.prop("");
 const layoutPickId = f.createId();
+const layoutToDelete = f.prop("");
+const layoutDeleteId = f.createId();
 const layoutIsDefault = f.prop(false);
 const layoutNameId = f.createId();
 const layoutDefaultId = f.createId();
@@ -628,8 +653,58 @@ function homeRibbonGroups() {
         ? getLayoutName()
         : null
     );
+    let dashZoom = appZoom();
 
     return [{
+        label: "View",
+        buttons: [{
+            label: "Zoom Out",
+            icon: "zoom_out",
+            title: "Draw everything smaller",
+            disabled: dashZoom <= APP_ZOOM_MIN,
+            onclick: function () {
+                appZoom(dashZoom - APP_ZOOM_STEP);
+            }
+        }, {
+            label: "Zoom In",
+            icon: "zoom_in",
+            title: "Draw everything larger",
+            disabled: dashZoom >= APP_ZOOM_MAX,
+            onclick: function () {
+                appZoom(dashZoom + APP_ZOOM_STEP);
+            }
+        }, {
+            /*
+                Typed rather than dragged. A slider for this sat inside
+                the very thing it was scaling, so it moved and resized
+                under the pointer as it was being dragged, and its steps
+                were a lurch rather than an adjustment. A field takes
+                one click and a number (John, Oct 2026).
+
+                Applied on change rather than on input, or typing "125"
+                would scale the app to 1% on the first keystroke.
+            */
+            render: function () {
+                return m("div", {class: "fb-rb-field"}, [
+                    m("input", {
+                        class: "fb-rb-field-input",
+                        type: "text",
+                        inputmode: "numeric",
+                        "aria-label": "Zoom percent",
+                        title: "Zoom percent; type one and press Enter",
+                        value: dashZoom,
+                        onchange: (e) => appZoom(e.target.value),
+                        onkeydown: function (e) {
+                            if (e.key === "Enter") {
+                                appZoom(e.target.value);
+                            }
+                        }
+                    }),
+                    m("span", {class: "fb-rb-field-label"}, "Zoom %")
+                ]);
+            }
+        }]
+    }, {
         label: "Dashboard",
         buttons: [{
             label: "Dashboard",
@@ -647,6 +722,7 @@ function homeRibbonGroups() {
             icon: "add_chart",
             title: "Put another tile on the dashboard",
             onclick: function () {
+                addTileFilter("");
                 addTileDlg.show();
             }
         }, {
@@ -702,6 +778,14 @@ function homeRibbonGroups() {
                 layoutName(dashLayout || "");
                 layoutIsDefault(!dashLayout);
                 saveLayoutDlg.show();
+            }
+        }, {
+            label: "Delete Layout",
+            icon: "playlist_remove",
+            title: "Remove a saved layout",
+            onclick: function () {
+                layoutToDelete("");
+                deleteLayoutDlg.show();
             }
         }, {
             label: "As Of",
@@ -891,6 +975,12 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.pickLayoutDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.deleteLayoutDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.deleteLayoutErrDlg
             })
         ];
     }
@@ -1847,6 +1937,177 @@ function initApp() {
         });
 
         /*
+            The metrics list on the Add Tile dialog.
+
+            A flat column of checkboxes was fine for one metric and
+            would be unusable at the dozens that packages will
+            contribute between them, so it filters as you type and
+            groups what is left under whichever module contributed it --
+            the only grouping that means anything when the names come
+            from different places and may well collide.
+
+            The count of what is already ticked is stated, because a
+            filter hides things, and a list that hides a ticked box
+            without saying so loses somebody's work silently.
+        */
+        function metricsPicker(offered) {
+            let needle = addTileFilter().trim().toLowerCase();
+            let chosen = addTileKpis();
+            let shown = offered.filter(function (kpi) {
+                if (!needle) {
+                    return true;
+                }
+                return (
+                    kpi.label.toLowerCase().indexOf(needle) > -1 ||
+                    String(kpi.module).toLowerCase().indexOf(needle) > -1
+                );
+            });
+            let modules = [];
+            let byModule = {};
+
+            shown.forEach(function (kpi) {
+                let owner = kpi.module || "Other";
+
+                if (!byModule[owner]) {
+                    byModule[owner] = [];
+                    modules.push(owner);
+                }
+                byModule[owner].push(kpi);
+            });
+            modules.sort();
+
+            function box(kpi) {
+                return m("label", [
+                    m("input", {
+                        type: "checkbox",
+                        checked: chosen.indexOf(kpi.key) > -1,
+                        onchange: function (e) {
+                            let held = addTileKpis().filter(
+                                (key) => key !== kpi.key
+                            );
+
+                            if (e.target.checked) {
+                                held.push(kpi.key);
+                            }
+                            addTileKpis(held);
+                        }
+                    }),
+                    m("span", " " + kpi.label)
+                ]);
+            }
+
+            return m("div", {class: "fb-dialog-picker"}, [
+                m("input", {
+                    class: "fb-dialog-picker-filter",
+                    type: "search",
+                    placeholder: "Filter metrics",
+                    oninput: (e) => addTileFilter(e.target.value),
+                    value: addTileFilter()
+                }),
+                m("div", {class: "fb-dialog-picker-list"}, (
+                    shown.length
+                    ? modules.map(function (owner) {
+                        return m("div", {class: "fb-dialog-picker-group"}, [
+                            m("div", {
+                                class: "fb-dialog-picker-group-label"
+                            }, owner),
+                            byModule[owner].map(box)
+                        ]);
+                    })
+                    : m("div", {
+                        class: "fb-dialog-picker-none"
+                    }, "No metric matches that.")
+                )),
+                m("div", {class: "fb-dialog-picker-count"}, (
+                    chosen.length === 1
+                    ? "1 metric chosen"
+                    : chosen.length + " metrics chosen"
+                ))
+            ]);
+        }
+
+        /*
+            View model for removing a saved layout, shaped like the
+            workbook template one above: a list to choose from and a red
+            confirm, rather than a control on the board itself, because
+            deleting a layout others may be using is not a thing to do
+            by brushing against it.
+
+            The service decides whether it is allowed, so a refusal is
+            shown rather than guessed at here.
+        */
+        deleteLayoutErrDlg = viewModels.dialog({
+            icon: "error",
+            title: "Error"
+        });
+        deleteLayoutDlg = viewModels.dialog({
+            icon: "playlist_remove",
+            title: "Delete dashboard layout"
+        });
+        deleteLayoutDlg.content = function () {
+            let listed = catalog.store().global().dashboardLayouts;
+            let rows = (
+                listed
+                ? listed()
+                : []
+            );
+
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: layoutDeleteId
+                    }, "Layout:"),
+                    m("select", {
+                        id: layoutDeleteId,
+                        onchange: (e) => layoutToDelete(e.target.value),
+                        value: layoutToDelete()
+                    }, [
+                        m("option", {value: ""}, "")
+                    ].concat(rows.map(function (row) {
+                        return m("option", {
+                            value: row.name
+                        }, (
+                            row.isDefault
+                            ? row.label + " (default)"
+                            : row.label
+                        ));
+                    })))
+                ]),
+                m("div", {
+                    class: "fb-dialog-note"
+                }, (
+                    "A layout belongs to whoever saved it. Anyone still " +
+                    "using one that is deleted falls back to the " +
+                    "default."
+                ))
+            ]);
+        };
+        deleteLayoutDlg.onOk(function () {
+            let remove = catalog.store().global().dashboardDeleteLayout;
+
+            if (!remove || !layoutToDelete()) {
+                return;
+            }
+            remove(layoutToDelete()).catch(function (err) {
+                deleteLayoutErrDlg.message(err.message);
+                deleteLayoutErrDlg.show();
+            });
+        });
+        deleteLayoutDlg.buttonOk().label("Delete");
+        deleteLayoutDlg.buttonOk().style().background = "red";
+        deleteLayoutDlg.buttonOk().class("fb-button-delete");
+        deleteLayoutDlg.buttonOk().isDisabled = () => !layoutToDelete();
+        deleteLayoutDlg.buttonOk().title = function () {
+            if (!layoutToDelete()) {
+                return "Choose a layout to delete";
+            }
+        };
+
+        /*
             View model for putting a tile on the board.
 
             Everything it offers comes from what has registered: the
@@ -1914,27 +2175,7 @@ function initApp() {
             ]));
 
             if (addTileWhat() === ADD_TILE_KPIS) {
-                parts.push(group("Metrics:", m("div", {
-                    class: "fb-dialog-checklist"
-                }, offer.kpis.map(function (kpi) {
-                    return m("label", [
-                        m("input", {
-                            type: "checkbox",
-                            checked: addTileKpis().indexOf(kpi.key) > -1,
-                            onchange: function (e) {
-                                let held = addTileKpis().filter(
-                                    (key) => key !== kpi.key
-                                );
-
-                                if (e.target.checked) {
-                                    held.push(kpi.key);
-                                }
-                                addTileKpis(held);
-                            }
-                        }),
-                        m("span", " " + kpi.label)
-                    ]);
-                }))));
+                parts.push(group("Metrics:", metricsPicker(offer.kpis)));
             } else if (picked) {
                 picked.options.forEach(function (option) {
                     let held = addTileOpts();
@@ -1975,6 +2216,34 @@ function initApp() {
                 })));
             }
 
+            parts.push(group("Judged:", m("select", {
+                onchange: function (e) {
+                    addTileTarget(e.target.value);
+                },
+                value: addTileTarget()
+            }, ADD_TILE_TARGETS.map(function (one) {
+                return m("option", {
+                    value: one.value
+                }, one.label);
+            }))));
+
+            if (addTileTarget() === "growth") {
+                parts.push(group("Percent:", m("input", {
+                    type: "number",
+                    step: "1",
+                    oninput: (e) => addTileTargetValue(e.target.value),
+                    value: addTileTargetValue()
+                })));
+            }
+
+            if (addTileTarget() === "fixed") {
+                parts.push(group("Target:", m("input", {
+                    type: "number",
+                    oninput: (e) => addTileTargetValue(e.target.value),
+                    value: addTileTargetValue()
+                })));
+            }
+
             parts.push(group("Size:", m("select", {
                 onchange: (e) => addTileSize(e.target.value),
                 value: addTileSize()
@@ -2008,6 +2277,14 @@ function initApp() {
 
             if (!add) {
                 return;
+            }
+
+            tile.targetMode = addTileTarget();
+            if (
+                addTileTarget() === "fixed" ||
+                addTileTarget() === "growth"
+            ) {
+                tile.targetValue = Number(addTileTargetValue());
             }
 
             if (addTileWhat() === ADD_TILE_KPIS) {
@@ -2286,6 +2563,16 @@ function initApp() {
             "global",
             "pickLayoutDlg",
             pickLayoutDlg
+        );
+        catalog.register(
+            "global",
+            "deleteLayoutDlg",
+            deleteLayoutDlg
+        );
+        catalog.register(
+            "global",
+            "deleteLayoutErrDlg",
+            deleteLayoutErrDlg
         );
 
         m.route(document.body, "/home", routes);
