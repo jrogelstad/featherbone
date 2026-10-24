@@ -50,8 +50,25 @@ const f = require("../common/core");
                 });
             }
 
-            function createEveryone() {
+            /*
+                The row this makes is `everyone` itself, so one that is
+                already there is the answer and not a thing to make
+                twice. The check below read the table and then inserted
+                whatever it found, which worked only because nothing
+                created `everyone` earlier -- and since a feather's
+                declared authorizations now make the roles they name
+                (services/feathers.js saveAuthorization), the Core
+                bootstrap pass that runs before this does exactly that.
+                Shaped like createRoleEveryone below it, which has
+                always honoured its own check.
+            */
+            function createEveryone(resp) {
                 return new Promise(function (resolve, reject) {
+                    if (resp.rows.length) {
+                        resolve();
+                        return;
+                    }
+
                     obj.client.query(
                         "INSERT INTO \"role\" VALUES " +
                         "(nextval('object__pk_seq'), " +
