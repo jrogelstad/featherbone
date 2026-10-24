@@ -1184,7 +1184,7 @@ function kpiTile(tile) {
     }
 
     return [
-        m("div", {class: "fb-dash-tile-heading"}, [
+        m("div", headingDrag(tile), [
             m("span", tile.heading),
             removeControl(tile)
         ]),
@@ -1394,7 +1394,7 @@ function measureTile(tile) {
     }
 
     return [
-        m("div", {class: "fb-dash-tile-heading"}, [
+        m("div", headingDrag(tile), [
             m("span", heading),
             (
                 total === null
@@ -1407,6 +1407,230 @@ function measureTile(tile) {
     ];
 }
 
+/*
+    While a tile is being dragged: which tile, whether it is being moved
+    or resized, where the pointer started, and where it would land.
+    Null the rest of the time, which is also how the board knows not to
+    draw the outline.
+*/
+let dragState = null;
+
+/**
+    The board's grid geometry, measured rather than assumed.
+
+    Padding and gap are in the stylesheet, and a copy of them here would
+    be a second place to change and a silent half-cell error the day
+    somebody changed only one. Measured from the element, this follows
+    the stylesheet and the app's scale without being told about either.
+*/
+function gridMetrics(board) {
+    let box = board.getBoundingClientRect();
+    let style = window.getComputedStyle(board);
+    let padLeft = parseFloat(style.paddingLeft) || 0;
+    let padTop = parseFloat(style.paddingTop) || 0;
+    let padRight = parseFloat(style.paddingRight) || 0;
+    let padBottom = parseFloat(style.paddingBottom) || 0;
+    let gapX = parseFloat(style.columnGap) || 0;
+    let gapY = parseFloat(style.rowGap) || 0;
+    let usableW = box.width - padLeft - padRight - gapX * (DASH_COLS - 1);
+    let usableH = box.height - padTop - padBottom - gapY * (DASH_ROWS - 1);
+
+    return {
+        box,
+        gapX,
+        gapY,
+        padLeft,
+        padTop,
+        cellW: usableW / DASH_COLS,
+        cellH: usableH / DASH_ROWS
+    };
+}
+
+/**
+    How many whole cells a pointer has travelled since the drag began.
+*/
+function cellDelta(metrics, fromX, fromY, toX, toY) {
+    return {
+        cols: Math.round((toX - fromX) / (metrics.cellW + metrics.gapX)),
+        rows: Math.round((toY - fromY) / (metrics.cellH + metrics.gapY))
+    };
+}
+
+function clamp(value, low, high) {
+    return Math.max(low, Math.min(high, value));
+}
+
+/**
+    Follows the pointer, working out where the tile would land.
+
+    Clamped to the board rather than allowed to run off it, because the
+    board is a fixed grid with nowhere outside it to go -- which is the
+    same reason the packer shrinks rather than overflows.
+*/
+function dragMove(event) {
+    let state = dragState;
+    let board;
+    let metrics;
+    let moved;
+
+    if (!state) {
+        return;
+    }
+    board = document.querySelector(".fb-dash-board");
+    if (!board) {
+        return;
+    }
+    metrics = gridMetrics(board);
+    moved = cellDelta(
+        metrics,
+        state.startX,
+        state.startY,
+        event.clientX,
+        event.clientY
+    );
+
+    if (state.mode === "move") {
+        state.cols = state.fromCols;
+        state.rows = state.fromRows;
+        state.col = clamp(
+            state.fromCol + moved.cols,
+            1,
+            DASH_COLS - state.cols + 1
+        );
+        state.row = clamp(
+            state.fromRow + moved.rows,
+            1,
+            DASH_ROWS - state.rows + 1
+        );
+    } else {
+        state.col = state.fromCol;
+        state.row = state.fromRow;
+        state.cols = clamp(
+            state.fromCols + moved.cols,
+            DASH_MIN_COLS,
+            DASH_COLS - state.col + 1
+        );
+        state.rows = clamp(
+            state.fromRows + moved.rows,
+            DASH_MIN_ROWS,
+            DASH_ROWS - state.row + 1
+        );
+    }
+    m.redraw();
+}
+
+/**
+    Drops the tile where the outline says.
+
+    The dragged tile is placed first and the rest packed around it, so
+    the tile somebody just moved always gets the spot they chose and the
+    others tidy up -- rather than the move silently failing because
+    something was already there.
+*/
+function dragEnd() {
+    let state = dragState;
+    let layout;
+    let moved;
+    let others;
+
+    window.removeEventListener("pointermove", dragMove);
+    window.removeEventListener("pointerup", dragEnd);
+    window.removeEventListener("pointercancel", dragEnd);
+    dragState = null;
+
+    if (!state || !currentLayout) {
+        m.redraw();
+        return;
+    }
+
+    layout = currentLayout;
+    moved = layout.tiles.find(function (tile) {
+        return tile.id === state.id;
+    });
+    if (!moved) {
+        m.redraw();
+        return;
+    }
+
+    others = layout.tiles.filter(function (tile) {
+        return tile.id !== state.id;
+    });
+    currentLayout = Object.assign({}, layout, {
+        tiles: placeTiles([Object.assign({}, moved, {
+            col: state.col,
+            cols: state.cols,
+            row: state.row,
+            rows: state.rows
+        })].concat(others.map(function (tile) {
+            // Their own positions are a preference, not a claim: the
+            // moved tile has first call on the space.
+            return Object.assign({}, tile);
+        })))
+    });
+    loadAll(currentLayout);
+    m.redraw();
+}
+
+function dragBegin(event, tile, mode) {
+    // Only the primary button, and never a drag that starts on the
+    // control whose whole job is to be clicked.
+    if (event.button !== 0) {
+        return;
+    }
+    event.preventDefault();
+    dragState = {
+        col: tile.col,
+        cols: tile.cols,
+        fromCol: tile.col,
+        fromCols: tile.cols,
+        fromRow: tile.row,
+        fromRows: tile.rows,
+        id: tile.id,
+        mode,
+        row: tile.row,
+        rows: tile.rows,
+        startX: event.clientX,
+        startY: event.clientY
+    };
+    window.addEventListener("pointermove", dragMove);
+    window.addEventListener("pointerup", dragEnd);
+    window.addEventListener("pointercancel", dragEnd);
+}
+
+/**
+    The outline showing where a dragged tile would land, drawn in the
+    grid itself so it cannot disagree with where the tile actually goes.
+*/
+function dropOutline() {
+    if (!dragState) {
+        return [];
+    }
+    // Keyed like the tiles it sits among: Mithril wants every child of
+    // a list keyed or none of them, and an unkeyed hole here takes the
+    // whole board down rather than just losing the outline.
+    return [m("div", {
+        class: "fb-dash-drop",
+        key: "fb-dash-drop",
+        style: {
+            "grid-column": dragState.col + " / span " + dragState.cols,
+            "grid-row": dragState.row + " / span " + dragState.rows
+        }
+    })];
+}
+
+/**
+    The corner somebody drags to resize a tile.
+*/
+function resizeHandle(tile) {
+    return m("div", {
+        class: "fb-dash-tile-resize",
+        title: "Drag to resize",
+        onpointerdown: function (e) {
+            dragBegin(e, tile, "resize");
+        }
+    });
+}
+
 /**
     The control that takes a tile off the board.
 
@@ -1416,6 +1640,26 @@ function measureTile(tile) {
     tile is hovered, so a board being read is not a board covered in
     buttons.
 */
+/**
+    The heading doubles as the handle a tile is dragged by.
+
+    No separate grip: the heading is the only part of a tile that is not
+    data, it is in the same place on every tile, and a board people are
+    meant to arrange should not need a mode or a grip to be discovered
+    first.
+*/
+function headingDrag(tile) {
+    return {
+        class: "fb-dash-tile-heading",
+        onpointerdown: function (e) {
+            if (e.target.closest(".fb-dash-tile-remove")) {
+                return;
+            }
+            dragBegin(e, tile, "move");
+        }
+    };
+}
+
 function removeControl(tile) {
     return m("button", {
         class: "fb-dash-tile-remove",
@@ -1477,19 +1721,30 @@ let dashboard = {
                     "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
                 }
             }, layout.tiles.map(function (tile) {
+                let dragging = (
+                    dragState !== null && dragState.id === tile.id
+                );
+
                 return m("section", {
-                    class: "fb-dash-tile",
+                    class: (
+                        dragging
+                        ? "fb-dash-tile fb-dash-tile-dragging"
+                        : "fb-dash-tile"
+                    ),
                     key: tile.id,
                     style: {
                         "grid-column": tile.col + " / span " + tile.cols,
                         "grid-row": tile.row + " / span " + tile.rows
                     }
-                }, (
-                    tile.type === "kpi"
-                    ? kpiTile(tile)
-                    : measureTile(tile)
-                ));
-            }))
+                }, [
+                    (
+                        tile.type === "kpi"
+                        ? kpiTile(tile)
+                        : measureTile(tile)
+                    ),
+                    resizeHandle(tile)
+                ]);
+            }).concat(dropOutline()))
         ]);
     }
 };
