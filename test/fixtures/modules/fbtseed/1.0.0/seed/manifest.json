@@ -1,0 +1,18 @@
+{
+    "module": "FbtSeedCore",
+    "version": "1.0.0",
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "batch",
+            "path": "records.json"
+        },
+        {
+            "type": "dashboard",
+            "path": "dashboards.json"
+        }
+    ]
+}

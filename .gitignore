@@ -61,6 +61,7 @@ test/.artifacts
 claude-branches/
 *.log
 
-# Ignore local featherbone modules
-modules
+# Ignore the packages installed on this server (ADR-002), at the root
+# only: the fixture packages under test/fixtures are the project's own
+/modules
 scripts/dev/demo-data

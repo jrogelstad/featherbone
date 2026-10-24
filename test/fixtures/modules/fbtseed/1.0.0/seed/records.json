@@ -1,0 +1,22 @@
+[
+    {
+        "name": "FbtSeed",
+        "method": "POST",
+        "module": "FbtSeedCore",
+        "id": "fbtseedalpha1",
+        "data": {
+            "id": "fbtseedalpha1",
+            "code": "ALPHA"
+        }
+    },
+    {
+        "name": "FbtSeed",
+        "method": "POST",
+        "module": "FbtSeedCore",
+        "id": "fbtseedbeta01",
+        "data": {
+            "id": "fbtseedbeta01",
+            "code": "BETA"
+        }
+    }
+]
