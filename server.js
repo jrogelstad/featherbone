@@ -1162,6 +1162,11 @@
     */
     function doSaveDashboard(req, res) {
         let spec = Object.assign({}, req.body, {name: req.params.name});
+
+        // Only the installer may speak with a package's voice; see
+        // saveDashboard on why a package's default claim is weaker
+        // than an administrator's.
+        delete spec.fromPackage;
         let payload = {
             method: "PUT",
             name: "saveDashboard",

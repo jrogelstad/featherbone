@@ -844,7 +844,12 @@
                             name: "saveDashboard",
                             user: pUser,
                             client: pClient,
-                            data: layout
+                            data: Object.assign({}, layout, {
+                                // A package claims the default only
+                                // where no administrator has chosen
+                                // one -- see saveDashboard.
+                                fromPackage: true
+                            })
                         }, true).then(next).catch(rollback);
                     }
 
