@@ -18,28 +18,13 @@ const assert = require("node:assert/strict");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
+const {flags} = require("../harness/authority");
 
 const BASE2 = settings.baseUrl.replace(
     "/" + settings.testDb,
     "/" + settings.testDb2
 );
 
-function flags(username, data) {
-    return db.withClient(
-        settings.managerDb,
-        (client) => client.query(
-            (
-                "UPDATE identity SET is_org_admin = $2, " +
-                "is_platform_admin = $3 WHERE username = $1"
-            ),
-            [
-                username,
-                data.isOrgAdmin === true,
-                data.isPlatformAdmin === true
-            ]
-        )
-    );
-}
 
 async function clear() {
     await db.withClient(settings.managerDb, (client) => client.query(

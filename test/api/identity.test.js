@@ -17,6 +17,7 @@ const settings = require("../harness/env");
 const {Session} = require("../harness/http");
 const access = require("./lib/access");
 const {Identities} = require("../../server/services/identities");
+const {flags} = require("../harness/authority");
 
 const identities = new Identities();
 const GENERIC = "Invalid sign in credentials.";
@@ -267,22 +268,6 @@ describe("identity sign-in", function () {
     describe("administration of the manager", function () {
         let admin;
 
-        function flags(username, data) {
-            return db.withClient(
-                settings.managerDb,
-                (client) => client.query(
-                    (
-                        "UPDATE identity SET is_org_admin = $2, " +
-                        "is_platform_admin = $3 WHERE username = $1"
-                    ),
-                    [
-                        username,
-                        data.isOrgAdmin === true,
-                        data.isPlatformAdmin === true
-                    ]
-                )
-            );
-        }
 
         before(async function () {
             admin = new Session(base);
@@ -579,22 +564,6 @@ describe("identity sign-in", function () {
         let admin;
         let ids = {};
 
-        function flags(username, data) {
-            return db.withClient(
-                settings.managerDb,
-                (client) => client.query(
-                    (
-                        "UPDATE identity SET is_org_admin = $2, " +
-                        "is_platform_admin = $3 WHERE username = $1"
-                    ),
-                    [
-                        username,
-                        data.isOrgAdmin === true,
-                        data.isPlatformAdmin === true
-                    ]
-                )
-            );
-        }
 
         async function seed() {
             await db.withClient(settings.managerDb, async function (client) {
@@ -674,6 +643,17 @@ describe("identity sign-in", function () {
                 ids.orgPk = orgPk;
                 ids.departed = await identity(DEPARTED, true, "2");
                 ids.replacement = await identity(REPLACEMENT, false, "3");
+            });
+
+            /*
+                Administering the organization is the appointment over
+                it, not the identity column the insert above fills, so
+                the departed administrator is appointed the way the
+                screen would have appointed them.
+            */
+            await flags(DEPARTED, {
+                isOrgAdmin: true,
+                organization: ORG_ID
             });
         }
 
@@ -768,12 +748,24 @@ describe("identity sign-in", function () {
             let rows = await db.withClient(
                 settings.managerDb,
                 async function (client) {
+                    /*
+                        Administering the organization is the
+                        appointment over it, so it is read from there
+                        and not from the identity column, which nothing
+                        writes any more.
+                    */
                     let r = await client.query(
                         (
-                            "SELECT username, status, is_org_admin " +
-                            "FROM identity " +
-                            "WHERE _organization_organization_pk = $1 " +
-                            "ORDER BY username"
+                            "SELECT i.username, i.status, " +
+                            "  (a._pk IS NOT NULL) AS is_org_admin " +
+                            "FROM identity i " +
+                            "LEFT JOIN organization_admin a " +
+                            "  ON a._identity_identity_pk = i._pk " +
+                            " AND a._organization_organization_pk = " +
+                            "     i._organization_organization_pk " +
+                            " AND a.is_active AND NOT a.is_deleted " +
+                            "WHERE i._organization_organization_pk = $1 " +
+                            "ORDER BY i.username"
                         ),
                         [ids.orgPk]
                     );
@@ -818,7 +810,14 @@ describe("identity sign-in", function () {
                     "/admin/overview?organization=" + ORG_ID
                 );
                 assert.equal(resp.status, 401);
-                assert.match(resp.body, /platform administrator/);
+                /*
+                    It used to be the platform's reach alone, and the
+                    refusal said so. A reseller appointed over another
+                    organization may reach it too now, so what is
+                    refused is reaching an organization you are not
+                    appointed over, and that is what it says.
+                */
+                assert.match(resp.body, /do not administer that organization/);
 
                 resp = await admin.raw(
                     "POST",
@@ -1292,22 +1291,6 @@ describe("identity sign-in", function () {
     describe("administration of the registry", function () {
         let admin;
 
-        function flags(username, data) {
-            return db.withClient(
-                settings.managerDb,
-                (client) => client.query(
-                    (
-                        "UPDATE identity SET is_org_admin = $2, " +
-                        "is_platform_admin = $3 WHERE username = $1"
-                    ),
-                    [
-                        username,
-                        data.isOrgAdmin === true,
-                        data.isPlatformAdmin === true
-                    ]
-                )
-            );
-        }
 
         before(async function () {
             admin = new Session(base);
