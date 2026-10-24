@@ -152,14 +152,15 @@
    That is exactly what a browser's own zoom does, and the app at a
    browser's 125% is what this reproduces at 100%, so nobody has to set
    it per machine to get something that sits properly beside the rest of
-   the desktop (John, Oct 2026).
+   the desktop. Settled at 1.125 rather than 1.25 by looking at it: the
+   quarter was a shade large (John, Oct 2026).
 
    A variable rather than a literal so it is one place to change, and so
    a future preference has something to write to. Browser zoom still
    works on top of it and compounds, which is the behaviour anybody
    pressing ctrl-plus expects. */
 :root {
-    --fb-ui-scale: 1.25;
+    --fb-ui-scale: 1.125;
 }
 
 html {
@@ -2191,6 +2192,27 @@ button:disabled .fb-ipicon,
   cursor: pointer;
 }
 
+/* The app zoom, in the ribbon's top bar so it is on every screen. Quiet
+   until the pointer is near it: it is a thing you set once and then
+   forget, and it sits beside the account name all day. */
+.fb-ribbon-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+  opacity: 0.45;
+  transition: opacity 120ms ease-in;
+}
+
+.fb-ribbon-zoom:hover,
+.fb-ribbon-zoom:focus-within {
+  opacity: 1;
+}
+
+.fb-ribbon-zoom .fb-zoom-control {
+  width: 84px;
+}
+
 .fb-zoom-icon {
   align-self: center;
   font-size: 16px;
@@ -3609,12 +3631,15 @@ button:disabled .fb-ipicon,
     margin-bottom: 8px;
 }
 
-/* Sits right after the heading rather than at the tile's far edge. A
-   tile has no border, so nothing but adjacency says which tile a
-   control belongs to, and an x floating in white space at the end of a
-   wide tile is a question rather than an affordance. */
+/* The tile's top corner, opposite the resize grip. It sat beside the
+   heading while a tile had no boundary -- adjacency was the only thing
+   saying which tile a control belonged to -- but a tile is a card with
+   an edge now, so the corner says it and the heading is left to be a
+   heading. */
 .fb-dash-tile-remove {
-    margin-left: 10px;
+    position: absolute;
+    top: 4px;
+    right: 6px;
     padding: 0 2px;
     border: none;
     background: none;
