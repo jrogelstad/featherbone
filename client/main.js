@@ -246,6 +246,15 @@ function applyZoom(value) {
         "--fb-ui-scale",
         wanted / 100
     );
+    /*
+        A zoom change IS a resize: the window holds the same device
+        pixels but a different number of CSS ones, which is the number
+        everything that measures itself against the viewport cares
+        about. Saying so lets the ribbon re-fit its stages -- and
+        anything else listening -- without each of them having to know
+        the zoom exists.
+    */
+    window.dispatchEvent(new Event("resize"));
     return wanted;
 }
 
@@ -700,55 +709,6 @@ function homeRibbonGroups() {
     let dashZoom = appZoom();
 
     return [{
-        label: "View",
-        buttons: [{
-            label: "Zoom Out",
-            icon: "zoom_out",
-            title: "Draw everything smaller",
-            disabled: dashZoom <= APP_ZOOM_MIN,
-            onclick: function () {
-                appZoom(dashZoom - APP_ZOOM_STEP);
-            }
-        }, {
-            label: "Zoom In",
-            icon: "zoom_in",
-            title: "Draw everything larger",
-            disabled: dashZoom >= APP_ZOOM_MAX,
-            onclick: function () {
-                appZoom(dashZoom + APP_ZOOM_STEP);
-            }
-        }, {
-            /*
-                Typed rather than dragged. A slider for this sat inside
-                the very thing it was scaling, so it moved and resized
-                under the pointer as it was being dragged, and its steps
-                were a lurch rather than an adjustment. A field takes
-                one click and a number (John, Oct 2026).
-
-                Applied on change rather than on input, or typing "125"
-                would scale the app to 1% on the first keystroke.
-            */
-            render: function () {
-                return m("div", {class: "fb-rb-field"}, [
-                    m("input", {
-                        class: "fb-rb-field-input",
-                        type: "text",
-                        inputmode: "numeric",
-                        "aria-label": "Zoom percent",
-                        title: "Zoom percent; type one and press Enter",
-                        value: dashZoom,
-                        onchange: (e) => appZoom(e.target.value),
-                        onkeydown: function (e) {
-                            if (e.key === "Enter") {
-                                appZoom(e.target.value);
-                            }
-                        }
-                    }),
-                    m("span", {class: "fb-rb-field-label"}, "Zoom %")
-                ]);
-            }
-        }]
-    }, {
         label: "Dashboard",
         buttons: [{
             label: "Dashboard",
@@ -961,6 +921,61 @@ function homeRibbonGroups() {
                 ? () => m.route.set("/instances")
                 : undefined
             )
+        }]
+    }, {
+        /*
+            The window's own controls, not the work's -- which is why
+            this group sits apart on the far side, the way Office keeps
+            view controls away from the commands (John, Oct 2026).
+        */
+        atEnd: true,
+        label: "View",
+        buttons: [{
+            label: "Zoom Out",
+            icon: "zoom_out",
+            title: "Draw everything smaller",
+            disabled: dashZoom <= APP_ZOOM_MIN,
+            onclick: function () {
+                appZoom(dashZoom - APP_ZOOM_STEP);
+            }
+        }, {
+            label: "Zoom In",
+            icon: "zoom_in",
+            title: "Draw everything larger",
+            disabled: dashZoom >= APP_ZOOM_MAX,
+            onclick: function () {
+                appZoom(dashZoom + APP_ZOOM_STEP);
+            }
+        }, {
+            /*
+                Typed rather than dragged. A slider for this sat inside
+                the very thing it was scaling, so it moved and resized
+                under the pointer as it was being dragged, and its steps
+                were a lurch rather than an adjustment. A field takes
+                one click and a number (John, Oct 2026).
+
+                Applied on change rather than on input, or typing "125"
+                would scale the app to 1% on the first keystroke.
+            */
+            render: function () {
+                return m("div", {class: "fb-rb-field"}, [
+                    m("input", {
+                        class: "fb-rb-field-input",
+                        type: "text",
+                        inputmode: "numeric",
+                        "aria-label": "Zoom percent",
+                        title: "Zoom percent; type one and press Enter",
+                        value: dashZoom,
+                        onchange: (e) => appZoom(e.target.value),
+                        onkeydown: function (e) {
+                            if (e.key === "Enter") {
+                                appZoom(e.target.value);
+                            }
+                        }
+                    }),
+                    m("span", {class: "fb-rb-field-label"}, "Zoom %")
+                ]);
+            }
         }]
     }];
 }
