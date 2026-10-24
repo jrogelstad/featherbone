@@ -199,7 +199,7 @@ Work top to bottom. Tier 0 is the regression suite, already in place; Tier 1 clo
 | 3 | Indexes and schema | 5 | Biggest scaling risk; cheap to fix |
 | 4 | Query and request performance | 5 | Dominant cost today (planning), then round trips |
 | 5 | Tenant lifecycle and connections | 6 | Orphans, leaks and pool exhaustion as tenants grow |
-| 6 | Resilience and code health | 6 | Makes the rest safer to change |
+| 6 | Resilience and code health | 7 | Makes the rest safer to change |
 
 Scope: framework at `867c146` (your `refactor` branch), SupplyChain `9de2417` (2.2.0), Admin Console and Job Shop 2.1.9, CronJob 0.9.34, and the local `demo` database. Details and evidence for every item are in the docs `featherbone-review-handover.md` (Phase 1) and `featherbone-review-phase2.md`. Line numbers are approximate and refer to those versions.
 
@@ -386,6 +386,13 @@ One stray rejected promise can take down every tenant on the server, so 6.1 is w
     - *Note (2026-10-18): the Node floor moved to 20 for 3.0 (`package.json` engines, README) -- the part of this item the README staleness was about. The `npm audit`/`ws` and `shipengine`-pin work is still open, and is a SupplyChain concern rather than the framework's.*
     - Note (2026-10-06): do not use `npm audit fix --force`; it downgraded `pdfjs` to 0.5.4 and broke the server. Take dependency bumps one at a time (dependabot PRs), with `npm test` after each.
 - [ ] **6.6 Add tests and CI.** Start with the paths this plan touches: posting (2.3), cost totals (2.4), allocations (2.5), tenant create and delete (1.4, 5.3), and the two-tenant role test (1.1). Split `crud.js`, `datasource.js`, `server.js` and `table-widget.js` (2.5–3k lines each) as you go, and settle on `async`/`await` over the `afterX` callback chains.
+
+- [ ] **6.7 Rethink how settings are saved, starting with the "changed by another user" failure.** Long-standing (John, 2026-10-24): `Settings for "catalog" changed by another user. Save failed.` turns up whenever an install fails, and after other complex transactions that roll back. Nobody else changed anything.
+    - Cause (read from `server/services/settings.js`, not yet reproduced): `saveSettings` writes the new data and etag into the process-wide `dbsettings` cache as soon as its `UPDATE` runs, inside the request's transaction (`done()`, ~line 770). Nothing undoes that on rollback. The database row goes back to its old etag while the cache keeps the new one, so the next save compares the cache's etag with the row's (~line 845) and refuses. It keeps refusing until the process restarts or something reloads the entry. The cache also hands out the rolled-back values to readers in the meantime, and a second server process holds its own copy.
+    - The catalog is the usual victim because every feather save rewrites it (`feathers.js` ~729, ~2644), so one failed install poisons the next attempt, which then fails on a different error from the real one. Seen on 2026-10-24: a failed SupplyChain deploy, then a retry failing on the catalog etag.
+    - Fix: update the cache only on commit (`client.onCommit`) and drop the entry on rollback (`client.onRollback`; the installer now runs those hooks when it rolls back, which it did not before). Take the conflict check from the row itself, read with `SELECT ... FOR UPDATE`, not from a cache that can be ahead of it. Then decide whether the etag comparison against the cache is needed at all.
+    - Related: the installer saves the catalog many times per install, each a read-modify-write of one large row. Saving it once, at the end, would shrink the window and the cost. Compare 0.15, which is also a catalog-update defect.
+    - Done when: a test makes a request that saves settings and then fails, and the next save of the same settings succeeds without a restart. A failed install followed by an immediate retry gets past the catalog.
 
 ## Verification still to do
 
