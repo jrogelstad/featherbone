@@ -2270,10 +2270,26 @@ button:disabled .fb-ipicon,
   padding: 0 6px;
 }
 
+/* Dressed as every other text field in the app -- same border, radius,
+   surface and type -- rather than the browser's bare default, which
+   stood out like a hole in the ribbon. */
 .fb-rb-field-input {
-  width: 48px;
+  box-sizing: border-box;
+  width: 56px;
+  height: var(--fb-control-height);
+  padding: 0 6px;
   text-align: center;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
+  background-color: var(--fb-surface);
+  color: var(--fb-text);
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
+}
+
+.fb-rb-field-input:focus {
+  outline: none;
+  border-color: var(--fb-accent);
 }
 
 .fb-rb-field-label {
@@ -3006,8 +3022,54 @@ button:disabled .fb-ipicon,
     );
     border-top: 1px solid var(--rb-line);
     border-bottom: 1px solid var(--fb-border);
+    /* A last resort, not the plan. The ribbon gives up size in stages
+       (see the density classes below) before it ever scrolls, so this
+       only appears when even icon-only buttons cannot fit -- and thin,
+       so it does not sit on top of the group labels it used to cover. */
     overflow-x: auto;
     overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+/* =========================================================================
+   Ribbon density -- Office's idea: when the window narrows, the ribbon
+   condenses in stages rather than growing a scrollbar. Which stage is in
+   force is measured and set by ribbon.js, because what fits depends on
+   how many groups the open tab has, their labels, and the app's zoom --
+   none of which a media query can see.
+
+   Stage 1: the same buttons, narrower and tighter.
+   Stage 2: icons only; the label survives as the tooltip, and the group
+   labels in the band below carry the wayfinding.
+   ========================================================================= */
+.fb-rb-density-1 .fb-rb-btn {
+    width: 62px;
+    font-size: 11px;
+    line-height: 13px;
+}
+
+.fb-rb-density-1 .fb-rb-buttons {
+    gap: 1px;
+    padding: 4px 3px 0;
+}
+
+.fb-rb-density-2 .fb-rb-btn {
+    width: 40px;
+    justify-content: center;
+    padding-top: 0;
+}
+
+.fb-rb-density-2 .fb-rb-btn span {
+    display: none;
+}
+
+.fb-rb-density-2 .fb-rb-buttons {
+    gap: 1px;
+    padding: 4px 3px 0;
+}
+
+.fb-rb-density-2 .fb-rb-field-label {
+    display: none;
 }
 
 /* Collapsed mode: the body drops down over the page instead of pushing it. */
