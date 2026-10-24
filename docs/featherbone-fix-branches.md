@@ -8,6 +8,278 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Open, 2026-10-24 (eighth round): SupplyChain on disk
+
+Found by John running SupplyChain after the "deploy writes no code rows" change:
+"Apparently we broke it" (Products workbook, then almost every screen, then the
+indented BOM and where-used prints). Three framework fixes, all on
+`fix/nested-package-modules` and merged to master (PRs #282, #283, #287).
+
+- **Modules nested inside an umbrella package are found on disk.** SupplyChain is
+  an umbrella: its manifest lists `common`, `sell`, `buy`... as `install` files,
+  each with its own manifest, services, client script and routes. `packages.scan`
+  indexed only top-level `modules/<name>/<version>/`, so `resolve("Common", v)`
+  found nothing; with rows no longer written, a deployed Common had an empty
+  client script, the formats `unitCost`, `salesPrice` and `purchasePrice` were never
+  registered, and screens failed with `reading 'isMoney'`. `scan` now indexes
+  nested modules by their own name and version, kept apart from the installed
+  list (`installed()`, `newest()` and `remove()` still speak of what was
+  installed). A path that leaves the package is ignored, and a module installed
+  on its own wins over the copy inside an umbrella. A nested module with no
+  `package.json` takes its libraries from the umbrella's.
+- **`saveModule` stops blanking scripts.** It sent `script: ""` for an existing
+  module; a POST over an id keeps properties it does not carry, so it now omits
+  the script for a module that exists.
+- **A super user's browser got no client code.** `fromPackage` in `datasource.js`
+  left rows untouched for any request made as a super user, and the query route
+  passes the signed-in user's `isSuper`. With every row empty, a super user
+  received no code for Core or any packaged module. Everyone now gets the file.
+- **Libraries a manifest declares are loaded.** A packaged module's `ModuleNpm`
+  rows stop being read, and an umbrella's `package.json` names only what the
+  umbrella declared, so `f.Fs`, `f.NodeFetch`, `f.PgClient`, `f.Qs`, `f.Xlsx` and
+  `f.Shipengine` stopped loading once nested modules were found
+  ("Cannot read properties of undefined (reading 'readFileSync')" on the
+  prints). `packages.libraries` now adds each manifest's own `npm` list under
+  the names `ModuleNpm` gave them; a `package.json` wins where both name one.
+- Tests: `test/unit/packages.test.js` (nested resolve, services, client, routes,
+  libraries, listing, path guard, precedence) and a super-user claim in
+  `test/api/client-code.test.js` (written, not run: it needs the API harness).
+  Lint ratchet clean. The `components` and `model-statechart` unit tests fail on
+  master too.
+- **Verified by John on `demo` 2026-10-24:** the bill of material and the
+  indented BOM, with their prints, work. Not yet run: the SupplyChain suites over the merged
+  code (John is running them).
+
+Plan item 6.7 (settings cache not undone on rollback) turns a failed SupplyChain
+deploy into a second, misleading failure on the retry (catalog etag).
+
+## Open, 2026-10-22 (seventh round)
+
+John, 2026-10-22, about self upgrade: "I really just want 2: Self upgrade
+manager and self upgrade instances booleans. When I start the server, it
+checks the core versions of those things and applies any necessary scripts
+to upgrade them just as if I'd run install --manager and install --instance
+[name] for every instance." Then: "we could in fact remove that instance
+migration script entirely", and, asked to confirm: the instance-to-identity
+migration goes, the organization-to-global merge stays.
+
+`feat/self-upgrade-two-switches` (on master, pushed 6fdd7b37).
+
+- **`selfUpgrade` and its six companions are gone.** `selfUpgradeManager`
+  and `selfUpgradeInstances` are booleans, off by default, environment
+  overridable. Neither takes an organization, a list or credentials.
+- **The manager is now upgraded when its Core version is behind.** Before,
+  an existing manager was never touched (only an absent or non-manager one
+  was built), so a changed manager schema could not arrive by restart.
+  Every registered instance whose Core version is behind (or absent) gets
+  `install.js --instance <name>`. The manager goes first; a failed manager
+  step is fatal, a failed instance step holds that instance.
+- **`scripts/migrate-identities.js` is deleted** (tag `v3.0.0-alpha.1`
+  keeps it). README, CHANGELOG, ADR-001 and the skill say so.
+- Unit suite 377/0; `test/unit/upgrade.test.js` rewritten (17 claims).
+
+**`feat/global-usernames` now carries it** (merged in; pushed ef8063ee)
+**and bumps the manifest, `package.json` and the lockfile to
+3.0.0-alpha.2.** Without a bump a deployed manager at 3.0.0-alpha.1 is not
+behind a checkout that is still 3.0.0-alpha.1, so `selfUpgradeManager`
+would never have applied the duplicate-username merge and the unique-name
+index. Proved on a live cluster: manager alpha.1 -> alpha.2 through the
+switch (merge step ran), then both instances followed; `global-usernames`
+8/8, `upgrade` 19/19. Merge `feat/self-upgrade-two-switches` first or
+`feat/global-usernames` alone -- the second contains the first. The
+version number is John's to change if alpha.2 is not what he wants.
+
+The org-to-global change is **not** in `migrate-identities`: it is two
+manager steps in `manifest.json` (`merge-duplicate-identities.js`, then
+`manager-constraints.js`), which `install.js --manager` applies and the
+switch triggers.
+
+## Open, 2026-10-21 (sixth round)
+
+John, reading back the answer that a platform administrator needs an
+account in each organization: "that defeats one of our original
+requirements to have the notion of a global platform admin over all who
+can resolve any problem for any org. It's not practical for them to
+have create many versions of themselves. Likewise we had the use case
+of a VAR who might be given access to multiple orgs that are their
+accounts. So user names must be global and unique to the whole system."
+
+`feat/global-usernames` (on master, independent of the fifth round).
+**A model change, so it needs `node install.js --manager` after
+merging** (or `selfUpgradeManager`, now that the version is 3.0.0-alpha.2) -- that is what merges duplicate usernames, builds the new
+index and creates the `organization_admin` table.
+
+- **A username is unique across the installation.** Sign-in finds
+  whoever holds the name; the grant decides which instances they may
+  reach, which is where the organization boundary properly lives. The
+  picker's "which organization is yours?" prompt is gone with it, as is
+  the per-organization credential lookup.
+- **`identity.organization` means who owns the account**, not where the
+  person may work. `instancesFor` no longer requires the instance to
+  belong to the identity's own organization, so a reseller granted
+  instances in three organizations sees all three, each labelled.
+- **Administering an organization is an appointment** -- new
+  `OrganizationAdmin` feather, one row per organization administered.
+  `identity.is_org_admin` is no longer read. Any existing identity can
+  be appointed, whichever organization owns the account, and the
+  console appoints an existing person rather than only creating one.
+- **`is_platform_admin` is now true to its name**: one account answers
+  for every organization. New route and Users-screen action to appoint
+  one, platform administrators only, with a guard against standing down
+  the last one.
+- **The organization picker** on the Users screen is offered to anybody
+  appointed over more than one organization, not only to platform
+  administrators.
+- **Email autofill**: a user name that looks like an email address is
+  offered as the email, and stops being offered if the name stops
+  looking like one.
+- **The account stays with the organization that owns it.** Found while
+  rewriting the isolation suite: once anybody can be appointed, an
+  organization administrator could appoint an outsider and then reset
+  the password of the account that person uses everywhere else.
+  Appointment and grants are theirs to give; the password and whether
+  the person may sign in at all are not. Only a platform administrator
+  crosses that line. SSO is confined the same way -- a group claim
+  appoints over its own organization only, and a provider cannot link a
+  subject to an account another organization owns.
+- **Migration merges duplicates** (John's choice over a report to
+  resolve by hand): the identity most recently signed in to survives
+  and inherits the others' grants, federated subjects and
+  administration; the others are soft-deleted; each merge is printed
+  and audited. Proven against a replica of John's own manager, where
+  `ncuser_12161` existed in Default and Road Runner Campers, and then
+  against his dev manager itself.
+
+New `test/api/global-usernames.test.js` (8 claims, including one
+platform account seeing every organization and one reseller account
+administering two). `picker`, `isolation` and `federation` rewritten
+where they asserted the old rule; `isolation` keeps all 18 claims.
+**Verified side by side:** sixteen api files on this branch and on
+master, 72 failures each, name for name -- the sandbox's own baseline.
+Checked in headless Chromium against the upgraded dev manager. ADR-001
+gains revision 4; README and the tenant plan updated.
+
+Not done: `client/clientmin.js` is not regenerated, so the screen
+changes appear in debug mode only until it is.
+
+## Open, 2026-10-20 (fifth round, evening)
+
+Found by John on his own `tracker` instance, installing a bug-tracker
+package from the Modules page, plus one he asked for while this was
+being tested. Merge order: 1, 2, 3, 4; 5 stands on master by itself.
+
+1. `fix/web-install-to-disk` -- John: "it's still installed the old way
+   as rows." The Modules page's Install button posted to
+   `/:db/module/install`, which unpacked the zip to a temporary folder,
+   wrote the module's code into this database's rows and deleted the
+   folder: the server never held the package. It now does Install
+   (`modules/<name>/<version>/`) and Deploy (into this instance) as one
+   action through `admin.installAndDeploy`, by the Admin Console's rules:
+   platform administrator only, the instance held while it runs, both
+   ends audited, and the version replaced if the server has it (a
+   package in development is installed again and again). **Behavior
+   change:** an organization administrator who is not a platform
+   administrator can no longer install from this button. Also fixes
+   `datasource.recordDeployed`, which could not move a module from one
+   version to the next while the old version was still installed (its
+   write to the `module` row was refused as an edit of code served from a
+   package, leaving the instance held). `test/api/module-install.test.js`.
+2. `fix/console-reach-other-orgs` -- John could not Close or Drop
+   `tracker`: "No instance in this organization has that id." `node
+   install.js --instance` put it in a new "Default" organization, and the
+   platform console lists every instance but sent only the instance id,
+   while the server looks an instance up inside an organization (the
+   caller's own unless one is named; tenant plan A.4). The console now
+   sends the organization it already holds for the row (`picker.js`
+   `send` and the progress poll). Reproduced in headless Chromium against
+   an instance in a second organization: 404 before, Close and Drop
+   succeed after. Client only; the server contract was already tested.
+3. `fix/deploy-writes-no-code-rows` (on 1) -- John: "stop allowing those
+   things. Period. No more writing scripts to the database from any
+   path." Two commits. The first stopped a deployment of a held package
+   writing code; the second took the condition away entirely. The
+   installer writes no `Module.script` and no `DataService` rows at all:
+   `saveModule` records name, version and dependencies with an empty
+   script, `saveService` is gone, and a manifest's service files are read
+   where they live. **Core is now a package too** -- the checkout, not a
+   directory under `modules/`, so it cannot be installed, removed or
+   listed as one, but its manifest answers `packages.resolve` and its
+   services and client script are read from its files like any other's.
+   That is what makes this a rule rather than a preference: with nowhere
+   else for code to come from, `datasource.install` refuses a directory
+   that carries services or a client script and is not a package this
+   server holds, before it changes anything. The old write guard (which
+   refused edits only for a disk-served module) is now a flat refusal of
+   any write carrying code, from any caller including Install and Deploy,
+   so the deployment flag they needed to get past it is gone; deletes are
+   still allowed, and so is everything else about a Module. **Rows
+   already there are left alone** and still load for a module with no
+   package (SupplyChain's Common, Buy, Sell; Job Shop), which is what the
+   fallback is for; the Packager stays until those ship as packages.
+   `file-mode.test.js` and `test/unit/packages.test.js`.
+4. `fix/installer-remote-state` (on 3) -- **four defects found by
+   running the suite over 3, all of them on master already and all the
+   kind that only show once a deployment really reaches the instance it
+   names.** Two commits.
+   *The install that never answered:* whether an install writes to a
+   database other than the caller's was module-level state in
+   `installer.js` -- the first deployment set it and nothing ever
+   cleared it, so every later install in that process finished as a
+   remote one, including the ones that never opened a connection of
+   their own, which died on `conn.done()` as an unhandled rejection.
+   The promise never settled, the request waited for an answer that was
+   never coming, and the deployment holding the instance never let it
+   go. On John's `tracker` that needs one deploy first, and then the
+   Modules page hangs and leaves the instance down for maintenance.
+   *The target that was never opened:* the path for a caller with
+   nothing watching its progress (the command line, and the Modules
+   page, which tracks its own) skipped the step that opens the target
+   database. Opening it is its own step now and every path takes it;
+   only progress tracking is skipped.
+   *The connection a failure kept:* a failed install left its client
+   checked out of the instance's pool for the life of the process, and
+   since ending a pool waits for its clients back, the next thing
+   needing that instance to itself -- a template copy, a drop -- waited
+   with it forever. One failed deployment was enough.
+   *The user a deployment wrote as:* the caller's own connection was
+   given the service account, the one opened for the target was not, so
+   it wrote as the operator -- who, deploying to a customer's instance,
+   is generally not a user of it at all, and was refused with "Only the
+   record owner or a super user are allowed to change document
+   ownership".
+   Plus the one follow-up that belongs to 3: **the framework answers
+   for whatever version a database records.** A module under the
+   modules directory is served the exact version its database carries,
+   because two databases may run different versions of it; the
+   framework is the one this process is, and a database recording an
+   older Core is behind rather than owed code nobody keeps any more.
+   Matching it strictly left such a database -- exactly the one an
+   upgrade is aimed at -- served nothing at all for Core.
+   `module-install.test.js` gains the hang case (it hangs without this
+   and fails in thirty seconds with it; the harness's `upload` learned
+   a timeout), `test/unit/packages.test.js` the version one.
+   **Verified side by side:** the same seventeen api files on this
+   branch and on branch 1, same 21 failures on each, name for name --
+   the sandbox's own baseline, which wants SupplyChain and Job Shop --
+   and `module-install` hangs on branch 1 where it passes here.
+
+5. `feat/ribbon-signed-in-as` (on master) -- John: "I'd like to see who
+   I'm logged as over near the alarm bell." A label beside the alerts
+   bell on every screen the ribbon is on: the username, with the full
+   name, organization, instance and administration tier in its tooltip,
+   and clicking it shows the Home tab where the account buttons are. The
+   organization is the part worth the lookup -- an identity belongs to
+   exactly one organization and nothing on a screen said which, which is
+   how a platform administrator ends up unsure whose instance they are
+   in. `admin.whoAmI` (the one method there that refuses nobody, since it
+   reports and does not act) rides out on the connect payload, best
+   effort, and reads authority from the identity rather than the session.
+   Two claims in `test/api/auth.test.js`; checked in headless Chromium.
+
+Not done: removing the row fallback and the Packager (needs SupplyChain
+and Job Shop repackaged first); cleaning up code rows an older
+installation already holds.
+
 ## Open, 2026-10-20 (fourth round)
 
 Found by John on the 3.0.0-alpha.1 deployment: an administrator could
@@ -267,7 +539,6 @@ tenant-plan stack, as before.
 | `feat/organization-settings` | John, 2026-10-18: "move the global settings from the database to the platform manager organization instance", and "I mean the organization record that manages all the instances" | **Open, merge fourth.** A customer's letterhead and mail account are the same wherever something is printed or sent from, so they live against the organization in the manager instead of in each instance. Bare `"$organization_settings"` made on first use (look-then-advisory-lock, the claim table's lesson), so no manager reinstall. Marked a property at a time (`"isOrganization": true`), since one document can hold both kinds; the definition stays per instance and the screen does not move -- still Settings in the Home tab's Global group, "right next to other organization-based data" (John). Every reader already went through `getSettings`, so the overlay there covers printing, the SMTP transport and the client model untouched. **The logo stopped being a `ResourceLink`** and is a pointer -- a URL, or an uploaded file's name read from `files/upload/`, basename only -- which is what let it move with the rest; an object with a `resource` is still read so an existing one keeps printing. No migration (John): the instance's values answer until the first save, and the instance keeps a full copy. `test/api/organization-settings.test.js`, 8 claims. **Reinstall every instance after merging** -- the definition is per instance. Full api suite: the same 37 failures as master in this sandbox, compared list to list |
 | `feat/instance-upgrade-action` | John, 2026-10-17: "I know I could easily attach one from platform admin, but how do I get its db up to 3.0.0 alpha?" | **Open, merge third.** Deploy applies packages from `modules/`; the framework is not one, so a core upgrade was a shell and nothing else. `upgradeInstance` is that act on demand -- held, manifest applied through the in-process installer (as a deployment does, since this runs inside a request), let go, audited both ends, platform only; a failure leaves it held. `upgradeFleet` is the same across a named group, one at a time. Both screens get it: the Instances screen's toolbar and right-click menu, and the platform console's, plus a group button beside the group deploy. The overview now carries `serverVersion`, and each instance `coreVersion`/`isCoreBehind`, decided by `upgrade.isBehind` -- the same comparison the startup upgrade uses. Does **not** reach a database that predates the manager: with no `"$db"` marker the console refuses to register it, and `install.js --instance` (or `selfUpgradeInstances`) is still what converts one. `test/api/upgrade.test.js`, 13 claims |
 | `feat/self-upgrade-on-start` | John, 2026-10-17: "I have an instance of featherbone 2.2.0 on the cloud in a situation where I don't have access to run command line there... I'm thinking I actually need to enable some kind of self-upgrade process when the server starts?" | **Open, merge first.** `selfUpgrade` runs the three upgrade acts at startup, ahead of the datasource because the manager is one of the things a first upgrade creates. What runs is the command line as a child process -- the same `install.js` and `migrate-identities.js` -- so there is one installer to keep right and its catalog loading stays out of the server's caches. Each step asks first: the manager's `"$db"` marker, and each instance's Core version against `manifest.json`. The identity backfill is its own switch (one way, no rollback) and runs only when something else did. One at a time across nodes on an advisory lock on the maintenance database, since `claimWork` lives in the manager that may not exist yet; a service account that cannot reach it is told so and goes on without it. A failed instance upgrade holds that instance and the server still starts; a failed manager build stops it. **Proved end to end against a live cluster:** an empty cluster booted to a manager, a registered instance and an organization; the next boot ran nothing; with the version bumped the boot after that upgraded the instance from Core 2.2.0 and the one after was quiet again. `test/unit/upgrade.test.js`, 18 claims. Settings and behavior are in the README |
-| `feat/self-upgrade-two-switches` | John, 2026-10-22: "I really just want 2: Self upgrade manager and self upgrade instances booleans. When I start the server, it checks the core versions of those things and applies any necessary scripts to upgrade them just as if I'd run install --manager and install --instance [name]"; then "remove that instance migration script entirely" | **Open, merge after `feat/self-upgrade-on-start`'s changes (already on master).** Replaces `selfUpgrade` and its six companions with `selfUpgradeManager` and `selfUpgradeInstances`, both booleans, both env-overridable. The manager is upgraded when absent, not a manager, or its Core version is behind `manifest.json` (before, an existing manager was never touched, so a changed manager schema could not arrive by restart); every registered instance whose Core version is behind gets `install.js --instance`. No instance list, no organization, no identity backfill. `scripts/migrate-identities.js` is deleted (tag `v3.0.0-alpha.1` keeps it). **Needs a manifest version bump to trigger on a deployed manager:** `feat/global-usernames` changes the manager (duplicate merge + unique index) but the version stays 3.0.0-alpha.1, so a manager already at that version is not 'behind'. `test/unit/upgrade.test.js` |
 | `chore/version-3.0.0-alpha.1` | John, 2026-10-17: "let's assume we're trying to version jump to v3.0.0-alpha.1. Update versioning to that, and start release notes" | **Open, merge second** (on the first, which its notes describe). Version in `package.json`, `package-lock.json` (root entries only), `manifest.json` and both `yuidoc.json`. The manifest version is the load-bearing one: `install.js` records it in each database's `module` row, so it is what the fleet view and the self-upgrade compare against, and bumping it marks every 2.2.0 instance as behind. New `CHANGELOG.md` starting at this release -- the ADR-001 and ADR-002 shape changes, the operations work, a Fixed summary, the upgrade path with its one-way warning, and the known gaps (SSO unproven against a real directory, API tokens and manager HA out of scope, the feather property ordering defect). Unit suite 368 pass / 0 fail after the bump; no golden hardcodes a version |
 | `fix/one-pool-per-database` | Found 2026-10-16 while running the api suite over the G.1-G.3 work: `lifecycle` and `provision` failed with "featherbone_test2 has 1 other session(s)" after a group deployment had touched that instance | **Open.** `pools` lived inside `exports.Database`, and eleven services each do `new Database()`, so one database had as many pools as services. Two consequences: the README's connection budget was wrong by that factor, and "give up this database" could not work -- `releaseTenant` before a template copy or a drop (D.3) ended only the asking service's pool while everyone else's idle connections kept the database busy. One module-level pool map fixes both. `test/api/pools.test.js`: two services find one pool and ending it ends it for both, and a template copy succeeds straight after a deployment has touched the instance -- both fail without the change |
 | `fix/registry-refresh-one-at-a-time` | Found by John's test run hanging in F.3, 2026-10-16 | **Open.** Registering an instance reads the registry twice at once -- in the admin route and in the Tenant change event it raises -- and two overlapping `refreshTenants` both found the new instance missing, both added it, and both listened to it. The second listener asked for the advisory lock (`7001`, node id) that the first, from the same process, already held and waited for itself for good: the refreshing request never answered and the lock stayed behind (seen in `pg_stat_activity` as one `pg_advisory_lock` blocked by a sibling `LISTEN` connection on the same database). `server/services/serialize.js` runs refreshes one at a time, in order, each with its own result or error; `test/unit/serialize.test.js` shows the look-wait-add race and that serializing removes it. Timing-dependent, so not reproduced through the harness here (F.3 passes either way); confirm on John's machine that F.3's "provisioning run claimed on node A" no longer hangs. **Second occurrence, same cause, found in `pg_locks` on John's machine:** the D.4 "rebuilding replaces the template in place" test hung with two listener connections to one instance (`featherbone_test2`) from the same node, the second blocked in `pg_advisory_lock`. The template build resumes listening to its source without waiting while a registry refresh listens to the same instance. `datasource.listen` now runs one listen at a time per instance (a second caller joins the first), `releaseTenant` waits for a listen still opening, and the build's resume-listening no longer leaves an unhandled rejection |
@@ -280,7 +551,7 @@ tenant-plan stack, as before.
 | `feat/file-mode-visible` | John, 2026-10-16, after asking whether the script editors disappear once a module is on disk, and proposing that a database switching to file mode should have its module rows hollowed out | **Open, top of the 2026-10-16 stack.** The rows stay -- the catalog is a `$settings` row every request resolves names against, and workbooks and forms are rows a customer edits in place, so only the *code* rows are duplicated on disk, and those are the fallback and the pre-packaging record (ADR-002 §7 wants the migration to reconcile them, which deleting them first prevents). What was actually wrong is that nothing said which half a module was on: a super user could edit a service script in Develop, see it saved, and get the package's code on the next load -- and note `isSuperUser` is the signed-in user's flag, so a super user was also reading the stored row rather than the file the browser compiles. Now a write to `module.script` or a `data_service` row of a disk-served module is refused 405 naming the module and version, gated on `isExternalClient` so Install and Deploy (which arrive with their own client) still write them. The screens mark each instance `N behind`, `N from rows`, and `N adrift` -- the last being the one nobody would notice: the instance names a version this server does not hold and silently falls back to its tables, which is how two nodes end up running different code for one database. `test/api/file-mode.test.js`, 5 claims |
 | `feat/c3-azure-ad-sso` | John, 2026-10-16: "Sure. Azure AD is the most common. Let's start with that" (plan C.3/C.4) | **Open. Merge `fix/harness-upgrade-manager` first** -- the new manager tables arrive with `install.js --manager`, and this branch carries that harness change too, so whichever is merged first the other is a no-op. Two manager feathers: `IdentityProvider` (per organization, secret encrypted with the installation's key) and `IdentityFederation` (`(issuer, subject) -> identity`, unique). `server/services/oidc.js` does the protocol through `openid-client` 6.8.8 (discovery, PKCE, state, nonce, signature, issuer and audience -- the plan called hand-rolling it a hazard); `server/services/federation.js` decides who the subject is: linked, linked to the person who was here before SSO, or made on the spot with the grants the provider names (C.4). Group claims carry the organization-administrator flag and are reapplied every sign-in; platform administration is never a claim. `organization.authentication` is finally read: `sso` refuses a local password without checking it. The console configures a provider and never shows a secret back. 14 claims in `test/api/federation.test.js`. **Not covered here, and to be proven against a real directory:** discovery, PKCE, the state/nonce round trip, the id-token checks and the userinfo fallback -- the seam between `oidc.js` and `federation.js` exists so the untestable half is as small as possible |
 | `feat/instances-toolbar-actions` | UI pattern, John 2026-10-16 | **Open.** The Instances screen's per-row buttons became toolbar buttons on the right that enable for the selected row (Close/Open, Resume, Maintenance, Deploy, Template, Drop, Attach), plus a right-click menu with the same actions, built from one list so they cannot disagree; the Actions column is gone and rows are selectable. Checked in headless Chromium against a test server (selection, enable/disable, menu, dismissal, no console errors). The Users screen (`admin-page.js`) still has per-row buttons. Pattern recorded in the skill |
-| `fix/claim-race-and-npm-load` | Found by John's first run on a full install, 2026-10-16 | **Merged (#215).** `claimWork` made its `$claim` table with `CREATE TABLE IF NOT EXISTS`, which is not safe against itself: two processes making it at the same instant both pass the existence check and one dies on `pg_type_typname_nsp_index` (the F.3 test failed on it). It now looks first and, when it has to make the table, takes an advisory lock, so one process makes it and the rest find it (8 concurrent makers over 40 rounds against Postgres directly: 280 failures plain, 0 locked). `test/api/multinode.test.js` drops the table before contending and uses six processes. The branch first also made `loadNpmModules` warn instead of dying on a retired package (`pdfjs`); `feat/adr002-retire-module-npm` merged first and made that loader a no-op, so that half was dropped. The print services still naming `pdfjs` and `table-layout` (Common and Design modules, Ship) need porting to pdfmake, in SupplyChain |
+| `fix/claim-race-and-npm-load` | Found by John's first run on a full install, 2026-10-16 | **Merged (#215).** `claimWork` made its `$claim` table with `CREATE TABLE IF NOT EXISTS`, which is not safe against itself: two processes making it at the same instant both pass the existence check and one dies on `pg_type_typname_nsp_index` (the F.3 test failed on it). It now looks first and, when it has to make the table, takes an advisory lock, so one process makes it and the rest find it (8 concurrent makers over 40 rounds against Postgres directly: 280 failures plain, 0 locked). `test/api/multinode.test.js` drops the table before contending and uses six processes. The branch first also made `loadNpmModules` warn instead of dying on a retired package (`pdfjs`); `feat/adr002-retire-module-npm` merged first and made that loader a no-op, so that half was dropped. The print services still naming `pdfjs` and `table-layout` (Common and Design modules, Ship) needed porting to pdfmake, in SupplyChain -- **done 2026-10-22, SupplyChain PR #29** (see `featherbone-supplychain-fix-branches.md`) |
 | `docs/adr-002-close` | Docs | **Open, merge last.** ADR-002 section 10 (implementation status), ADR-001 rev 3 note carried forward, this table, the skill |
 | `feat/adr002-orphan-scripts` | ADR-002 q6 | **Open, merge sixth of the ADR-002 stack.** A service row belonging to no module is not loaded (it never was) and each database is told once, by name; nothing is deleted. `test/unit/services.test.js`, `test/api/orphan-scripts.test.js` |
 | `feat/adr002-retire-module-npm` | ADR-002 q1 | **Open, merge fifth.** Libraries come from the module's own `package.json` and its own version directory (`featherbone.libraries`, or every dependency camel-cased); loaded with the database's modules before its code runs. `ModuleNpm` deprecated, still honored for a module with no package, and read from the instance now -- the one-mode collapse had left that loader reading the manager, so instance rows had stopped loading entirely. `loadNpmModules` is a no-op. `test/unit/packages.test.js` |
@@ -350,7 +621,7 @@ tenant-plan stack, as before.
 | `fix/0.11-cli-money-columns` | 0.11 | Pushed 2026-10-11 (merge tenth; doc note only). Could not reproduce without SupplyChain -- fixture money properties install as `mono` through `--dir` on current master. Reproduce with the real SupplyChain checkout before fixing |
 | | ADR-002 remainder | **Mostly done 2026-10-16** -- see the ADR-002 rows at the top of this table and section 10 of the ADR. What is left: retiring the Admin Console's combined zip install in favour of Install then Deploy (a decision, not code), a fleet upgrade as one action, and section 7's two tiers for customer extension, where improvement item 0.14 still gates user columns (2.6 and 3.3 are merged) |
 | | 0.1, 0.11 | After the above, one branch each (0.1 and the role-resolution part of 0.4 move to the tenant plan) |
-| | 0.10 | SupplyChain repo; later |
+| | 0.10 | SupplyChain repo; **done 2026-10-21 (PR #21)**, with Tier 2 -- see `featherbone-supplychain-fix-branches.md` |
 
 ## Notes from 2026-10-06 (checkout rebuilt)
 
