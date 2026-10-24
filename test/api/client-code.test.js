@@ -110,17 +110,66 @@ describe("a module's client script comes from its package", function () {
         assert.match(String(fixture.script), /1\.1\.0 from disk/);
     });
 
+    /*
+        Core is not the example of this any more: the checkout the
+        server runs from is itself Core's package (`packages.js`
+        `builtin`), so its client script comes from disk like any
+        other's. A module nothing on this server holds a package for is
+        made here instead.
+    */
     it("leaves a module with no package answering from its row",
             async function () {
+        const NAME = "fbtnopkg";
+        const SCRIPT = "// fbtnopkg 9.9.9 from its row";
+
+        await db.withClient(settings.testDb, (client) => client.query(
+            (
+                "INSERT INTO module (_pk, id, created, created_by, " +
+                "  updated, updated_by, is_deleted, owner, etag, " +
+                "  name, script, version" +
+                ") VALUES (" +
+                "  nextval('object__pk_seq'), $1, now(), 'admin', " +
+                "  now(), 'admin', false, 'admin', $1, $2, $3, '9.9.9'" +
+                ")"
+            ),
+            ["fbtnopkgrow01", NAME, SCRIPT]
+        ));
+
+        let failed;
+
+        try {
+            let resp = await modules(here);
+            let found = resp.body.find((row) => row.name === NAME);
+            let stored = await rowScript(settings.testDb, NAME);
+
+            assert.ok(found, NAME + " is listed");
+            assert.equal(stored, SCRIPT, "the row holds the script");
+            assert.equal(
+                found.script,
+                SCRIPT,
+                "no package on disk for it, so the row stands"
+            );
+        } catch (err) {
+            failed = err;
+        }
+
+        await db.withClient(settings.testDb, (client) => client.query(
+            "DELETE FROM module WHERE name = $1",
+            [NAME]
+        ));
+        if (failed) {
+            throw failed;
+        }
+    });
+
+    it("serves Core's own script from the checkout", async function () {
         let resp = await modules(here);
         let core = resp.body.find((row) => row.name === "Core");
-        let stored = await rowScript(settings.testDb, "Core");
 
         assert.ok(core, "Core is listed");
-        assert.equal(
-            core.script,
-            stored,
-            "no package on disk for it, so the row stands"
+        assert.ok(
+            String(core.script).length > 0,
+            "the checkout is Core's package, so there is a file to read"
         );
     });
 

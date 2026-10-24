@@ -8,6 +8,11 @@
         node test/run.js integration     # api + supplychain (needs Postgres)
         node test/run.js api/crud        # files whose path contains "api/crud"
 
+    FB_TEST_SKIP is a comma separated list of path fragments to leave
+    out, for a file too slow to sit through: FB_TEST_SKIP=upgrade runs
+    everything but `api/upgrade.test.js`. Skipped files are named at the
+    start of the run, so a green run cannot quietly be a partial one.
+
     Integration runs clone FB_TEST_SOURCE_DB (default "demo") into
     FB_TEST_DB (default "featherbone_test"), start a server on
     FB_TEST_PORT (default 3990), run the tests one file at a time, then
@@ -31,6 +36,11 @@ const TALLY = path.join(
     "fb-test-tally-" + process.pid + ".jsonl"
 );
 
+const SKIP_ASKED = process.env.FB_TEST_SKIP || "";
+const SKIP = SKIP_ASKED.split(",").map(
+    (part) => part.trim()
+).filter((part) => part !== "");
+
 const UNIT_DIRS = ["unit"];
 const INTEGRATION_DIRS = ["api", "supplychain"];
 
@@ -49,6 +59,28 @@ function findTests(dir) {
         }
     });
     return out.sort();
+}
+
+function relative(file) {
+    return path.relative(settings.testDir, file);
+}
+
+/*
+    Which file is in flight. The reporter says nothing until a file
+    finishes, and a slow one -- `api/upgrade.test.js` runs a core
+    upgrade per instance, which costs what the instance's data costs --
+    otherwise looks like a hang. On a terminal the result line writes
+    over this; in a redirected log it stays, so a run that really does
+    stop says where.
+*/
+function announce(file) {
+    let name = relative(file);
+
+    if (process.stderr.isTTY) {
+        process.stderr.write("  " + name + " ...\r");
+    } else {
+        process.stderr.write("# running " + name + "\n");
+    }
 }
 
 function runNodeTest(files, extraEnv) {
@@ -75,11 +107,12 @@ function runNodeTest(files, extraEnv) {
 function runSerially(files, extraEnv, isAlive) {
     let status = 0;
     files.some(function (file) {
+        announce(file);
         let s = runNodeTest([file], extraEnv);
         status = status || s;
         if (isAlive && !isAlive()) {
             console.error(
-                "# server exited during " + path.relative(settings.testDir, file) +
+                "# server exited during " + relative(file) +
                 "; remaining files not run"
             );
             status = status || 1;
@@ -99,6 +132,19 @@ async function main() {
     INTEGRATION_DIRS.forEach(
         (d) => (integration = integration.concat(findTests(d)))
     );
+
+    if (SKIP.length) {
+        let dropped = unit.concat(integration).filter(
+            (f) => SKIP.some((part) => f.includes(part))
+        );
+
+        console.log(
+            "# skipping (FB_TEST_SKIP): " +
+            dropped.map(relative).join(", ")
+        );
+        unit = unit.filter((f) => !dropped.includes(f));
+        integration = integration.filter((f) => !dropped.includes(f));
+    }
 
     if (arg === "unit") {
         integration = [];

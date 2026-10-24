@@ -193,10 +193,19 @@ describe("catalog endpoints", function () {
             assert.equal(cat.properties.owner.inheritedFrom, "Document");
             assert.equal(cat.properties.code.inheritedFrom, "Kind");
             assert.equal(cat.properties.code.isNaturalKey, true);
-            // A property the feather defines itself carries no inheritedFrom;
-            // it used to say "Category" because of the self-reference
-            // plan 0.17 repairs.
-            assert.equal(cat.properties.parent.inheritedFrom, undefined);
+            /*
+                A property the feather defines itself is not stamped
+                with an ancestor. It used to say "Category", the
+                self-reference plan 0.17 repairs; an installed catalog
+                carries the installer's empty default instead of
+                leaving the key out, the same as isChild below, and
+                both mean "not inherited".
+            */
+            assert.ok(
+                !cat.properties.parent.inheritedFrom,
+                "inheritedFrom: " +
+                JSON.stringify(cat.properties.parent.inheritedFrom)
+            );
             // isChild: false is written by some install paths and left
             // out by others; both mean the same thing.
             assert.deepEqual(
