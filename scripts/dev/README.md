@@ -9,7 +9,7 @@ database they are willing to lose.
 | --- | --- |
 | `clear-instance-data.sql` | Empties the application master-data and transaction tables of one instance, leaving the Featherbone control tables (`$workbook`, `$settings`, `$feather`, forms, routes, scripts, roles, users) intact, so the packages still work. |
 | `load.js` | Runs a data script against one instance, optionally clearing it first. Warns, asks, and refuses to run a file that is not marked as a data script. |
-| `demo-data/teardrop-campers.sql` | A year of Road Runner Campers trading history plus the current open order book, built from the ddom "Teardrop Campers" demo dataset. 181,553 rows, anchored to a date you choose. |
+| `demo-data/teardrop-campers.sql` | Seventeen months of Road Runner Campers trading history plus the forward order book, built out from the ddom "Teardrop Campers" demo dataset. 271,054 rows, 17 complete months, as-of 2027-06-01. |
 
 ## Running them
 
@@ -31,33 +31,56 @@ psql -d demo -v ON_ERROR_STOP=1 -f scripts/dev/demo-data/teardrop-campers.sql
 `--dry-run` shows the plan and the clear step's full report and changes nothing.
 Use it first.
 
-## Dates and the anchor
+## Dates, and the five months that are not ddom's
 
-`teardrop-campers.sql` carries ddom's own dates, where "today" is **2027-02-01**,
-and shifts them all on the way in. Out of the box it anchors to **2027-07-05** —
-mid-2027, so January to June are complete in the books, which is the shape a
-historical summary wants. Move it per load:
+The as-of date is **2027-06-01**, with **17 complete months** of trading behind it
+(2026-01 .. 2027-05) and a forward order book running to 2027-10. That gives a
+dashboard a whole prior calendar year to compare against plus five months of the
+current one.
+
+ddom's own demand covers 2026-02 .. 2027-01 and sits here unshifted, which is what
+keeps the seasons right: this is a camper maker, and demand peaks in June and
+bottoms out from November to January. Five months are not ddom's and had to be
+built:
+
+| Month | Why |
+| --- | --- |
+| 2026-01 | ddom has no January at all |
+| 2027-01 | ddom's data runs out on the 29th, so its January is a part month; topped up to the level the surrounding winter months show |
+| 2027-02 .. 2027-05 | past the end of ddom's history |
+
+Each is modelled on the same calendar month a year earlier — its orders resampled
+in their own day-of-month pattern, same products, same quantities — at about **8%**
+above it, so the seasonal curve holds and year-on-year reads as steady growth
+rather than noise. The resampling is seeded, so the same file always produces the
+same months. The forward order book thins with distance, from about 85% of a month
+booked in 2027-06 down to 12% in 2027-10, the way an order book actually fills.
+
+What comes out, by ship month:
 
 ```
-npm run dev:load -- --anchor 2028-02-01 --script scripts/dev/demo-data/teardrop-campers.sql --db demo
-PGOPTIONS="-c featherbone.load_anchor=2028-02-01" psql -d demo -f scripts/dev/demo-data/teardrop-campers.sql
+2026   J   F   M   A   M   J   J   A   S   O   N   D
+units  51 110 120 141 127 160 135  88 124 113  55  53
+2027   J   F   M   A   M  | open book: Jun 137 lines, Jul 80,
+units  62 118 129 154 139 |            Aug 42, Sep 30, Oct 13
+YoY  +22  +7  +8  +9  +9  |
 ```
 
-`--anchor 2027-02-01` gives ddom's dates unshifted. Every date and timestamp moves
-together — history, open book, operation schedules, inventory — so the data stays
-consistent at any anchor, and the load says which anchor it used. A shift that is
-not a whole number of weeks also says so, because the weekly batching then falls on
-a different weekday.
+### Moving it
 
-**The seasons are the catch.** ddom's demand is seasonal the way a camper maker's
-is: in its own dates it peaks in June (154 order lines) and bottoms out in December
-(40). The default 154-day shift moves that peak to November and the trough to May,
-so at the default anchor the business appears to sell most of its campers going
-into winter. Only a shift of a whole number of years keeps the seasons where they
-belong, and ddom's history ends in January, so no such shift puts "today" mid-year
-— the two cannot both be had. If the seasons matter more than the mid-year position
-for what you are building, `--anchor 2028-02-01` is the same data twelve months on
-with the seasons intact and "today" in early February.
+The dates above are what the file carries. To move the whole data set without
+regenerating it, set an anchor; every date and timestamp shifts together —
+history, open book, operation schedules, inventory:
+
+```
+npm run dev:load -- --anchor 2028-06-01 --script scripts/dev/demo-data/teardrop-campers.sql --db demo
+PGOPTIONS="-c featherbone.load_anchor=2028-06-01" psql -d demo -f scripts/dev/demo-data/teardrop-campers.sql
+```
+
+**Shift by whole years** to keep the seasons where they are — a shift of five
+months, say, would move the June peak to November. A shift that is not a whole
+number of weeks also moves the weekly batching off its weekday, and says so when
+it loads. The load always reports the anchor it used.
 
 ## How the work orders are built
 
