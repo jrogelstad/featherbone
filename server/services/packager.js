@@ -519,6 +519,39 @@
         }
     }
 
+    /*
+        The dashboard layouts this module owns. A layout is one JSON
+        document keyed on a name -- no ids, so it cannot be broken by
+        ids differing between databases, and a module that ships one
+        arrives with a board rather than with a board to assemble.
+
+        The `isDefault` flag travels with it. Installing a module that
+        claims the default moves everybody who has not chosen a layout
+        of their own onto it, which is the point: a package's board is
+        no use if every user has to go and find it. Anyone who HAS
+        chosen keeps their choice, because that lives in their profile
+        and nothing here touches it.
+    */
+    function addDashboards(manifest, zip, resp, folder) {
+        let content = tools.sanitize(resp.rows);
+        let name = "dashboards.json";
+        let filename = folder + name;
+
+        if (content.length) {
+            content = JSON.stringify(content, null, 4);
+
+            manifest.files.push({
+                type: "dashboard",
+                path: name
+            });
+
+            zip.addFile(
+                filename,
+                Buffer.alloc(content.length, content)
+            );
+        }
+    }
+
     function addWorkbooks(manifest, zip, resp, folder) {
         let content = tools.sanitize(resp.rows);
         let name = "workbooks.json";
@@ -793,6 +826,16 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Dashboard layouts
+                sql = (
+                    "SELECT name, label, description, module, " +
+                    "sequence, is_default, config " +
+                    "FROM \"$dashboard\" WHERE module = $1 " +
+                    "AND NOT is_deleted " +
+                    "ORDER BY sequence, name;"
+                );
+                requests.push(client.query(sql, params));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = name;
                     let pathname = path.format({
@@ -818,6 +861,7 @@
                             folder
                         );
                         addWorkbooks(manifest, zip, resp[7], folder);
+                        addDashboards(manifest, zip, resp[11], folder);
 
                         if (sub.module) {
                             addModule(manifest, zip, [sub.module], folder);

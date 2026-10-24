@@ -37,7 +37,6 @@
     const MagicLoginStrategy = require("passport-magic-login").default;
     const {Config} = require("./server/config");
     const config = new Config();
-    const {Tools} = require("./server/services/tools");
     const {Admin} = require("./server/services/admin");
     const {Notify} = require("./server/services/notify");
     const {SignInLink} = require("./server/services/sign-in-link");
@@ -148,12 +147,15 @@
     f.jsonpatch = require("fast-json-patch");
 
     /**
+        The formats are hung on `f` by server/datasource.js, which
+        install.js loads as well, so that a module's code can register
+        its own however the install was started (item 0.11).
+
         @property formats
         @type Object
         @for f
         @final
     */
-    f.formats = new Tools().formats;
 
     let app = express();
     let eventSessions = {};

@@ -50,6 +50,26 @@ async function fleetEntry(session) {
     return found;
 }
 
+/*
+    How many connections this database has, to see whether a failure
+    gave its own back. Counted from the server's side rather than from
+    a pool report, because the client that leaked was checked out of
+    the pool and still looked perfectly alive from inside it.
+*/
+function connectionCount() {
+    return db.withClient("postgres", async function (client) {
+        let resp = await client.query(
+            (
+                "SELECT count(*)::int AS n FROM pg_stat_activity " +
+                "WHERE datname = $1"
+            ),
+            [settings.testDb]
+        );
+
+        return resp.rows[0].n;
+    });
+}
+
 function failedLinks() {
     return db.withClient(settings.testDb, (client) => client.query(
         "SELECT id FROM help_link WHERE display_value = $1",
@@ -161,6 +181,45 @@ describe("a package install that fails", function () {
             assert.match(resp.body.results[0].message, /was not deployed/);
         }
     );
+
+    /*
+        The failure above left its connection checked out of the
+        instance's pool for the life of the process, one per failure.
+        A ten-connection pool survived eight failed deploys and then
+        every request needing a connection to that instance waited for
+        one that was never coming -- no error, no timeout. Three
+        failures here: a leak shows as three more connections, and
+        anything that is not a leak stays where it was.
+    */
+    it(
+        "gives its connection back",
+        async function () {
+            let opened = await connectionCount();
+            let at = 0;
+
+            while (at < 3) {
+                at += 1;
+                await session.raw("POST", "/platform/instance/deploy", {
+                    id: target.id,
+                    module: "fbtfail",
+                    version: "1.0.0"
+                });
+                await session.raw(
+                    "POST",
+                    "/platform/instance/maintenance",
+                    {id: target.id, isMaintenance: false}
+                );
+            }
+
+            let left = await connectionCount();
+
+            assert.ok(
+                left <= opened + 1,
+                opened + " connections before three failed deploys, " +
+                left + " after"
+            );
+        }
+    );
 });
 
 describe("a package that seeds records into its own feather", function () {
@@ -210,6 +269,42 @@ describe("a package that seeds records into its own feather", function () {
         assert.deepEqual(
             resp.rows.map((row) => row.code),
             ["ALPHA", "BETA"]
+        );
+    });
+
+    it("has the dashboard layout the package shipped", async function () {
+        let resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT name, label, module, config FROM \"$dashboard\" " +
+                "WHERE name = 'FbtSeedBoard' AND NOT is_deleted"
+            )
+        );
+        let found = resp.rows[0];
+
+        assert.ok(found, "the layout the package carried is there");
+        assert.equal(found.label, "Seed Board");
+        assert.equal(found.module, "fbtseed");
+        // The whole spec travels, not just the name: a layout that
+        // arrived without its tiles would be a board to assemble.
+        assert.equal(found.config.tiles.length, 1);
+        assert.equal(found.config.tiles[0].cols, 5);
+        assert.equal(found.config.asOf, "2027-05-31");
+    });
+
+    it("makes the shipped layout the default", async function () {
+        let resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT name FROM \"$dashboard\" " +
+                "WHERE is_default AND NOT is_deleted ORDER BY name"
+            )
+        );
+
+        assert.deepEqual(
+            resp.rows.map((row) => row.name),
+            ["FbtSeedBoard"],
+            "exactly one default, and it is the one shipped"
         );
     });
 
