@@ -18,9 +18,18 @@
 "use strict";
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const {spawnSync} = require("child_process");
 const settings = require("./harness/env");
+const reporter = require("./harness/reporter");
+
+// Every run appends its counts here, so the session ends with one set of
+// failures and totals instead of one per file.
+const TALLY = path.join(
+    os.tmpdir(),
+    "fb-test-tally-" + process.pid + ".jsonl"
+);
 
 const UNIT_DIRS = ["unit"];
 const INTEGRATION_DIRS = ["api", "supplychain"];
@@ -56,7 +65,7 @@ function runNodeTest(files, extraEnv) {
     let result = spawnSync(process.execPath, args.concat(files), {
         cwd: settings.root,
         stdio: "inherit",
-        env: Object.assign({}, process.env, extraEnv)
+        env: Object.assign({FB_TEST_TALLY: TALLY}, process.env, extraEnv)
     });
     return result.status;
 }
@@ -127,6 +136,10 @@ async function main() {
         }
     }
 
+    if (!process.env.FB_TEST_REPORTER) {
+        console.log(reporter.summarize(TALLY));
+    }
+    fs.rmSync(TALLY, {force: true});
     process.exit(status);
 }
 
