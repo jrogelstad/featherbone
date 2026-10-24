@@ -109,11 +109,17 @@ async function seed() {
             return pk;
         }
 
-        // Administering an organization is an appointment over it
+        /*
+            Administering an organization is an appointment over it. An
+            appointment that is there but stood down is raised again
+            rather than left: another suite's clean-up deactivates the
+            row (test/harness/authority.js), and returning early on it
+            left this one's administrator with nothing.
+        */
         async function appoint(id, identityPk, orgPk) {
             let found = await client.query(
                 (
-                    "SELECT _pk FROM organization_admin " +
+                    "SELECT _pk AS pk FROM organization_admin " +
                     "WHERE _identity_identity_pk = $1 " +
                     "  AND _organization_organization_pk = $2"
                 ),
@@ -121,6 +127,13 @@ async function seed() {
             );
 
             if (found.rows.length) {
+                await client.query(
+                    (
+                        "UPDATE organization_admin SET is_active = true " +
+                        "WHERE _pk = $1"
+                    ),
+                    [found.rows[0].pk]
+                );
                 return;
             }
 

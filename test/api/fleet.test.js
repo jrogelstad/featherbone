@@ -290,6 +290,7 @@ describe("the fleet view (ADR-002)", function () {
 
             assert.equal(ids.length, 2, "both instances are named");
 
+            let since = new Date();
             let resp = await admin.raw("POST", "/admin/instances/deploy", {
                 instances: ids,
                 module: "fbtest",
@@ -312,6 +313,12 @@ describe("the fleet view (ADR-002)", function () {
             assert.equal(await maintenanceOf(settings.testDb), false);
             assert.equal(await maintenanceOf(settings.testDb2), false);
 
+            /*
+                This group's own rows. Another suite deploys to the
+                fleet as well (`deploy-failure`, whose package is built
+                to fail), so counting every row of these two actions in
+                the manager counted that one's too.
+            */
             let trail = await db.withClient(
                 settings.managerDb,
                 (client) => client.query(
@@ -319,8 +326,10 @@ describe("the fleet view (ADR-002)", function () {
                         "SELECT action, detail FROM admin_audit " +
                         "WHERE action IN " +
                         "  ('fleet.deploy_began', 'fleet.deploy_finished') " +
+                        "  AND created >= $1 " +
                         "ORDER BY created"
-                    )
+                    ),
+                    [since]
                 )
             );
 
