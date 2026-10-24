@@ -44,7 +44,11 @@ async function waitUntilUp(url, timeoutMs, logFile) {
     );
 }
 
-async function start() {
+// opts.modulesDir: the packages this server treats as installed. The
+// default is the fixture packages the framework suites use; the SupplyChain
+// suites need the real ones, because a deployed module's code is read from
+// its package on disk and never from the database.
+async function start(opts) {
     fs.mkdirSync(settings.artifacts, {recursive: true});
     const logFile = path.join(
         settings.artifacts,
@@ -56,7 +60,7 @@ async function start() {
         cwd: settings.root,
         env: Object.assign({}, process.env, {
             managerDatabase: settings.managerDb,
-            modulesDir: settings.modulesDir,
+            modulesDir: (opts && opts.modulesDir) || settings.modulesDir,
             PORT: String(settings.port),
             clientPort: String(settings.port),
             logSilent: "true",
