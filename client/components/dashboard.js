@@ -53,6 +53,8 @@
             module:      who contributed it
             name:        what the measure is called
             format:      {amount, compact, units} formatters, all optional
+            headingFor:  (tile) -> String, optional, names a tile from its
+                         own options
             defaultTile: a tile to put on the default layout, or omitted
             load:        (tile) -> Promise of {rows, total, asOf,
                          refreshedAt, comparison, comparisonLabel,
@@ -751,7 +753,15 @@ function measureTile(tile) {
     let fmt = measureFormats(source);
     let data = state.data;
     let display = tile.display || "bullets";
-    let heading = tile.heading || source.name || "Measure";
+    // The tile may be titled outright; failing that a source gets to name
+    // the tile from its own options, so a heading follows the dimension and
+    // window rather than going stale when they change.
+    let named = (
+        source.headingFor
+        ? source.headingFor(tile)
+        : source.name
+    );
+    let heading = tile.heading || named || "Measure";
     // Wide enough for the axis beneath it to label five intervals without
     // the labels running into each other, which at 150 they do.
     let width = 220;
