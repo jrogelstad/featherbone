@@ -27,22 +27,10 @@ const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
 const {Database} = require("../../server/database");
+const {flags} = require("../harness/authority");
 
 const TPL_DB = (settings.testDb + "_pooltpl").toLowerCase();
 
-function flags(username, data) {
-    return db.withClient(settings.managerDb, (client) => client.query(
-        (
-            "UPDATE identity SET is_org_admin = $2, " +
-            "  is_platform_admin = $3 WHERE lower(username) = lower($1)"
-        ),
-        [
-            username,
-            data.isOrgAdmin === true,
-            data.isPlatformAdmin === true
-        ]
-    ));
-}
 
 function instanceId(database) {
     return db.withClient(settings.managerDb, async function (client) {

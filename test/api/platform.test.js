@@ -22,6 +22,7 @@ const assert = require("node:assert/strict");
 const db = require("../harness/db");
 const settings = require("../harness/env");
 const {Session} = require("../harness/http");
+const {flags} = require("../harness/authority");
 
 const ROOT = settings.baseUrl.replace("/" + settings.testDb, "");
 const PLATFORM = "fbt_platform_admin";
@@ -30,21 +31,6 @@ const NEW_ORG = "FBHerbal";
 const NEW_ADMIN = "fbt_herbal_admin";
 const NEW_PW = "Fbtest-Herbal-4!";
 
-function flags(username, data) {
-    return db.withClient(settings.managerDb, (client) => client.query(
-        (
-            "UPDATE identity SET is_org_admin = $2, " +
-            "  is_platform_admin = $3, updated = now(), " +
-            "  updated_by = 'fbtest' " +
-            "WHERE lower(username) = lower($1)"
-        ),
-        [
-            username,
-            data.isOrgAdmin === true,
-            data.isPlatformAdmin === true
-        ]
-    ));
-}
 
 async function dropOrganization(name) {
     await db.withClient(settings.managerDb, async function (client) {
