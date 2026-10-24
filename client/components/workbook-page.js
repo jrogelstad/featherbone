@@ -1032,23 +1032,6 @@ workbookPage.viewModel = function (options) {
         return w.zoom();
     };
 
-    /**
-        How large the whole interface is drawn, as a percentage. What
-        the footer's zoom control now moves.
-
-        @method appZoom
-        @param {Number} [value] New percentage
-        @return {Number}
-    */
-    vm.appZoom = function (value) {
-        let scale = f.catalog().store().global().appZoom;
-
-        if (!scale) {
-            return 100;
-        }
-        return scale(value);
-    };
-
     // ..........................................................
     // PRIVATE
     //
@@ -1950,11 +1933,11 @@ workbookPage.component = {
                         /*
                             The zoom control used to sit here and scaled
                             this sheet's type. It scales the whole app
-                            now, so it moved to the ribbon's top bar,
-                            which is on every screen -- it was invisible
-                            on the dashboard while it was down here, and
-                            the dashboard is where somebody most wants
-                            to make things bigger (John, Oct 2026).
+                            now, and lives on the Home tab's View group
+                            as a pair of buttons and a percent field --
+                            a slider for it sat inside the very thing it
+                            was scaling and moved under the pointer as
+                            it was dragged (John, Oct 2026).
                         */
                         m("div", {
                             class: "fb-sheet-bar"

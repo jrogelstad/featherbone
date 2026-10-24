@@ -160,7 +160,7 @@
    works on top of it and compounds, which is the behaviour anybody
    pressing ctrl-plus expects. */
 :root {
-    --fb-ui-scale: 1.125;
+    --fb-ui-scale: 1.13;
 }
 
 html {
@@ -1047,6 +1047,70 @@ button:disabled .fb-ipicon,
   margin: 0 0 2px 0;
   font-weight: 400;
   cursor: pointer;
+}
+
+/* A list somebody picks several things out of, built to stay usable
+   when packages have contributed dozens of them: a filter above, a
+   scrolling list grouped by contributor, and a count below of what is
+   already ticked -- because a filter hides rows, and a hidden ticked
+   row that nobody mentions loses work silently. */
+.fb-dialog-picker {
+  display: inline-block;
+  vertical-align: top;
+  text-align: left;
+  min-width: 260px;
+}
+
+.fb-dialog-picker-filter {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+}
+
+.fb-dialog-picker-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 6px;
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
+  background: var(--fb-surface);
+}
+
+.fb-dialog-picker-group + .fb-dialog-picker-group {
+  margin-top: 8px;
+}
+
+.fb-dialog-picker-group-label {
+  color: var(--fb-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.fb-dialog-picker-list label {
+  display: block;
+  margin: 0 0 2px 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.fb-dialog-picker-none,
+.fb-dialog-picker-count {
+  color: var(--fb-text-muted);
+  font-size: 11px;
+}
+
+.fb-dialog-picker-count {
+  margin-top: 4px;
+}
+
+/* A reference a row has but cannot be drawn against -- a percentage of
+   zero. Shown rather than left blank: an empty cell among full ones
+   reads as a drawing failure rather than as an answer. */
+.fb-dash-cell-nil {
+  color: var(--fb-text-muted);
 }
 
 /* A sentence under a dialog's fields saying what the setting is for.
@@ -2192,25 +2256,29 @@ button:disabled .fb-ipicon,
   cursor: pointer;
 }
 
-/* The app zoom, in the ribbon's top bar so it is on every screen. Quiet
-   until the pointer is near it: it is a thing you set once and then
-   forget, and it sits beside the account name all day. */
-.fb-ribbon-zoom {
+/* A field standing among a ribbon group's buttons, the same height so
+   the row still reads as one row. Used by the View group's zoom
+   percent: a slider for that sat inside the thing it was scaling and
+   moved under the pointer as it was dragged, which a typed number
+   does not. */
+.fb-rb-field {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  margin-right: 10px;
-  opacity: 0.45;
-  transition: opacity 120ms ease-in;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 6px;
 }
 
-.fb-ribbon-zoom:hover,
-.fb-ribbon-zoom:focus-within {
-  opacity: 1;
+.fb-rb-field-input {
+  width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.fb-ribbon-zoom .fb-zoom-control {
-  width: 84px;
+.fb-rb-field-label {
+  font-size: 11px;
+  color: var(--fb-text-secondary);
 }
 
 .fb-zoom-icon {

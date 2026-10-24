@@ -126,6 +126,27 @@ const DASH_ROWS = 8;
 const DASH_SPARK_MONTHS = 12;
 
 /*
+    What a tile is judged against.
+
+    A bar on its own says how big something is; it takes a reference to
+    say whether that is good. Where that reference comes from is a
+    property of the TILE rather than of the data, because the same
+    measure is judged differently on different boards -- so the framework
+    works it out from the tile's own options and every source gets it
+    without having to know anything about targets.
+
+        "none"     nothing to judge against; just the figure
+        "history"  the comparison the source returned -- prior year,
+                   prior period, whatever that source was asked for
+        "fixed"    a number somebody typed
+        "growth"   a percentage better than that comparison
+
+    A source that returns a real stored target per row wins over all of
+    this: it knows something the tile does not.
+*/
+const DASH_TARGET_MODES = ["none", "history", "fixed", "growth"];
+
+/*
     What this user has chosen about the board -- which layout, and what
     date it reports as of -- lives in their profile, beside their
     worksheet column widths. So it follows them to another machine, and
@@ -200,6 +221,97 @@ function saveDashProfile(changes) {
     return write(DASH_PROFILE_KEY, next).catch(function () {
         return;
     });
+}
+
+/**
+    The number a row is judged against, or null where there is nothing to
+    judge it against.
+
+    Zero is a reference like any other and is not treated as absent --
+    which it was, and which is why a metric standing at 1 against 0 a
+    year ago drew no bar at all. Zero is useless as a DENOMINATOR, but
+    that is the caller's problem to state, not a reason to pretend the
+    reference is missing.
+*/
+function targetFor(tile, reference) {
+    let mode = tile.targetMode || "history";
+    let given = Number(tile.targetValue);
+    let from = Number(reference);
+    let hasReference = (
+        reference !== null &&
+        reference !== undefined &&
+        Number.isFinite(from)
+    );
+
+    if (DASH_TARGET_MODES.indexOf(mode) === -1 || mode === "none") {
+        return null;
+    }
+
+    if (mode === "fixed") {
+        return (
+            Number.isFinite(given)
+            ? given
+            : null
+        );
+    }
+
+    if (!hasReference) {
+        return null;
+    }
+
+    if (mode === "growth") {
+        return from * (1 + (
+            Number.isFinite(given)
+            ? given
+            : 0
+        ) / 100);
+    }
+
+    return from;
+}
+
+/**
+    The target a measure tile should DRAW, as against the one it is
+    judged by.
+
+    "history" means the reference is the comparison, and a measure tile
+    already draws that as its marker -- so drawing a target line there
+    too would put two marks in the same place and call them different
+    things. Only a target that says something the marker does not is
+    worth its own mark.
+
+    A KPI tile has no such marker: its bar is the ratio to the reference,
+    so it uses targetFor directly and "history" means exactly what it
+    says.
+*/
+function drawnTarget(tile, row) {
+    let mode = tile.targetMode || "history";
+
+    if (row.target !== null && row.target !== undefined) {
+        return Number(row.target);
+    }
+    if (mode === "fixed" || mode === "growth") {
+        return targetFor(tile, row.comparison);
+    }
+    return null;
+}
+
+/**
+    What a tile's target should be called, so a legend says where the
+    mark came from rather than always claiming "prior year".
+*/
+function targetLabel(tile, fallback) {
+    let mode = tile.targetMode || "history";
+    let given = Number(tile.targetValue);
+    let said = fallback || "prior year";
+
+    if (mode === "fixed") {
+        return "target";
+    }
+    if (mode === "growth" && Number.isFinite(given)) {
+        return given + "% above " + said;
+    }
+    return said;
 }
 
 /**
@@ -631,6 +743,34 @@ function withChosenAsOf(layout) {
         return layout;
     }
     return Object.assign({}, layout, {asOf: storedAsOf()});
+}
+
+/**
+    Removes a saved layout.
+
+    The service decides whether it is allowed -- a layout belongs to
+    whoever saved it -- so the answer is not assumed. If the layout
+    being removed is the one on screen, the choice is cleared first,
+    or the board would come back asking for a layout that is gone and
+    fall through to the default without saying why.
+*/
+function deleteLayout(name) {
+    let wasShowing = currentLayout && currentLayout.name === name;
+
+    return f.datasource().request({
+        method: "DELETE",
+        path: "/dashboard/" + encodeURIComponent(name)
+    }).then(function () {
+        if (wasShowing) {
+            return saveDashProfile({layout: null});
+        }
+    }).then(
+        startingLayout
+    ).then(function (next) {
+        currentLayout = next;
+        loadAll(next);
+        m.redraw();
+    });
 }
 
 /**
@@ -1127,8 +1267,30 @@ function kpiTile(tile) {
     let state = tileState[tile.id] || {status: "loading"};
     let draw = f.catalog().store().global().dashboardDraw;
     let rows = state.rows || [];
-    let anyComparison = rows.some(function (row) {
-        return row.comparison !== undefined && row.comparison !== null;
+    /*
+        Each metric as a percentage of what it is being judged against,
+        which is the tile's business rather than the metric's -- see
+        targetFor. Worked out once here so the rows, the axis and the
+        decision to draw either at all all agree.
+
+        A reference of zero is a real reference but a useless divisor:
+        "infinitely above nothing" is not a bar anybody can read, so the
+        row shows its figure and a dash where the bar would be.
+    */
+    let scaled = rows.map(function (row) {
+        let aim = targetFor(tile, row.comparison);
+        let pct = null;
+
+        if (aim !== null && aim !== 0) {
+            pct = (row.value / aim) * 100;
+        }
+        return {row, aim, pct};
+    });
+    let anyScale = scaled.some(function (one) {
+        return one.pct !== null;
+    });
+    let anyReference = scaled.some(function (one) {
+        return one.aim !== null;
     });
     let body;
 
@@ -1137,12 +1299,9 @@ function kpiTile(tile) {
     } else if (!rows.length) {
         body = m("div", {class: "fb-dash-tile-empty"}, "No metrics selected");
     } else {
-        let lines = rows.map(function (row) {
-            let pct = (
-                row.comparison
-                ? (row.value / row.comparison) * 100
-                : null
-            );
+        let lines = scaled.map(function (one) {
+            let row = one.row;
+            let said = targetLabel(tile, row.comparisonLabel);
 
             return m("tr", [
                 m("td", {class: "fb-dash-cell-spark"}, (
@@ -1152,20 +1311,21 @@ function kpiTile(tile) {
                 )),
                 m("td", {class: "fb-dash-cell-name"}, row.kpi.name),
                 (
-                    anyComparison
+                    anyReference
                     ? m("td", {class: "fb-dash-cell-graphic"}, (
-                        pct === null
-                        ? null
+                        one.pct === null
+                        // Said rather than left blank: an empty cell
+                        // among full ones reads as a drawing failure.
+                        ? m("span", {class: "fb-dash-cell-nil"}, "—")
                         : draw.bullet({
                             comparison: 100,
                             max: DASH_PCT_MAX,
                             ranges: DASH_PCT_BANDS,
                             title: (
                                 row.kpi.name + ": " +
-                                Math.round(pct) + "% of " +
-                                (row.comparisonLabel || "comparison")
+                                Math.round(one.pct) + "% of " + said
                             ),
-                            value: pct,
+                            value: one.pct,
                             width: 150,
                             height: 14
                         })
@@ -1173,14 +1333,14 @@ function kpiTile(tile) {
                     : null
                 ),
                 m("td", {class: "fb-dash-cell-value"}, (
-                    row.error
+                    (row.error || row.value === null)
                     ? "—"
                     : row.kpi.format(row.value)
                 ))
             ]);
         });
 
-        if (anyComparison) {
+        if (anyScale) {
             lines.push(m("tr", [
                 m("td"),
                 m("td"),
@@ -1196,7 +1356,23 @@ function kpiTile(tile) {
             ]));
         }
 
-        body = m("table", {class: "fb-dash-kpi-table"}, lines);
+        body = [
+            m("table", {class: "fb-dash-kpi-table"}, lines),
+            (
+                anyScale
+                // The axis is a percentage of something, and which
+                // something is the whole meaning of the bars above it.
+                ? m("div", {class: "fb-dash-caption"}, (
+                    "100% = " + targetLabel(tile, rows.reduce(
+                        function (found, row) {
+                            return found || row.comparisonLabel;
+                        },
+                        ""
+                    ))
+                ))
+                : null
+            )
+        ];
     }
 
     return [
@@ -1231,14 +1407,14 @@ function measureFormats(source) {
     A legend for a mark the tile does not carry is worse than no legend:
     it sends somebody looking for something that is not there.
 */
-function markerCaption(data, hasComparison, hasTarget) {
+function markerCaption(data, hasComparison, hasTarget, targetName) {
     let said = [];
 
     if (hasComparison) {
         said.push("short bar: " + (data.comparisonLabel || "prior year"));
     }
     if (hasTarget) {
-        said.push("full line: target");
+        said.push("full line: " + targetName);
     }
     if (!said.length) {
         return "";
@@ -1296,7 +1472,7 @@ function measureTile(tile) {
             return row.comparison !== undefined && row.comparison !== null;
         });
         let hasTarget = rows.some(function (row) {
-            return row.target !== undefined && row.target !== null;
+            return drawnTarget(tile, row) !== null;
         });
         // Opt-in rather than opt-out: a sparkline beside a bar says
         // something the bar does not, but on every row of every tile it is
@@ -1312,7 +1488,15 @@ function measureTile(tile) {
 
         rows.forEach(function (row) {
             let against = row.comparison || 0;
-            let candidate = Math.max(Number(row.amount), Number(against));
+            // A target beyond the longest bar still has to fit, or the
+            // mark that says "this is where we should be" sits off the
+            // end of the chart.
+            let aim = drawnTarget(tile, row);
+            let candidate = Math.max(
+                Number(row.amount),
+                Number(against),
+                Number(aim) || 0
+            );
 
             if (candidate > top) {
                 top = candidate;
@@ -1341,11 +1525,7 @@ function measureTile(tile) {
                 ? undefined
                 : row.comparison
             );
-            let aim = (
-                row.target === null
-                ? undefined
-                : row.target
-            );
+            let aim = drawnTarget(tile, row);
             let said = label + ": " + fmt.amount(amount);
             let graphic;
             let cells = [];
@@ -1356,7 +1536,7 @@ function measureTile(tile) {
                     (data.comparisonLabel || "prior year")
                 );
             }
-            if (aim !== undefined) {
+            if (aim !== null) {
                 said += ", target " + fmt.amount(aim);
             }
 
@@ -1365,7 +1545,11 @@ function measureTile(tile) {
                     comparison: against,
                     max,
                     ranges: [],
-                    target: aim,
+                    target: (
+                        aim === null
+                        ? undefined
+                        : aim
+                    ),
                     title: said,
                     value: amount,
                     width,
@@ -1437,7 +1621,8 @@ function measureTile(tile) {
                 ? m("div", {class: "fb-dash-caption"}, markerCaption(
                     data,
                     hasComparison,
-                    hasTarget
+                    hasTarget,
+                    targetLabel(tile, data.comparisonLabel)
                 ))
                 : null
             )
@@ -1860,6 +2045,7 @@ f.catalog().register("global", "dashboardLayoutName", function () {
 });
 f.catalog().register("global", "dashboardSaveLayout", saveLayout);
 f.catalog().register("global", "dashboardUseLayout", useLayout);
+f.catalog().register("global", "dashboardDeleteLayout", deleteLayout);
 f.catalog().register("global", "dashboardAddTile", addTile);
 f.catalog().register("global", "dashboardRemoveTile", removeTile);
 f.catalog().register("global", "dashboardTileChoices", tileChoices);
