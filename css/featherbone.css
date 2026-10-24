@@ -1010,6 +1010,16 @@ button:disabled .fb-ipicon,
   color: var(--fb-text-muted);
 }
 
+/* A sentence under a dialog's fields saying what the setting is for.
+   Narrow on purpose: prose set the full width of a dialog is a wall. */
+.fb-dialog-note {
+  max-width: 34em;
+  margin-top: 12px;
+  color: var(--fb-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .fb-filter-dialog-input {
   max-width: 200px;
 }
@@ -3529,6 +3539,17 @@ button:disabled .fb-ipicon,
 
 .fb-dash-refresh-note {
     color: var(--fb-text-muted);
+}
+
+/* The reporting date, when the board has been pinned to one. Weighted
+   rather than muted, because a board showing a date other than today has
+   to say so where the eye lands first -- figures from another quarter are
+   indistinguishable from wrong figures otherwise. Not the loud
+   .fb-env-banner treatment: pinning is a legitimate thing to do, not a
+   hazard. */
+.fb-dash-as-of {
+    color: var(--fb-text);
+    font-weight: 600;
 }
 
 /* Red is reserved for things that are wrong, which this is. */
