@@ -2456,8 +2456,19 @@
                                     unique.push(key);
                                 }
 
+                                /*
+                                    A relation's column is not
+                                    key.toSnakeCase() but the
+                                    _<key>_<relation>_pk one, and every
+                                    one of those is indexed below, so
+                                    isIndexed on a relation property
+                                    adds nothing. Naming the wrong column
+                                    here failed the whole feather save.
+                                */
                                 if (
                                     ps[key].isIndexed &&
+                                    !(typeof ptype === "object" &&
+                                    ptype.relation) &&
                                     indices.indexOf(key) === -1
                                 ) {
                                     indices.push(key);
