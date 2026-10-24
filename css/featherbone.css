@@ -3506,10 +3506,41 @@ button:disabled .fb-ipicon,
 }
 
 .fb-dash-tile-heading {
+    display: flex;
+    align-items: baseline;
     font-size: 12px;
     font-weight: 600;
     color: var(--fb-text-secondary);
     margin-bottom: 8px;
+}
+
+/* Sits right after the heading rather than at the tile's far edge. A
+   tile has no border, so nothing but adjacency says which tile a
+   control belongs to, and an x floating in white space at the end of a
+   wide tile is a question rather than an affordance. */
+.fb-dash-tile-remove {
+    margin-left: 10px;
+    padding: 0 2px;
+    border: none;
+    background: none;
+    color: var(--fb-text-muted);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    /* Invisible rather than absent: appearing on hover must not move
+       anything, and a board being read should not be a board covered in
+       buttons. */
+    opacity: 0;
+    transition: opacity 120ms ease-in;
+}
+
+.fb-dash-tile:hover .fb-dash-tile-remove,
+.fb-dash-tile-remove:focus {
+    opacity: 1;
+}
+
+.fb-dash-tile-remove:hover {
+    color: var(--fb-danger);
 }
 
 .fb-dash-tile-empty {

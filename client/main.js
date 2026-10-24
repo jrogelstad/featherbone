@@ -82,6 +82,8 @@ let navCategoryErrDlg;
 let asOfDlg;
 let saveLayoutDlg;
 let saveLayoutErrDlg;
+let addTileDlg;
+let addTileErrDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
@@ -98,6 +100,29 @@ const newname = f.prop("");
 // today. Only written back to the board when the dialog is accepted.
 const asOfPending = f.prop("");
 const asOfId = f.createId();
+
+/*
+    For the Add Tile dialog. `addTileWhat` is either a source key or the
+    sentinel below, meaning a tile of chosen metrics rather than one
+    source's measure. `addTileOpts` collects whatever questions the
+    chosen source said it accepts, keyed by the tile property each sets,
+    so nothing here knows what a dimension or a measure is.
+*/
+const ADD_TILE_KPIS = "__kpis";
+const ADD_TILE_SIZES = [
+    {value: "small", label: "Small", cols: 4, rows: 2},
+    {value: "medium", label: "Medium", cols: 5, rows: 3},
+    {value: "large", label: "Large", cols: 7, rows: 4},
+    {value: "wide", label: "Wide", cols: 9, rows: 3},
+    {value: "tall", label: "Tall", cols: 4, rows: 5}
+];
+const addTileWhat = f.prop(ADD_TILE_KPIS);
+const addTileOpts = f.prop({});
+const addTileKpis = f.prop([]);
+const addTileSize = f.prop("medium");
+const addTileDisplay = f.prop("bullets");
+const addTileSpark = f.prop(false);
+const addTileId = f.createId();
 
 // For saving the board's arrangement as a layout everyone can start from
 const layoutName = f.prop("");
@@ -562,6 +587,24 @@ function homeRibbonGroups() {
     }, {
         label: "Dashboard",
         buttons: [{
+            label: "Dashboard",
+            icon: "dashboard",
+            /*
+                The board is the Home route, and until now the only way
+                back to it from a workbook was the root URL. These
+                buttons show on every page's Home tab, so this is the
+                way back from wherever you are (John, Oct 2026).
+            */
+            title: "Open the dashboard",
+            onclick: () => m.route.set("/home")
+        }, {
+            label: "Add Tile",
+            icon: "add_chart",
+            title: "Put another tile on the dashboard",
+            onclick: function () {
+                addTileDlg.show();
+            }
+        }, {
             label: "Refresh",
             icon: "refresh",
             /*
@@ -669,6 +712,12 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.saveLayoutErrDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.addTileDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.addTileErrDlg
             })
         ];
     }
@@ -1562,6 +1611,216 @@ function initApp() {
             ]);
         };
         /*
+            View model for putting a tile on the board.
+
+            Everything it offers comes from what has registered: the
+            sources, the questions each one accepts, and the metrics a
+            Key Metrics tile can hold. Nothing here knows what revenue,
+            a region or a user count is, which is what lets a package
+            contribute a tile type without the framework being taught
+            about it.
+        */
+        addTileErrDlg = viewModels.dialog({
+            icon: "error",
+            title: "No room"
+        });
+        addTileDlg = viewModels.dialog({
+            icon: "add_chart",
+            title: "Add tile"
+        });
+        addTileDlg.style().width = "520px";
+        addTileDlg.content = function () {
+            let choices = catalog.store().global().dashboardTileChoices;
+            let offer = (
+                choices
+                ? choices()
+                : {kpis: [], sources: []}
+            );
+            let picked = offer.sources.find(
+                (one) => one.key === addTileWhat()
+            );
+            let parts = [];
+
+            function group(label, control) {
+                return m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", label),
+                    control
+                ]);
+            }
+
+            parts.push(m("div", {
+                class: "pure-control-group"
+            }, [
+                m("label", {
+                    for: addTileId
+                }, "Show:"),
+                m("select", {
+                    id: addTileId,
+                    onchange: function (e) {
+                        addTileWhat(e.target.value);
+                        // The questions belong to the source that was
+                        // chosen, so answers to the last one's are not
+                        // carried over.
+                        addTileOpts({});
+                    },
+                    value: addTileWhat()
+                }, [
+                    m("option", {
+                        value: ADD_TILE_KPIS
+                    }, "Key metrics")
+                ].concat(offer.sources.map(function (one) {
+                    return m("option", {
+                        value: one.key
+                    }, one.label + " (" + one.module + ")");
+                })))
+            ]));
+
+            if (addTileWhat() === ADD_TILE_KPIS) {
+                parts.push(group("Metrics:", m("div", offer.kpis.map(
+                    function (kpi) {
+                        return m("div", [
+                            m("input", {
+                                type: "checkbox",
+                                checked: addTileKpis().indexOf(kpi.key) > -1,
+                                onchange: function (e) {
+                                    let held = addTileKpis().filter(
+                                        (key) => key !== kpi.key
+                                    );
+
+                                    if (e.target.checked) {
+                                        held.push(kpi.key);
+                                    }
+                                    addTileKpis(held);
+                                }
+                            }),
+                            m("span", " " + kpi.label)
+                        ]);
+                    }
+                ))));
+            } else if (picked) {
+                picked.options.forEach(function (option) {
+                    let held = addTileOpts();
+                    let now = (
+                        held[option.key] === undefined
+                        ? option.default
+                        : held[option.key]
+                    );
+
+                    parts.push(group(option.label + ":", m("select", {
+                        onchange: function (e) {
+                            let next = Object.assign({}, addTileOpts());
+
+                            next[option.key] = e.target.value;
+                            addTileOpts(next);
+                        },
+                        value: now
+                    }, option.choices.map(function (choice) {
+                        return m("option", {
+                            value: choice.value
+                        }, choice.label);
+                    }))));
+                });
+
+                parts.push(group("Chart:", m("select", {
+                    onchange: (e) => addTileDisplay(e.target.value),
+                    value: addTileDisplay()
+                }, [
+                    m("option", {value: "bullets"}, "Bars with comparison"),
+                    m("option", {value: "bars"}, "Ranked bars"),
+                    m("option", {value: "table"}, "Numbers only")
+                ])));
+
+                parts.push(group("History:", m("input", {
+                    type: "checkbox",
+                    checked: addTileSpark(),
+                    onchange: (e) => addTileSpark(e.target.checked)
+                })));
+            }
+
+            parts.push(group("Size:", m("select", {
+                onchange: (e) => addTileSize(e.target.value),
+                value: addTileSize()
+            }, ADD_TILE_SIZES.map(function (size) {
+                return m("option", {
+                    value: size.value
+                }, size.label);
+            }))));
+
+            parts.push(m("div", {
+                class: "fb-dialog-note"
+            }, (
+                "The tile appears straight away. Nothing is kept until " +
+                "you save the layout."
+            )));
+
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, parts);
+        };
+        addTileDlg.onOk(function () {
+            let add = catalog.store().global().dashboardAddTile;
+            let size = ADD_TILE_SIZES.find(
+                (one) => one.value === addTileSize()
+            );
+            let tile = {
+                cols: size.cols,
+                rows: size.rows
+            };
+            let placed;
+
+            if (!add) {
+                return;
+            }
+
+            if (addTileWhat() === ADD_TILE_KPIS) {
+                tile.type = "kpi";
+                tile.heading = "Key Metrics";
+                tile.kpis = addTileKpis();
+            } else {
+                tile.type = "measure";
+                tile.source = addTileWhat();
+                tile.display = addTileDisplay();
+                tile.showSpark = addTileSpark();
+                // Whatever the source asked to be asked, handed back
+                // as tile properties for its own load to read.
+                Object.keys(addTileOpts()).forEach(function (key) {
+                    tile[key] = addTileOpts()[key];
+                });
+            }
+
+            placed = add(tile);
+            // Added from a workbook page, the tile is waiting on a board
+            // nobody is looking at. Go and look at it.
+            if (placed && m.route.get() !== "/home") {
+                m.route.set("/home");
+            }
+            if (!placed) {
+                addTileErrDlg.message(
+                    "There is no room left on the board for a tile that " +
+                    "size. Take one off, or choose a smaller size."
+                );
+                addTileErrDlg.show();
+            }
+        });
+        addTileDlg.buttonOk().label("Add");
+        addTileDlg.buttonOk().isDisabled = function () {
+            return (
+                addTileWhat() === ADD_TILE_KPIS &&
+                !addTileKpis().length
+            );
+        };
+        addTileDlg.buttonOk().title = function () {
+            if (
+                addTileWhat() === ADD_TILE_KPIS &&
+                !addTileKpis().length
+            ) {
+                return "Choose at least one metric";
+            }
+        };
+
+        /*
             View model for saving the board's arrangement. The error
             dialog is its own, in the idiom of the navigation category
             dialogs above: a save that the service refused -- somebody
@@ -1773,6 +2032,16 @@ function initApp() {
             "global",
             "saveLayoutErrDlg",
             saveLayoutErrDlg
+        );
+        catalog.register(
+            "global",
+            "addTileDlg",
+            addTileDlg
+        );
+        catalog.register(
+            "global",
+            "addTileErrDlg",
+            addTileErrDlg
         );
 
         m.route(document.body, "/home", routes);
