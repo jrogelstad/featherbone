@@ -56,10 +56,28 @@
             headingFor:  (tile) -> String, optional, names a tile from its
                          own options
             defaultTile: a tile to put on the default layout, or omitted
+            options:     what this source may be asked for, or omitted
             load:        (tile) -> Promise of {rows, total, asOf,
                          refreshedAt, comparison, comparisonLabel,
                          needsRefresh}
         }
+
+    `options` is how a source tells the Add Tile dialog what questions to
+    ask about it, so the framework can offer "Revenue YTD by region" or
+    "Bookings MTD by customer" without knowing that revenue, bookings,
+    regions or customers exist:
+
+        [{
+            key:     the tile property this sets, e.g. "dimension"
+            label:   what to call it on the dialog
+            choices: [{value, label}]
+            default: the value to start on, optional
+        }]
+
+    A source with no `options` can still be put on the board; it simply
+    arrives as its `defaultTile` with nothing to choose. Whatever the
+    dialog collects is handed straight back to `load` as tile properties,
+    so a source that invents a new option needs no change here.
 
     where each row is `{key, label, amount, units, comparison, pctOfTotal,
     spark}`. `needsRefresh` is how a source says its aggregates have never
@@ -539,6 +557,78 @@ function startingLayout() {
 }
 
 /**
+    Puts a tile on the board and loads it.
+
+    The board is rearranged rather than appended to, because a tile added
+    to a full board has to come from somewhere: the packer shrinks or
+    drops to fit, which is the same guarantee every other arrangement
+    gets. Nothing is written anywhere until somebody saves the layout --
+    trying a tile out should cost nothing.
+*/
+function addTile(tile) {
+    let layout = currentLayout || composeLayout();
+    let wanted = Object.assign({
+        id: "tile-" + f.createId(),
+        sequence: layout.tiles.length
+    }, tile);
+    let next = Object.assign({}, layout, {
+        tiles: placeTiles(layout.tiles.concat([wanted]))
+    });
+    let placed = next.tiles.some(function (one) {
+        return one.id === wanted.id;
+    });
+
+    currentLayout = next;
+    loadAll(next);
+    m.redraw();
+
+    // The packer drops what it cannot draw legibly, and a tile that
+    // silently fails to appear is worse than being told the board is
+    // full.
+    return placed;
+}
+
+/**
+    Takes a tile off the board. Not saved until the layout is.
+*/
+function removeTile(id) {
+    let layout = currentLayout || composeLayout();
+
+    currentLayout = Object.assign({}, layout, {
+        tiles: placeTiles(layout.tiles.filter(function (tile) {
+            return tile.id !== id;
+        }))
+    });
+    delete tileState[id];
+    m.redraw();
+}
+
+/**
+    What the Add Tile dialog needs to build itself: every source that can
+    feed a measure tile, with the questions it accepts, and every KPI that
+    can go in a metrics tile.
+*/
+function tileChoices() {
+    return {
+        kpis: listKpis().map(function (kpi) {
+            return {
+                key: kpi.key,
+                label: kpi.name,
+                module: kpi.module
+            };
+        }),
+        sources: listSources().map(function (source) {
+            return {
+                key: source.key,
+                label: source.name,
+                module: source.module,
+                options: source.options || []
+            };
+        })
+    };
+}
+
+/**
     Saves the board as a named layout, and shows what was saved.
 
     Saving is what makes an arrangement somebody else's starting point, so
@@ -1003,7 +1093,10 @@ function kpiTile(tile) {
     }
 
     return [
-        m("div", {class: "fb-dash-tile-heading"}, tile.heading),
+        m("div", {class: "fb-dash-tile-heading"}, [
+            m("span", tile.heading),
+            removeControl(tile)
+        ]),
         body
     ];
 }
@@ -1216,14 +1309,46 @@ function measureTile(tile) {
                 total === null
                 ? null
                 : m("span", {class: "fb-dash-tile-total"}, fmt.amount(total))
-            )
+            ),
+            removeControl(tile)
         ]),
         body
     ];
 }
 
+/**
+    The control that takes a tile off the board.
+
+    Lives in the tile's own heading rather than in a mode somebody has to
+    enter first: a board is arranged by trying things, and a tile you
+    cannot get rid of makes trying things expensive. It is faint until the
+    tile is hovered, so a board being read is not a board covered in
+    buttons.
+*/
+function removeControl(tile) {
+    return m("button", {
+        class: "fb-dash-tile-remove",
+        title: "Take this tile off the board",
+        onclick: function () {
+            removeTile(tile.id);
+        }
+    }, "\u00d7");
+}
+
 let dashboard = {
     oninit: function () {
+        /*
+            Coming back to the board, not arriving at it: whatever was
+            being arranged is still there. The Home tab's buttons show on
+            every page, so a tile can be added from a workbook and found
+            waiting here, and a trip out to look something up should not
+            cost an arrangement that was never saved.
+        */
+        if (currentLayout) {
+            loadAll(currentLayout);
+            return;
+        }
+
         // Draws the composed board straight away and swaps in the saved
         // layout when it arrives: a dashboard that shows nothing until a
         // round trip finishes is a dashboard that looks broken on a slow
@@ -1333,6 +1458,9 @@ f.catalog().register("global", "dashboardLayoutName", function () {
     );
 });
 f.catalog().register("global", "dashboardSaveLayout", saveLayout);
+f.catalog().register("global", "dashboardAddTile", addTile);
+f.catalog().register("global", "dashboardRemoveTile", removeTile);
+f.catalog().register("global", "dashboardTileChoices", tileChoices);
 f.catalog().register("global", "dashboardSetAsOf", setAsOf);
 f.catalog().register("global", "dashboardTitle", dashboardTitle);
 f.catalog().register("components", "dashboard", dashboard);
