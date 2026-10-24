@@ -4309,6 +4309,10 @@
             doAdmin("setOrgAdmin")
         );
         dbRouter.post(
+            "/:db/admin/identity/instance-admin",
+            doAdmin("setInstanceAdmin")
+        );
+        dbRouter.post(
             "/:db/admin/identity/platform-admin",
             doAdmin("setPlatformAdmin")
         );

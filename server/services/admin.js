@@ -526,6 +526,13 @@
             user name. Empty when there is no instance (the platform
             console) or it cannot be read: the screen then shows what
             the identity holds, as it always did.
+
+            `is_super` comes along because it is the third tier --
+            instance administrator -- and it lives here, on the
+            profile, not on the identity in the manager. It is read
+            with the contact details rather than in a query of its own
+            because it answers for the same set of people: those with a
+            profile in this instance.
         */
         async function instanceContacts(obj) {
             let found = {};
@@ -539,7 +546,8 @@
                 conn = await db.connect(obj.tenant);
 
                 let resp = await conn.client.query(
-                    "SELECT lower(u.name) AS name, c.first_name, " +
+                    "SELECT lower(u.name) AS name, u.is_super, " +
+                    "  c.first_name, " +
                     "  c.last_name, c.email, c.phone " +
                     "FROM user_account u " +
                     "LEFT OUTER JOIN contact c ON " +
@@ -576,6 +584,16 @@
             out.firstName = first;
             out.lastName = last;
             out.phone = contact.phone || "";
+            /*
+                Only ever said of somebody with a profile here, which
+                is the only place the flag exists. Left undefined
+                otherwise so the screen can tell "not an instance
+                administrator" from "this instance has never heard of
+                them" -- and so an organization reached by break-glass,
+                whose instances are not read, says nothing at all
+                rather than saying no.
+            */
+            out.isInstanceAdmin = contact.is_super === true;
 
             if (contact.email) {
                 out.email = contact.email;
@@ -1378,6 +1396,151 @@
             }
 
             return result;
+        };
+
+        /**
+            Make somebody an administrator of the instance this request
+            came through, or stand them down.
+
+            The third tier (ADR-001 section 3), and the only one that
+            lives in the instance rather than in the manager: it is
+            `user_account.is_super` on the profile they keep there.
+            Nothing on this screen could set it before -- it was a
+            checkbox on the User Account form, which is the form this
+            screen is meant to replace (John, Oct 2026) -- so the
+            infrastructure for the tier existed with no way to appoint
+            anybody to it.
+
+            Scoped to the signed-in instance deliberately. The flag is
+            per instance and an organization's instances are each
+            administered separately, so "make them an administrator"
+            has to name which one, and the one the caller is looking at
+            is the one they mean. An organization reached by break-glass
+            is refused for the same reason: its instances are not the
+            ones this request can write to.
+
+            Refused on somebody who already answers for more than this
+            instance. An organization administrator holds the flag in
+            every instance the organization owns (`setOrgAdmin` raises
+            it there), and a platform administrator answers for every
+            organization, so granting would say nothing and revoking
+            would be undone by the appointment behind it. Stand them
+            down from that tier first.
+
+            @method setInstanceAdmin
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Identity id
+            @param {Boolean} payload.data.isInstanceAdmin
+            @return {Promise}
+        */
+        that.setInstanceAdmin = async function (obj) {
+            let data = obj.data || {};
+            let isAdmin = data.isInstanceAdmin === true;
+
+            if (!obj.tenant) {
+                throw forbidden(
+                    "An instance administrator administers one " +
+                    "instance, so this must be asked of that instance"
+                );
+            }
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+
+                if (ctx.tier === "instance") {
+                    throw forbidden(
+                        "Only an organization administrator may appoint " +
+                        "administrators"
+                    );
+                }
+
+                if (ctx.organizationPk !== ctx.homeOrganizationPk) {
+                    throw forbidden(
+                        "This instance is not that organization's. Its " +
+                        "administrators are appointed from one of its " +
+                        "own instances."
+                    );
+                }
+
+                let target = await manager.identityById(
+                    mclient,
+                    ctx.organizationPk,
+                    data.id
+                );
+
+                if (!target) {
+                    throw notFound("No such identity");
+                }
+
+                if (target.is_platform_admin) {
+                    throw forbidden(
+                        target.username + " administers every " +
+                        "organization, which carries this already"
+                    );
+                }
+
+                if (target.is_org_admin) {
+                    throw forbidden(
+                        target.username + " administers the " +
+                        "organization, which carries this in every " +
+                        "instance it owns"
+                    );
+                }
+
+                /*
+                    A profile is what the flag is written on, and a
+                    live grant to this instance is what entitles
+                    somebody to one (tenant plan B.7). Without the
+                    grant there is nothing to raise and nothing that
+                    should be raised: grant the instance first.
+                */
+                let granted = await mclient.query(
+                    (
+                        "SELECT 1 FROM access_grant " +
+                        "WHERE _identity_identity_pk = $1 " +
+                        "  AND _tenant_tenant_pk = $2 " +
+                        "  AND is_active AND NOT is_deleted"
+                    ),
+                    [target._pk, ctx.tenantPk]
+                );
+
+                if (!granted.rows.length) {
+                    throw forbidden(
+                        target.username + " has no access to " +
+                        obj.tenant.name + ". Grant the instance first."
+                    );
+                }
+
+                /*
+                    The instance first, then the audit row, both inside
+                    this transaction. A flag that cannot be written
+                    throws before anything is recorded, so the trail
+                    never claims an appointment that did not happen --
+                    the opposite order would leave exactly that behind
+                    when the instance could not be reached.
+                */
+                if (isAdmin) {
+                    await db.makeProfile(obj.tenant, target.username, true);
+                } else {
+                    await db.setSuper(obj.tenant, target.username, false);
+                }
+
+                await manager.audit(mclient, {
+                    action: (
+                        isAdmin
+                        ? "identity.instance_admin_granted"
+                        : "identity.instance_admin_revoked"
+                    ),
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: "Instance " + obj.tenant.name,
+                    organizationPk: ctx.organizationPk,
+                    targetIdentityPk: target._pk
+                });
+
+                return true;
+            });
         };
 
         /**
