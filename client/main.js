@@ -413,6 +413,13 @@ function goGlobalSettings() {
     @return {Array}
 */
 function homeRibbonGroups() {
+    let dashStatus = catalog.store().global().dashboardRefreshStatus;
+    let isRefreshing = (
+        dashStatus
+        ? dashStatus() === "running"
+        : false
+    );
+
     return [{
         label: "Accounts",
         buttons: acctMenu.actionButtons()
@@ -531,7 +538,17 @@ function homeRibbonGroups() {
         buttons: [{
             label: "Refresh",
             icon: "refresh",
-            title: "Recalculate the figures the dashboard shows",
+            /*
+                A rebuild can take a while, so the button says it is busy
+                rather than quietly accepting a second press. What it is
+                working on, and how it went, are on the board itself.
+            */
+            title: (
+                isRefreshing
+                ? "Rebuilding the figures now"
+                : "Rebuild the figures the dashboard shows"
+            ),
+            disabled: isRefreshing,
             onclick: function () {
                 let refresh = catalog.store().global().dashboardRefresh;
 

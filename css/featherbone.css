@@ -3478,19 +3478,86 @@ button:disabled .fb-ipicon,
     font-size: 12px;
 }
 
+/* The board and its status line share a column, so the line takes the
+   height it needs and the grid takes the rest. */
+.fb-dash-frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+/* What Refresh is doing, or how old the figures are: one quiet line, said
+   once, above the board rather than repeated on every tile. */
+.fb-dash-refresh-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 6px 14px 0 14px;
+    font-size: 11px;
+}
+
+.fb-dash-refresh-note {
+    color: var(--fb-text-muted);
+}
+
+/* Red is reserved for things that are wrong, which this is. */
+.fb-dash-refresh-fail {
+    color: var(--fb-danger);
+}
+
 /* No gridlines and no striping: both are non-data pixels that make a short
    table harder to scan, not easier. */
-.fb-dash-kpi-table {
+.fb-dash-kpi-table,
+.fb-dash-measure-table {
     border-collapse: collapse;
 }
 
-.fb-dash-kpi-table td {
+.fb-dash-kpi-table td,
+.fb-dash-measure-table td {
     padding: 3px 10px 3px 0;
     vertical-align: middle;
 }
 
+/* A grouped measure tile has no qualitative ranges to show -- there are no
+   targets -- so its bullets carry a single band, which is a plot backdrop
+   and not a judgement. Drawn light, so the measure stays the darkest thing
+   in the row. */
+.fb-dash-measure-table .fb-dash-band-1 {
+    fill: var(--fb-dash-band-4);
+}
+
+/* The tile's own total, stated once beside the heading rather than as
+   another row competing with the members. */
+.fb-dash-tile-total {
+    float: right;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+/* What the marker means, said once under the table. */
+.fb-dash-caption {
+    margin-top: 2px;
+    font-size: 10px;
+    color: var(--fb-text-muted);
+}
+
+.fb-dash-tile-error {
+    font-size: 12px;
+    color: var(--fb-danger);
+}
+
+.fb-dash-cell-pct {
+    text-align: right;
+    white-space: nowrap;
+    color: var(--fb-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
 .fb-dash-cell-spark { width: 80px; }
 .fb-dash-cell-graphic { width: 150px; }
+.fb-dash-measure-table .fb-dash-cell-graphic { width: 220px; }
 .fb-dash-cell-name { white-space: nowrap; }
 
 .fb-dash-cell-value {

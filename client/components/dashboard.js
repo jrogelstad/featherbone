@@ -18,8 +18,9 @@
 /*jslint browser, unordered*/
 /*global f, m*/
 /**
-    The dashboard board that fills the Home tab, and the KPI tile that sits
-    on it. Draws with the marks in dashboard-draw.js.
+    The dashboard board that fills the Home tab, the tiles that sit on it,
+    and the Refresh action behind the Home ribbon's button. Draws with the
+    marks in dashboard-draw.js.
 
     The board is a fixed grid mapped onto whatever space the page gives it:
     cell width is the area divided by DASH_COLS, cell height by DASH_ROWS, so
@@ -29,10 +30,10 @@
     grid is abandoned and tiles stack in one column, which is the single
     sanctioned exception (see the CSS).
 
-    **KPIs are open-ended.** A KPI is a descriptor any module can contribute
-    through `dashboardKpis`, registered globally the way sseState and
-    connectionMonitor are, so purchasing and work-order KPIs later join the
-    same list without this file changing. A descriptor is:
+    **Three things a module contributes, all open-ended.**
+
+    A *KPI* (`dashboardKpis`) is one number with an optional comparison and
+    history, shown as a row in a KPI tile:
 
         {
             key:    unique string
@@ -43,17 +44,49 @@
                     spark}
         }
 
-    `comparison` and `spark` are both optional, and absent means absent: a
-    KPI with no comparison draws no marker rather than a zero, and if NO KPI
-    in a tile has one the whole percentage column disappears and the tile
-    falls back to name-and-number -- the plain badge John described as the
-    standard form. That degradation is the point, not an edge case: targets
-    are not to be a prerequisite for the dashboard being worth looking at.
+    A *source* (`dashboardSources`) feeds a grouped measure tile -- a measure
+    broken down by some dimension, which is figure 8-1's "Revenue YTD by
+    region" and everything shaped like it:
 
-    Layouts are held in code here for now. They become records (a feather,
-    per-user, shareable, shippable in a package) in the next increment; this
-    file is deliberately client-only so the board can be seen with a browser
-    reload and no install.
+        {
+            key:         unique string
+            module:      who contributed it
+            name:        what the measure is called
+            format:      {amount, compact, units} formatters, all optional
+            defaultTile: a tile to put on the default layout, or omitted
+            load:        (tile) -> Promise of {rows, total, asOf,
+                         refreshedAt, comparison, comparisonLabel,
+                         needsRefresh}
+        }
+
+    where each row is `{key, label, amount, units, comparison, pctOfTotal,
+    spark}`. `needsRefresh` is how a source says its aggregates have never
+    been built, which is a different thing from an error and is shown as an
+    instruction rather than a failure.
+
+    A *refresher* (`dashboardRefreshers`) is a routine that rebuilds those
+    aggregates, run by the ribbon's Refresh button:
+
+        {
+            key:      unique string
+            module:   who contributed it
+            label:    what Refresh says it is working on
+            run:      () -> Promise of whatever the service returns
+            describe: (outcome) -> String, optional, for the status line
+        }
+
+    `comparison` and `spark` are optional throughout, and absent means
+    absent: a KPI with no comparison draws no marker rather than a zero, and
+    if NO KPI in a tile has one the whole percentage column disappears and
+    the tile falls back to name-and-number -- the plain badge John described
+    as the standard form. The same degradation runs through the measure tile:
+    no comparison anywhere means bullets become plain ranked bars. That is
+    the point, not an edge case: targets and history are not to be a
+    prerequisite for the dashboard being worth looking at.
+
+    Layouts are held in code here for now, composed from whatever has
+    registered. They become records (a feather, per-user, shareable,
+    shippable in a package) in the next increment.
 */
 const DASH_COLS = 12;
 const DASH_ROWS = 8;
@@ -66,9 +99,28 @@ const DASH_SPARK_MONTHS = 12;
 const DASH_PCT_MAX = 150;
 const DASH_PCT_BANDS = [1 / 3, 2 / 3];
 
+// Nothing legible is smaller than this, so a tile that cannot be given at
+// least this much is left off the board rather than drawn unreadable.
+const DASH_MIN_COLS = 3;
+const DASH_MIN_ROWS = 2;
+
 let kpiRegistry = {};
+let sourceRegistry = {};
+let refresherRegistry = {};
 let tileState = {};
 let loadToken = 0;
+
+// Bumped by every registration, so a board already on screen when a module
+// registers late recomposes rather than sitting there missing a tile.
+let registryVersion = 0;
+
+// What Refresh is doing, or last did: {status: "idle"|"running"|"done",
+// label, at, results}. Read by the ribbon button as well as the board.
+let refreshState = {status: "idle"};
+
+// The arrangement on screen. Refresh is pressed on the ribbon, which is not
+// inside the board's component, so the two meet here.
+let currentLayout = null;
 
 /**
     Registers a KPI descriptor. Later registrations of the same key win, so
@@ -77,6 +129,7 @@ let loadToken = 0;
 function registerKpi(kpi) {
     if (kpi && kpi.key) {
         kpiRegistry[kpi.key] = kpi;
+        registryVersion += 1;
     }
 }
 
@@ -90,22 +143,187 @@ function listKpis() {
 }
 
 /**
-    The default arrangement. One tile until there is a persisted layout to
-    read; its shape is already the shape a layout record will have.
+    Registers a grouped measure source. See the file comment for its shape.
+*/
+function registerSource(source) {
+    if (source && source.key) {
+        sourceRegistry[source.key] = source;
+        registryVersion += 1;
+    }
+}
+
+function listSources() {
+    let keys = Object.keys(sourceRegistry);
+    let sorted = keys.sort();
+
+    return sorted.map(function (key) {
+        return sourceRegistry[key];
+    });
+}
+
+/**
+    Registers an aggregate refresh routine for the Refresh button to run.
+*/
+function registerRefresher(refresher) {
+    if (refresher && refresher.key) {
+        refresherRegistry[refresher.key] = refresher;
+        registryVersion += 1;
+    }
+}
+
+function listRefreshers() {
+    let keys = Object.keys(refresherRegistry);
+    let sorted = keys.sort();
+
+    return sorted.map(function (key) {
+        return refresherRegistry[key];
+    });
+}
+
+/**
+    Lays tiles out in the order given, each taking the first free space big
+    enough for it, scanning left to right and top to bottom.
+
+    A tile that will not fit at its asked-for size is shrunk rather than
+    refused, down to the legibility floor above; one that will not fit even
+    then is left off. Tiles therefore cannot overlap and cannot run off the
+    board, which is the whole no-scrolling bargain, and a module that
+    contributes an over-large tile costs itself space rather than breaking
+    the board for everyone.
+*/
+function placeTiles(wanted) {
+    let taken = {};
+    let placed = [];
+
+    function isFree(col, row, cols, rows) {
+        let down = 0;
+
+        if (col + cols - 1 > DASH_COLS || row + rows - 1 > DASH_ROWS) {
+            return false;
+        }
+        while (down < rows) {
+            let across = 0;
+
+            while (across < cols) {
+                if (taken[(row + down) + ":" + (col + across)]) {
+                    return false;
+                }
+                across += 1;
+            }
+            down += 1;
+        }
+        return true;
+    }
+
+    function claim(col, row, cols, rows) {
+        let down = 0;
+
+        while (down < rows) {
+            let across = 0;
+
+            while (across < cols) {
+                taken[(row + down) + ":" + (col + across)] = true;
+                across += 1;
+            }
+            down += 1;
+        }
+    }
+
+    function findSpot(cols, rows) {
+        let row = 1;
+
+        while (row <= DASH_ROWS) {
+            let col = 1;
+
+            while (col <= DASH_COLS) {
+                if (isFree(col, row, cols, rows)) {
+                    return {col, row};
+                }
+                col += 1;
+            }
+            row += 1;
+        }
+        return null;
+    }
+
+    wanted.forEach(function (tile) {
+        let asked = Math.min(tile.rows || 3, DASH_ROWS);
+        let cols = Math.min(tile.cols || 4, DASH_COLS);
+        let rows = asked;
+        let at = findSpot(cols, rows);
+
+        while (at === null && cols >= DASH_MIN_COLS) {
+            if (rows > DASH_MIN_ROWS) {
+                rows -= 1;
+            } else {
+                cols -= 1;
+                rows = asked;
+            }
+            if (cols >= DASH_MIN_COLS) {
+                at = findSpot(cols, rows);
+            }
+        }
+
+        if (at !== null) {
+            claim(at.col, at.row, cols, rows);
+            placed.push(Object.assign({}, tile, {
+                col: at.col,
+                cols,
+                row: at.row,
+                rows
+            }));
+        }
+    });
+
+    return placed;
+}
+
+/**
+    The default arrangement: the framework's own KPI tile, then whatever
+    tile each registered source asks to put on a fresh board. This is how a
+    package contributes to the dashboard until layouts are records -- install
+    SupplyChain and its sales tile is simply there.
 */
 function defaultLayout() {
+    let tiles = [{
+        cols: 5,
+        heading: "Key Metrics",
+        id: "core-kpis",
+        kpis: ["userCount"],
+        rows: 3,
+        type: "kpi"
+    }];
+
+    let offered = [];
+
+    listSources().forEach(function (source) {
+        if (source.defaultTile) {
+            offered.push(Object.assign({
+                id: "src-" + source.key,
+                sequence: 0,
+                source: source.key,
+                type: "measure"
+            }, source.defaultTile));
+        }
+    });
+
+    // A module says where its tile belongs with `sequence`; ties fall back
+    // to the source key, so the order is at least stable.
+    offered.sort(function (a, b) {
+        if (a.sequence !== b.sequence) {
+            return a.sequence - b.sequence;
+        }
+        return a.source.localeCompare(b.source);
+    });
+
+    offered.forEach(function (tile) {
+        tiles.push(tile);
+    });
+
     return {
+        tiles: placeTiles(tiles),
         title: null,
-        tiles: [{
-            cols: 5,
-            heading: "Key Metrics",
-            id: "core-kpis",
-            kpis: ["userCount"],
-            col: 1,
-            row: 1,
-            rows: 3,
-            type: "kpi"
-        }]
+        version: registryVersion
     };
 }
 
@@ -175,15 +393,14 @@ registerKpi({
 });
 
 /**
-    Loads every tile on the layout. A token guards against an earlier, slower
-    load landing after a later one and overwriting fresher numbers.
+    Loads one tile, whatever kind it is, and never rejects: a tile that
+    could not load says so in its own square rather than taking the board
+    down with it.
 */
-function loadAll(layout) {
-    let token = loadToken + 1;
+function loadTile(tile) {
+    let source;
 
-    loadToken = token;
-
-    layout.tiles.forEach(function (tile) {
+    if (tile.type === "kpi") {
         let keys = tile.kpis || [];
         let wanted = keys.map(function (key) {
             return kpiRegistry[key];
@@ -197,15 +414,219 @@ function loadAll(layout) {
             });
         });
 
+        return Promise.all(loads).then(function (rows) {
+            return {rows};
+        });
+    }
+
+    if (tile.type === "measure") {
+        source = sourceRegistry[tile.source];
+
+        if (!source) {
+            return Promise.resolve({
+                error: "No such data source: " + String(tile.source)
+            });
+        }
+        return source.load(tile).then(function (data) {
+            return {data};
+        }).catch(function (err) {
+            return {error: err.message || String(err)};
+        });
+    }
+
+    return Promise.resolve({
+        error: "Unknown tile type: " + String(tile.type)
+    });
+}
+
+/**
+    Loads every tile on the layout. A token guards against an earlier, slower
+    load landing after a later one and overwriting fresher numbers.
+*/
+function loadAll(layout) {
+    let token = loadToken + 1;
+
+    loadToken = token;
+
+    layout.tiles.forEach(function (tile) {
         tileState[tile.id] = {status: "loading"};
-        Promise.all(loads).then(function (rows) {
+        loadTile(tile).then(function (result) {
             if (token !== loadToken) {
                 return;
             }
-            tileState[tile.id] = {rows, status: "ready"};
+            tileState[tile.id] = Object.assign({status: "ready"}, result);
             m.redraw();
         });
     });
+}
+
+/**
+    Runs every registered refresh routine, one after another, then reloads
+    the board from the rebuilt aggregates.
+
+    One at a time rather than together: these are table rebuilds, a slow
+    instance should not have several running at once, and a failure then
+    names the one routine that failed instead of arriving as an anonymous
+    rejection. Whatever happens, every routine is attempted and the board is
+    reloaded -- a refresh that half worked should still show what it managed.
+*/
+function runRefresh() {
+    let jobs = listRefreshers();
+    let layout = currentLayout || defaultLayout();
+    let results = [];
+    let next;
+
+    if (refreshState.status === "running") {
+        return;
+    }
+
+    function finish() {
+        refreshState = {
+            at: new Date(),
+            results,
+            status: "done"
+        };
+        loadAll(layout);
+        m.redraw();
+    }
+
+    next = function () {
+        let job = jobs.shift();
+        let name;
+
+        if (!job) {
+            finish();
+            return;
+        }
+        name = job.label || job.key;
+        refreshState = {label: name, status: "running"};
+        m.redraw();
+
+        job.run().then(function (outcome) {
+            let note = "";
+
+            if (job.describe) {
+                note = job.describe(outcome) || "";
+            }
+            results.push({label: name, note, ok: true});
+        }).catch(function (err) {
+            results.push({
+                label: name,
+                note: err.message || String(err),
+                ok: false
+            });
+        }).then(next);
+    };
+
+    next();
+}
+
+/**
+    A time said the way someone glancing at a dashboard wants it: the clock
+    for today, the date as well for anything older.
+*/
+function whenText(value) {
+    let when = new Date(value);
+    let now = new Date();
+    let sameDay = (
+        when.getFullYear() === now.getFullYear() &&
+        when.getMonth() === now.getMonth() &&
+        when.getDate() === now.getDate()
+    );
+
+    if (!Number.isFinite(when.getTime())) {
+        return "";
+    }
+    if (sameDay) {
+        return when.toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit"
+        });
+    }
+    return when.toLocaleString([], {
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        month: "short"
+    });
+}
+
+/**
+    The newest "last rebuilt" stamp any loaded tile reported, so the board
+    can say how old the figures on it are. Server-side time, deliberately:
+    the question is when the aggregates were last built for everyone, not
+    when this browser last pressed a button.
+*/
+function dataRefreshedAt() {
+    let newest = null;
+
+    Object.keys(tileState).forEach(function (id) {
+        let state = tileState[id];
+        let data = state.data;
+        let stamp;
+
+        if (!data || !data.refreshedAt) {
+            return;
+        }
+        stamp = new Date(data.refreshedAt).getTime();
+        if (Number.isFinite(stamp) && (newest === null || stamp > newest)) {
+            newest = stamp;
+        }
+    });
+
+    return newest;
+}
+
+/**
+    The line above the board saying what Refresh is doing, what it did, or
+    how old the figures are. Silent when there is nothing to say.
+*/
+function refreshBar() {
+    let built = dataRefreshedAt();
+    let parts = [];
+    let state = refreshState;
+
+    if (state.status === "running") {
+        parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+            "Refreshing " + state.label + "…"
+        )));
+    } else {
+        if (built !== null) {
+            parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+                "Figures rebuilt " + whenText(built)
+            )));
+        }
+        if (state.status === "done") {
+            let failed = state.results.filter(function (one) {
+                return !one.ok;
+            });
+            let notes = state.results.filter(function (one) {
+                return one.ok && one.note;
+            });
+
+            if (!state.results.length) {
+                parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+                    "Nothing to rebuild; the board was reloaded " +
+                    whenText(state.at)
+                )));
+            }
+            notes.forEach(function (one) {
+                parts.push(m("span", {class: "fb-dash-refresh-note"}, (
+                    one.label + ": " + one.note
+                )));
+            });
+            failed.forEach(function (one) {
+                parts.push(m("span", {class: "fb-dash-refresh-fail"}, (
+                    one.label + " failed: " + one.note
+                )));
+            });
+        }
+    }
+
+    if (!parts.length) {
+        return null;
+    }
+    return m("div", {class: "fb-dash-refresh-bar"}, parts);
 }
 
 /**
@@ -294,36 +715,251 @@ function kpiTile(tile) {
     ];
 }
 
-let dashboard = {
-    oninit: function (vnode) {
-        vnode.state.layout = defaultLayout();
-        loadAll(vnode.state.layout);
-    },
-    view: function (vnode) {
-        let layout = vnode.state.layout;
+/**
+    Formatters for a measure tile, taken from the source where it supplies
+    them. A source that says nothing gets plain localized numbers, which is
+    wrong for money and right for everything else -- so money sources supply
+    their own.
+*/
+function measureFormats(source) {
+    let given = (source && source.format) || {};
+    let plain = function (n) {
+        return Number(n).toLocaleString();
+    };
 
-        return m("div", {
-            class: "fb-dash-board",
-            style: {
-                "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
-                "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
+    return {
+        amount: given.amount || plain,
+        compact: given.compact || given.amount || plain,
+        units: given.units || plain
+    };
+}
+
+/**
+    One grouped measure tile: a measure broken down by a dimension, drawn as
+    bullet rows against a comparison, as ranked bars, or as a plain numeric
+    table.
+
+    All three share one quantitative scale across the rows, with the axis
+    stated once underneath -- the rows are being compared with each other, so
+    a scale per row would make the comparison a lie. The bars are zero-based
+    because a bar encodes by length.
+*/
+function measureTile(tile) {
+    let state = tileState[tile.id] || {status: "loading"};
+    let source = sourceRegistry[tile.source] || {};
+    let draw = f.catalog().store().global().dashboardDraw;
+    let fmt = measureFormats(source);
+    let data = state.data;
+    let display = tile.display || "bullets";
+    let heading = tile.heading || source.name || "Measure";
+    // Wide enough for the axis beneath it to label five intervals without
+    // the labels running into each other, which at 150 they do.
+    let width = 220;
+    let body;
+    let total = null;
+
+    if (state.status !== "ready") {
+        body = m("div", {class: "fb-dash-tile-empty"}, "Loading…");
+    } else if (state.error) {
+        body = m("div", {class: "fb-dash-tile-error"}, state.error);
+    } else if (data.needsRefresh) {
+        body = m("div", {class: "fb-dash-tile-empty"}, (
+            "No figures yet. Press Refresh on the Home tab to build them."
+        ));
+    } else if (!data.rows || !data.rows.length) {
+        body = m("div", {class: "fb-dash-tile-empty"}, (
+            "Nothing in this period"
+        ));
+    } else {
+        let rows = data.rows;
+        let hasComparison = rows.some(function (row) {
+            return row.comparison !== undefined && row.comparison !== null;
+        });
+        // Opt-in rather than opt-out: a sparkline beside a bar says
+        // something the bar does not, but on every row of every tile it is
+        // just ink.
+        let hasSpark = tile.showSpark === true && rows.some(function (row) {
+            return row.spark && row.spark.length > 1;
+        });
+        let showPct = tile.showPercent !== false;
+        let top = 0;
+        let lines;
+        let max;
+        let mode = display;
+
+        rows.forEach(function (row) {
+            let against = row.comparison || 0;
+            let candidate = Math.max(Number(row.amount), Number(against));
+
+            if (candidate > top) {
+                top = candidate;
             }
-        }, layout.tiles.map(function (tile) {
-            return m("section", {
-                class: "fb-dash-tile",
-                key: tile.id,
-                style: {
-                    "grid-column": tile.col + " / span " + tile.cols,
-                    "grid-row": tile.row + " / span " + tile.rows
-                }
-            }, (
-                tile.type === "kpi"
-                ? kpiTile(tile)
-                : m("div", {class: "fb-dash-tile-empty"}, (
-                    "Unknown tile type: " + tile.type
+        });
+        max = draw.niceMax(top);
+        total = data.total;
+
+        // Absent means absent: with nothing to compare against, bullets are
+        // just bars with a marker that would never be drawn, so say bars.
+        if (mode === "bullets" && !hasComparison) {
+            mode = "bars";
+        }
+
+        lines = rows.map(function (row) {
+            let amount = Number(row.amount);
+            let label = row.label || row.key || "—";
+            let history = row.spark || [];
+            let points = history.map(function (point) {
+                return Number(point.amount);
+            });
+            let against = (
+                row.comparison === null
+                ? undefined
+                : row.comparison
+            );
+            let said = label + ": " + fmt.amount(amount);
+            let graphic;
+            let cells = [];
+
+            if (against !== undefined) {
+                said += (
+                    " against " + fmt.amount(against) + " " +
+                    (data.comparisonLabel || "prior year")
+                );
+            }
+
+            if (mode === "bullets") {
+                graphic = draw.bullet({
+                    comparison: against,
+                    max,
+                    ranges: [],
+                    title: said,
+                    value: amount,
+                    width,
+                    height: 14
+                });
+            } else if (mode === "bars") {
+                graphic = draw.bar({
+                    max,
+                    title: said,
+                    value: amount,
+                    width,
+                    height: 11
+                });
+            }
+
+            if (hasSpark) {
+                cells.push(m("td", {class: "fb-dash-cell-spark"}, (
+                    points.length > 1
+                    ? draw.sparkline({points, width: 76, height: 16})
+                    : null
+                )));
+            }
+            cells.push(m("td", {class: "fb-dash-cell-name"}, label));
+            if (graphic) {
+                cells.push(m("td", {class: "fb-dash-cell-graphic"}, graphic));
+            }
+            cells.push(m("td", {class: "fb-dash-cell-value"}, (
+                fmt.amount(amount)
+            )));
+            if (showPct) {
+                cells.push(m("td", {class: "fb-dash-cell-pct"}, (
+                    Math.round(row.pctOfTotal || 0) + "%"
+                )));
+            }
+
+            return m("tr", cells);
+        });
+
+        if (mode !== "table") {
+            let lead = [];
+            let trail = [m("td")];
+            let index = 0;
+            let span = (
+                hasSpark
+                ? 2
+                : 1
+            );
+
+            while (index < span) {
+                lead.push(m("td"));
+                index += 1;
+            }
+            if (showPct) {
+                trail.push(m("td"));
+            }
+            lines.push(m("tr", lead.concat([
+                m("td", {class: "fb-dash-cell-graphic"}, draw.axis({
+                    format: fmt.compact,
+                    max,
+                    width
+                }))
+            ]).concat(trail)));
+        }
+
+        body = [
+            m("table", {class: "fb-dash-measure-table"}, lines),
+            (
+                mode === "bullets"
+                ? m("div", {class: "fb-dash-caption"}, (
+                    "Marker: " + (data.comparisonLabel || "prior year")
                 ))
-            ));
-        }));
+                : null
+            )
+        ];
+    }
+
+    return [
+        m("div", {class: "fb-dash-tile-heading"}, [
+            m("span", heading),
+            (
+                total === null
+                ? null
+                : m("span", {class: "fb-dash-tile-total"}, fmt.amount(total))
+            )
+        ]),
+        body
+    ];
+}
+
+let dashboard = {
+    oninit: function () {
+        currentLayout = defaultLayout();
+        loadAll(currentLayout);
+    },
+    view: function () {
+        let layout = currentLayout || defaultLayout();
+
+        // A module that registered after this board was built gets its tile
+        // without the page being reloaded.
+        if (layout.version !== registryVersion) {
+            layout = defaultLayout();
+            currentLayout = layout;
+            loadAll(layout);
+        }
+
+        return m("div", {class: "fb-dash-frame"}, [
+            refreshBar(),
+            m("div", {
+                class: "fb-dash-board",
+                style: {
+                    "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
+                    "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
+                }
+            }, layout.tiles.map(function (tile) {
+                return m("section", {
+                    class: "fb-dash-tile",
+                    key: tile.id,
+                    style: {
+                        "grid-column": tile.col + " / span " + tile.cols,
+                        "grid-row": tile.row + " / span " + tile.rows
+                    }
+                }, (
+                    tile.type === "kpi"
+                    ? kpiTile(tile)
+                    : measureTile(tile)
+                ));
+            }))
+        ]);
     }
 };
 
@@ -358,8 +994,17 @@ f.catalog().register("global", "dashboardKpis", {
     list: listKpis,
     register: registerKpi
 });
-f.catalog().register("global", "dashboardRefresh", function () {
-    loadAll(defaultLayout());
+f.catalog().register("global", "dashboardSources", {
+    list: listSources,
+    register: registerSource
+});
+f.catalog().register("global", "dashboardRefreshers", {
+    list: listRefreshers,
+    register: registerRefresher
+});
+f.catalog().register("global", "dashboardRefresh", runRefresh);
+f.catalog().register("global", "dashboardRefreshStatus", function () {
+    return refreshState.status;
 });
 f.catalog().register("global", "dashboardTitle", dashboardTitle);
 f.catalog().register("components", "dashboard", dashboard);
