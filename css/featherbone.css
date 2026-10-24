@@ -3565,6 +3565,8 @@ button:disabled .fb-ipicon,
     min-width: 0;
     min-height: 0;
     overflow: hidden;
+    /* The resize grip sits in the corner of this box. */
+    position: relative;
     padding: 12px 14px;
     box-sizing: border-box;
     background: var(--fb-surface);
@@ -3618,6 +3620,58 @@ button:disabled .fb-ipicon,
 
 .fb-dash-tile-remove:hover {
     color: var(--fb-danger);
+}
+
+/* The heading is the handle, so it says so by the cursor rather than by
+   growing a grip. Its text is not selectable: dragging across a heading
+   should move the tile, not highlight the words. */
+.fb-dash-tile-heading {
+    cursor: grab;
+    user-select: none;
+}
+
+.fb-dash-tile-dragging .fb-dash-tile-heading {
+    cursor: grabbing;
+}
+
+/* Faded rather than hidden while it is being dragged, so the board
+   still reads as a whole and the tile is visibly the thing moving. */
+.fb-dash-tile-dragging {
+    opacity: 0.55;
+}
+
+/* The corner grip. Two short strokes drawn with a gradient rather than
+   an icon, so it costs nothing and scales with the app. */
+.fb-dash-tile-resize {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    opacity: 0;
+    transition: opacity 120ms ease-in;
+    background: linear-gradient(
+        135deg,
+        transparent 0 45%,
+        var(--fb-text-muted) 45% 55%,
+        transparent 55% 70%,
+        var(--fb-text-muted) 70% 80%,
+        transparent 80%
+    );
+}
+
+.fb-dash-tile:hover .fb-dash-tile-resize {
+    opacity: 0.7;
+}
+
+/* Where a dragged tile would land. Drawn in the grid itself, so it
+   cannot disagree with where the tile actually goes. */
+.fb-dash-drop {
+    border: 2px dashed var(--fb-dash-measure);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--fb-dash-measure) 8%, transparent);
+    pointer-events: none;
 }
 
 .fb-dash-tile-empty {
