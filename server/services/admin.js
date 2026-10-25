@@ -2551,10 +2551,15 @@
             database.
 
             The instance is held while it runs (question 7) and let go
-            afterwards. A deployment that fails leaves it held, because
-            the schema is then in a state nobody has checked; ending
-            the maintenance is the deliberate act that says someone
-            has.
+            afterwards. A deployment that fails AFTER committing leaves
+            it held, because the schema is then in a state nobody has
+            checked; ending the maintenance is the deliberate act that
+            says someone has. A deployment that fails before committing
+            -- the usual case, everything up to the end of the package
+            runs in one transaction -- changed nothing, so there is
+            nothing to check, and holding the instance only locks
+            everyone out for no reason. That one is let go at once, and
+            the answer says so (John, Oct 2026).
 
             @method deployPackage
             @param {Object} payload
@@ -2694,25 +2699,55 @@
                     });
 
                     /*
-                        The instance stays held, and the person who
-                        asked is told so in the answer: a screen that
-                        only said what went wrong left the instance
-                        refusing everyone with no hint why (John, Oct
-                        2026).
+                        The person who asked is told what happened to
+                        the instance as well as what went wrong: a
+                        screen that only said what went wrong left the
+                        instance refusing everyone with no hint why
+                        (John, Oct 2026).
                     */
                     let failure = (
                         typeof err === "string"
                         ? new Error(err)
                         : err
                     );
+                    let reason = failure.message;
 
-                    failure.message = (
-                        data.module + " " + data.version +
-                        " was not deployed to " + target.pg_database +
-                        ": " + failure.message + " The instance is held " +
-                        "in maintenance; end it from the Instances " +
-                        "screen once you have checked it."
-                    );
+                    if (failure.nothingCommitted === true) {
+                        await manager.setInstanceMaintenance(
+                            mclient,
+                            target._pk,
+                            false,
+                            obj.user
+                        );
+                        await manager.audit(mclient, {
+                            action: "instance.deploy_released",
+                            actorPk: actorPk(ctx),
+                            by: obj.user,
+                            detail: (
+                                target.pg_database + " let go: the " +
+                                "deployment rolled back before it " +
+                                "committed, so nothing was changed"
+                            ),
+                            organizationPk: ctx.organizationPk
+                        });
+                        failure.message = (
+                            data.module + " " + data.version +
+                            " was not deployed to " + target.pg_database +
+                            ": " + reason + " Nothing was changed -- " +
+                            "the deployment rolled back before it " +
+                            "committed -- so the instance is open again."
+                        );
+                        failure.isHeld = false;
+                    } else {
+                        failure.message = (
+                            data.module + " " + data.version +
+                            " was not deployed to " + target.pg_database +
+                            ": " + reason + " The instance is held " +
+                            "in maintenance; end it from the Instances " +
+                            "screen once you have checked it."
+                        );
+                        failure.isHeld = true;
+                    }
                     throw failure;
                 }
 
@@ -3090,10 +3125,35 @@
                         organizationPk: ctx.organizationPk
                     });
                     /*
-                        Left held, like a failed deployment: a half
-                        applied manifest is not something to let
-                        traffic back on to without a person looking.
+                        Held when something was committed, like a
+                        failed deployment: a half applied manifest is
+                        not something to let traffic back on to without
+                        a person looking. Let go when the whole upgrade
+                        rolled back, because then there is nothing for
+                        that person to look at.
                     */
+                    if (err && err.nothingCommitted === true) {
+                        await manager.setInstanceMaintenance(
+                            mclient,
+                            target._pk,
+                            false,
+                            obj.user
+                        );
+                        await manager.audit(mclient, {
+                            action: "instance.upgrade_released",
+                            actorPk: actorPk(ctx),
+                            by: obj.user,
+                            detail: (
+                                target.pg_database + " let go: the " +
+                                "upgrade rolled back before it " +
+                                "committed, so nothing was changed"
+                            ),
+                            organizationPk: ctx.organizationPk
+                        });
+                        err.isHeld = false;
+                    } else if (err && typeof err === "object") {
+                        err.isHeld = true;
+                    }
                     throw err;
                 }
 
