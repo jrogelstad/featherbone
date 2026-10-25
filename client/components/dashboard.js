@@ -22,13 +22,18 @@
     and the Refresh action behind the Home ribbon's button. Draws with the
     marks in dashboard-draw.js.
 
-    The board is a fixed grid mapped onto whatever space the page gives it:
-    cell width is the area divided by DASH_COLS, cell height by DASH_ROWS, so
-    tiles cannot be placed outside the viewport because there is nowhere
-    outside it to go. That is how "no scrolling" is enforced here -- by
-    construction rather than by policing drags. Below a narrow breakpoint the
-    grid is abandoned and tiles stack in one column, which is the single
-    sanctioned exception (see the CSS).
+    The board is DASH_COLS wide, a fixed edge with nowhere outside it to
+    go, so cell width is always the viewport's width divided by DASH_COLS.
+    DASH_ROWS is a floor, not a ceiling: it is how tall an empty or lightly
+    used board still stands, but a tile that needs more room pushes
+    whatever is below it straight down (pushDown) rather than being
+    refused or reshuffling the rest of the board, and the board scrolls
+    vertically to show whatever that runs past DASH_ROWS. Cell height
+    follows the same division, just against the scrolling frame's height
+    rather than the board's own, which can now exceed it (see
+    syncBoardRowHeight). Below a narrow breakpoint the grid is abandoned
+    and tiles stack in one column, which is the single sanctioned
+    exception to the column rule (see the CSS).
 
     **Three things a module contributes, all open-ended.**
 
@@ -737,9 +742,15 @@ function listRefreshers() {
     A tile that will not fit at its asked-for size is shrunk rather than
     refused, down to the legibility floor above; one that will not fit even
     then is left off. Tiles therefore cannot overlap and cannot run off the
-    board, which is the whole no-scrolling bargain, and a module that
-    contributes an over-large tile costs itself space rather than breaking
-    the board for everyone.
+    board's sides -- DASH_COLS is a real edge -- but running past DASH_ROWS
+    is fine, since that is only where an empty board starts, not where it
+    ends (the board scrolls). Nothing is shrunk to make room any more: a
+    tile always fits somewhere, by scanning far enough down an otherwise
+    empty column if nothing nearer is free. Used to build a layout from
+    nothing -- composing the default board, loading a saved one, adding a
+    tile to it -- where there is no existing arrangement worth preserving
+    yet. Editing or dragging an existing tile uses `pushDown` instead
+    (below), which disturbs only what is actually in the way.
 */
 function placeTiles(wanted) {
     let taken = {};
@@ -748,7 +759,7 @@ function placeTiles(wanted) {
     function isFree(col, row, cols, rows) {
         let down = 0;
 
-        if (col + cols - 1 > DASH_COLS || row + rows - 1 > DASH_ROWS) {
+        if (col + cols - 1 > DASH_COLS) {
             return false;
         }
         while (down < rows) {
@@ -781,8 +792,12 @@ function placeTiles(wanted) {
 
     function findSpot(cols, rows) {
         let row = 1;
+        // Not a real limit -- a spot always turns up well before this,
+        // since an empty row has room for anything DASH_COLS wide or
+        // narrower -- just a backstop against scanning forever.
+        let limit = 2000;
 
-        while (row <= DASH_ROWS) {
+        while (row <= limit) {
             let col = 1;
 
             while (col <= DASH_COLS) {
@@ -797,9 +812,8 @@ function placeTiles(wanted) {
     }
 
     wanted.forEach(function (tile) {
-        let asked = Math.min(tile.rows || 3, DASH_ROWS);
         let cols = Math.min(tile.cols || 4, DASH_COLS);
-        let rows = asked;
+        let rows = tile.rows || 3;
         // A saved layout says where its tiles go. Honoured when the spot
         // is free and on the board, and packed like any other tile when
         // it is not -- a layout saved on a wider board, or one whose
@@ -810,18 +824,6 @@ function placeTiles(wanted) {
             ? {col: tile.col, row: tile.row}
             : findSpot(cols, rows)
         );
-
-        while (at === null && cols >= DASH_MIN_COLS) {
-            if (rows > DASH_MIN_ROWS) {
-                rows -= 1;
-            } else {
-                cols -= 1;
-                rows = asked;
-            }
-            if (cols >= DASH_MIN_COLS) {
-                at = findSpot(cols, rows);
-            }
-        }
 
         if (at !== null) {
             claim(at.col, at.row, cols, rows);
@@ -835,6 +837,84 @@ function placeTiles(wanted) {
     });
 
     return placed;
+}
+
+/**
+    Settles the board after one tile changes -- resized, moved, or both --
+    by pushing whatever is actually in its way straight down, and nothing
+    else.
+
+    `tiles` already holds every tile at its current col/row/cols/rows,
+    with `anchorId`'s entry at the spot just chosen for it (by a drag, a
+    resize, or the edit dialog); that spot is honoured exactly and the
+    anchor itself never moves. Every other tile keeps its own spot unless
+    it overlaps the anchor or another tile that already had to move, in
+    which case it drops to sit just below whatever it overlaps -- never
+    sideways, never to some unrelated free cell found by scanning the
+    board, which is what used to turn one edit into a reshuffle of tiles
+    that were never in the way.
+
+    Pushed tiles are processed top-to-bottom (by their own current row,
+    so something already resting on a given row settles before whatever
+    was below it gets a chance to land on it), and a push can cascade --
+    the tile that lands below the anchor can itself now overlap the tile
+    below *it* -- which the per-tile while-loop below keeps resolving
+    until that tile is clear of everything settled so far.
+
+    Columns never change and are not re-checked here: DASH_COLS is a hard
+    edge with no scrolling to grow into, so the anchor's own col/cols is
+    expected to already fit (callers clamp it, same as a drag already
+    does). Rows have no such ceiling -- DASH_ROWS is just where the board
+    starts scrolling, not a wall -- so a push is always able to resolve.
+
+    @param {Array} tiles Every tile, the anchor already at its new spot
+    @param {String} anchorId
+    @return {Array} A new array, same tiles, some rows shifted down
+*/
+function pushDown(tiles, anchorId) {
+    let byId = {};
+    let settled;
+    let order;
+
+    function overlaps(a, b) {
+        return (
+            a.col < b.col + b.cols &&
+            a.col + a.cols > b.col &&
+            a.row < b.row + b.rows &&
+            a.row + a.rows > b.row
+        );
+    }
+
+    tiles.forEach(function (tile) {
+        byId[tile.id] = Object.assign({}, tile);
+    });
+
+    settled = [byId[anchorId]];
+    order = Object.keys(byId).filter(function (id) {
+        return id !== anchorId;
+    }).map(function (id) {
+        return byId[id];
+    }).sort(function (a, b) {
+        return a.row - b.row || a.col - b.col;
+    });
+
+    order.forEach(function (tile) {
+        let blocker = true;
+
+        while (blocker) {
+            blocker = settled.find(function (fixed) {
+                return overlaps(tile, fixed);
+            });
+            if (blocker) {
+                tile.row = blocker.row + blocker.rows;
+            }
+        }
+        settled.push(tile);
+    });
+
+    return tiles.map(function (tile) {
+        return byId[tile.id];
+    });
 }
 
 /**
@@ -1135,13 +1215,14 @@ function useLayout(name) {
 /**
     Puts a tile on the board and loads it.
 
-    The board is rearranged rather than appended to, because a tile added
-    to a full board has to come from somewhere: the packer shrinks or
-    drops to fit, which is the same guarantee every other arrangement
-    gets. Nothing is named or shared until somebody saves the layout --
-    trying a tile out should cost nothing -- but the arrangement is still
-    remembered for this person, via `saveDraft`, so trying it out and
-    then reloading the page does not undo it.
+    Existing tiles keep their own spots -- only a genuinely new tile needs
+    one found for it -- at the first free space going (placeTiles), or
+    past the bottom of everything else if nothing nearer fits. A full
+    board grows taller rather than refusing the tile or shrinking it to
+    something illegible. Nothing is named or shared until somebody saves
+    the layout -- trying a tile out should cost nothing -- but the
+    arrangement is still remembered for this person, via `saveDraft`, so
+    trying it out and then reloading the page does not undo it.
 */
 function addTile(tile) {
     let layout = currentLayout || composeLayout();
@@ -1152,27 +1233,21 @@ function addTile(tile) {
     let next = Object.assign({}, layout, {
         tiles: placeTiles(layout.tiles.concat([wanted]))
     });
-    let placed = next.tiles.some(function (one) {
-        return one.id === wanted.id;
-    });
 
     currentLayout = next;
     loadAll(next);
     saveDraft(next);
     m.redraw();
-
-    // The packer drops what it cannot draw legibly, and a tile that
-    // silently fails to appear is worse than being told the board is
-    // full.
-    return placed;
+    return true;
 }
 
 /**
     Replaces one tile in place -- what the Add Tile dialog builds, for a
     tile that already exists -- instead of the delete-and-re-add this
-    exists to avoid. Keeps the old spot as preferred; placeTiles repacks
-    around it if a new size no longer fits there. Only this tile reloads,
-    so editing one tile does not flicker every other one on the board.
+    exists to avoid. Keeps the old spot; pushDown moves only whatever a
+    size change now overlaps, straight down, rather than repacking the
+    whole board around it. Only this tile reloads, so editing one tile
+    does not flicker every other one on the board.
 */
 function updateTile(id, patch) {
     let layout = currentLayout || composeLayout();
@@ -1181,36 +1256,40 @@ function updateTile(id, patch) {
     });
     let tiles;
     let next;
+    let anchor;
     let placed;
 
     if (index === -1) {
         return false;
     }
 
-    tiles = layout.tiles.slice();
-    tiles[index] = Object.assign({}, patch, {
-        id: tiles[index].id,
-        col: tiles[index].col,
-        row: tiles[index].row
+    anchor = Object.assign({}, patch, {
+        id: layout.tiles[index].id,
+        col: layout.tiles[index].col,
+        row: layout.tiles[index].row
     });
-    next = Object.assign({}, layout, {tiles: placeTiles(tiles)});
+    // Columns are the one edge with no give -- shift left just enough to
+    // stay on the board rather than running off it, same clamp a drag
+    // resize already applies to itself.
+    anchor.col = Math.min(anchor.col, DASH_COLS - anchor.cols + 1);
+    tiles = layout.tiles.slice();
+    tiles[index] = anchor;
+    next = Object.assign({}, layout, {tiles: pushDown(tiles, id)});
     placed = next.tiles.find(function (one) {
         return one.id === id;
     });
 
     currentLayout = next;
-    if (placed) {
-        tileState[id] = {status: "loading"};
-        loadTile(placed, next).then(function (result) {
-            tileState[id] = Object.assign({status: "ready"}, result);
-            m.redraw();
-        });
-    }
+    tileState[id] = {status: "loading"};
+    loadTile(placed, next).then(function (result) {
+        tileState[id] = Object.assign({status: "ready"}, result);
+        m.redraw();
+    });
     saveDraft(next);
     m.redraw();
-    // Same guarantee as addTile: a resize the packer cannot fit is a
-    // dropped tile, not a silently clipped one.
-    return Boolean(placed);
+    // pushDown always resolves -- rows have nowhere to stop, so unlike
+    // addTile's packer nothing here is ever dropped for lack of room.
+    return true;
 }
 
 /**
@@ -2649,8 +2728,16 @@ let dragState = null;
     be a second place to change and a silent half-cell error the day
     somebody changed only one. Measured from the element, this follows
     the stylesheet and the app's scale without being told about either.
+
+    Row height comes from `viewport` -- the fixed-height scrolling frame
+    around the board -- rather than from the board itself: the board can
+    now run taller than that once a push grows it past DASH_ROWS, and
+    dividing its own height by DASH_ROWS would inflate every row the
+    moment there is more than a screenful of them. Width still comes from
+    `board`, which is exactly as wide as the viewport either way, since
+    only rows ever scroll.
 */
-function gridMetrics(board) {
+function gridMetrics(viewport, board) {
     let box = board.getBoundingClientRect();
     let style = window.getComputedStyle(board);
     let padLeft = parseFloat(style.paddingLeft) || 0;
@@ -2660,7 +2747,9 @@ function gridMetrics(board) {
     let gapX = parseFloat(style.columnGap) || 0;
     let gapY = parseFloat(style.rowGap) || 0;
     let usableW = box.width - padLeft - padRight - gapX * (DASH_COLS - 1);
-    let usableH = box.height - padTop - padBottom - gapY * (DASH_ROWS - 1);
+    let usableH = (
+        viewport.clientHeight - padTop - padBottom - gapY * (DASH_ROWS - 1)
+    );
 
     return {
         box,
@@ -2690,12 +2779,14 @@ function clamp(value, low, high) {
 /**
     Follows the pointer, working out where the tile would land.
 
-    Clamped to the board rather than allowed to run off it, because the
-    board is a fixed grid with nowhere outside it to go -- which is the
-    same reason the packer shrinks rather than overflows.
+    Columns are clamped to the board, a fixed-width edge with nowhere
+    outside it to go. Rows are only floored at 1 (or DASH_MIN_ROWS for a
+    resize's height) -- dragging past DASH_ROWS is fine now, since that is
+    only where the board starts scrolling, not where it ends.
 */
 function dragMove(event) {
     let state = dragState;
+    let viewport;
     let board;
     let metrics;
     let moved;
@@ -2703,11 +2794,12 @@ function dragMove(event) {
     if (!state) {
         return;
     }
+    viewport = document.querySelector(".fb-dash-viewport");
     board = document.querySelector(".fb-dash-board");
-    if (!board) {
+    if (!viewport || !board) {
         return;
     }
-    metrics = gridMetrics(board);
+    metrics = gridMetrics(viewport, board);
     moved = cellDelta(
         metrics,
         state.startX,
@@ -2724,11 +2816,7 @@ function dragMove(event) {
             1,
             DASH_COLS - state.cols + 1
         );
-        state.row = clamp(
-            state.fromRow + moved.rows,
-            1,
-            DASH_ROWS - state.rows + 1
-        );
+        state.row = Math.max(1, state.fromRow + moved.rows);
     } else {
         state.col = state.fromCol;
         state.row = state.fromRow;
@@ -2737,10 +2825,9 @@ function dragMove(event) {
             DASH_MIN_COLS,
             DASH_COLS - state.col + 1
         );
-        state.rows = clamp(
-            state.fromRows + moved.rows,
+        state.rows = Math.max(
             DASH_MIN_ROWS,
-            DASH_ROWS - state.row + 1
+            state.fromRows + moved.rows
         );
     }
     m.redraw();
@@ -2749,16 +2836,16 @@ function dragMove(event) {
 /**
     Drops the tile where the outline says.
 
-    The dragged tile is placed first and the rest packed around it, so
-    the tile somebody just moved always gets the spot they chose and the
-    others tidy up -- rather than the move silently failing because
-    something was already there.
+    The dragged tile lands exactly there -- that is the spot somebody just
+    chose -- and pushDown moves only whatever it now overlaps, straight
+    down, rather than the move silently failing because something was
+    already there.
 */
 function dragEnd() {
     let state = dragState;
     let layout;
     let moved;
-    let others;
+    let tiles;
 
     window.removeEventListener("pointermove", dragMove);
     window.removeEventListener("pointerup", dragEnd);
@@ -2779,20 +2866,19 @@ function dragEnd() {
         return;
     }
 
-    others = layout.tiles.filter(function (tile) {
-        return tile.id !== state.id;
-    });
-    currentLayout = Object.assign({}, layout, {
-        tiles: placeTiles([Object.assign({}, moved, {
+    tiles = layout.tiles.map(function (tile) {
+        if (tile.id !== state.id) {
+            return tile;
+        }
+        return Object.assign({}, tile, {
             col: state.col,
             cols: state.cols,
             row: state.row,
             rows: state.rows
-        })].concat(others.map(function (tile) {
-            // Their own positions are a preference, not a claim: the
-            // moved tile has first call on the space.
-            return Object.assign({}, tile);
-        })))
+        });
+    });
+    currentLayout = Object.assign({}, layout, {
+        tiles: pushDown(tiles, state.id)
     });
     loadAll(currentLayout);
     saveDraft(currentLayout);
@@ -2970,6 +3056,52 @@ function wallpaperStyle() {
     };
 }
 
+/*
+    How tall one board row is, in pixels. Measured from the viewport (the
+    fixed-height frame the board scrolls inside) rather than assumed, and
+    kept fixed regardless of how many rows the board currently needs --
+    see syncBoardRowHeight. Null until the first measurement lands, which
+    is why the view below falls back to 1fr for that first paint.
+*/
+let boardRowHeight = null;
+
+/**
+    Measures what one row ought to be from the viewport's own height --
+    not the board's, which can now run taller than the viewport once a
+    push grows it past DASH_ROWS -- and redraws once that settles on a
+    new value. Run from the viewport's oncreate/onupdate, so a changed
+    window size or ribbon height is picked up the next time the board
+    redraws rather than needing a dedicated resize listener.
+*/
+function syncBoardRowHeight(viewport) {
+    let board = viewport.querySelector(".fb-dash-board");
+    let style;
+    let padTop;
+    let padBottom;
+    let gapY;
+    let next;
+
+    if (!board) {
+        return;
+    }
+    style = window.getComputedStyle(board);
+    padTop = parseFloat(style.paddingTop) || 0;
+    padBottom = parseFloat(style.paddingBottom) || 0;
+    gapY = parseFloat(style.rowGap) || 0;
+    next = (
+        (viewport.clientHeight - padTop - padBottom) -
+        gapY * (DASH_ROWS - 1)
+    ) / DASH_ROWS;
+
+    if (
+        next > 0 &&
+        (!boardRowHeight || Math.abs(next - boardRowHeight) > 0.5)
+    ) {
+        boardRowHeight = next;
+        m.redraw();
+    }
+}
+
 let dashboard = {
     oninit: function () {
         /*
@@ -3001,6 +3133,7 @@ let dashboard = {
     },
     view: function () {
         let layout = currentLayout || composeLayout();
+        let maxRow;
 
         // A module that registered after this board was built gets its tile
         // without the page being reloaded. A saved layout keeps its own
@@ -3015,37 +3148,62 @@ let dashboard = {
             loadAll(layout);
         }
 
+        // However many rows the tiles actually need, never fewer than
+        // DASH_ROWS -- that floor is what keeps an empty or lightly used
+        // board filling the frame instead of looking cramped at the top.
+        maxRow = layout.tiles.reduce(function (max, tile) {
+            return Math.max(max, tile.row + tile.rows - 1);
+        }, DASH_ROWS);
+
         return m("div", {class: "fb-dash-frame"}, [
             refreshBar(layout),
             m("div", {
-                class: "fb-dash-board",
-                style: Object.assign(wallpaperStyle(), {
-                    "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
-                    "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
-                })
-            }, layout.tiles.map(function (tile) {
-                let dragging = (
-                    dragState !== null && dragState.id === tile.id
-                );
+                class: "fb-dash-viewport",
+                oncreate: function (vnode) {
+                    syncBoardRowHeight(vnode.dom);
+                },
+                onupdate: function (vnode) {
+                    syncBoardRowHeight(vnode.dom);
+                }
+            }, [
+                m("div", {
+                    class: "fb-dash-board",
+                    style: Object.assign(wallpaperStyle(), {
+                        "grid-template-columns": (
+                            "repeat(" + DASH_COLS + ", 1fr)"
+                        ),
+                        "grid-template-rows": (
+                            "repeat(" + maxRow + ", " + (
+                                boardRowHeight
+                                ? boardRowHeight + "px"
+                                : "1fr"
+                            ) + ")"
+                        )
+                    })
+                }, layout.tiles.map(function (tile) {
+                    let dragging = (
+                        dragState !== null && dragState.id === tile.id
+                    );
 
-                return m("section", {
-                    class: (
-                        dragging
-                        ? "fb-dash-tile fb-dash-tile-dragging"
-                        : "fb-dash-tile"
-                    ),
-                    key: tile.id,
-                    style: {
-                        "grid-column": tile.col + " / span " + tile.cols,
-                        "grid-row": tile.row + " / span " + tile.rows
-                    }
-                }, [
-                    tileBody(tile),
-                    editControl(tile),
-                    removeControl(tile),
-                    resizeHandle(tile)
-                ]);
-            }).concat(dropOutline()))
+                    return m("section", {
+                        class: (
+                            dragging
+                            ? "fb-dash-tile fb-dash-tile-dragging"
+                            : "fb-dash-tile"
+                        ),
+                        key: tile.id,
+                        style: {
+                            "grid-column": tile.col + " / span " + tile.cols,
+                            "grid-row": tile.row + " / span " + tile.rows
+                        }
+                    }, [
+                        tileBody(tile),
+                        editControl(tile),
+                        removeControl(tile),
+                        resizeHandle(tile)
+                    ]);
+                }).concat(dropOutline()))
+            ])
         ]);
     }
 };
