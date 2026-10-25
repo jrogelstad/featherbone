@@ -1,0 +1,16 @@
+[
+    {
+        "name": "FbtSeed",
+        "method": "POST",
+        "module": "fbtseed",
+        "id": "fbtseedrec0001",
+        "data": {"code": "ALPHA"}
+    },
+    {
+        "name": "FbtSeed",
+        "method": "POST",
+        "module": "fbtseed",
+        "id": "fbtseedrec0002",
+        "data": {"code": "BETA"}
+    }
+]
