@@ -747,7 +747,13 @@ settings.platformRefusal = async function (client, name, user) {
 */
 settings.saveSettings = async function (obj) {
     let row;
-    let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
+    /*
+        FOR UPDATE, so two requests saving the same settings serialize
+        on the row itself: the second waits, then sees what the first
+        committed and judges its etag against that -- rather than both
+        reading, both writing, and the slower one losing silently.
+    */
+    let sql = "SELECT * FROM \"$settings\" WHERE name = $1 FOR UPDATE;";
     let name = obj.data.name;
     let d = obj.data.data;
     let edat = f.copy(d);
@@ -778,6 +784,51 @@ settings.saveSettings = async function (obj) {
         dbsettings[db].data[name].id = name;
         dbsettings[db].data[name].data = d;
         dbsettings[db].data[name].etag = tag;
+
+        /*
+            The cache now holds values the database has not committed.
+            Readers inside this transaction need that -- an install
+            saves the catalog once per feather, each read building on
+            the write before it -- but if the transaction rolls back,
+            the database reverts and this entry does not, and every
+            later save of these settings is refused as "changed by
+            another user" until the process restarts. That is the
+            failure the improvement plan records as 6.7: one failed
+            install poisoning the next attempt.
+
+            So the entry is dropped on rollback, and the next reader
+            rebuilds it from what the database really holds. Dropping
+            is idempotent, but the hook is still registered once per
+            settings row per transaction, because the catalog is saved
+            once per feather and a large package would otherwise pile
+            up hundreds of hooks saying the same thing.
+        */
+        if (client.onRollback && client.rollbacks) {
+            /*
+                Once per settings row per TRANSACTION, and the guard
+                has to live on the rollbacks array to mean that: pool
+                clients are recycled, the array is made fresh at each
+                checkout, and a guard left on the client itself
+                outlives the transaction -- so the second failed
+                install on a recycled client registered nothing, its
+                rollback dropped nothing, and the poison this exists
+                to cure was back.
+            */
+            let held = client.rollbacks;
+
+            if (!held.fbSettingsUndo) {
+                held.fbSettingsUndo = {};
+            }
+            if (!held.fbSettingsUndo[db + "/" + name]) {
+                held.fbSettingsUndo[db + "/" + name] = true;
+                client.onRollback(function () {
+                    if (dbsettings[db] && dbsettings[db].data) {
+                        delete dbsettings[db].data[name];
+                    }
+                    return Promise.resolve();
+                });
+            }
+        }
     }
 
     try {
@@ -839,15 +890,21 @@ settings.saveSettings = async function (obj) {
                 }
             }
 
+            /*
+                The conflict check reads the row, not the cache. It used
+                to compare the cache's etag against the row's as well,
+                and a cache that had drifted -- a rolled-back save, or
+                another node writing the row -- refused every save from
+                then on with this message, though nobody had changed
+                anything. The row is read FOR UPDATE above, so what it
+                says is what is committed, serialized against anyone
+                else saving; a caller who supplied the etag of the
+                version they edited is judged against that and nothing
+                else.
+            */
             if (
-                (
-                    dbsettings[db].data[name] &&
-                    dbsettings[db].data[name].etag !== row.etag
-                ) || (
-                    // The caller saved from a version that is out of date
-                    obj.data.etag !== undefined &&
-                    obj.data.etag !== row.etag
-                )
+                obj.data.etag !== undefined &&
+                obj.data.etag !== row.etag
             ) {
                 msg = "Settings for \"" + name;
                 msg += "\" changed by another user. Save failed.";

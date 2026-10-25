@@ -1,5 +1,18 @@
 [
     {
+        "name": "FbtFailGood",
+        "description": "Saves cleanly before the broken feather fails, so the install has already rewritten the catalog settings -- and poisoned the process cache -- by the time it rolls back",
+        "plural": "FbtFailGoods",
+        "module": "fbtfail",
+        "inherits": "Document",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string"
+            }
+        }
+    },
+    {
         "name": "FbtFailRelation",
         "description": "Points at a feather nothing defines, so the install fails here",
         "plural": "FbtFailRelations",
@@ -9,7 +22,9 @@
             "thing": {
                 "description": "A relation that cannot resolve",
                 "type": {
-                    "properties": ["name"],
+                    "properties": [
+                        "name"
+                    ],
                     "relation": "FbtNoSuchFeather"
                 }
             }

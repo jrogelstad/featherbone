@@ -240,8 +240,8 @@ describe("Install on the Modules page", function () {
         assert.equal(resp.database, settings.testDb);
     });
 
-    it("says what failed, and that the instance is held, when the " +
-            "deployment fails", async function () {
+    it("says what failed, and that nothing was changed, when the " +
+            "deployment fails before committing", async function () {
         let session = await signedIn(PLATFORM);
         let resp = await session.upload(
             "/module/install/x=1",
@@ -271,9 +271,13 @@ describe("Install on the Modules page", function () {
             new RegExp(MODULE + " 9.9.9 was not deployed to "),
             "which package, and where"
         );
+        /*
+            It rolled back before committing, so it is let go rather
+            than held (John, Oct 2026), and the answer says which.
+        */
         assert.match(
             String(resp.body),
-            /held in maintenance/,
+            /Nothing was changed.*open again/,
             "what state it left the instance in"
         );
         assert.equal(await deployed(), "1.1.0", "nothing half applied");

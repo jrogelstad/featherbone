@@ -145,23 +145,58 @@ describe("a package install that fails", function () {
         }
     );
 
+    /*
+        The deployment rolled back before it committed, so the database
+        is as it was and holding it would only lock everyone out. It is
+        let go at once and the answer says so (John, Oct 2026: "auto
+        release"). A failure AFTER the commit still holds it -- that is
+        the case where there is something for a person to check.
+    */
     it(
-        "leaves the instance held, and lets it go on request",
+        "lets the instance go, because nothing was committed",
         async function () {
-            let held = await fleetEntry(session);
-            let resp;
-            let released;
+            let now = await fleetEntry(session);
 
-            assert.equal(held.isMaintenance, true, "held after the failure");
+            assert.equal(now.isMaintenance, false, "open again");
+        }
+    );
+
+    it(
+        "says in the answer that nothing was changed",
+        async function () {
+            let resp = await session.raw("POST", "/platform/instance/deploy", {
+                id: target.id,
+                module: "fbtfail",
+                version: "1.0.0"
+            });
+
+            assert.equal(resp.status, 500, JSON.stringify(resp.body));
+            assert.match(String(JSON.stringify(resp.body)), /Nothing was changed/);
+            assert.match(String(JSON.stringify(resp.body)), /open again/);
+        }
+    );
+
+    it(
+        "still lets an administrator hold and release by hand",
+        async function () {
+            let resp = await session.raw(
+                "POST",
+                "/platform/instance/maintenance",
+                {id: target.id, isMaintenance: true}
+            );
+            let now;
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            now = await fleetEntry(session);
+            assert.equal(now.isMaintenance, true);
 
             resp = await session.raw("POST", "/platform/instance/maintenance", {
                 id: target.id,
                 isMaintenance: false
             });
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
-
-            released = await fleetEntry(session);
-            assert.equal(released.isMaintenance, false);
+            now = await fleetEntry(session);
+            assert.equal(now.isMaintenance, false);
         }
     );
 
@@ -220,6 +255,72 @@ describe("a package install that fails", function () {
             );
         }
     );
+});
+
+/*
+    The case that makes letting go automatically dangerous. A module's
+    install script issues its own COMMIT -- the bug plan item 2.1 took
+    out of four SupplyChain services -- and then fails. What came before
+    the COMMIT is permanent, so the instance is NOT as it was, and must
+    stay held for somebody to look at.
+*/
+describe("a package that commits some work and then fails", function () {
+    let session;
+    let target;
+
+    before(async function () {
+        await flags(settings.adminUser, {
+            isOrgAdmin: true,
+            isPlatformAdmin: true
+        });
+        session = await signedIn();
+        target = await fleetEntry(session);
+    });
+
+    after(async function () {
+        await session.raw("POST", "/platform/instance/maintenance", {
+            id: target.id,
+            isMaintenance: false
+        });
+        await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "DROP TABLE IF EXISTS fbt_commit_marker;"
+            )
+        );
+        await flags(settings.adminUser, {});
+    });
+
+    it("fails, and says the instance is held", async function () {
+        let resp = await session.raw("POST", "/platform/instance/deploy", {
+            id: target.id,
+            module: "fbtcommit",
+            version: "1.0.0"
+        });
+        let said = JSON.stringify(resp.body);
+
+        assert.equal(resp.status, 500, said);
+        assert.match(said, /fails after committing/);
+        assert.match(said, /held in maintenance/);
+        assert.doesNotMatch(said, /Nothing was changed/);
+    });
+
+    it("really did commit something", async function () {
+        let resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT to_regclass('fbt_commit_marker') IS NOT NULL AS made"
+            )
+        );
+
+        assert.equal(resp.rows[0].made, true, "the premise of this test");
+    });
+
+    it("keeps the instance held", async function () {
+        let now = await fleetEntry(session);
+
+        assert.equal(now.isMaintenance, true);
+    });
 });
 
 describe("a package that seeds records into its own feather", function () {

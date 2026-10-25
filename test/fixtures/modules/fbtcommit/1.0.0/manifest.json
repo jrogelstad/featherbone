@@ -1,0 +1,10 @@
+{
+    "module": "fbtcommit",
+    "version": "1.0.0",
+    "files": [
+        {
+            "type": "execute",
+            "path": "commit-then-fail.js"
+        }
+    ]
+}

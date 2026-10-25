@@ -112,6 +112,12 @@
                     every batch wrote to a framework feather (Form,
                     Route, Style), whose views were already there.
                 */
+                /*
+                    The id of the transaction the install opened, so a
+                    failure can tell whether it is still inside it. See
+                    rollback() for why that is worth asking.
+                */
+                let startTxid = null;
                 let viewsDeferred = false;
                 let newFeathers = [];
                 let deferredBatches = [];
@@ -310,7 +316,61 @@
                     copy, a drop -- waited with it, forever. One failed
                     deployment was enough.
                 */
-                function rollback(err) {
+                function rollback(reason, opts) {
+                    /*
+                        A caller holding the instance in maintenance
+                        needs to know whether anything was committed
+                        before it lets traffic back on, so the failure
+                        says. Two ways it can say yes:
+
+                        - The install never got as far as its own
+                          COMMIT. The final COMMIT failing counts here
+                          too, since Postgres then rolls the whole
+                          transaction back itself (`commitFailed`).
+                        - But a module's install script can issue its
+                          own COMMIT -- the very bug plan item 2.1
+                          removed from four SupplyChain services -- and
+                          everything before it is then permanent while
+                          everything after runs in autocommit. So this
+                          asks Postgres whether it is still inside the
+                          transaction the install opened. Same id: yes,
+                          nothing has committed. A different id: some
+                          of it has, so it is reported untagged and the
+                          instance stays held. An aborted transaction
+                          refuses the question with an error, which
+                          also means it is the original one.
+                    */
+                    let err = (
+                        (reason && typeof reason === "object")
+                        ? reason
+                        : new Error(String(reason))
+                    );
+
+                    function stillOurs() {
+                        if (opts && opts.commitFailed) {
+                            return Promise.resolve(true);
+                        }
+                        if (startTxid === null) {
+                            // Refused before BEGIN: nothing was opened
+                            return Promise.resolve(true);
+                        }
+                        return pClient.query(
+                            "SELECT txid_current()::text AS t;"
+                        ).then(function (resp) {
+                            return resp.rows[0].t === startTxid;
+                        }).catch(function () {
+                            return true;
+                        });
+                    }
+
+                    stillOurs().then(function (clean) {
+                        err.nothingCommitted = clean;
+                        finishRollback(err);
+                    });
+                }
+
+                function finishRollback(err) {
+
                     /*
                         The install is over, failed or not. Only the
                         finish cleared this, so after any failure the
@@ -345,8 +405,22 @@
                             ended (John, Oct 2026: "Just said it was
                             deployed").
                         */
-                        let held = reqClient.rollbacks || [];
-                        let hooks = held.slice();
+                        /*
+                            Two connections, two sets of hooks. The
+                            caller's (reqClient) hold the progress
+                            record. The installer's own (pClient) hold
+                            whatever services registered while doing
+                            the work on it -- the settings service
+                            registers one per settings row it wrote, to
+                            drop that row's process-cache entry if the
+                            write is rolled back. Running only the
+                            caller's left the installer's cache entries
+                            poisoned, which is improvement-plan 6.7:
+                            one failed install making the next fail.
+                        */
+                        let own = pClient.rollbacks || [];
+                        let theirs = reqClient.rollbacks || [];
+                        let hooks = own.concat(theirs);
 
                         while (hooks.length) {
                             try {
@@ -1084,15 +1158,54 @@
 
                     // If we've processed all the files, wrap this up
                     if (!file) {
+                        /*
+                            Up to and including the COMMIT, a failure
+                            rolls back like any other: building the
+                            views can fail -- a dependency loop, a
+                            relation to nothing -- and that used to
+                            reject straight past rollback(), so no
+                            ROLLBACK was sent, the connection was never
+                            given back, and the process thought it was
+                            still installing. After the COMMIT the
+                            schema has changed, so a failure there is
+                            reported without the "nothing committed"
+                            mark, and whoever is holding the instance
+                            keeps holding it.
+                        */
+                        let committed = false;
+
+                        let commitFailed = false;
+
                         handleFeathers().then(runDeferred).then(function () {
-                            return new Promise(function (resolve) {
-                                pClient.query("COMMIT;").then(resolve);
-                            });
+                            return pClient.query("COMMIT;").catch(
+                                function (commitErr) {
+                                    commitFailed = true;
+                                    return Promise.reject(commitErr);
+                                }
+                            );
+                        }).then(function (resp) {
+                            committed = true;
+                            return resp;
                         }).then(
                             api.buildClientApi.bind(null, pDatasource, pUser)
                         ).then(
                             api.buildRestApi.bind(null, pDatasource, pUser)
-                        ).then(complete).catch(reject);
+                        ).then(complete).catch(function (err) {
+                            if (!committed) {
+                                rollback(err, {commitFailed});
+                                return;
+                            }
+                            isInstalling = false;
+                            if (conn) {
+                                try {
+                                    conn.done();
+                                } catch (ignore) {
+                                    // Already given back
+                                }
+                                conn = undefined;
+                            }
+                            reject(err);
+                        });
 
                         return;
                     }
@@ -1111,8 +1224,18 @@
                     npm = file.npm || manifest.npm;
 
                     fs.readFile(filepath, "utf8", function (err, data) {
+                        /*
+                            A manifest naming a file that is not there.
+                            This used to log and return, so the install
+                            never settled: the request waited for ever,
+                            and a deployment waiting like that left the
+                            instance held with nobody told why.
+                        */
                         if (err) {
-                            console.error(err);
+                            rollback(new Error(
+                                "The package names " + filename +
+                                ", which is not in it: " + err.message
+                            ));
                             return;
                         }
 
@@ -1183,12 +1306,29 @@
                     }
 
                     fs.readFile(filename, "utf8", function (err, data) {
+                        /*
+                            The refusals here come before BEGIN, so
+                            nothing has been touched; they go through
+                            rollback() all the same, which is what
+                            gives the target connection back and marks
+                            the failure as one that changed nothing.
+                            (ROLLBACK with no transaction open is a
+                            warning, not an error.)
+                        */
                         if (err) {
-                            reject(err);
+                            rollback(err);
                             return;
                         }
 
-                        manifest = JSON.parse(data);
+                        try {
+                            manifest = JSON.parse(data);
+                        } catch (parseErr) {
+                            rollback(new Error(
+                                filename + " is not valid JSON: " +
+                                parseErr.message
+                            ));
+                            return;
+                        }
 
                         /*
                             A package says which kind of database it
@@ -1202,7 +1342,7 @@
                             (manifest.target || "instance") !== "both" &&
                             (manifest.target || "instance") !== pTarget
                         ) {
-                            reject(new Error(
+                            rollback(new Error(
                                 "Package " + (manifest.module || "") +
                                 " installs into a \"" +
                                 (manifest.target || "instance") +
@@ -1212,7 +1352,14 @@
                             return;
                         }
 
-                        pClient.query("BEGIN;").then(processFile);
+                        pClient.query("BEGIN;").then(function () {
+                            return pClient.query(
+                                "SELECT txid_current()::text AS t;"
+                            );
+                        }).then(function (resp) {
+                            startTxid = resp.rows[0].t;
+                            processFile();
+                        }).catch(rollback);
                     });
                 }
 
