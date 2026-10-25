@@ -391,6 +391,68 @@ const addTileDisplay = f.prop("bullets");
 const addTileSpark = f.prop(false);
 const addTileHideNames = f.prop(false);
 const addTileId = f.createId();
+// The tile being edited, or null when the dialog is adding a new one.
+const addTileEditingId = f.prop(null);
+
+/**
+    Opens the Add Tile dialog with an existing tile's settings already in
+    it, aimed at replacing that tile rather than appending a new one --
+    the reverse of what addTileDlg.onOk reads back out. Called from the
+    dashboard's own edit control (dashboard.js has no way to reach this
+    file directly, hence the indirection through a registered global).
+*/
+function openTileEditor(tile) {
+    let choices = catalog.store().global().dashboardTileChoices;
+    let offer = (
+        choices
+        ? choices()
+        : {kpis: [], sources: []}
+    );
+    let picked = offer.sources.find((one) => one.key === tile.source);
+    let size = ADD_TILE_SIZES.find(
+        (one) => one.cols === tile.cols && one.rows === tile.rows
+    );
+    let kpis = tile.kpis || [];
+    let opts = {};
+
+    addTileEditingId(tile.id);
+    addTileFilter("");
+    addTileWhat(
+        tile.type === "kpi"
+        ? ADD_TILE_KPIS
+        : tile.source
+    );
+    addTileKpis(kpis.slice());
+    // Falls back to Medium when the tile was resized by dragging rather
+    // than picked from this list -- there is no "custom" entry to show.
+    addTileSize(
+        size
+        ? size.value
+        : "medium"
+    );
+    addTileDisplay(tile.display || "bullets");
+    addTileSpark(tile.showSpark === true);
+    addTileHideNames(tile.hideLabels === true);
+    addTileTarget(tile.targetMode || "auto");
+    addTileTargetValue(
+        (tile.targetValue === undefined || tile.targetValue === null)
+        ? ""
+        : String(tile.targetValue)
+    );
+    if (picked) {
+        picked.options.forEach(function (option) {
+            opts[option.key] = (
+                tile[option.key] === undefined
+                ? option.default
+                : tile[option.key]
+            );
+        });
+    }
+    addTileOpts(opts);
+    addTileDlg.title("Edit tile");
+    addTileDlg.buttonOk().label("Save");
+    addTileDlg.show();
+}
 
 // Targets dialog draft by metric key: {basis, amount, better}; "" basis
 // means no target.
@@ -765,7 +827,10 @@ function homeRibbonGroups() {
             icon: "add_chart",
             title: "Put another tile on the dashboard",
             onclick: function () {
+                addTileEditingId(null);
                 addTileFilter("");
+                addTileDlg.title("Add tile");
+                addTileDlg.buttonOk().label("Add");
                 addTileDlg.show();
             }
         }, {
@@ -2398,7 +2463,9 @@ function initApp() {
             }, parts);
         };
         addTileDlg.onOk(function () {
+            let editingId = addTileEditingId();
             let add = catalog.store().global().dashboardAddTile;
+            let update = catalog.store().global().dashboardUpdateTile;
             let size = ADD_TILE_SIZES.find(
                 (one) => one.value === addTileSize()
             );
@@ -2408,7 +2475,11 @@ function initApp() {
             };
             let placed;
 
-            if (!add) {
+            if (editingId) {
+                if (!update) {
+                    return;
+                }
+            } else if (!add) {
                 return;
             }
 
@@ -2437,7 +2508,12 @@ function initApp() {
                 });
             }
 
-            placed = add(tile);
+            placed = (
+                editingId
+                ? update(editingId, tile)
+                : add(tile)
+            );
+            addTileEditingId(null);
             // Added from a workbook page, the tile is waiting on a board
             // nobody is looking at. Go and look at it.
             if (placed && m.route.get() !== "/home") {
@@ -2445,8 +2521,12 @@ function initApp() {
             }
             if (!placed) {
                 addTileErrDlg.message(
-                    "There is no room left on the board for a tile that " +
-                    "size. Take one off, or choose a smaller size."
+                    editingId
+                    ? "There is no room left on the board for a tile " +
+                    "that size. Make it smaller, or move something " +
+                    "else first."
+                    : "There is no room left on the board for a tile " +
+                    "that size. Take one off, or choose a smaller size."
                 );
                 addTileErrDlg.show();
             }
@@ -2920,6 +3000,7 @@ function initApp() {
             "addTileErrDlg",
             addTileErrDlg
         );
+        catalog.register("global", "dashboardEditTile", openTileEditor);
         catalog.register("global", "appZoom", appZoom);
         catalog.register("global", "profileValue", profileValue);
         catalog.register("global", "profileSave", profileSave);

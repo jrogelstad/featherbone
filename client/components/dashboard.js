@@ -1053,6 +1053,51 @@ function addTile(tile) {
 }
 
 /**
+    Replaces one tile in place -- what the Add Tile dialog builds, for a
+    tile that already exists -- instead of the delete-and-re-add this
+    exists to avoid. Keeps the old spot as preferred; placeTiles repacks
+    around it if a new size no longer fits there. Only this tile reloads,
+    so editing one tile does not flicker every other one on the board.
+*/
+function updateTile(id, patch) {
+    let layout = currentLayout || composeLayout();
+    let index = layout.tiles.findIndex(function (one) {
+        return one.id === id;
+    });
+    let tiles;
+    let next;
+    let placed;
+
+    if (index === -1) {
+        return false;
+    }
+
+    tiles = layout.tiles.slice();
+    tiles[index] = Object.assign({}, patch, {
+        id: tiles[index].id,
+        col: tiles[index].col,
+        row: tiles[index].row
+    });
+    next = Object.assign({}, layout, {tiles: placeTiles(tiles)});
+    placed = next.tiles.find(function (one) {
+        return one.id === id;
+    });
+
+    currentLayout = next;
+    if (placed) {
+        tileState[id] = {status: "loading"};
+        loadTile(placed, next).then(function (result) {
+            tileState[id] = Object.assign({status: "ready"}, result);
+            m.redraw();
+        });
+    }
+    m.redraw();
+    // Same guarantee as addTile: a resize the packer cannot fit is a
+    // dropped tile, not a silently clipped one.
+    return Boolean(placed);
+}
+
+/**
     Takes a tile off the board. Not saved until the layout is.
 */
 function removeTile(id) {
@@ -2379,6 +2424,25 @@ function removeControl(tile) {
     }, "\u00d7");
 }
 
+/**
+    Opens the tile in the same dialog it was added from, settings
+    already filled in -- what used to take a delete and a re-add.
+    main.js owns that dialog, so this only asks for it to open.
+*/
+function editControl(tile) {
+    return m("button", {
+        class: "fb-dash-tile-edit",
+        title: "Edit this tile",
+        onclick: function () {
+            let open = f.catalog().store().global().dashboardEditTile;
+
+            if (open) {
+                open(tile);
+            }
+        }
+    }, "\u270e");
+}
+
 let dashboard = {
     oninit: function () {
         /*
@@ -2454,6 +2518,7 @@ let dashboard = {
                         ? kpiTile(tile)
                         : measureTile(tile)
                     ),
+                    editControl(tile),
                     removeControl(tile),
                     resizeHandle(tile)
                 ]);
@@ -2520,6 +2585,7 @@ f.catalog().register("global", "dashboardSaveLayout", saveLayout);
 f.catalog().register("global", "dashboardUseLayout", useLayout);
 f.catalog().register("global", "dashboardDeleteLayout", deleteLayout);
 f.catalog().register("global", "dashboardAddTile", addTile);
+f.catalog().register("global", "dashboardUpdateTile", updateTile);
 f.catalog().register("global", "dashboardRemoveTile", removeTile);
 f.catalog().register("global", "dashboardTileChoices", tileChoices);
 f.catalog().register("global", "dashboardSetAsOf", setAsOf);
