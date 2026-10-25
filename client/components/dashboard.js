@@ -98,6 +98,28 @@
     built, which is a different thing from an error and is shown as an
     instruction rather than a failure.
 
+    A *schedule* (`dashboardSchedules`) feeds the due-date histogram: open
+    orders by the date they are due, as of the reporting date.
+
+        {
+            key:    unique string
+            module: who contributed it
+            name:   what the orders are, e.g. "Sales"
+            sequence: order among schedules, optional
+            format: {amount, compact, units} formatters, all optional
+            load:   ({asOf, bucket}) -> Promise of {asOf, rows: [{period,
+                    late, amount, units}]}
+        }
+
+    `bucket` is "day", "week" (Monday) or "month"; `period` is the
+    bucket's first day as YYYY-MM-DD; `late` means due before the
+    reporting date. The tile does the bucketing, so schedules side by side
+    always line up.
+
+    A KPI may say `better: "neither"` (no alert either way),
+    `isStandard: false` (not on the composed board, only by choice) and
+    `group` (its heading in the Add Tile picker, else its module).
+
     A *refresher* (`dashboardRefreshers`) is a routine that rebuilds those
     aggregates, run by the ribbon's Refresh button:
 
@@ -187,6 +209,7 @@ const DASH_MIN_ROWS = 2;
 let kpiRegistry = {};
 let sourceRegistry = {};
 let refresherRegistry = {};
+let scheduleRegistry = {};
 let tileState = {};
 let loadToken = 0;
 
@@ -461,6 +484,7 @@ function alertLevel(value, aim, better) {
     let gap;
 
     if (
+        better === "neither" ||
         aim === null ||
         aim === undefined ||
         aim === 0 ||
@@ -627,6 +651,34 @@ function listSources() {
 }
 
 /**
+    Registers a due-date schedule. See the file comment for its shape.
+*/
+function registerSchedule(schedule) {
+    if (schedule && schedule.key) {
+        scheduleRegistry[schedule.key] = schedule;
+        registryVersion += 1;
+    }
+}
+
+// By `sequence` where given, then key, so side-by-side order is stable.
+function listSchedules() {
+    let all = Object.keys(scheduleRegistry).map(function (key) {
+        return scheduleRegistry[key];
+    });
+
+    return all.sort(function (a, b) {
+        let x = a.sequence || 0;
+        let y = b.sequence || 0;
+
+        return (
+            x === y
+            ? a.key.localeCompare(b.key)
+            : x - y
+        );
+    });
+}
+
+/**
     Registers an aggregate refresh routine for the Refresh button to run.
 */
 function registerRefresher(refresher) {
@@ -769,7 +821,9 @@ function composeLayout() {
         installed package should arrive showing something, not waiting
         to be found in a dialog.
     */
-    let metrics = listKpis().map(function (kpi) {
+    let metrics = listKpis().filter(function (kpi) {
+        return kpi.isStandard !== false;
+    }).map(function (kpi) {
         return kpi.key;
     });
     let tiles = [{
@@ -1121,9 +1175,17 @@ function tileChoices() {
     return {
         kpis: listKpis().map(function (kpi) {
             return {
+                group: kpi.group,
                 key: kpi.key,
                 label: kpi.name,
                 module: kpi.module
+            };
+        }),
+        schedules: listSchedules().map(function (schedule) {
+            return {
+                key: schedule.key,
+                label: schedule.name,
+                module: schedule.module
             };
         }),
         sources: listSources().map(function (source) {
@@ -1287,6 +1349,29 @@ function loadTile(tile, layout) {
                 return {data};
             }
         ).catch(function (err) {
+            return {error: err.message || String(err)};
+        });
+    }
+
+    if (tile.type === "histogram") {
+        let chosen = tile.schedules || [];
+        let picked = chosen.map(function (key) {
+            return scheduleRegistry[key];
+        }).filter(Boolean);
+
+        if (!picked.length) {
+            return Promise.resolve({error: "No schedule chosen"});
+        }
+        return Promise.all(picked.map(function (schedule) {
+            return schedule.load({
+                asOf,
+                bucket: tile.bucket || "week"
+            }).then(function (data) {
+                return {data, schedule};
+            });
+        })).then(function (series) {
+            return {series};
+        }).catch(function (err) {
             return {error: err.message || String(err)};
         });
     }
@@ -1695,7 +1780,7 @@ function kpiTile(tile) {
     }
 
     return [
-        m("div", headingDrag(tile), m("span", tile.heading)),
+        m("div", headingDrag(tile), m("span", tile.heading || "Key Metrics")),
         body
     ];
 }
@@ -2158,6 +2243,329 @@ function measureTile(tile) {
 }
 
 /*
+    Due-date histogram: open orders by when they are due, in day, week or
+    month buckets around the reporting date. Past buckets sit left of the
+    "now" line in red. The current week or month straddles the line, so it
+    appears twice: its overdue part on the left, the rest on the right.
+    Several schedules are drawn side by side in each bucket on one scale
+    (Few's comparison), told apart by intensity; red keeps that intensity.
+*/
+const DASH_HIST_SPAN = {
+    day: {after: 21, before: 7},
+    month: {after: 12, before: 4},
+    week: {after: 13, before: 6}
+};
+const DASH_HIST_NOUNS = {
+    day: "day",
+    month: "month",
+    week: "week"
+};
+const DASH_HIST_MONTHS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+// Measured plot sizes by tile id, so the chart fills whatever it is given.
+let histSizes = {};
+
+function utcDay(text) {
+    return new Date(text + "T00:00:00Z");
+}
+
+function dayText(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+function periodStart(date, bucket) {
+    let out = new Date(date.getTime());
+
+    if (bucket === "month") {
+        out.setUTCDate(1);
+    } else if (bucket === "week") {
+        // Monday, as Postgres date_trunc has it
+        out.setUTCDate(out.getUTCDate() - ((out.getUTCDay() + 6) % 7));
+    }
+    return out;
+}
+
+function addPeriods(date, bucket, count) {
+    let out = new Date(date.getTime());
+
+    if (bucket === "month") {
+        out.setUTCMonth(out.getUTCMonth() + count);
+    } else {
+        out.setUTCDate(out.getUTCDate() + count * (
+            bucket === "week"
+            ? 7
+            : 1
+        ));
+    }
+    return out;
+}
+
+function periodLabel(date, bucket) {
+    let month = DASH_HIST_MONTHS[date.getUTCMonth()];
+
+    if (bucket === "month") {
+        return (
+            date.getUTCMonth() === 0
+            ? month + " " + String(date.getUTCFullYear()).slice(2)
+            : month
+        );
+    }
+    return month + " " + date.getUTCDate();
+}
+
+/**
+    The buckets around a reporting date, oldest first, and a function
+    placing a schedule row into one of them (or "earlier"/"later").
+*/
+function histBuckets(asOf, bucket) {
+    let span = DASH_HIST_SPAN[bucket] || DASH_HIST_SPAN.week;
+    let at = utcDay(asOf);
+    let first = periodStart(at, bucket);
+    let split = bucket !== "day";
+    let buckets = [];
+    let index = span.before;
+    let oldest;
+    let newest;
+
+    while (index > 0) {
+        let back = addPeriods(first, bucket, -index);
+
+        buckets.push({key: dayText(back), late: true, start: back});
+        index -= 1;
+    }
+    if (split) {
+        buckets.push({
+            key: dayText(first) + ":late",
+            late: true,
+            partial: true,
+            start: first
+        });
+    }
+    index = 0;
+    while (index < span.after) {
+        let ahead = addPeriods(first, bucket, index);
+
+        buckets.push({
+            key: dayText(ahead),
+            late: false,
+            partial: split && index === 0,
+            start: ahead
+        });
+        index += 1;
+    }
+    oldest = buckets[0].key;
+    newest = buckets[buckets.length - 1].key;
+
+    return {
+        buckets,
+        place: function (row) {
+            if (row.late) {
+                if (split && row.period === dayText(first)) {
+                    return row.period + ":late";
+                }
+                return (
+                    row.period < oldest
+                    ? "earlier"
+                    : row.period
+                );
+            }
+            return (
+                row.period > newest
+                ? "later"
+                : row.period
+            );
+        }
+    };
+}
+
+function histFormats(series) {
+    let first = series[0] || {};
+
+    return measureFormats(first.schedule);
+}
+
+// Keeps the plot sized to its box; redraws only when the box changed.
+function histMeasure(id) {
+    function measure(vnode) {
+        let width = vnode.dom.clientWidth;
+        let height = vnode.dom.clientHeight;
+        let was = histSizes[id] || {};
+
+        if (
+            Math.abs((was.width || 0) - width) > 1 ||
+            Math.abs((was.height || 0) - height) > 1
+        ) {
+            histSizes[id] = {height, width};
+            window.requestAnimationFrame(m.redraw);
+        }
+    }
+    return {oncreate: measure, onupdate: measure};
+}
+
+function histogramTile(tile) {
+    let state = tileState[tile.id] || {status: "loading"};
+    let draw = f.catalog().store().global().dashboardDraw;
+    let value = (
+        tile.value === "units"
+        ? "units"
+        : "amount"
+    );
+    let bucket = tile.bucket || "week";
+    let keys = tile.schedules || [];
+    let wanted = keys.map(function (key) {
+        return scheduleRegistry[key];
+    }).filter(Boolean);
+    let named = wanted.map(function (one) {
+        return one.name;
+    }).join(", ");
+    let heading = tile.heading || (
+        (named || "Orders") + " due by " + DASH_HIST_NOUNS[bucket]
+    );
+    let body;
+    let total = null;
+    let fmt = histFormats(wanted.map(function (schedule) {
+        return {schedule};
+    }));
+
+    if (state.status !== "ready") {
+        body = m("div", {class: "fb-dash-tile-empty"}, "Loading…");
+    } else if (state.error) {
+        body = m("div", {class: "fb-dash-tile-error"}, state.error);
+    } else {
+        let series = state.series;
+        let asOf = series[0].data.asOf;
+        let grid = histBuckets(asOf, bucket);
+        let edges = {earlier: [], later: []};
+        let sums = series.map(function (one, which) {
+            let by = {};
+
+            edges.earlier[which] = 0;
+            edges.later[which] = 0;
+            let rows = one.data.rows || [];
+
+            rows.forEach(function (row) {
+                let key = grid.place(row);
+                let n = Number(row[value]) || 0;
+
+                total += n;
+                if (key === "earlier" || key === "later") {
+                    edges[key][which] += n;
+                } else {
+                    by[key] = (by[key] || 0) + n;
+                }
+            });
+            return by;
+        });
+        let size = histSizes[tile.id];
+        let notes = [];
+        let earlier = edges.earlier.reduce((a, b) => a + b, 0);
+        let later = edges.later.reduce((a, b) => a + b, 0);
+        let lastDay = grid.buckets[grid.buckets.length - 1].start;
+
+        total = total || 0;
+        if (value === "units") {
+            fmt = Object.assign({}, fmt, {
+                amount: fmt.units,
+                compact: fmt.units
+            });
+        }
+        if (series.length > 1) {
+            series.forEach(function (one, which) {
+                notes.push(m("span", {class: "fb-dash-hist-key"}, [
+                    m("span", {
+                        class: "fb-dash-hist-swatch fb-dash-hist-s" + which
+                    }),
+                    one.schedule.name
+                ]));
+            });
+        }
+        notes.push(m("span", {class: "fb-dash-hist-key"}, [
+            m("span", {class: "fb-dash-hist-swatch fb-dash-hist-late"}),
+            "past due"
+        ]));
+        if (earlier > 0) {
+            notes.push(m("span", {class: "fb-dash-hist-earlier"}, (
+                "Due before " + periodLabel(grid.buckets[0].start, bucket) +
+                ": " + fmt.amount(earlier)
+            )));
+        }
+        if (later > 0) {
+            notes.push(m("span", {class: "fb-dash-hist-key"}, (
+                "After " + periodLabel(lastDay, bucket) + ": " +
+                fmt.amount(later)
+            )));
+        }
+
+        body = [
+            m("div", Object.assign({
+                class: "fb-dash-hist-plot"
+            }, histMeasure(tile.id)), (
+                size
+                ? draw.columns({
+                    asOfLabel: (
+                        asOf === dayText(new Date())
+                        ? "Today"
+                        : asOfText(asOf)
+                    ),
+                    buckets: grid.buckets.map(function (one) {
+                        let label = periodLabel(one.start, bucket);
+
+                        // The current period's overdue half is unlabelled;
+                        // its other half carries the name.
+                        return {
+                            label: (
+                                (one.late && one.partial)
+                                ? ""
+                                : label
+                            ),
+                            name: label,
+                            late: one.late,
+                            values: sums.map(function (by) {
+                                return by[one.key] || 0;
+                            })
+                        };
+                    }),
+                    format: fmt.compact,
+                    height: size.height,
+                    names: series.map(function (one) {
+                        return one.schedule.name;
+                    }),
+                    titleFormat: fmt.amount,
+                    width: size.width
+                })
+                : null
+            )),
+            m("div", {class: "fb-dash-caption fb-dash-hist-notes"}, notes)
+        ];
+    }
+
+    return [
+        m("div", headingDrag(tile), [
+            m("span", heading),
+            (
+                total === null
+                ? null
+                : m("span", {class: "fb-dash-tile-total"}, fmt.amount(total))
+            )
+        ]),
+        body
+    ];
+}
+
+function tileBody(tile) {
+    if (tile.type === "kpi") {
+        return kpiTile(tile);
+    }
+    if (tile.type === "histogram") {
+        return histogramTile(tile);
+    }
+    return measureTile(tile);
+}
+
+/*
     While a tile is being dragged: which tile, whether it is being moved
     or resized, where the pointer started, and where it would land.
     Null the rest of the time, which is also how the board knows not to
@@ -2513,11 +2921,7 @@ let dashboard = {
                         "grid-row": tile.row + " / span " + tile.rows
                     }
                 }, [
-                    (
-                        tile.type === "kpi"
-                        ? kpiTile(tile)
-                        : measureTile(tile)
-                    ),
+                    tileBody(tile),
                     editControl(tile),
                     removeControl(tile),
                     resizeHandle(tile)
@@ -2561,6 +2965,10 @@ f.catalog().register("global", "dashboardKpis", {
 f.catalog().register("global", "dashboardSources", {
     list: listSources,
     register: registerSource
+});
+f.catalog().register("global", "dashboardSchedules", {
+    list: listSchedules,
+    register: registerSchedule
 });
 f.catalog().register("global", "dashboardRefreshers", {
     list: listRefreshers,

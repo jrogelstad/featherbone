@@ -3688,6 +3688,8 @@ button:disabled .fb-ipicon,
     --fb-dash-bar: #6aa6aa;
     --fb-dash-spark: #5c8f93;
     --fb-dash-spark-band: #ededed;
+    /* Third series in a histogram: the same teal, lighter still. */
+    --fb-dash-light: #a9cdd0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -3705,6 +3707,7 @@ button:disabled .fb-ipicon,
         --fb-dash-bar: #3f7f83;
         --fb-dash-spark: #74a9ad;
         --fb-dash-spark-band: #2a2e35;
+        --fb-dash-light: #2d5b5e;
     }
 }
 
@@ -3766,6 +3769,46 @@ button:disabled .fb-ipicon,
 .fb-dash-alert-1 { fill-opacity: 0.4; }
 .fb-dash-alert-2 { fill-opacity: 1; }
 .fb-dash-cell-alert { width: 14px; }
+
+/* Due-date histogram. Series by intensity of one hue; late in the alert
+   hue at the same intensities, so a red bar still says which series. */
+.fb-dash-hist-plot {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+.fb-dash-columns { display: block; }
+.fb-dash-hist-s0 { fill: var(--fb-dash-measure); }
+.fb-dash-hist-s1 { fill: var(--fb-dash-bar); }
+.fb-dash-hist-s2 { fill: var(--fb-dash-light); }
+.fb-dash-hist-late { fill: var(--fb-danger); }
+.fb-dash-hist-late.fb-dash-hist-s1 { fill-opacity: 0.65; }
+.fb-dash-hist-late.fb-dash-hist-s2 { fill-opacity: 0.38; }
+.fb-dash-hist-now {
+    stroke: var(--fb-dash-target);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 2;
+}
+.fb-dash-hist-notes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+}
+.fb-dash-hist-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.fb-dash-hist-swatch {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+}
+span.fb-dash-hist-s0 { background: var(--fb-dash-measure); }
+span.fb-dash-hist-s1 { background: var(--fb-dash-bar); }
+span.fb-dash-hist-s2 { background: var(--fb-dash-light); }
+span.fb-dash-hist-late { background: var(--fb-danger); }
+.fb-dash-hist-earlier { color: var(--fb-danger); }
 
 /* Small multiples grid */
 .fb-dash-multiples {
