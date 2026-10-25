@@ -358,10 +358,9 @@
                             poisoned, which is improvement-plan 6.7:
                             one failed install making the next fail.
                         */
-                        let held = (pClient.rollbacks || []).concat(
-                            reqClient.rollbacks || []
-                        );
-                        let hooks = held.slice();
+                        let own = pClient.rollbacks || [];
+                        let theirs = reqClient.rollbacks || [];
+                        let hooks = own.concat(theirs);
 
                         while (hooks.length) {
                             try {
