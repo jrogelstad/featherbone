@@ -2479,11 +2479,16 @@
                     (t) => t.pgDatabase === opts.databases[n]
                 );
                 if (!target) {
-                    throw (
+                    let refused = new Error(
                         "Invalid target database " +
                         opts.databases[n] +
                         " passed"
                     );
+
+                    // Refused before anything was opened, let alone
+                    // changed.
+                    refused.nothingCommitted = true;
+                    throw refused;
                 }
                 n += 1;
                 targets.push(target);
@@ -2556,16 +2561,28 @@
             if (carriesCode && !(held && (
                 path.resolve(held.dir) === path.resolve(filename)
             ))) {
-                return Promise.reject(new Error(
+                let refused = new Error(
                     "\"" + said.module + " " + said.version + "\" in " +
                     filename + " is not a package this server holds, " +
                     "and code is never stored in the database. Install " +
                     "it as a package first, then deploy it."
-                ));
+                );
+
+                refused.nothingCommitted = true;
+                return Promise.reject(refused);
             }
 
             // Do the work
             while (targets.length) {
+                /*
+                    An install aimed at several databases commits each
+                    as it goes, so a failure on the second has already
+                    changed the first. Only a failure on the first can
+                    honestly say nothing was committed.
+                */
+                if (done > 0) {
+                    multiTarget = true;
+                }
                 await installer.install(
                     that,
                     resp.client,
@@ -2595,9 +2612,13 @@
                         tenant: targets.shift()
                     }
                 );
+                done += 1;
             }
             return filename;
         }
+
+        let done = 0;
+        let multiTarget = false;
 
         let installed;
         let failed;
@@ -2610,6 +2631,13 @@
 
         resp.done();
         if (failed !== undefined) {
+            if (
+                multiTarget &&
+                failed &&
+                typeof failed === "object"
+            ) {
+                failed.nothingCommitted = false;
+            }
             throw failed;
         }
         return installed;
