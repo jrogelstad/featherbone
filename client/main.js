@@ -393,6 +393,13 @@ const ADD_TILE_BUCKETS = [
     {value: "week", label: "Weekly"},
     {value: "month", label: "Monthly"}
 ];
+// Names the max-horizon field's unit after whichever bucket is picked --
+// matches dashboard.js's own DASH_HIST_NOUNS, pluralized for this prompt.
+const ADD_TILE_HORIZON_NOUNS = {
+    day: "days",
+    week: "weeks",
+    month: "months"
+};
 const ADD_TILE_SIZES = [
     {value: "small", label: "Small", cols: 4, rows: 2},
     {value: "medium", label: "Medium", cols: 5, rows: 3},
@@ -427,6 +434,9 @@ const addTileHeading = f.prop("");
 const addTileSchedules = f.prop([]);
 const addTileBucket = f.prop("week");
 const addTileValue = f.prop("amount");
+// Blank means the default forward window for the bucket (DASH_HIST_SPAN);
+// a number caps how many buckets ahead of "now" the histogram draws.
+const addTileMaxHorizon = f.prop("");
 const addTileId = f.createId();
 // The tile being edited, or null when the dialog is adding a new one.
 const addTileEditingId = f.prop(null);
@@ -471,6 +481,11 @@ function openTileEditor(tile) {
     addTileSchedules(schedules.slice());
     addTileBucket(tile.bucket || "week");
     addTileValue(tile.value || "amount");
+    addTileMaxHorizon(
+        tile.maxHorizon
+        ? String(tile.maxHorizon)
+        : ""
+    );
     addTileKpis(kpis.slice());
     // Falls back to Medium when the tile was resized by dragging rather
     // than picked from this list -- there is no "custom" entry to show.
@@ -2467,6 +2482,22 @@ function initApp() {
                     m("option", {value: "amount"}, "Money"),
                     m("option", {value: "units"}, "Quantity")
                 ])));
+                parts.push(group("Max horizon:", m("input", {
+                    type: "number",
+                    min: "1",
+                    step: "1",
+                    placeholder: "Default",
+                    oninput: (e) => addTileMaxHorizon(e.target.value),
+                    value: addTileMaxHorizon()
+                })));
+                parts.push(m("div", {
+                    class: "fb-dialog-note"
+                }, (
+                    "How many " + ADD_TILE_HORIZON_NOUNS[addTileBucket()] +
+                    " ahead to show, at most -- orders due later are " +
+                    "folded into the \"After\" total instead of adding " +
+                    "more buckets. Leave this empty for the usual window."
+                )));
             } else if (picked) {
                 picked.options.forEach(function (option) {
                     let held = addTileOpts();
@@ -2623,6 +2654,11 @@ function initApp() {
                 tile.schedules = addTileSchedules();
                 tile.bucket = addTileBucket();
                 tile.value = addTileValue();
+                tile.maxHorizon = (
+                    Number(addTileMaxHorizon()) > 0
+                    ? Number(addTileMaxHorizon())
+                    : null
+                );
                 delete tile.targetMode;
             } else {
                 tile.type = "measure";
