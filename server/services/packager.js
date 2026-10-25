@@ -576,22 +576,22 @@
     }
 
     /*
-        The dashboard wallpaper currently in use (brandingSettings),
-        carried as a sibling "dashboard" image file, the same shape
-        saveBranding reads back in on install. Part of what the
-        dashboard checkbox means by "the dashboard board", so it
-        travels only when that is checked -- see addDashboards.
+        One brandingSettings image, carried as a sibling "<stem>"
+        image file, the same shape saveBranding reads back in on
+        install. Shared by addWallpaper and addIcon below, which
+        differ only in which brandingSettings key they read and which
+        stem they write the sibling file under.
 
-        A wallpaper that is a pasted web address rather than a file
-        this server holds has nothing to add to the zip.
+        A value that is a pasted web address rather than a file this
+        server holds has nothing to add to the zip.
     */
-    function addWallpaper(zip, resp, folder) {
+    function addBrandAsset(zip, resp, folder, key, stem) {
         // Work around linter dogma (as server.js does).
         let existssync = "existsSync";
         let readfilesync = "readFileSync";
         let row = resp.rows[0] || {};
         let data = row.data || {};
-        let value = data.dashboardImage;
+        let value = data[key];
         let uploadPath;
         let ext;
 
@@ -606,11 +606,31 @@
 
             if (fs[existssync](uploadPath)) {
                 zip.addFile(
-                    folder + "dashboard" + ext,
+                    folder + stem + ext,
                     fs[readfilesync](uploadPath)
                 );
             }
         }
+    }
+
+    /*
+        The dashboard wallpaper currently in use. Part of what the
+        dashboard checkbox means by "the dashboard board", so it
+        travels only when that is checked -- see addDashboards.
+    */
+    function addWallpaper(zip, resp, folder) {
+        addBrandAsset(zip, resp, folder, "dashboardImage", "dashboard");
+    }
+
+    /*
+        The ribbon/tab icon currently in use, in place of the
+        Featherbone quill. Like the title (addTitle above) rather than
+        the wallpaper: it names the application rather than being part
+        of "the dashboard board", so it travels with every export
+        regardless of the dashboard checkbox -- see the call site.
+    */
+    function addIcon(zip, resp, folder) {
+        addBrandAsset(zip, resp, folder, "icon", "icon");
     }
 
     function addWorkbooks(manifest, zip, resp, folder) {
@@ -949,6 +969,7 @@
                         // dependency's own manifest underneath it.
                         if (!sub.module) {
                             addTitle(manifest, resp[12]);
+                            addIcon(zip, resp[12], folder);
                             if (includeDashboard) {
                                 addWallpaper(zip, resp[12], folder);
                             }
