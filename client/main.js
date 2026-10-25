@@ -86,7 +86,6 @@ let addTileDlg;
 let addTileErrDlg;
 let targetsDlg;
 let targetsErrDlg;
-let pickLayoutDlg;
 let deleteLayoutDlg;
 let deleteLayoutErrDlg;
 let acctMenu;
@@ -400,8 +399,6 @@ const targetsFilter = f.prop("");
 
 // For saving the board's arrangement as a layout everyone can start from
 const layoutName = f.prop("");
-const layoutPicked = f.prop("");
-const layoutPickId = f.createId();
 const layoutToDelete = f.prop("");
 const layoutDeleteId = f.createId();
 const layoutIsDefault = f.prop(false);
@@ -822,18 +819,6 @@ function homeRibbonGroups() {
                 }
             }
         }, {
-            label: "Layout",
-            icon: "dashboard_customize",
-            title: (
-                dashLayout
-                ? "Showing \"" + dashLayout + "\". Press to choose another."
-                : "Choose which saved layout you start from"
-            ),
-            onclick: function () {
-                layoutPicked(dashLayout || "");
-                pickLayoutDlg.show();
-            }
-        }, {
             label: "Save Layout",
             icon: "bookmark_add",
             /*
@@ -1124,9 +1109,6 @@ const homeDialogs = {
                 viewModel: g.addTileErrDlg
             }),
             m(components.dialog, {
-                viewModel: g.pickLayoutDlg
-            }),
-            m(components.dialog, {
                 viewModel: g.deleteLayoutDlg
             }),
             m(components.dialog, {
@@ -1193,6 +1175,16 @@ const home = {
             ? globals.dashboardTitle()
             : f.currentUser().splashTitle
         );
+        let listedLayouts = (
+            globals.dashboardLayouts
+            ? globals.dashboardLayouts()
+            : []
+        );
+        let pickedLayout = (
+            globals.dashboardLayoutName
+            ? globals.dashboardLayoutName()
+            : null
+        );
 
         return [
             m(components.envBanner),
@@ -1217,7 +1209,31 @@ const home = {
                             }, dashTitle),
                             m("div", {
                                 class: "fb-toolbar-fill"
-                            })
+                            }),
+                            m("select", {
+                                class: "fb-layout-picker",
+                                title: "Switch which saved layout you see",
+                                onchange: function (e) {
+                                    let use = globals.dashboardUseLayout;
+
+                                    if (use) {
+                                        use(e.target.value || null);
+                                    }
+                                },
+                                value: pickedLayout || ""
+                            }, [
+                                m("option", {
+                                    value: ""
+                                }, "Standard arrangement")
+                            ].concat(listedLayouts.map(function (row) {
+                                return m("option", {
+                                    value: row.name
+                                }, (
+                                    row.isDefault
+                                    ? row.label + " (default)"
+                                    : row.label
+                                ));
+                            })))
                         ]),
                         m(components.dashboard)
                     ])
@@ -2029,69 +2045,6 @@ function initApp() {
                 ))
             ]);
         };
-        /*
-            View model for choosing which saved layout this person
-            starts from. The choice is theirs and is kept in their
-            profile; the layouts themselves belong to the instance, so
-            choosing one changes nobody else's board.
-        */
-        pickLayoutDlg = viewModels.dialog({
-            icon: "dashboard",
-            title: "Choose a dashboard layout"
-        });
-        pickLayoutDlg.content = function () {
-            let listed = catalog.store().global().dashboardLayouts;
-            let rows = (
-                listed
-                ? listed()
-                : []
-            );
-
-            return m("div", {
-                class: "pure-form pure-form-aligned"
-            }, [
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: layoutPickId
-                    }, "Layout:"),
-                    m("select", {
-                        id: layoutPickId,
-                        onchange: (e) => layoutPicked(e.target.value),
-                        value: layoutPicked()
-                    }, [
-                        m("option", {
-                            value: ""
-                        }, "Standard arrangement")
-                    ].concat(rows.map(function (row) {
-                        return m("option", {
-                            value: row.name
-                        }, (
-                            row.isDefault
-                            ? row.label + " (default)"
-                            : row.label
-                        ));
-                    })))
-                ]),
-                m("div", {
-                    class: "fb-dialog-note"
-                }, (
-                    "The standard arrangement is composed from whatever " +
-                    "is installed, so a package's tile appears on it " +
-                    "with nothing to set up. Your choice is remembered " +
-                    "against your account, not this browser."
-                ))
-            ]);
-        };
-        pickLayoutDlg.onOk(function () {
-            let use = catalog.store().global().dashboardUseLayout;
-
-            if (use) {
-                use(layoutPicked() || null);
-            }
-        });
-
         /*
             The metrics list on the Add Tile dialog.
 
@@ -2970,11 +2923,6 @@ function initApp() {
         catalog.register("global", "appZoom", appZoom);
         catalog.register("global", "profileValue", profileValue);
         catalog.register("global", "profileSave", profileSave);
-        catalog.register(
-            "global",
-            "pickLayoutDlg",
-            pickLayoutDlg
-        );
         catalog.register(
             "global",
             "deleteLayoutDlg",
