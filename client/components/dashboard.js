@@ -1555,18 +1555,19 @@ function kpiTile(tile) {
                 );
             }
 
-            // Alert column first, and only when some row has one.
+            cells.push(m("td", {class: "fb-dash-cell-spark"}, (
+                (row.spark && row.spark.length > 1)
+                ? draw.sparkline({points: row.spark, width: 76, height: 16})
+                : null
+            )));
+            // Between the spark and the name, not the row's leading edge
+            // (John, Oct 2026).
             if (anyAlert) {
                 cells.push(m("td", {class: "fb-dash-cell-alert"}, draw.alert({
                     level: one.level,
                     title: alertTitle(one.level, one.better, one.label)
                 })));
             }
-            cells.push(m("td", {class: "fb-dash-cell-spark"}, (
-                (row.spark && row.spark.length > 1)
-                ? draw.sparkline({points: row.spark, width: 76, height: 16})
-                : null
-            )));
             cells.push(m("td", {class: "fb-dash-cell-name"}, row.kpi.name));
             if (anyReference) {
                 cells.push(m("td", {class: "fb-dash-cell-graphic"}, (
@@ -1961,6 +1962,15 @@ function measureTile(tile) {
                 });
             }
 
+            if (hasSpark) {
+                cells.push(m("td", {class: "fb-dash-cell-spark"}, (
+                    points.length > 1
+                    ? draw.sparkline({points, width: 76, height: 16})
+                    : null
+                )));
+            }
+            // Between the spark and the name, not the row's leading edge
+            // (John, Oct 2026).
             if (anyAlert) {
                 cells.push(m("td", {class: "fb-dash-cell-alert"}, draw.alert({
                     level: levels[index],
@@ -1974,13 +1984,6 @@ function measureTile(tile) {
                         )
                     )
                 })));
-            }
-            if (hasSpark) {
-                cells.push(m("td", {class: "fb-dash-cell-spark"}, (
-                    points.length > 1
-                    ? draw.sparkline({points, width: 76, height: 16})
-                    : null
-                )));
             }
             if (showNames) {
                 cells.push(m("td", {class: "fb-dash-cell-name"}, label));
