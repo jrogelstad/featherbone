@@ -2677,6 +2677,44 @@ function histogramTile(tile) {
             )));
         }
 
+        let columns = grid.buckets.map(function (one) {
+            let label = periodLabel(one.start, bucket);
+
+            // The current period's overdue half is unlabelled;
+            // its other half carries the name.
+            return {
+                label: (
+                    (one.late && one.partial)
+                    ? ""
+                    : label
+                ),
+                name: label,
+                late: one.late,
+                partial: one.partial,
+                values: sums.map(function (by) {
+                    return by[one.key] || 0;
+                })
+            };
+        });
+
+        // DASH_HIST_SPAN's lookback is a fixed number of periods, not a
+        // promise every one of them has data -- a short backlog still
+        // gets the full six-week runway, padded with nothing to look
+        // at. Drop past columns with nothing in them off the front
+        // until one actually has a value, so the chart starts where
+        // the backlog does; the split column framing "now" is never
+        // dropped, even empty, since it marks the boundary itself.
+        while (
+            columns.length > 0 &&
+            columns[0].late &&
+            !columns[0].partial &&
+            columns[0].values.every(function (v) {
+                return v === 0;
+            })
+        ) {
+            columns.shift();
+        }
+
         body = [
             m("div", Object.assign({
                 class: "fb-dash-hist-plot"
@@ -2688,24 +2726,7 @@ function histogramTile(tile) {
                         ? "Today"
                         : asOfText(asOf)
                     ),
-                    buckets: grid.buckets.map(function (one) {
-                        let label = periodLabel(one.start, bucket);
-
-                        // The current period's overdue half is unlabelled;
-                        // its other half carries the name.
-                        return {
-                            label: (
-                                (one.late && one.partial)
-                                ? ""
-                                : label
-                            ),
-                            name: label,
-                            late: one.late,
-                            values: sums.map(function (by) {
-                                return by[one.key] || 0;
-                            })
-                        };
-                    }),
+                    buckets: columns,
                     format: fmt.compact,
                     height: size.height,
                     names: series.map(function (one) {
