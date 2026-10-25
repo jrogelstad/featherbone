@@ -53,6 +53,41 @@ function brandTitle() {
     return title || "Featherbone";
 }
 
+/**
+    The browser tab's icon, in place of the Featherbone quill once a
+    package's manifest has carried a sibling "icon" image
+    (brandingSettings, set by installer.js's saveBranding). `""` when
+    none is set, so the caller can fall back to the default favicon.
+    Same lookup as ribbon.js's own brandIcon -- kept local here rather
+    than shared, since the two files have no import relationship.
+
+    @method brandIcon
+    @return {String}
+*/
+function brandIcon() {
+    let models = catalog.store().models();
+    let theSettings = (
+        models.brandingSettings
+        ? models.brandingSettings()
+        : null
+    );
+    let value = (
+        (theSettings && theSettings.data && theSettings.data.icon)
+        ? theSettings.data.icon()
+        : ""
+    );
+
+    if (!value) {
+        return "";
+    }
+
+    return (
+        value.startsWith("http")
+        ? value
+        : "/files/upload/" + value
+    );
+}
+
 /*
     A sign-in link from an email that no longer works (two days old, the
     server restarted) is sent here by the server with whose it was, as
@@ -1282,9 +1317,14 @@ const home = {
     },
     oncreate: function () {
         let title = document.getElementById("fb-title");
+        let favicon = document.getElementById("fb-favicon");
+        let icon = brandIcon();
 
         if (title) {
             title.text = brandTitle();
+        }
+        if (favicon && icon) {
+            favicon.href = icon;
         }
     },
     onupdate: function () {
@@ -1315,6 +1355,21 @@ const home = {
             ? globals.dashboardLayoutName()
             : null
         );
+        // Read once here rather than inside dashboard.js's own view, so
+        // the one image paints as a single backdrop behind the title/
+        // picker row below AND the dashboard frame, instead of two
+        // separate fills that would restart (and misalign) at the
+        // board's own edge -- see wallpaperStyle's doc comment.
+        let wallStyle = (
+            globals.dashboardWallpaperStyle
+            ? globals.dashboardWallpaperStyle()
+            : {}
+        );
+        let pageClass = (
+            wallStyle["background-image"]
+            ? "fb-dash-page fb-dash-page-wallpaper"
+            : "fb-dash-page"
+        );
 
         return [
             m(components.envBanner),
@@ -1332,40 +1387,47 @@ const home = {
                         style: {width: "100%"}
                     }, [
                         m("div", {
-                            class: toolbarClass + " fb-toolbar-home"
+                            class: pageClass,
+                            style: wallStyle
                         }, [
                             m("div", {
-                                class: "fb-header-home"
-                            }, dashTitle),
-                            m("div", {
-                                class: "fb-toolbar-fill"
-                            }),
-                            m("select", {
-                                class: "fb-layout-picker",
-                                title: "Switch which saved layout you see",
-                                onchange: function (e) {
-                                    let use = globals.dashboardUseLayout;
-
-                                    if (use) {
-                                        use(e.target.value || null);
-                                    }
-                                },
-                                value: pickedLayout || ""
+                                class: toolbarClass + " fb-toolbar-home"
                             }, [
-                                m("option", {
-                                    value: ""
-                                }, "Standard arrangement")
-                            ].concat(listedLayouts.map(function (row) {
-                                return m("option", {
-                                    value: row.name
-                                }, (
-                                    row.isDefault
-                                    ? row.label + " (default)"
-                                    : row.label
-                                ));
-                            })))
-                        ]),
-                        m(components.dashboard)
+                                m("div", {
+                                    class: "fb-header-home"
+                                }, dashTitle),
+                                m("div", {
+                                    class: "fb-toolbar-fill"
+                                }),
+                                m("select", {
+                                    class: "fb-layout-picker",
+                                    title: (
+                                        "Switch which saved layout you see"
+                                    ),
+                                    onchange: function (e) {
+                                        let use = globals.dashboardUseLayout;
+
+                                        if (use) {
+                                            use(e.target.value || null);
+                                        }
+                                    },
+                                    value: pickedLayout || ""
+                                }, [
+                                    m("option", {
+                                        value: ""
+                                    }, "Standard arrangement")
+                                ].concat(listedLayouts.map(function (row) {
+                                    return m("option", {
+                                        value: row.name
+                                    }, (
+                                        row.isDefault
+                                        ? row.label + " (default)"
+                                        : row.label
+                                    ));
+                                })))
+                            ]),
+                            m(components.dashboard)
+                        ])
                     ])
                 ]
             ])
