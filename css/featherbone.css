@@ -2297,6 +2297,20 @@ button:disabled .fb-ipicon,
   color: var(--fb-text-secondary);
 }
 
+/* One row of a stacked small-button group. */
+.fb-rb-field-sm {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+}
+
+.fb-rb-field-sm .fb-rb-field-input {
+  width: 48px;
+  height: 20px;
+}
+
 .fb-zoom-icon {
   align-self: center;
   font-size: 16px;

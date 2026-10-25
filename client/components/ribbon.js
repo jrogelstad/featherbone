@@ -832,16 +832,25 @@ ribbon.component = {
                 }
                 groups.push(group(grp.label, grp.buttons.map(
                     function (item) {
-                        // A group member that is not a button draws
-                        // itself -- a field to type in, say. Everything
-                        // else is the usual icon-over-label button.
+                        // `render` draws itself (a field, say).
+                        if (item.render) {
+                            return item.render();
+                        }
                         return (
-                            item.render
-                            ? item.render()
+                            grp.small
+                            ? smallButton({
+                                icon: item.icon,
+                                label: item.label,
+                                title: item.title,
+                                opts: {
+                                    disabled: item.disabled,
+                                    onclick: item.onclick
+                                }
+                            })
                             : bigButton(item)
                         );
                     }
-                )));
+                ), {small: grp.small}));
             });
         } else {
             // --- the showing tab's workbooks ---
