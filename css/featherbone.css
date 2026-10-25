@@ -1067,6 +1067,29 @@ button:disabled .fb-ipicon,
   margin-bottom: 6px;
 }
 
+/* Targets dialog rows */
+.fb-target-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin: 6px 0;
+}
+.fb-target-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 130px 110px 140px;
+    gap: 8px;
+    align-items: center;
+    padding: 3px 0;
+}
+.fb-target-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.fb-target-module {
+    font-size: 0.8em;
+    color: var(--fb-text-muted, #6b7280);
+}
+
 .fb-dialog-picker-list {
   max-height: 220px;
   overflow-y: auto;
@@ -3696,6 +3719,49 @@ button:disabled .fb-ipicon,
 
 .fb-dash-bar { fill: var(--fb-dash-bar); }
 .fb-dash-bar-emphasis { fill: var(--fb-dash-measure); }
+
+/* Expected but not landed: the measure's hue, paler. */
+.fb-dash-bullet-pending {
+    fill: var(--fb-dash-measure);
+    fill-opacity: 0.35;
+}
+
+/* Alerts: one shape, one hue, urgency by intensity. */
+.fb-dash-alert { display: block; }
+.fb-dash-alert-dot { fill: var(--fb-danger); }
+.fb-dash-alert-1 { fill-opacity: 0.4; }
+.fb-dash-alert-2 { fill-opacity: 1; }
+.fb-dash-cell-alert { width: 14px; }
+
+/* Small multiples grid */
+.fb-dash-multiples {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px 12px;
+    overflow: hidden;
+}
+.fb-dash-multiple {
+    min-width: 0;
+}
+.fb-dash-multiple-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.fb-dash-multiple-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fb-dash-multiple-value {
+    font-size: 0.85em;
+    font-variant-numeric: tabular-nums;
+}
+.fb-dash-multiple .fb-dash-spark {
+    width: 100%;
+}
 
 .fb-dash-axis-line {
     stroke: var(--fb-text-muted);

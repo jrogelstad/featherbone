@@ -39,10 +39,18 @@
             key:    unique string
             module: who contributed it
             name:   what the row is called
+            better: "higher" (default) or "lower"
+            unit:   "money", "count" or "percent"; optional
             format: (Number) -> String
             load:   () -> Promise of {value, comparison, comparisonLabel,
-                    spark}
+                    spark, pending, pendingLabel}
         }
+
+    `pending` is expected but not yet landed (open orders), drawn as a
+    paler extension of the bar.
+
+    Stored targets (`$dashboard_target`) are a number or a signed percent
+    of the comparison. Key Metrics tiles use them, else the comparison.
 
     A *source* (`dashboardSources`) feeds a grouped measure tile -- a measure
     broken down by some dimension, which is figure 8-1's "Revenue YTD by
@@ -57,6 +65,7 @@
                          own options
             defaultTile: a tile to put on the default layout, or omitted
             options:     what this source may be asked for, or omitted
+            betterFor:   (tile) -> "higher" | "lower", optional
             load:        (tile) -> Promise of {rows, total, asOf,
                          refreshedAt, comparison, comparisonLabel,
                          needsRefresh}
@@ -79,10 +88,11 @@
     dialog collects is handed straight back to `load` as tile properties,
     so a source that invents a new option needs no change here.
 
-    where each row is `{key, label, amount, units, comparison, target,
-    pctOfTotal, spark}`. `target` is where the row should be and
-    `comparison` is where it was: different questions, drawn as different
-    marks, and a row may carry either, both or neither.
+    where each row is `{key, label, amount, units, comparison,
+    unitsComparison, target, pctOfTotal, spark}`. `target` is where the
+    row should be and `comparison` is where it was: different questions,
+    drawn as different marks, and a row may carry either, both or
+    neither.
 
     `needsRefresh` is how a source says its aggregates have never been
     built, which is a different thing from an error and is shown as an
@@ -135,16 +145,20 @@ const DASH_SPARK_MONTHS = 12;
     works it out from the tile's own options and every source gets it
     without having to know anything about targets.
 
+        "auto"     each metric's stored target, else "history"
         "none"     nothing to judge against; just the figure
         "history"  the comparison the source returned -- prior year,
                    prior period, whatever that source was asked for
         "fixed"    a number somebody typed
-        "growth"   a percentage better than that comparison
+        "growth"   a signed percentage of that comparison
 
     A source that returns a real stored target per row wins over all of
     this: it knows something the tile does not.
 */
-const DASH_TARGET_MODES = ["none", "history", "fixed", "growth"];
+const DASH_TARGET_MODES = ["auto", "none", "history", "fixed", "growth"];
+
+// Shortfall, as a fraction of the reference, for a pale and a strong dot.
+const DASH_ALERT_LEVELS = [0.02, 0.1];
 
 /*
     What this user has chosen about the board -- which layout, and what
@@ -233,6 +247,17 @@ function saveDashProfile(changes) {
     that is the caller's problem to state, not a reason to pretend the
     reference is missing.
 */
+function percentFrom(reference, percent) {
+    // Of the reference's size, so 10% better than -100 is -90.
+    let pct = (
+        Number.isFinite(percent)
+        ? percent
+        : 0
+    );
+
+    return reference + Math.abs(reference) * pct / 100;
+}
+
 function targetFor(tile, reference) {
     let mode = tile.targetMode || "history";
     let given = Number(tile.targetValue);
@@ -245,6 +270,9 @@ function targetFor(tile, reference) {
 
     if (DASH_TARGET_MODES.indexOf(mode) === -1 || mode === "none") {
         return null;
+    }
+    if (mode === "auto") {
+        mode = "history";
     }
 
     if (mode === "fixed") {
@@ -260,11 +288,7 @@ function targetFor(tile, reference) {
     }
 
     if (mode === "growth") {
-        return from * (1 + (
-            Number.isFinite(given)
-            ? given
-            : 0
-        ) / 100);
+        return percentFrom(from, given);
     }
 
     return from;
@@ -309,9 +333,202 @@ function targetLabel(tile, fallback) {
         return "target";
     }
     if (mode === "growth" && Number.isFinite(given)) {
-        return given + "% above " + said;
+        return percentText(given, said);
     }
     return said;
+}
+
+function percentText(given, said) {
+    if (given < 0) {
+        return Math.abs(given) + "% below " + said;
+    }
+    return given + "% above " + said;
+}
+
+// Stored targets by metric key, as last fetched.
+let storedTargets = {};
+
+/**
+    Fetches stored targets. A failure keeps the last set.
+*/
+function loadTargets() {
+    return f.datasource().request({
+        method: "GET",
+        path: "/dashboard-targets"
+    }).then(function (rows) {
+        let next = {};
+        let list = rows || [];
+
+        list.forEach(function (row) {
+            next[row.metric] = row;
+        });
+        storedTargets = next;
+        m.redraw();
+    }).catch(function () {
+        return;
+    });
+}
+
+/**
+    Applies Targets dialog changes; an entry with no basis removes the
+    target. Reloads afterwards either way.
+*/
+function saveTargets(changes) {
+    let given = changes || [];
+    let list = given.slice();
+    let failed = [];
+
+    function next() {
+        let one = list.shift();
+        let request;
+
+        if (!one) {
+            return Promise.resolve();
+        }
+        request = (
+            one.basis
+            ? {
+                method: "PUT",
+                path: "/dashboard-target/" + encodeURIComponent(one.metric),
+                body: {
+                    amount: one.amount,
+                    basis: one.basis,
+                    better: one.better || null
+                }
+            }
+            : {
+                method: "DELETE",
+                path: "/dashboard-target/" + encodeURIComponent(one.metric)
+            }
+        );
+        return f.datasource().request(request).catch(function (err) {
+            failed.push(one.metric + ": " + (err.message || String(err)));
+        }).then(next);
+    }
+
+    return next().then(loadTargets).then(function () {
+        if (failed.length) {
+            return Promise.reject(new Error(failed.join("\n")));
+        }
+    });
+}
+
+// Which way is good: the stored target's say, the metric's, else higher.
+function betterFor(kpi) {
+    let stored = storedTargets[kpi.key];
+
+    return (stored && stored.better) || kpi.better || "higher";
+}
+
+/**
+    What a Key Metrics row is judged against, and its label. "auto" (the
+    default) uses the stored target, else the comparison.
+*/
+function kpiReference(tile, row) {
+    let mode = tile.targetMode || "auto";
+    let stored = storedTargets[row.kpi.key];
+    let said = row.comparisonLabel || "prior year";
+    let from = Number(row.comparison);
+    let hasReference = (
+        row.comparison !== null &&
+        row.comparison !== undefined &&
+        Number.isFinite(from)
+    );
+
+    if (mode === "auto" && stored) {
+        if (stored.basis === "fixed") {
+            return {aim: Number(stored.amount), label: "target"};
+        }
+        return {
+            aim: (
+                hasReference
+                ? percentFrom(from, Number(stored.amount))
+                : null
+            ),
+            label: "target, " + percentText(Number(stored.amount), said)
+        };
+    }
+
+    return {
+        aim: targetFor(tile, row.comparison),
+        label: targetLabel(tile, said)
+    };
+}
+
+// Alert level 0-2 for how far short of aim, honouring lower-is-better.
+function alertLevel(value, aim, better) {
+    let n = Number(value);
+    let gap;
+
+    if (
+        aim === null ||
+        aim === undefined ||
+        aim === 0 ||
+        !Number.isFinite(n) ||
+        !Number.isFinite(Number(aim))
+    ) {
+        return 0;
+    }
+    gap = (n - aim) / Math.abs(aim);
+    if (better === "lower") {
+        gap = -gap;
+    }
+    if (-gap >= DASH_ALERT_LEVELS[1]) {
+        return 2;
+    }
+    if (-gap >= DASH_ALERT_LEVELS[0]) {
+        return 1;
+    }
+    return 0;
+}
+
+function alertTitle(level, better, against) {
+    let said = (
+        better === "lower"
+        ? "above "
+        : "below "
+    ) + against;
+
+    if (level === 2) {
+        return "Well " + said;
+    }
+    return "A little " + said;
+}
+
+/**
+    Puts every row's history on the same months, zero-filling gaps, so a
+    row missing a month isn't drawn shifted.
+*/
+function alignedHistory(rows) {
+    let months = [];
+
+    rows.forEach(function (row) {
+        let history = row.spark || [];
+
+        history.forEach(function (point) {
+            if (point.month && months.indexOf(point.month) === -1) {
+                months.push(point.month);
+            }
+        });
+    });
+    months.sort();
+
+    return rows.map(function (row) {
+        let by = {};
+        let history = row.spark || [];
+
+        history.forEach(function (point) {
+            by[point.month] = Number(point.amount);
+        });
+        if (!months.length) {
+            return history.map(function (point) {
+                return Number(point.amount);
+            });
+        }
+        return months.map(function (month) {
+            return by[month] || 0;
+        });
+    });
 }
 
 /**
@@ -1267,24 +1484,31 @@ function kpiTile(tile) {
     let state = tileState[tile.id] || {status: "loading"};
     let draw = f.catalog().store().global().dashboardDraw;
     let rows = state.rows || [];
-    /*
-        Each metric as a percentage of what it is being judged against,
-        which is the tile's business rather than the metric's -- see
-        targetFor. Worked out once here so the rows, the axis and the
-        decision to draw either at all all agree.
-
-        A reference of zero is a real reference but a useless divisor:
-        "infinitely above nothing" is not a bar anybody can read, so the
-        row shows its figure and a dash where the bar would be.
-    */
+    // Each metric as a percentage of its reference. Zero can't divide,
+    // so that row shows a dash.
     let scaled = rows.map(function (row) {
-        let aim = targetFor(tile, row.comparison);
+        let ref = kpiReference(tile, row);
+        let better = betterFor(row.kpi);
         let pct = null;
+        let pending = null;
+        let level = 0;
 
-        if (aim !== null && aim !== 0) {
-            pct = (row.value / aim) * 100;
+        if (ref.aim !== null && ref.aim !== 0 && !row.error) {
+            pct = (row.value / ref.aim) * 100;
+            if (row.pending) {
+                pending = (row.pending / ref.aim) * 100;
+            }
+            level = alertLevel(row.value, ref.aim, better);
         }
-        return {row, aim, pct};
+        return {
+            aim: ref.aim,
+            better,
+            label: ref.label,
+            level,
+            pct,
+            pending,
+            row
+        };
     });
     let anyScale = scaled.some(function (one) {
         return one.pct !== null;
@@ -1292,7 +1516,23 @@ function kpiTile(tile) {
     let anyReference = scaled.some(function (one) {
         return one.aim !== null;
     });
+    let anyAlert = scaled.some(function (one) {
+        return one.level > 0;
+    });
+    let pendingSaid = rows.reduce(function (found, row) {
+        if (found || !row.pending) {
+            return found;
+        }
+        return row.pendingLabel || "still to come";
+    }, "");
+    let labels = [];
     let body;
+
+    scaled.forEach(function (one) {
+        if (one.pct !== null && labels.indexOf(one.label) === -1) {
+            labels.push(one.label);
+        }
+    });
 
     if (state.status !== "ready") {
         body = m("div", {class: "fb-dash-tile-empty"}, "Loading…");
@@ -1301,49 +1541,77 @@ function kpiTile(tile) {
     } else {
         let lines = scaled.map(function (one) {
             let row = one.row;
-            let said = targetLabel(tile, row.comparisonLabel);
+            let said = row.kpi.name + ": " + (
+                one.pct === null
+                ? ""
+                : Math.round(one.pct) + "% of " + one.label
+            );
+            let cells = [];
 
-            return m("tr", [
-                m("td", {class: "fb-dash-cell-spark"}, (
-                    (row.spark && row.spark.length > 1)
-                    ? draw.sparkline({points: row.spark, width: 76, height: 16})
-                    : null
-                )),
-                m("td", {class: "fb-dash-cell-name"}, row.kpi.name),
-                (
-                    anyReference
-                    ? m("td", {class: "fb-dash-cell-graphic"}, (
-                        one.pct === null
-                        // Said rather than left blank: an empty cell
-                        // among full ones reads as a drawing failure.
-                        ? m("span", {class: "fb-dash-cell-nil"}, "—")
-                        : draw.bullet({
-                            comparison: 100,
-                            max: DASH_PCT_MAX,
-                            ranges: DASH_PCT_BANDS,
-                            title: (
-                                row.kpi.name + ": " +
-                                Math.round(one.pct) + "% of " + said
-                            ),
-                            value: one.pct,
-                            width: 150,
-                            height: 14
-                        })
-                    ))
-                    : null
-                ),
-                m("td", {class: "fb-dash-cell-value"}, (
-                    (row.error || row.value === null)
-                    ? "—"
-                    : row.kpi.format(row.value)
-                ))
-            ]);
+            if (one.pending !== null) {
+                said += (
+                    ", plus " + row.kpi.format(row.pending) + " " +
+                    (row.pendingLabel || "still to come")
+                );
+            }
+
+            // Alert column first, and only when some row has one.
+            if (anyAlert) {
+                cells.push(m("td", {class: "fb-dash-cell-alert"}, draw.alert({
+                    level: one.level,
+                    title: alertTitle(one.level, one.better, one.label)
+                })));
+            }
+            cells.push(m("td", {class: "fb-dash-cell-spark"}, (
+                (row.spark && row.spark.length > 1)
+                ? draw.sparkline({points: row.spark, width: 76, height: 16})
+                : null
+            )));
+            cells.push(m("td", {class: "fb-dash-cell-name"}, row.kpi.name));
+            if (anyReference) {
+                cells.push(m("td", {class: "fb-dash-cell-graphic"}, (
+                    one.pct === null
+                    ? m("span", {class: "fb-dash-cell-nil"}, "—")
+                    : draw.bullet({
+                        comparison: 100,
+                        max: DASH_PCT_MAX,
+                        pending: (
+                            one.pending === null
+                            ? undefined
+                            : one.pending
+                        ),
+                        ranges: DASH_PCT_BANDS,
+                        reverse: one.better === "lower",
+                        title: said,
+                        value: one.pct,
+                        width: 150,
+                        height: 14
+                    })
+                )));
+            }
+            cells.push(m("td", {
+                class: "fb-dash-cell-value",
+                title: (
+                    one.pending === null
+                    ? undefined
+                    : said
+                )
+            }, (
+                (row.error || row.value === null || row.value === undefined)
+                ? "—"
+                : row.kpi.format(row.value)
+            )));
+
+            return m("tr", cells);
         });
 
         if (anyScale) {
-            lines.push(m("tr", [
-                m("td"),
-                m("td"),
+            let lead = [m("td"), m("td")];
+
+            if (anyAlert) {
+                lead.push(m("td"));
+            }
+            lines.push(m("tr", lead.concat([
                 m("td", {class: "fb-dash-cell-graphic"}, draw.axis({
                     format: function (n) {
                         return Math.round(n) + "%";
@@ -1353,23 +1621,28 @@ function kpiTile(tile) {
                     width: 150
                 })),
                 m("td")
-            ]));
+            ])));
         }
 
         body = [
             m("table", {class: "fb-dash-kpi-table"}, lines),
             (
                 anyScale
-                // The axis is a percentage of something, and which
-                // something is the whole meaning of the bars above it.
-                ? m("div", {class: "fb-dash-caption"}, (
-                    "100% = " + targetLabel(tile, rows.reduce(
-                        function (found, row) {
-                            return found || row.comparisonLabel;
-                        },
-                        ""
-                    ))
-                ))
+                ? m("div", {class: "fb-dash-caption"}, [
+                    (
+                        labels.length === 1
+                        ? "100% = " + labels[0]
+                        : (
+                            "100% = each metric's own target, or its " +
+                            "comparison where it has none"
+                        )
+                    ),
+                    (
+                        pendingSaid
+                        ? " \u00b7 paler: " + pendingSaid
+                        : ""
+                    )
+                ])
                 : null
             )
         ];
@@ -1422,15 +1695,100 @@ function markerCaption(data, hasComparison, hasTarget, targetName) {
     return said.join(" \u00b7 ");
 }
 
+// Select-backed tile options arrive as "true" or "".
+function isOn(value) {
+    return value === true || value === "true";
+}
+
+/**
+    Small multiples: a sparkline per row on one shared zero-based scale,
+    stated once in the caption.
+*/
+function multiplesBody(tile, data, fmt, draw) {
+    let rows = data.rows;
+    let history = alignedHistory(rows);
+    let high = 0;
+    let source = sourceRegistry[tile.source] || {};
+    let better = (
+        source.betterFor
+        ? source.betterFor(tile)
+        : "higher"
+    );
+
+    history.forEach(function (points) {
+        points.forEach(function (n) {
+            if (n > high) {
+                high = n;
+            }
+        });
+    });
+    high = draw.niceMax(high);
+
+    return [
+        m("div", {class: "fb-dash-multiples"}, rows.map(function (row, i) {
+            let aim = drawnTarget(tile, row);
+            let level = alertLevel(
+                row.amount,
+                (
+                    aim === null
+                    ? row.comparison
+                    : aim
+                ),
+                better
+            );
+
+            return m("div", {class: "fb-dash-multiple"}, [
+                m("div", {class: "fb-dash-multiple-head"}, [
+                    (
+                        level > 0
+                        ? draw.alert({
+                            level,
+                            size: 8,
+                            title: alertTitle(
+                                level,
+                                better,
+                                data.comparisonLabel || "prior year"
+                            )
+                        })
+                        : null
+                    ),
+                    m("span", {class: "fb-dash-multiple-label"}, (
+                        row.label || row.key || "—"
+                    ))
+                ]),
+                (
+                    history[i].length > 1
+                    ? draw.sparkline({
+                        height: 28,
+                        high,
+                        low: 0,
+                        points: history[i],
+                        title: (row.label || row.key) + ", by month",
+                        width: 110
+                    })
+                    : m("div", {class: "fb-dash-cell-nil"}, "—")
+                ),
+                m("div", {class: "fb-dash-multiple-value"}, (
+                    fmt.amount(row.amount)
+                ))
+            ]);
+        })),
+        m("div", {class: "fb-dash-caption"}, (
+            (history.length && history[0].length)
+            ? (
+                "Each: the last " + history[0].length + " months, on " +
+                "one scale from 0 to " + fmt.compact(high)
+            )
+            : "No monthly history to draw"
+        ))
+    ];
+}
+
 /**
     One grouped measure tile: a measure broken down by a dimension, drawn as
-    bullet rows against a comparison, as ranked bars, or as a plain numeric
-    table.
-
-    All three share one quantitative scale across the rows, with the axis
-    stated once underneath -- the rows are being compared with each other, so
-    a scale per row would make the comparison a lie. The bars are zero-based
-    because a bar encodes by length.
+    bullet rows against a comparison, as ranked bars, as a plain numeric
+    table, or as small multiples. One zero-based scale across rows, axis
+    stated once. Units may ride alongside on their own scale.
 */
 function measureTile(tile) {
     let state = tileState[tile.id] || {status: "loading"};
@@ -1439,6 +1797,11 @@ function measureTile(tile) {
     let fmt = measureFormats(source);
     let data = state.data;
     let display = tile.display || "bullets";
+    let better = (
+        source.betterFor
+        ? source.betterFor(tile)
+        : "higher"
+    );
     // The tile may be titled outright; failing that a source gets to name
     // the tile from its own options, so a heading follows the dimension and
     // window rather than going stale when they change.
@@ -1451,6 +1814,7 @@ function measureTile(tile) {
     // Wide enough for the axis beneath it to label five intervals without
     // the labels running into each other, which at 150 they do.
     let width = 220;
+    let unitsWidth = 120;
     let body;
     let total = null;
 
@@ -1466,8 +1830,12 @@ function measureTile(tile) {
         body = m("div", {class: "fb-dash-tile-empty"}, (
             "Nothing in this period"
         ));
+    } else if (display === "multiples") {
+        total = data.total;
+        body = multiplesBody(tile, data, fmt, draw);
     } else {
         let rows = data.rows;
+        let history = alignedHistory(rows);
         let hasComparison = rows.some(function (row) {
             return row.comparison !== undefined && row.comparison !== null;
         });
@@ -1477,13 +1845,36 @@ function measureTile(tile) {
         // Opt-in rather than opt-out: a sparkline beside a bar says
         // something the bar does not, but on every row of every tile it is
         // just ink.
-        let hasSpark = tile.showSpark === true && rows.some(function (row) {
-            return row.spark && row.spark.length > 1;
+        let hasSpark = tile.showSpark === true && history.some(function (h) {
+            return h.length > 1;
         });
         let showPct = tile.showPercent !== false;
+        // Hidden for a tile read across from a neighbour sorted by name.
+        let showNames = !isOn(tile.hideLabels);
+        let showUnits = isOn(tile.showUnits) && rows.some(function (row) {
+            return row.units !== undefined && row.units !== null;
+        });
+        let levels = rows.map(function (row) {
+            let aim = drawnTarget(tile, row);
+
+            return alertLevel(
+                row.amount,
+                (
+                    aim === null
+                    ? row.comparison
+                    : aim
+                ),
+                better
+            );
+        });
+        let anyAlert = levels.some(function (level) {
+            return level > 0;
+        });
         let top = 0;
+        let unitsTop = 0;
         let lines;
         let max;
+        let unitsMax;
         let mode = display;
 
         rows.forEach(function (row) {
@@ -1497,12 +1888,20 @@ function measureTile(tile) {
                 Number(against),
                 Number(aim) || 0
             );
+            let units = Math.max(
+                Number(row.units) || 0,
+                Number(row.unitsComparison) || 0
+            );
 
             if (candidate > top) {
                 top = candidate;
             }
+            if (units > unitsTop) {
+                unitsTop = units;
+            }
         });
         max = draw.niceMax(top);
+        unitsMax = draw.niceMax(unitsTop);
         total = data.total;
 
         // Absent means absent: with nothing to compare against and
@@ -1513,13 +1912,10 @@ function measureTile(tile) {
             mode = "bars";
         }
 
-        lines = rows.map(function (row) {
+        lines = rows.map(function (row, index) {
             let amount = Number(row.amount);
             let label = row.label || row.key || "—";
-            let history = row.spark || [];
-            let points = history.map(function (point) {
-                return Number(point.amount);
-            });
+            let points = history[index];
             let against = (
                 row.comparison === null
                 ? undefined
@@ -1565,6 +1961,20 @@ function measureTile(tile) {
                 });
             }
 
+            if (anyAlert) {
+                cells.push(m("td", {class: "fb-dash-cell-alert"}, draw.alert({
+                    level: levels[index],
+                    title: alertTitle(
+                        levels[index],
+                        better,
+                        (
+                            aim === null
+                            ? data.comparisonLabel || "prior year"
+                            : "target"
+                        )
+                    )
+                })));
+            }
             if (hasSpark) {
                 cells.push(m("td", {class: "fb-dash-cell-spark"}, (
                     points.length > 1
@@ -1572,16 +1982,63 @@ function measureTile(tile) {
                     : null
                 )));
             }
-            cells.push(m("td", {class: "fb-dash-cell-name"}, label));
+            if (showNames) {
+                cells.push(m("td", {class: "fb-dash-cell-name"}, label));
+            }
             if (graphic) {
                 cells.push(m("td", {class: "fb-dash-cell-graphic"}, graphic));
             }
-            cells.push(m("td", {class: "fb-dash-cell-value"}, (
-                fmt.amount(amount)
-            )));
+            cells.push(m("td", {
+                class: "fb-dash-cell-value",
+                title: (
+                    showNames
+                    ? undefined
+                    : label
+                )
+            }, fmt.amount(amount)));
             if (showPct) {
                 cells.push(m("td", {class: "fb-dash-cell-pct"}, (
                     Math.round(row.pctOfTotal || 0) + "%"
+                )));
+            }
+            if (showUnits) {
+                let unitsAgainst = (
+                    (
+                        row.unitsComparison === null ||
+                        row.unitsComparison === undefined
+                    )
+                    ? undefined
+                    : row.unitsComparison
+                );
+
+                if (mode !== "table") {
+                    cells.push(m("td", {
+                        class: "fb-dash-cell-graphic fb-dash-cell-units"
+                    }, draw.bullet({
+                        comparison: (
+                            mode === "bullets"
+                            ? unitsAgainst
+                            : undefined
+                        ),
+                        max: unitsMax,
+                        ranges: [],
+                        title: (
+                            label + ": " + fmt.units(row.units) + " units" + (
+                                unitsAgainst === undefined
+                                ? ""
+                                : (
+                                    " against " + fmt.units(unitsAgainst) +
+                                    " " + (data.comparisonLabel || "prior year")
+                                )
+                            )
+                        ),
+                        value: Number(row.units) || 0,
+                        width: unitsWidth,
+                        height: 14
+                    })));
+                }
+                cells.push(m("td", {class: "fb-dash-cell-value"}, (
+                    fmt.units(row.units || 0)
                 )));
             }
 
@@ -1592,17 +2049,23 @@ function measureTile(tile) {
             let lead = [];
             let trail = [m("td")];
             let index = 0;
-            let span = (
-                hasSpark
-                ? 2
-                : 1
-            );
+            let before = [hasSpark, showNames, anyAlert];
+            let span = before.filter(Boolean).length;
 
             while (index < span) {
                 lead.push(m("td"));
                 index += 1;
             }
             if (showPct) {
+                trail.push(m("td"));
+            }
+            if (showUnits) {
+                trail.push(m("td", {class: "fb-dash-cell-graphic"}, draw.axis({
+                    format: fmt.units,
+                    max: unitsMax,
+                    ticks: 2,
+                    width: unitsWidth
+                })));
                 trail.push(m("td"));
             }
             lines.push(m("tr", lead.concat([
@@ -1623,6 +2086,10 @@ function measureTile(tile) {
                     hasComparison,
                     hasTarget,
                     targetLabel(tile, data.comparisonLabel)
+                ) + (
+                    showUnits
+                    ? " \u00b7 right: units sold"
+                    : ""
                 ))
                 : null
             )
@@ -1918,6 +2385,9 @@ let dashboard = {
             waiting here, and a trip out to look something up should not
             cost an arrangement that was never saved.
         */
+        // Every visit, so a changed target shows next time.
+        loadTargets();
+
         if (currentLayout) {
             loadAll(currentLayout);
             return;
@@ -2051,4 +2521,9 @@ f.catalog().register("global", "dashboardRemoveTile", removeTile);
 f.catalog().register("global", "dashboardTileChoices", tileChoices);
 f.catalog().register("global", "dashboardSetAsOf", setAsOf);
 f.catalog().register("global", "dashboardTitle", dashboardTitle);
+f.catalog().register("global", "dashboardTargets", function () {
+    return storedTargets;
+});
+f.catalog().register("global", "dashboardLoadTargets", loadTargets);
+f.catalog().register("global", "dashboardSaveTargets", saveTargets);
 f.catalog().register("components", "dashboard", dashboard);
