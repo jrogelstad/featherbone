@@ -3015,11 +3015,18 @@ let dashboard = {
             loadAll(layout);
         }
 
+        let wallStyle = wallpaperStyle();
+        let boardClass = (
+            wallStyle["background-image"]
+            ? "fb-dash-board fb-dash-board-wallpaper"
+            : "fb-dash-board"
+        );
+
         return m("div", {class: "fb-dash-frame"}, [
             refreshBar(layout),
             m("div", {
-                class: "fb-dash-board",
-                style: Object.assign(wallpaperStyle(), {
+                class: boardClass,
+                style: Object.assign(wallStyle, {
                     "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
                     "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
                 })
