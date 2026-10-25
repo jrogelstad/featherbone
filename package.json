@@ -44,6 +44,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "passport-magic-login": "^1.2.2",
+    "pdf-lib": "1.17.1",
     "pdfmake": "^0.3.11",
     "pg": "^8.7.3",
     "pg-format": "^1.0.4",
