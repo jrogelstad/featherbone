@@ -2388,10 +2388,24 @@ function periodLabel(date, bucket) {
 /**
     The buckets around a reporting date, oldest first, and a function
     placing a schedule row into one of them (or "earlier"/"later").
+
+    `maxHorizon`, when a positive number, caps how many buckets ahead of
+    "now" are drawn -- it only shortens the forward-looking window
+    (DASH_HIST_SPAN[bucket].after); how far back the chart looks is
+    untouched, since the tile's own setting is about limiting lookahead,
+    not lookback.
+
+    @param {String} asOf
+    @param {String} bucket
+    @param {Number} [maxHorizon]
 */
-function histBuckets(asOf, bucket) {
+function histBuckets(asOf, bucket, maxHorizon) {
     let span = DASH_HIST_SPAN[bucket] || DASH_HIST_SPAN.week;
     let at = utcDay(asOf);
+
+    if (maxHorizon > 0) {
+        span = Object.assign({}, span, {after: maxHorizon});
+    }
     let first = periodStart(at, bucket);
     let split = bucket !== "day";
     let buckets = [];
@@ -2506,7 +2520,7 @@ function histogramTile(tile) {
     } else {
         let series = state.series;
         let asOf = series[0].data.asOf;
-        let grid = histBuckets(asOf, bucket);
+        let grid = histBuckets(asOf, bucket, tile.maxHorizon);
         let edges = {earlier: [], later: []};
         let sums = series.map(function (one, which) {
             let by = {};
@@ -2550,11 +2564,27 @@ function histogramTile(tile) {
                     one.schedule.name
                 ]));
             });
+            // A past-due bar is drawn in the alert hue at its series' own
+            // intensity (see dashColumns), so the key needs one swatch per
+            // series too -- a single generic "past due" entry cannot say
+            // which series a dimmer red bar belongs to.
+            series.forEach(function (one, which) {
+                notes.push(m("span", {class: "fb-dash-hist-key"}, [
+                    m("span", {
+                        class: (
+                            "fb-dash-hist-swatch fb-dash-hist-late " +
+                            "fb-dash-hist-s" + which
+                        )
+                    }),
+                    one.schedule.name + " past due"
+                ]));
+            });
+        } else {
+            notes.push(m("span", {class: "fb-dash-hist-key"}, [
+                m("span", {class: "fb-dash-hist-swatch fb-dash-hist-late"}),
+                "past due"
+            ]));
         }
-        notes.push(m("span", {class: "fb-dash-hist-key"}, [
-            m("span", {class: "fb-dash-hist-swatch fb-dash-hist-late"}),
-            "past due"
-        ]));
         if (earlier > 0) {
             notes.push(m("span", {class: "fb-dash-hist-earlier"}, (
                 "Due before " + periodLabel(grid.buckets[0].start, bucket) +
