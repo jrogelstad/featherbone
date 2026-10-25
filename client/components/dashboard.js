@@ -161,8 +161,20 @@
     registered. They become records (a feather, per-user, shareable,
     shippable in a package) in the next increment.
 */
-const DASH_COLS = 12;
-const DASH_ROWS = 8;
+const DASH_COLS = 24;
+const DASH_ROWS = 16;
+
+/*
+    The board tiles used to sit on, and what a layout is assumed to have
+    been authored on when it does not say (`grid`). Doubling the board
+    halves the step a tile moves and resizes by, which is what a tile
+    that is either a little too big or a little too small for its
+    contents needs (John, Oct 2026). Everything stored -- saved layouts,
+    the working draft, the tiles a package ships, the defaults a module
+    registers -- is in the old units and is scaled on the way in, so
+    boards come back looking exactly as they were left.
+*/
+const DASH_GRID_WAS = 12;
 const DASH_SPARK_MONTHS = 12;
 
 /*
@@ -216,6 +228,9 @@ const DASH_MIN_ROWS = 2;
 
 let kpiRegistry = {};
 let sourceRegistry = {};
+// The drill-down list showing, if any -- see openDrill. One at a time:
+// it is modal.
+let drillViewModel = null;
 let refresherRegistry = {};
 let scheduleRegistry = {};
 let tileState = {};
@@ -815,8 +830,8 @@ function placeTiles(wanted) {
     }
 
     wanted.forEach(function (tile) {
-        let cols = Math.min(tile.cols || 4, DASH_COLS);
-        let rows = tile.rows || 3;
+        let cols = Math.min(tile.cols || 8, DASH_COLS);
+        let rows = tile.rows || 6;
         // A saved layout says where its tiles go. Honoured when the spot
         // is free and on the board, and packed like any other tile when
         // it is not -- a layout saved on a wider board, or one whose
@@ -943,13 +958,14 @@ function composeLayout() {
         return kpi.key;
     });
     let tiles = [{
-        cols: 5,
+        cols: 10,
         heading: "Key Metrics",
         id: "core-kpis",
         kpis: metrics,
-        // A row per metric, so a tile holding several is not one that
+        // Two rows per metric on this board (one on the board before it
+        // was halved), so a tile holding several is not one that
         // silently clips the last of them.
-        rows: Math.min(DASH_ROWS, Math.max(3, metrics.length + 1)),
+        rows: Math.min(DASH_ROWS, Math.max(3, metrics.length + 1) * 2),
         type: "kpi"
     }];
 
@@ -962,7 +978,7 @@ function composeLayout() {
                 sequence: 0,
                 source: source.key,
                 type: "measure"
-            }, source.defaultTile));
+            }, defaultTileOf(source)));
         }
     });
 
@@ -1005,9 +1021,69 @@ function layoutFromRecord(record) {
         asOf: config.asOf || null,
         name: record.name,
         seen: config.seen || [],
-        tiles: placeTiles(config.tiles || []),
+        tiles: placeTiles(toThisGrid(config.tiles, config.grid)),
         title: config.title || null,
         version: registryVersion
+    });
+}
+
+
+/**
+    A tile's place and size, moved from one board size to another.
+
+    Positions are one-based, so a tile in column 5 of a twelve-column
+    board starts at column 9 of a twenty-four-column one, not column 10.
+
+    @private
+*/
+function scaleTile(tile, factor) {
+    if (factor === 1) {
+        return tile;
+    }
+    return Object.assign({}, tile, {
+        col: ((tile.col || 1) - 1) * factor + 1,
+        cols: Math.max(1, (tile.cols || 1) * factor),
+        row: ((tile.row || 1) - 1) * factor + 1,
+        rows: Math.max(1, (tile.rows || 1) * factor)
+    });
+}
+
+/**
+    A source's own starting tile, sized for this board.
+
+    A module sizes its tile in whatever units it was written against;
+    `defaultTile.grid` says which, and saying nothing means the board as
+    it was before it was made finer.
+
+    @private
+    @param {Object} source
+    @return {Object}
+*/
+function defaultTileOf(source) {
+    let tile = source.defaultTile;
+
+    return scaleTile(tile, DASH_COLS / (tile.grid || DASH_GRID_WAS));
+}
+
+/**
+    Tiles as this board sizes them, whatever board they were authored on.
+
+    A layout says which board it was saved on in `grid`; one that says
+    nothing predates the change and is in the old units. A module's
+    `defaultTile` may say the same, for a module written against the
+    finer board.
+
+    @private
+    @param {Array} tiles
+    @param {Number} [grid] Columns the tiles were authored on
+    @return {Array}
+*/
+function toThisGrid(tiles, grid) {
+    let factor = DASH_COLS / (grid || DASH_GRID_WAS);
+    let list = tiles || [];
+
+    return list.map(function (tile) {
+        return scaleTile(tile, factor);
     });
 }
 
@@ -1019,6 +1095,9 @@ function layoutFromRecord(record) {
 function layoutSpec(layout) {
     return {
         asOf: layout.asOf || null,
+        // Which board these positions are in, so a layout saved today
+        // is not scaled again as though it were an old one.
+        grid: DASH_COLS,
         // Which sources existed when this was saved. A source missing
         // from a layout is ambiguous on its own -- it may be one somebody
         // took off their board, or one that did not exist yet -- and the
@@ -1057,7 +1136,7 @@ function withNewcomers(layout) {
                 id: "src-" + source.key,
                 source: source.key,
                 type: "measure"
-            }, source.defaultTile));
+            }, defaultTileOf(source)));
         }
     });
 
@@ -1126,7 +1205,7 @@ function startingLayout() {
                 asOf: draft.asOf || null,
                 name: baseName,
                 seen: draft.seen || [],
-                tiles: placeTiles(draft.tiles || []),
+                tiles: placeTiles(toThisGrid(draft.tiles, draft.grid)),
                 title: draft.title || null,
                 version: registryVersion
             }));
@@ -1937,6 +2016,73 @@ function kpiTile(tile) {
 }
 
 /**
+    What a row offers to show: the records that add up to it.
+
+    A source says which records are behind a row and how to list them
+    (`drillFor`); the framework turns that into a modal list -- see
+    drill-dialog.js. A source that says nothing, or says nothing for this
+    particular row, leaves the row as it was: not clickable, with no
+    pointer inviting a click that does nothing.
+
+    @private
+    @param {Object} tile
+    @param {Object} row
+    @return {Object} Attributes for the row
+*/
+function drillAttrs(tile, row) {
+    let source = sourceRegistry[tile.source] || {};
+    let layout = currentLayout;
+    let spec;
+
+    if (!source.drillFor) {
+        return {};
+    }
+    /*
+        The reporting date the tile is actually showing, not whatever is
+        stored on it: a tile pins its own date only when somebody has
+        pinned one, and otherwise shows the board's. The source needs the
+        date it drew to list the records behind that figure and no
+        others.
+    */
+    spec = source.drillFor(Object.assign({}, tile, {
+        asOf: tile.asOf || (layout && layout.asOf) || null
+    }), row);
+    if (!spec) {
+        return {};
+    }
+    return {
+        class: "fb-dash-row-drill",
+        onclick: function () {
+            openDrill(spec);
+        },
+        title: "Show the records behind this"
+    };
+}
+
+/**
+    Opens the drill-down list for whatever was clicked.
+
+    One dialog, rebuilt each time rather than one per tile: only one can
+    be open at a time (it is modal), and a list configured for the last
+    thing clicked is exactly what the next click wants replaced.
+
+    @private
+    @param {Object} spec What drillFor returned
+*/
+function openDrill(spec) {
+    let vm = f.createViewModel("DrillDialog", {
+        config: spec.config,
+        feather: spec.feather,
+        icon: spec.icon,
+        title: spec.title
+    });
+
+    drillViewModel = vm;
+    vm.show();
+    m.redraw();
+}
+
+/**
     Formatters for a measure tile, taken from the source where it supplies
     them. A source that says nothing gets plain localized numbers, which is
     wrong for money and right for everything else -- so money sources supply
@@ -2336,7 +2482,7 @@ function measureTile(tile) {
                 )));
             }
 
-            return m("tr", cells);
+            return m("tr", drillAttrs(tile, row), cells);
         });
 
         if (mode !== "table") {
@@ -3225,6 +3371,12 @@ let dashboard = {
         }, DASH_ROWS);
 
         return m("div", {class: "fb-dash-frame"}, [
+            // Modal, so it sits with the board rather than over a tile.
+            (
+                drillViewModel
+                ? m(f.getComponent("Dialog"), {viewModel: drillViewModel})
+                : null
+            ),
             refreshBar(layout),
             m("div", {
                 class: "fb-dash-viewport",

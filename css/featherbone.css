@@ -4234,3 +4234,83 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
         margin-bottom: 18px;
     }
 }
+
+/* =========================================================================
+   Dashboard drill-down (client/components/drill-dialog.js)
+   -------------------------------------------------------------------------
+   The records behind a figure, in a modal list that fills most of the
+   window: a drill-down with six rows and one with six hundred are the
+   same shape on screen, so the dialog does not jump about as somebody
+   moves from one tile to the next.
+   ========================================================================= */
+.fb-dash-row-drill {
+    cursor: pointer;
+}
+
+.fb-dash-row-drill:hover {
+    background: var(--fb-surface-alt);
+}
+
+/* The list is given its own height (60vh, in the view model) and the
+   dialog sizes to it, so Close sits under the list rather than below
+   the bottom of the window. */
+.fb-drill-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+/* The list may be wider than the dialog -- a worksheet's columns are
+   whatever somebody made them -- so it scrolls sideways inside the
+   dialog instead of being cut off at the edge. */
+.fb-drill-table {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.fb-drill-table .fb-table-scroll {
+    max-width: 100%;
+}
+
+/* A record opened from the list stands in the same space the list
+   filled, so the dialog keeps its size as somebody drills in and backs
+   out again rather than snapping between shapes. */
+.fb-drill-body-form {
+    height: 60vh;
+    overflow: auto;
+}
+
+.fb-drill-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fb-drill-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid var(--fb-border);
+    border-radius: 4px;
+    background: var(--fb-surface);
+    color: var(--fb-text);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.fb-drill-tool:hover {
+    background: var(--fb-surface-alt);
+}
+
+.fb-drill-tool-disabled,
+.fb-drill-tool-disabled:hover {
+    color: var(--fb-text-muted);
+    cursor: default;
+    background: var(--fb-surface);
+}
+
+.fb-drill-tool-icon {
+    font-size: 16px !important;
+}
