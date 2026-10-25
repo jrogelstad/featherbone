@@ -259,4 +259,127 @@ describe("dashboards", function () {
         assert.equal(resp.status, 401);
         assert.ok(await admin.get(path(name)), "still there");
     });
+
+    // Deleting only flags a layout, and names are unique.
+    it("saves a new layout under a deleted one's name", async function () {
+        let name = dashName("Reuse");
+        let resp;
+
+        await admin.raw("PUT", path(name), spec());
+        await admin.raw("DELETE", path(name));
+        resp = await admin.raw("PUT", path(name), spec({label: "Again"}));
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        assert.equal((await admin.get(path(name))).label, "Again");
+    });
+});
+
+/*
+    Metric targets: GET /dashboard-targets, PUT/DELETE
+    /dashboard-target/:metric. Anyone reads; super users write.
+*/
+describe("dashboard metric targets", function () {
+    let admin;
+    let basicS;
+    let metric = "fbtMetric" + access.uniq("x").slice(2);
+
+    function target(key) {
+        return "/dashboard-target/" + encodeURIComponent(key || metric);
+    }
+
+    async function stored() {
+        let list = await admin.get("/dashboard-targets");
+
+        return list.find((row) => row.metric === metric);
+    }
+
+    before(async function () {
+        admin = await signedIn();
+        let u = await access.createUser(admin);
+        basicS = await signedIn(u.name, u.password);
+    });
+
+    after(async function () {
+        await admin.raw("DELETE", target());
+        await access.dropAll();
+    });
+
+    it("sets a fixed target and reads it back", async function () {
+        let resp = await admin.raw("PUT", target(), {
+            amount: 1500000,
+            basis: "fixed"
+        });
+        let found;
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        found = await stored();
+        assert.equal(found.basis, "fixed");
+        assert.equal(found.amount, 1500000);
+        assert.equal(found.better, null);
+    });
+
+    it("replaces it with a negative percentage", async function () {
+        // 5% less than last year, where lower is better.
+        let resp = await admin.raw("PUT", target(), {
+            amount: -5,
+            basis: "percent",
+            better: "lower"
+        });
+        let list;
+        let found;
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+        list = await admin.get("/dashboard-targets");
+        assert.equal(
+            list.filter((row) => row.metric === metric).length,
+            1,
+            "one target per metric"
+        );
+        found = await stored();
+        assert.equal(found.basis, "percent");
+        assert.equal(found.amount, -5);
+        assert.equal(found.better, "lower");
+    });
+
+    it("lets anyone read them", async function () {
+        let list = await basicS.get("/dashboard-targets");
+
+        assert.ok(list.find((row) => row.metric === metric));
+    });
+
+    it("lets only an administrator change one", async function () {
+        let resp = await basicS.raw("PUT", target(), {
+            amount: 1,
+            basis: "fixed"
+        });
+
+        assert.equal(resp.status, 401);
+        resp = await basicS.raw("DELETE", target());
+        assert.equal(resp.status, 401);
+        assert.equal((await stored()).amount, -5, "untouched");
+    });
+
+    it("refuses a target that is not one", async function () {
+        let resp = await admin.raw("PUT", target(), {
+            amount: 5,
+            basis: "someday"
+        });
+
+        assert.equal(resp.status, 400);
+        resp = await admin.raw("PUT", target(), {basis: "fixed"});
+        assert.equal(resp.status, 400);
+        resp = await admin.raw("PUT", target(), {
+            amount: 5,
+            basis: "fixed",
+            better: "sideways"
+        });
+        assert.equal(resp.status, 400);
+    });
+
+    it("removes one, so the metric is judged by history", async function () {
+        let resp = await admin.raw("DELETE", target());
+
+        assert.equal(resp.status, 200);
+        assert.equal(await stored(), undefined);
+    });
 });
