@@ -329,6 +329,28 @@ relationWidget.viewModel = function (options) {
         @method open
     */
     vm.open = function () {
+        let inPlace = f.catalog().store().global().openRecordInPlace;
+
+        /*
+            Something that owns the screen and means to keep it -- a
+            dashboard drill-down, which is modal and would lose the board
+            behind it on a route change -- opens the record itself
+            instead. Nothing registers this in the ordinary run of the
+            app, so a relation widget on a form routes as it always did.
+            See drill-dialog.js.
+        */
+        if (inPlace) {
+            inPlace({
+                feather: modelValue().data.objectType(),
+                id: modelValue().id(),
+                name: (
+                    modelValue().naturalKey() ||
+                    String(modelValue().data.objectType()).toName()
+                )
+            });
+            return;
+        }
+
         m.route.set("/edit/:feather/:key", {
             feather: modelValue().data.objectType(),
             key: modelValue().id()

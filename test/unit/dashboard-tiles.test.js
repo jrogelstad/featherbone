@@ -37,6 +37,38 @@ function plain(n) {
     return Number(n).toLocaleString(undefined, {maximumFractionDigits: 0});
 }
 
+// Where the board put each tile, read off the grid styles.
+function boardSpans() {
+    let vnode = {attrs: {}, tag: comps.dashboard};
+    let state = Object.create(comps.dashboard);
+
+    function draw() {
+        return state.view.call(state, vnode);
+    }
+
+    function spanOf(value) {
+        let parts = String(value).split(" / span ");
+
+        return {at: Number(parts[0]), span: Number(parts[1])};
+    }
+
+    vnode.state = state;
+    state.oninit(vnode);
+    return env.flush(30).then(draw).then(function () {
+        return env.flush(30);
+    }).then(function () {
+        let sections = R.findAll(draw(), R.byTag("section"));
+
+        return sections.map(function (one) {
+            let style = one.attrs.style || {};
+            let col = spanOf(style["grid-column"]);
+            let row = spanOf(style["grid-row"]);
+
+            return {col: col.at, cols: col.span, row: row.at, rows: row.span};
+        });
+    });
+}
+
 // What the board says, with the functions stripped so it can be walked.
 function boardText() {
     let vnode = {attrs: {}, tag: comps.dashboard};
@@ -108,6 +140,48 @@ describe("dashboard measure tiles", function () {
         env.respond(function () {
             return [];
         });
+    });
+
+    /*
+        The board was doubled so a tile moves and resizes by half what it
+        used to (DASH_COLS). Everything stored is in the old units, so a
+        saved layout has to come back the size it was left: a tile six
+        columns wide of twelve is twelve of twenty-four, in the same
+        place, not half a board narrower.
+    */
+    it("brings a layout from the old board back as it was", async function () {
+        let saved = {
+            config: {
+                seen: [],
+                tiles: [{
+                    col: 1,
+                    cols: 6,
+                    id: "fbt-old",
+                    kpis: [],
+                    row: 3,
+                    rows: 4,
+                    type: "kpi"
+                }]
+            },
+            isDefault: true,
+            name: "FbtOld"
+        };
+        let spans;
+
+        env.respond(function (req) {
+            if (String(req.path).indexOf("/dashboards") === 0) {
+                return [saved];
+            }
+            return [];
+        });
+
+        spans = await boardSpans();
+        assert.deepEqual(spans[0], {
+            col: 1,
+            cols: 12,
+            row: 5,
+            rows: 8
+        }, "doubled in size and place: " + JSON.stringify(spans[0]));
     });
 
     it("draws amounts with the source's own formatters", async function () {
