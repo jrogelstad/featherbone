@@ -3808,6 +3808,10 @@ span.fb-dash-hist-s0 { background: var(--fb-dash-measure); }
 span.fb-dash-hist-s1 { background: var(--fb-dash-bar); }
 span.fb-dash-hist-s2 { background: var(--fb-dash-light); }
 span.fb-dash-hist-late { background: var(--fb-danger); }
+/* Same per-series dimming as the bars (fill-opacity above), in the
+   non-SVG property a swatch span needs instead. */
+span.fb-dash-hist-late.fb-dash-hist-s1 { opacity: 0.65; }
+span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
 .fb-dash-hist-earlier { color: var(--fb-danger); }
 
 /* Small multiples grid */
@@ -3874,6 +3878,32 @@ span.fb-dash-hist-late { background: var(--fb-danger); }
     padding: 14px;
     box-sizing: border-box;
     background: var(--fb-bg);
+}
+
+/* A wallpaper is a photo, and a photo doesn't dim itself just because
+   the rest of the UI went dark -- at full brightness it fights every
+   dark surface around it instead of sitting quietly behind the tiles.
+   The scrim only applies to a board that actually has one (see the
+   "-wallpaper" class dashboard.js adds when wallpaperStyle() returns
+   an image), so a board with no wallpaper is untouched. */
+@media (prefers-color-scheme: dark) {
+    .fb-dash-board-wallpaper {
+        position: relative;
+    }
+
+    /* Generated content with no explicit position would become a grid
+       item and eat a cell; absolute takes it out of the grid, and
+       coming first in the markup it paints under the tiles (which are
+       themselves positioned, so ordinary stacking order is enough --
+       no z-index tug-of-war needed) with no cell or z-index of its
+       own. */
+    .fb-dash-board-wallpaper::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+    }
 }
 
 /* Each tile is a surface floating over the page's background rather
