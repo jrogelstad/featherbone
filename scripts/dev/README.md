@@ -194,10 +194,13 @@ feathers that hold master data rather than configuration (`Contact`, `Address`,
 
 Two consequences worth knowing before the first run:
 
-* Units of measure, item categories, item groups, terms, ship methods and the
-  site record belong to packages (`Stock`, `Common`), not to `Core`, so they are
-  cleared. `teardrop-campers.sql` recreates them. If you want them to survive a
-  clear on their own, name them: `--keep Terms,ShipMethod,Site`.
+* Units of measure, item categories, item groups, terms, ship methods, the
+  site record and the sales regions (`SalesRegion`, `SalesRegionState`) belong to
+  packages (`Stock`, `Common`, `Sell`), not to `Core`, so they are cleared.
+  `teardrop-campers.sql` recreates them. If you want them to survive a clear on
+  their own, name them: `--keep Terms,ShipMethod,Site,SalesRegion,SalesRegionState`.
+  Regions are the four US census regions over all fifty states and DC; if a
+  database has the demo data but lost them, `sales-regions.sql` puts them back.
 * A table that holds rows but belongs to no installed feather stops the run
   rather than being silently left behind. `--clear-orphans` clears those too.
 
