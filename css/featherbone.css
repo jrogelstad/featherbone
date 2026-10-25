@@ -3928,26 +3928,20 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
 /* The title row and the As Of line underneath it are text sitting
    directly over the image, not cards -- going fully transparent there
    (as the board does) left the title fighting whatever the wallpaper
-   was doing behind it. Instead they keep a readable surface close
-   behind the text and dissolve it away before the tile grid starts:
-   solid at the very top, and the two rows' gradients meet at the seam
-   between them (both at the same 55% stop) so the pair reads as one
-   continuous fade rather than two separate white scoops. The layout
-   picker is NOT part of this -- it keeps its own opaque surface, same
+   was doing behind it. Instead the bar stays a crisp surface on the
+   left, where the text is, and dissolves toward the right, letting the
+   image come through behind the empty middle and the layout picker.
+   Both rows carry the same horizontal stops, so they line up as one
+   band rather than two. The picker keeps its own opaque surface, same
    as a tile. */
-.fb-dash-page-wallpaper .fb-toolbar-home {
-    background: linear-gradient(
-        to bottom,
-        var(--fb-surface) 0%,
-        color-mix(in srgb, var(--fb-surface) 55%, transparent) 100%
-    );
-}
-
+.fb-dash-page-wallpaper .fb-toolbar-home,
 .fb-dash-page-wallpaper .fb-dash-refresh-bar {
     background: linear-gradient(
-        to bottom,
-        color-mix(in srgb, var(--fb-surface) 55%, transparent) 0%,
-        transparent 100%
+        to right,
+        var(--fb-surface) 0%,
+        var(--fb-surface) 25%,
+        color-mix(in srgb, var(--fb-surface) 60%, transparent) 45%,
+        transparent 75%
     );
 }
 
