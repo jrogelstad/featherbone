@@ -155,6 +155,46 @@ function brandTitle() {
 }
 
 /**
+    The ribbon's own logo, in place of the Featherbone quill mark once
+    a package's manifest has carried a sibling "icon" image
+    (brandingSettings, set by installer.js's saveBranding -- see
+    scripts/branding-settings.json). `""` when none is set, so the
+    caller can fall back to the default quill.
+
+    Unlike the quill (a mask tinted to --fb-text, so it follows the
+    light/dark flip), a package's own icon is drawn at its own colors
+    -- it is a brand mark, not a monochrome glyph, and masking it would
+    just cut a solid-colored silhouette out of whatever shape its
+    opaque pixels happen to form.
+
+    @method brandIcon
+    @return {String}
+*/
+function brandIcon() {
+    let models = f.catalog().store().models();
+    let settings = (
+        models.brandingSettings
+        ? models.brandingSettings()
+        : null
+    );
+    let value = (
+        (settings && settings.data && settings.data.icon)
+        ? settings.data.icon()
+        : ""
+    );
+
+    if (!value) {
+        return "";
+    }
+
+    return (
+        value.startsWith("http")
+        ? value
+        : "/files/upload/" + value
+    );
+}
+
+/**
     The Home tab -- hard-coded rather than reflective of the database,
     unlike the category tabs above (John, Oct 2026). Always the first
     tab; its body is whatever fixed button groups the page rendering
@@ -1047,6 +1087,7 @@ ribbon.component = {
         }
 
         let showBody = !collapsed || vm.isPopupOpen();
+        let logoSrc = brandIcon();
 
         return m("div", {
             // fb-rb-t-<tab> picks the hue for the tab being shown,
@@ -1071,7 +1112,20 @@ ribbon.component = {
                     onclick: vm.goHome
                 }, [
                     m("div", {
-                        class: "fb-ribbon-logo",
+                        class: (
+                            logoSrc
+                            ? "fb-ribbon-logo fb-ribbon-logo-custom"
+                            : "fb-ribbon-logo"
+                        ),
+                        style: (
+                            logoSrc
+                            ? {
+                                "background-image": (
+                                    "url(\"" + logoSrc + "\")"
+                                )
+                            }
+                            : {}
+                        ),
                         "aria-hidden": "true"
                     }),
                     brandTitle()

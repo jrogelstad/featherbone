@@ -1,14 +1,19 @@
 {
     "name": "brandingSettings",
     "module": "Core",
-    "description": "App title and dashboard wallpaper. Values are set by whichever installed package's manifest most recently declared one, not edited by hand.",
+    "description": "App title, dashboard wallpaper, and ribbon/tab icon. Values are set by whichever installed package's manifest most recently declared one, not edited by hand.",
     "properties": {
         "title": {
             "description": "Shown in place of \"Featherbone\" in the ribbon and browser tab",
             "type": "string"
         },
         "dashboardImage": {
-            "description": "Wallpaper behind dashboard tiles: a URL, or the name of a file uploaded to this server",
+            "description": "Wallpaper behind the dashboard page (title bar, As Of line, and tiles alike): a URL, or the name of a file uploaded to this server",
+            "type": "string",
+            "format": "image"
+        },
+        "icon": {
+            "description": "Shown in place of the Featherbone quill mark in the ribbon and browser tab: a URL, or the name of a file uploaded to this server. Unlike the quill, drawn at full color rather than tinted to the theme.",
             "type": "string",
             "format": "image"
         }
