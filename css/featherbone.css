@@ -3854,16 +3854,28 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     font-size: 9px;
 }
 
-/* The board. A fixed grid mapped onto whatever space the page gives it, so
-   a tile cannot be placed outside the viewport -- there is nowhere outside
-   it to go. Groups are delineated by white space (the gap) and NOT by
-   borders or fills, which is Few's "least visible means" rule: a border
-   earns its place only where density leaves no room for space. */
+/* The scrolling frame around the board -- fixed height (whatever space
+   the page gives it, same as the board used to claim directly), with
+   .fb-dash-board free to grow taller than that inside it once a tile
+   push runs past DASH_ROWS. Columns still have nowhere outside the
+   viewport to go, so only this scrolls, and only vertically. */
+.fb-dash-viewport {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* The board. A grid, DASH_COLS wide and at least DASH_ROWS tall (see
+   dashboard.js), each row a fixed height set inline so a board with more
+   rows gets taller rather than squeezing every row down to fit. Groups
+   are delineated by white space (the gap) and NOT by borders or fills,
+   which is Few's "least visible means" rule: a border earns its place
+   only where density leaves no room for space. */
 .fb-dash-board {
     display: grid;
     gap: 14px;
     padding: 14px;
-    height: 100%;
     box-sizing: border-box;
     background: var(--fb-bg);
 }
