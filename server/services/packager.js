@@ -533,8 +533,14 @@
         chosen keeps their choice, because that lives in their profile
         and nothing here touches it.
     */
-    function addDashboards(manifest, zip, resp, folder) {
-        let content = tools.sanitize(resp.rows);
+    function addDashboards(manifest, zip, resp, folder, owner) {
+        let content = tools.sanitize(resp.rows).map(function (layout) {
+            // A layout saved from the Home tab has no module of its own
+            // (see the query); once packaged it belongs to this one.
+            return Object.assign({}, layout, {
+                module: layout.module || owner
+            });
+        });
         let name = "dashboards.json";
         let filename = folder + name;
 
@@ -917,15 +923,21 @@
                 );
                 requests.push(client.query(sql, params));
 
-                // Dashboard layouts
+                // Dashboard layouts. Save Layout never records a module,
+                // so a layout somebody built on the Home tab has a blank
+                // one and would belong to no export at all. The module
+                // being exported (not a dependency packaged beneath it)
+                // therefore takes the unowned layouts too -- see
+                // addDashboards, which stamps them with its name.
                 sql = (
                     "SELECT name, label, description, module, " +
                     "sequence, is_default, config " +
-                    "FROM \"$dashboard\" WHERE module = $1 " +
+                    "FROM \"$dashboard\" WHERE " +
+                    "(module = $1 OR (module = '' AND $2::boolean)) " +
                     "AND NOT is_deleted " +
                     "ORDER BY sequence, name;"
                 );
-                requests.push(client.query(sql, params));
+                requests.push(client.query(sql, [name, !sub.module]));
 
                 // App title and dashboard wallpaper currently in use --
                 // see addTitle and addWallpaper
@@ -975,7 +987,13 @@
                             }
                         }
                         if (includeDashboard) {
-                            addDashboards(manifest, zip, resp[11], folder);
+                            addDashboards(
+                                manifest,
+                                zip,
+                                resp[11],
+                                folder,
+                                name
+                            );
                         }
 
                         if (sub.module) {
