@@ -23,6 +23,7 @@
     "use strict";
 
     const AdmZip = require("adm-zip");
+    const fs = require("fs");
     const path = require("path");
     const {
         Tools
@@ -552,6 +553,66 @@
         }
     }
 
+    /*
+        The app title currently in use (brandingSettings, set by
+        whichever package's manifest last carried one -- see
+        installer.js's saveBranding). Carried as a manifest.title,
+        the same shape saveBranding reads back in on install -- never
+        a manifest.files entry, same as it never needs one coming in.
+
+        Unlike the wallpaper below, the title travels with every
+        export regardless of the dashboard checkbox: it names the
+        application, which is not "the dashboard board" the checkbox
+        describes, and a package re-exported with that box unchecked
+        should not silently go back to calling itself Featherbone.
+    */
+    function addTitle(manifest, resp) {
+        let row = resp.rows[0] || {};
+        let data = row.data || {};
+
+        if (data.title) {
+            manifest.title = data.title;
+        }
+    }
+
+    /*
+        The dashboard wallpaper currently in use (brandingSettings),
+        carried as a sibling "dashboard" image file, the same shape
+        saveBranding reads back in on install. Part of what the
+        dashboard checkbox means by "the dashboard board", so it
+        travels only when that is checked -- see addDashboards.
+
+        A wallpaper that is a pasted web address rather than a file
+        this server holds has nothing to add to the zip.
+    */
+    function addWallpaper(zip, resp, folder) {
+        // Work around linter dogma (as server.js does).
+        let existssync = "existsSync";
+        let readfilesync = "readFileSync";
+        let row = resp.rows[0] || {};
+        let data = row.data || {};
+        let value = data.dashboardImage;
+        let uploadPath;
+        let ext;
+
+        if (value && !value.startsWith("http")) {
+            ext = path.extname(value).toLowerCase() || ".png";
+            uploadPath = path.join(
+                process.cwd(),
+                "files",
+                "upload",
+                value
+            );
+
+            if (fs[existssync](uploadPath)) {
+                zip.addFile(
+                    folder + "dashboard" + ext,
+                    fs[readfilesync](uploadPath)
+                );
+            }
+        }
+    }
+
     function addWorkbooks(manifest, zip, resp, folder) {
         let content = tools.sanitize(resp.rows);
         let name = "workbooks.json";
@@ -635,7 +696,15 @@
         */
         let that = {};
 
-        function addDependencies(client, manifest, pzip, resp, user, folder) {
+        function addDependencies(
+            client,
+            manifest,
+            pzip,
+            resp,
+            user,
+            folder,
+            includeDashboard
+        ) {
             return new Promise(function (resolve, reject) {
                 let content;
                 let requests = [];
@@ -668,6 +737,7 @@
                             {
                                 zip: pzip,
                                 folder: folder + name.toSpinalCase() + "/",
+                                includeDashboard,
                                 module: mod
                             }
                         ).then(callback).catch(reject);
@@ -705,6 +775,7 @@
                 };
                 let zip = sub.zip || new AdmZip();
                 let folder = sub.folder || "";
+                let includeDashboard = sub.includeDashboard !== false;
 
                 if (folder) {
                     // Create folder for sub module
@@ -836,6 +907,15 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // App title and dashboard wallpaper currently in use --
+                // see addTitle and addWallpaper
+                sql = (
+                    "SELECT data FROM \"$settings\" " +
+                    "WHERE name = 'brandingSettings' " +
+                    "AND NOT is_deleted;"
+                );
+                requests.push(client.query(sql));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = name;
                     let pathname = path.format({
@@ -861,7 +941,21 @@
                             folder
                         );
                         addWorkbooks(manifest, zip, resp[7], folder);
-                        addDashboards(manifest, zip, resp[11], folder);
+
+                        // Branding is instance-wide, not module-scoped
+                        // like everything else packaged here, so it
+                        // belongs on the manifest somebody is actually
+                        // choosing to export -- not restamped onto every
+                        // dependency's own manifest underneath it.
+                        if (!sub.module) {
+                            addTitle(manifest, resp[12]);
+                            if (includeDashboard) {
+                                addWallpaper(zip, resp[12], folder);
+                            }
+                        }
+                        if (includeDashboard) {
+                            addDashboards(manifest, zip, resp[11], folder);
+                        }
 
                         if (sub.module) {
                             addModule(manifest, zip, [sub.module], folder);
@@ -901,7 +995,8 @@
                             zip,
                             resp[0],
                             user,
-                            folder
+                            folder,
+                            includeDashboard
                         ).then(finishPackage).catch(reject);
                     }
                 }).catch(reject);

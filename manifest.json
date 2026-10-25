@@ -1,6 +1,6 @@
 {
     "module": "Core",
-    "version": "3.0.0-alpha.5",
+    "version": "3.0.0-alpha.6",
     "files": [
         {
             "type": "execute",
@@ -60,6 +60,11 @@
             "type": "settings",
             "name": "globalSettings",
             "path": "scripts/global-settings.json"
+        },
+        {
+            "type": "settings",
+            "name": "brandingSettings",
+            "path": "scripts/branding-settings.json"
         },
         {
             "type": "batch",
