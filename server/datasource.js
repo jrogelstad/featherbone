@@ -2687,9 +2687,13 @@
         @param {String} name Module name
         @param {String} username User name
         @param {Object} [tenant] Tenant
+        @param {Object} [options]
+        @param {Boolean} [options.includeDashboard] Bundle the dashboard
+        layouts this module owns and its wallpaper image, if any.
+        Defaults true.
         @return {Promise}
     */
-    that.package = function (name, username, tenant) {
+    that.package = function (name, username, tenant, options) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doPackage(resp) {
@@ -2702,7 +2706,8 @@
                     packager.package(
                         resp.client,
                         name,
-                        username
+                        username,
+                        options
                     ).then(
                         callback
                     ).catch(

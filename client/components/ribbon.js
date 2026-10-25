@@ -131,6 +131,30 @@ const OTHER_CATEGORY = {
 };
 
 /**
+    The ribbon's own title, in place of "Featherbone" once a package's
+    manifest has carried a "title" (brandingSettings, set by
+    installer.js's saveBranding -- see scripts/branding-settings.json).
+
+    @method brandTitle
+    @return {String}
+*/
+function brandTitle() {
+    let models = f.catalog().store().models();
+    let settings = (
+        models.brandingSettings
+        ? models.brandingSettings()
+        : null
+    );
+    let title = (
+        (settings && settings.data && settings.data.title)
+        ? settings.data.title()
+        : ""
+    );
+
+    return title || "Featherbone";
+}
+
+/**
     The Home tab -- hard-coded rather than reflective of the database,
     unlike the category tabs above (John, Oct 2026). Always the first
     tab; its body is whatever fixed button groups the page rendering
@@ -1050,7 +1074,7 @@ ribbon.component = {
                         class: "fb-ribbon-logo",
                         "aria-hidden": "true"
                     }),
-                    "Featherbone"
+                    brandTitle()
                 ]),
                 m("div", {
                     class: "fb-ribbon-tabs",

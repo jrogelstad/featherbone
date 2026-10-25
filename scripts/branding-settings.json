@@ -1,0 +1,16 @@
+{
+    "name": "brandingSettings",
+    "module": "Core",
+    "description": "App title and dashboard wallpaper. Values are set by whichever installed package's manifest most recently declared one, not edited by hand.",
+    "properties": {
+        "title": {
+            "description": "Shown in place of \"Featherbone\" in the ribbon and browser tab",
+            "type": "string"
+        },
+        "dashboardImage": {
+            "description": "Wallpaper behind dashboard tiles: a URL, or the name of a file uploaded to this server",
+            "type": "string",
+            "format": "image"
+        }
+    }
+}
