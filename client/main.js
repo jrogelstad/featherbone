@@ -195,7 +195,13 @@ const APP_ZOOM_KEY = "fb-app-zoom";
 const APP_ZOOM_DEFAULT = 113;
 const APP_ZOOM_MIN = 50;
 const APP_ZOOM_MAX = 200;
-const APP_ZOOM_STEP = 5;
+// The control shows zoom relative to the default, so the default reads
+// 100%; steps and limits are in those shown units.
+const ZOOM_SHOWN_STEP = 5;
+const ZOOM_SHOWN_MIN = 50;
+const ZOOM_SHOWN_MAX = 175;
+// What is being typed into the zoom field, until Enter or blur.
+const zoomDraft = f.prop(null);
 
 /*
     The scale is also kept in browser storage, not instead of the profile
@@ -279,6 +285,33 @@ function appZoom(value) {
         return Math.round(Number(held) * 100);
     }
     return APP_ZOOM_DEFAULT;
+}
+
+function shownZoom(actual) {
+    return Math.round(actual * 100 / APP_ZOOM_DEFAULT);
+}
+
+// Sets zoom from a shown percent, clamped and snapped to whole percent.
+function setShownZoom(shown) {
+    let n = Math.round(Number(shown));
+
+    if (!Number.isFinite(n)) {
+        return;
+    }
+    n = Math.max(ZOOM_SHOWN_MIN, Math.min(ZOOM_SHOWN_MAX, n));
+    appZoom(n * APP_ZOOM_DEFAULT / 100);
+}
+
+// One step from the current shown percent, landing on a multiple of it.
+function stepZoom(direction) {
+    let now = shownZoom(appZoom());
+    let next = (
+        direction > 0
+        ? Math.floor(now / ZOOM_SHOWN_STEP + 1) * ZOOM_SHOWN_STEP
+        : Math.ceil(now / ZOOM_SHOWN_STEP - 1) * ZOOM_SHOWN_STEP
+    );
+
+    setShownZoom(next);
 }
 
 /*
@@ -930,50 +963,60 @@ function homeRibbonGroups() {
         */
         atEnd: true,
         label: "View",
+        small: true,
         buttons: [{
-            label: "Zoom Out",
-            icon: "zoom_out",
-            title: "Draw everything smaller",
-            disabled: dashZoom <= APP_ZOOM_MIN,
-            onclick: function () {
-                appZoom(dashZoom - APP_ZOOM_STEP);
-            }
-        }, {
             label: "Zoom In",
             icon: "zoom_in",
             title: "Draw everything larger",
-            disabled: dashZoom >= APP_ZOOM_MAX,
-            onclick: function () {
-                appZoom(dashZoom + APP_ZOOM_STEP);
-            }
+            disabled: shownZoom(dashZoom) >= ZOOM_SHOWN_MAX,
+            onclick: () => stepZoom(1)
+        }, {
+            label: "Zoom Out",
+            icon: "zoom_out",
+            title: "Draw everything smaller",
+            disabled: shownZoom(dashZoom) <= ZOOM_SHOWN_MIN,
+            onclick: () => stepZoom(-1)
         }, {
             /*
-                Typed rather than dragged. A slider for this sat inside
-                the very thing it was scaling, so it moved and resized
-                under the pointer as it was being dragged, and its steps
-                were a lurch rather than an adjustment. A field takes
-                one click and a number (John, Oct 2026).
-
-                Applied on change rather than on input, or typing "125"
-                would scale the app to 1% on the first keystroke.
+                Typed into a draft, applied on Enter or blur: bound
+                straight to the zoom, every redraw put the old number
+                back mid-typing. Escape abandons the draft.
             */
             render: function () {
-                return m("div", {class: "fb-rb-field"}, [
+                let draft = zoomDraft();
+
+                function commit(e) {
+                    if (zoomDraft() !== null) {
+                        setShownZoom(e.target.value);
+                        zoomDraft(null);
+                    }
+                }
+
+                return m("label", {class: "fb-rb-field fb-rb-field-sm"}, [
                     m("input", {
                         class: "fb-rb-field-input",
                         type: "text",
                         inputmode: "numeric",
                         "aria-label": "Zoom percent",
                         title: "Zoom percent; type one and press Enter",
-                        value: dashZoom,
-                        onchange: (e) => appZoom(e.target.value),
+                        value: (
+                            draft === null
+                            ? shownZoom(dashZoom)
+                            : draft
+                        ),
+                        oninput: (e) => zoomDraft(e.target.value),
+                        onblur: commit,
                         onkeydown: function (e) {
                             if (e.key === "Enter") {
-                                appZoom(e.target.value);
+                                commit(e);
+                            } else if (e.key === "Escape") {
+                                zoomDraft(null);
+                            } else {
+                                e.redraw = false;
                             }
                         }
                     }),
-                    m("span", {class: "fb-rb-field-label"}, "Zoom %")
+                    m("span", {class: "fb-rb-field-label"}, "%")
                 ]);
             }
         }]
