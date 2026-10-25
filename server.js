@@ -1391,12 +1391,18 @@
     function doPackageModule(req, res) {
         let name = req.params.name;
         let username = req.user.name;
+        let options = {
+            includeDashboard: !(
+                req.body && req.body.includeDashboard === false
+            )
+        };
 
         logger.verbose("Package " + name);
         datasource.package(
             name,
             username,
-            req.tenant
+            req.tenant,
+            options
         ).then(
             respond.bind(res)
         ).catch(

@@ -229,6 +229,15 @@ let currentLayout = null;
 // is offering to switch between them; the board itself only needs one.
 let savedLayouts = [];
 
+// How long to wait after an edit before writing the working arrangement
+// back to the profile, so dragging a tile across the board does not fire
+// a request on every pointer move -- only once things settle.
+const DASH_DRAFT_DEBOUNCE = 600;
+
+// Pending write-back of the working arrangement; reset on every edit so
+// only the last one in a burst actually goes out.
+let draftTimer = null;
+
 /**
     What this user has chosen about the board, as last loaded.
 */
@@ -258,6 +267,30 @@ function saveDashProfile(changes) {
     return write(DASH_PROFILE_KEY, next).catch(function () {
         return;
     });
+}
+
+/**
+    Remembers the arrangement on screen a moment after the last change, so
+    a refresh midway through rearranging the board does not throw the
+    arrangement away.
+
+    This is not what `saveLayout` means by saved -- nobody has named this
+    arrangement or chosen to keep it -- it is only the working copy this
+    person is looking at, written to their own profile so it survives a
+    reload the same way the rest of what is remembered about the board
+    does. `name` ties it to the layout it is an edit of (or to nothing,
+    for the composed board), so it is only ever offered back in place of
+    that same starting point.
+*/
+function saveDraft(layout) {
+    let spec = Object.assign(layoutSpec(layout), {
+        name: layout.name || null
+    });
+
+    window.clearTimeout(draftTimer);
+    draftTimer = window.setTimeout(function () {
+        saveDashProfile({draft: spec});
+    }, DASH_DRAFT_DEBOUNCE);
 }
 
 /**
@@ -960,7 +993,9 @@ function withNewcomers(layout) {
 
 /**
     The arrangement to show: the layout flagged as the instance's default
-    if there is one, otherwise whatever the registrations compose to.
+    if there is one, otherwise whatever the registrations compose to --
+    or, if this person left that same starting point mid-edit, the
+    working copy `saveDraft` last wrote rather than its clean original.
 
     A board that cannot reach the service still draws. Layouts are a
     convenience over a board that already works, so a failed fetch costs
@@ -972,7 +1007,10 @@ function startingLayout() {
         path: "/dashboards"
     }).then(function (rows) {
         let list = rows || [];
-        let chosen = dashProfile().layout;
+        let profile = dashProfile();
+        let chosen = profile.layout;
+        let draft = profile.draft;
+        let baseName;
         // In order: the layout this user picked, the one the instance
         // calls its default, then what the registrations compose to.
         // A picked layout somebody has since deleted falls through to
@@ -990,6 +1028,25 @@ function startingLayout() {
             preferred = list.find(function (row) {
                 return row.isDefault;
             });
+        }
+        baseName = (
+            preferred
+            ? preferred.name
+            : null
+        );
+        // The draft only ever replaces the starting point it was an
+        // edit of -- a draft left over from a layout this person has
+        // since switched away from (or that was deleted) is not offered
+        // in place of whatever they are looking at now.
+        if (draft && draft.name === baseName) {
+            return withChosenAsOf(withNewcomers({
+                asOf: draft.asOf || null,
+                name: baseName,
+                seen: draft.seen || [],
+                tiles: placeTiles(draft.tiles || []),
+                title: draft.title || null,
+                version: registryVersion
+            }));
         }
         if (preferred) {
             return withChosenAsOf(layoutFromRecord(preferred));
@@ -1033,7 +1090,7 @@ function deleteLayout(name) {
         path: "/dashboard/" + encodeURIComponent(name)
     }).then(function () {
         if (wasShowing) {
-            return saveDashProfile({layout: null});
+            return saveDashProfile({draft: null, layout: null});
         }
     }).then(
         startingLayout
@@ -1063,6 +1120,7 @@ function useLayout(name) {
     );
 
     saveDashProfile({
+        draft: null,
         layout: (
             record
             ? name
@@ -1080,8 +1138,10 @@ function useLayout(name) {
     The board is rearranged rather than appended to, because a tile added
     to a full board has to come from somewhere: the packer shrinks or
     drops to fit, which is the same guarantee every other arrangement
-    gets. Nothing is written anywhere until somebody saves the layout --
-    trying a tile out should cost nothing.
+    gets. Nothing is named or shared until somebody saves the layout --
+    trying a tile out should cost nothing -- but the arrangement is still
+    remembered for this person, via `saveDraft`, so trying it out and
+    then reloading the page does not undo it.
 */
 function addTile(tile) {
     let layout = currentLayout || composeLayout();
@@ -1098,6 +1158,7 @@ function addTile(tile) {
 
     currentLayout = next;
     loadAll(next);
+    saveDraft(next);
     m.redraw();
 
     // The packer drops what it cannot draw legibly, and a tile that
@@ -1145,6 +1206,7 @@ function updateTile(id, patch) {
             m.redraw();
         });
     }
+    saveDraft(next);
     m.redraw();
     // Same guarantee as addTile: a resize the packer cannot fit is a
     // dropped tile, not a silently clipped one.
@@ -1152,7 +1214,8 @@ function updateTile(id, patch) {
 }
 
 /**
-    Takes a tile off the board. Not saved until the layout is.
+    Takes a tile off the board. Not saved as a layout until somebody saves
+    the layout, but kept as this person's working arrangement either way.
 */
 function removeTile(id) {
     let layout = currentLayout || composeLayout();
@@ -1163,6 +1226,7 @@ function removeTile(id) {
         }))
     });
     delete tileState[id];
+    saveDraft(currentLayout);
     m.redraw();
 }
 
@@ -1224,6 +1288,10 @@ function saveLayout(spec) {
             isDefault: Boolean(asked.isDefault),
             label: asked.label || name
         }
+    }).then(function () {
+        // Named and saved for real now, so the working copy standing in
+        // for it is spent.
+        return saveDashProfile({draft: null});
     }).then(function () {
         return startingLayout();
     }).then(function (next) {
@@ -1474,6 +1542,7 @@ function setAsOf(value) {
     if (currentLayout) {
         currentLayout.asOf = next;
         loadAll(currentLayout);
+        saveDraft(currentLayout);
     }
     m.redraw();
 }
@@ -2726,6 +2795,7 @@ function dragEnd() {
         })))
     });
     loadAll(currentLayout);
+    saveDraft(currentLayout);
     m.redraw();
 }
 
@@ -2851,6 +2921,55 @@ function editControl(tile) {
     }, "\u270e");
 }
 
+/**
+    The board's wallpaper, from whichever package's manifest last
+    carried a sibling "dashboard" image (brandingSettings, set by
+    installer.js's saveBranding -- see scripts/branding-settings.json).
+    `""` when none is set, which leaves `style.background-image` unset.
+
+    Filling the full height and centering is John's call (Oct 2026):
+    scale to the board's height, never stretch, and let an image wider
+    than the board run off both edges rather than shrink to fit --
+    a panorama crops at the sides, which reads as "wallpaper" the way
+    shrinking it to fit would not. An image narrower than the board at
+    full height leaves bare margins instead; nothing here tiles or
+    stretches to close that gap.
+
+    @method wallpaperStyle
+    @return {Object}
+*/
+function wallpaperStyle() {
+    let models = f.catalog().store().models();
+    let settings = (
+        models.brandingSettings
+        ? models.brandingSettings()
+        : null
+    );
+    let value = (
+        (settings && settings.data && settings.data.dashboardImage)
+        ? settings.data.dashboardImage()
+        : ""
+    );
+    let src;
+
+    if (!value) {
+        return {};
+    }
+
+    src = (
+        value.startsWith("http")
+        ? value
+        : "/files/upload/" + value
+    );
+
+    return {
+        "background-image": "url(\"" + src + "\")",
+        "background-position": "center center",
+        "background-repeat": "no-repeat",
+        "background-size": "auto 100%"
+    };
+}
+
 let dashboard = {
     oninit: function () {
         /*
@@ -2900,10 +3019,10 @@ let dashboard = {
             refreshBar(layout),
             m("div", {
                 class: "fb-dash-board",
-                style: {
+                style: Object.assign(wallpaperStyle(), {
                     "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
                     "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
-                }
+                })
             }, layout.tiles.map(function (tile) {
                 let dragging = (
                     dragState !== null && dragState.id === tile.id
