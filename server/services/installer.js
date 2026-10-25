@@ -121,6 +121,9 @@
                 let viewsDeferred = false;
                 let newFeathers = [];
                 let deferredBatches = [];
+                // Package id -> id already here, from natural-key overwrites,
+                // so later records pointing at the package's id still land.
+                let heldIds = {};
                 let pProcess;
                 let pIsSuper = opts.isSuper;
                 let pSubscr = opts.subscription;
@@ -506,6 +509,8 @@
                             "replaces it"
                         );
 
+                        heldIds[payload.id] = err.heldBy;
+
                         let again = Object.assign({}, payload, {
                             id: err.heldBy
                         });
@@ -519,12 +524,39 @@
                         ).catch(rollback);
                     }
 
+                    // Relations naming a package id that overwrite() mapped
+                    // to the record already here point at that record.
+                    function heldRefs(value) {
+                        if (Array.isArray(value)) {
+                            return value.map(heldRefs);
+                        }
+                        if (value === null || typeof value !== "object") {
+                            return value;
+                        }
+                        let out = {};
+
+                        Object.keys(value).forEach(function (key) {
+                            out[key] = (
+                                (key === "id" && heldIds[value.id])
+                                ? heldIds[value.id]
+                                : heldRefs(value[key])
+                            );
+                        });
+                        return out;
+                    }
+
                     // Iterate recursively
                     nextItem = function () {
                         let payload;
 
                         if (b < len) {
                             payload = data[b];
+                            if (payload.data) {
+                                payload.data = heldRefs(payload.data);
+                            }
+                            if (heldIds[payload.id]) {
+                                payload.id = heldIds[payload.id];
+                            }
                             payload.user = pUser;
                             payload.client = pClient;
                             b += 1;
