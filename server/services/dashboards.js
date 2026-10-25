@@ -41,6 +41,8 @@
         so that one person rearranging their board does not rearrange
         everybody's.
     */
+    const BASES = ["fixed", "percent"];
+    const DIRECTIONS = ["higher", "lower"];
     const COLUMNS = (
         "id, name, label, description, module, sequence, " +
         "is_default AS \"isDefault\", config, " +
@@ -239,6 +241,12 @@
                 return found.id;
             }
 
+            // A deleted (flagged) layout still holds the unique name.
+            await theClient.query(
+                "DELETE FROM \"$dashboard\" WHERE name = $1 AND is_deleted;",
+                [name]
+            );
+
             sql = (
                 "INSERT INTO \"$dashboard\" (" +
                 "_pk, id, name, label, description, module, sequence, " +
@@ -342,6 +350,134 @@
             );
 
             return true;
+        };
+
+        /**
+            Resolves to every stored metric target. Readable by all.
+
+            @method getDashboardTargets
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @return {Promise}
+        */
+        that.getDashboardTargets = async function (obj) {
+            let resp = await obj.client.query(
+                "SELECT metric, basis, amount, better, " +
+                "updated_by AS \"updatedBy\", updated " +
+                "FROM \"$dashboard_target\" ORDER BY metric;"
+            );
+
+            return resp.rows.map(function (row) {
+                row.amount = Number(row.amount);
+                return row;
+            });
+        };
+
+        async function mustBeSuper(obj, doing) {
+            let isSuper = await tools.isSuperUser({
+                client: obj.client,
+                user: obj.user
+            });
+            let err;
+
+            if (!isSuper) {
+                err = new Error(
+                    "A metric's target is what everyone's board judges " +
+                    "it against, so " + doing + " takes an administrator."
+                );
+                err.statusCode = 401;
+                throw err;
+            }
+        }
+
+        /**
+            Sets one metric's target. Super users only.
+
+            @method saveDashboardTarget
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @param {String} payload.user User name
+            @param {Object} payload.data Target
+            @param {String} payload.data.metric Metric key
+            @param {String} payload.data.basis "fixed" or "percent"
+            @param {Number} payload.data.amount Target, or signed percent
+            @param {String} [payload.data.better] "higher" or "lower"
+            @return {Promise}
+        */
+        that.saveDashboardTarget = async function (obj) {
+            let data = obj.data || {};
+            let theClient = obj.client;
+            let user = theClient.currentUser();
+            let amount = Number(data.amount);
+            let better = data.better || null;
+            let err;
+
+            function refuse(message) {
+                err = new Error(message);
+                err.statusCode = 400;
+                throw err;
+            }
+
+            if (!data.metric) {
+                refuse("A target needs the metric it is for.");
+            }
+            if (BASES.indexOf(data.basis) === -1) {
+                refuse(
+                    "A target is either a number (\"fixed\") or a " +
+                    "percentage of the comparison (\"percent\")."
+                );
+            }
+            if (
+                data.amount === null ||
+                data.amount === undefined ||
+                data.amount === "" ||
+                !Number.isFinite(amount)
+            ) {
+                refuse("A target needs an amount.");
+            }
+            if (better !== null && DIRECTIONS.indexOf(better) === -1) {
+                refuse("Better is \"higher\" or \"lower\".");
+            }
+
+            await mustBeSuper(obj, "setting one");
+
+            await theClient.query(
+                "INSERT INTO \"$dashboard_target\" (" +
+                "_pk, id, metric, basis, amount, better, created_by, " +
+                "updated_by, created, updated, is_deleted) " +
+                "VALUES (nextval('object__pk_seq'), $1, $2, $3, $4, $5, " +
+                "$6, $6, now(), now(), false) " +
+                "ON CONFLICT (metric) DO UPDATE SET basis = $3, " +
+                "amount = $4, better = $5, updated_by = $6, " +
+                "updated = now();",
+                [f.createId(), data.metric, data.basis, amount, better, user]
+            );
+
+            return true;
+        };
+
+        /**
+            Removes one metric's target. Super users only.
+
+            @method deleteDashboardTarget
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @param {String} payload.user User name
+            @param {Object} payload.data Request data
+            @param {String} payload.data.metric Metric key
+            @return {Promise}
+        */
+        that.deleteDashboardTarget = async function (obj) {
+            let data = obj.data || {};
+            let resp;
+
+            await mustBeSuper(obj, "removing one");
+            resp = await obj.client.query(
+                "DELETE FROM \"$dashboard_target\" WHERE metric = $1;",
+                [data.metric]
+            );
+
+            return resp.rowCount > 0;
         };
 
         return that;

@@ -381,6 +381,33 @@
         "'Layout specification';"
     );
 
+    /*
+        One target per dashboard metric key. basis "fixed": amount is the
+        target; "percent": amount is a signed percent of the comparison.
+        better overrides the metric's direction. Hard-deleted.
+    */
+    const createDashboardTargetSql = (
+        "CREATE TABLE \"$dashboard_target\" (" +
+        "metric text UNIQUE," +
+        "basis text NOT NULL DEFAULT 'fixed', " +
+        "amount numeric NOT NULL DEFAULT 0, " +
+        "better text," +
+        "CONSTRAINT dashboard_target_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT dashboard_target_id_key UNIQUE (id)) " +
+        "INHERITS (object);" +
+        "COMMENT ON TABLE \"$dashboard_target\" IS " +
+        "'Internal table for storing dashboard metric targets';" +
+        "COMMENT ON COLUMN \"$dashboard_target\".metric IS " +
+        "'Registered key of the metric this is the target for';" +
+        "COMMENT ON COLUMN \"$dashboard_target\".basis IS " +
+        "'fixed: amount is the target; percent: amount is a signed " +
+        "percentage of the comparison';" +
+        "COMMENT ON COLUMN \"$dashboard_target\".amount IS " +
+        "'Target, or signed percentage';" +
+        "COMMENT ON COLUMN \"$dashboard_target\".better IS " +
+        "'higher or lower, overriding the metric''s own direction';"
+    );
+
     const createSessionSql = (
         "CREATE TABLE \"$session\" (" +
         "\"sid\" varchar NOT NULL COLLATE \"default\"," +
@@ -505,6 +532,7 @@
             let createWorkbook;
             let createNavigationCategory;
             let createDashboard;
+            let createDashboardTarget;
             let createSession;
             let createSubscription;
             let createSettings;
@@ -740,7 +768,29 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createDashboardSql, createProfiles);
+                        obj.client.query(
+                            createDashboardSql,
+                            createDashboardTarget
+                        );
+                        return;
+                    }
+                    createDashboardTarget();
+                });
+            };
+
+            // Create the dashboard metric target table
+            createDashboardTarget = function () {
+                sqlCheck("$dashboard_target", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!exists) {
+                        obj.client.query(
+                            createDashboardTargetSql,
+                            createProfiles
+                        );
                         return;
                     }
                     createProfiles();

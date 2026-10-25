@@ -120,6 +120,10 @@ function dashNiceMax(value) {
         narrowed to show detail -- pass false and the measure is drawn as a
         symbol marker instead, whose changed form is itself the warning that
         the scale does not start at zero.
+    @param {Boolean} [opts.reverse] Less is better: darkest band on the
+        right instead of the left.
+    @param {Number} [opts.pending] Expected but not yet landed (open
+        orders), drawn as a paler extension of the bar.
     @param {String} [opts.title] Hover text.
     @return {Object} Mithril vnode
 */
@@ -135,13 +139,18 @@ function dashBullet(opts) {
     let previous = 0;
     let bands = ranges.concat(1);
 
-    // Qualitative bands, worst (darkest) first, lightening rightwards.
+    // Worst (darkest) band first; reversed where less is better.
     bands.forEach(function (fraction, index) {
         let from = dashScale(previous, 1, width);
         let to = dashScale(fraction, 1, width);
+        let shade = (
+            o.reverse
+            ? bands.length - index
+            : index + 1
+        );
 
         parts.push(m("rect", {
-            class: "fb-dash-band fb-dash-band-" + (index + 1),
+            class: "fb-dash-band fb-dash-band-" + shade,
             x: from,
             y: 0,
             width: Math.max(0, to - from),
@@ -159,11 +168,26 @@ function dashBullet(opts) {
             r: Math.max(3, barHeight / 2)
         }));
     } else {
+        let solid = dashScale(o.value, o.max, width);
+        let more = Number(o.pending);
+
+        if (Number.isFinite(more) && more > 0) {
+            parts.push(m("rect", {
+                class: "fb-dash-bullet-pending",
+                x: solid,
+                y: (height - barHeight) / 2,
+                width: Math.max(
+                    0,
+                    dashScale(Number(o.value) + more, o.max, width) - solid
+                ),
+                height: barHeight
+            }));
+        }
         parts.push(m("rect", {
             class: "fb-dash-bullet-value",
             x: 0,
             y: (height - barHeight) / 2,
-            width: dashScale(o.value, o.max, width),
+            width: solid,
             height: barHeight
         }));
     }
@@ -233,6 +257,8 @@ function dashBullet(opts) {
     @param {Object} [opts.band] {from, to} acceptable range, drawn behind.
     @param {Boolean} [opts.showDot] Defaults true. Marks the final value,
         tying the line's end to the number printed beside it.
+    @param {Number} [opts.low] Shared scale bottom, for small multiples.
+    @param {Number} [opts.high] Shared scale top, for small multiples.
     @return {Object} Mithril vnode
 */
 function dashSparkline(opts) {
@@ -261,8 +287,16 @@ function dashSparkline(opts) {
         }, []);
     }
 
-    low = Math.min.apply(null, points);
-    high = Math.max.apply(null, points);
+    low = (
+        Number.isFinite(o.low)
+        ? o.low
+        : Math.min.apply(null, points)
+    );
+    high = (
+        Number.isFinite(o.high)
+        ? o.high
+        : Math.max.apply(null, points)
+    );
     span = high - low;
     if (span === 0) {
         // A genuinely flat series: draw it down the middle rather than
@@ -426,7 +460,47 @@ function dashAxis(opts) {
     }, parts);
 }
 
+/**
+    Alert dot. One shape, urgency by intensity (Few). Level 0 draws
+    nothing but keeps the column aligned.
+
+    @param {Object} opts
+    @param {Number} opts.level 0 none, 1 worth a look, 2 urgent.
+    @param {String} [opts.title] Hover text.
+    @return {Object} Mithril vnode
+*/
+function dashAlert(opts) {
+    let o = opts || {};
+    let size = o.size || 10;
+    let parts = [];
+
+    if (o.level > 0) {
+        parts.push(m("circle", {
+            class: "fb-dash-alert-dot fb-dash-alert-" + Math.min(2, o.level),
+            cx: size / 2,
+            cy: size / 2,
+            r: size / 2 - 1
+        }));
+        if (o.title) {
+            parts.push(m("title", o.title));
+        }
+    }
+
+    return m("svg", {
+        class: "fb-dash-alert",
+        viewBox: "0 0 " + size + " " + size,
+        width: size,
+        height: size,
+        role: (
+            o.level > 0
+            ? "img"
+            : "presentation"
+        )
+    }, parts);
+}
+
 f.catalog().register("global", "dashboardDraw", {
+    alert: dashAlert,
     axis: dashAxis,
     bar: dashBar,
     bullet: dashBullet,
