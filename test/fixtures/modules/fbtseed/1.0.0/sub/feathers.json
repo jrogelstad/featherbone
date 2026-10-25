@@ -1,0 +1,39 @@
+[
+    {
+        "name": "FbtSeed",
+        "description": "A record a package seeds into its own feather",
+        "plural": "FbtSeeds",
+        "module": "fbtseed",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "authorizations": [
+            {
+                "role": "everyone",
+                "actions": {
+                    "canCreate": true,
+                    "canRead": true,
+                    "canUpdate": true,
+                    "canDelete": true
+                }
+            }
+        ],
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

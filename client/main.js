@@ -779,8 +779,18 @@ function homeRibbonGroups() {
                 : "Save this arrangement as a layout"
             ),
             onclick: function () {
+                let listed = catalog.store().global().dashboardLayouts;
+                let rows = (
+                    listed
+                    ? listed()
+                    : []
+                );
+                let existing = rows.find(
+                    (row) => row.name === dashLayout
+                );
+
                 layoutName(dashLayout || "");
-                layoutIsDefault(!dashLayout);
+                layoutIsDefault(Boolean(existing && existing.isDefault));
                 saveLayoutDlg.show();
             }
         }, {
@@ -2125,7 +2135,9 @@ function initApp() {
                         onchange: (e) => layoutToDelete(e.target.value),
                         value: layoutToDelete()
                     }, [
-                        m("option", {value: ""}, "")
+                        // Named, not blank: an empty first row reads
+                        // as a glitch rather than as "nothing chosen".
+                        m("option", {value: ""}, "(choose a layout)")
                     ].concat(rows.map(function (row) {
                         return m("option", {
                             value: row.name
@@ -2424,36 +2436,75 @@ function initApp() {
                         value: layoutName()
                     })
                 ]),
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: layoutDefaultId
-                    }, "Default:"),
-                    m("input", {
-                        id: layoutDefaultId,
-                        type: "checkbox",
-                        checked: layoutIsDefault(),
-                        onchange: (e) => layoutIsDefault(e.target.checked)
-                    })
-                ]),
+                (
+                    /*
+                        The default is a decision about the instance --
+                        what everyone without a preference sees -- so
+                        only an administrator is offered it. The server
+                        enforces the same rule; this just keeps the
+                        dialog from offering what it would then refuse.
+                    */
+                    canAdminister
+                    ? m("div", {
+                        class: "pure-control-group"
+                    }, [
+                        m("label", {
+                            for: layoutDefaultId
+                        }, "Default:"),
+                        m("input", {
+                            id: layoutDefaultId,
+                            type: "checkbox",
+                            checked: layoutIsDefault(),
+                            onchange: (e) => layoutIsDefault(e.target.checked)
+                        })
+                    ])
+                    : null
+                ),
                 m("div", {
                     class: "fb-dialog-note"
                 }, (
-                    "The default layout is what anyone who has not " +
-                    "chosen one sees. Saving under a new name leaves " +
-                    "the old layout alone."
+                    canAdminister
+                    ? (
+                        "The default layout is what anyone who has not " +
+                        "chosen one sees. Saving under a new name " +
+                        "leaves the old layout alone."
+                    )
+                    : (
+                        "Saving under a new name leaves the old layout " +
+                        "alone. Everyone can choose any saved layout; " +
+                        "an administrator picks which one people start " +
+                        "on."
+                    )
                 ))
             ]);
         };
         saveLayoutDlg.onOk(function () {
             let save = catalog.store().global().dashboardSaveLayout;
+            let listed = catalog.store().global().dashboardLayouts;
+            let rows = (
+                listed
+                ? listed()
+                : []
+            );
+            let existing = rows.find(
+                (row) => row.name === layoutName().trim()
+            );
 
             if (!save) {
                 return;
             }
             save({
-                isDefault: layoutIsDefault(),
+                /*
+                    A non-administrator echoes the flag as it stands:
+                    sending false for a layout an administrator made
+                    the default would read as demoting it, which is
+                    not theirs to do and would be refused.
+                */
+                isDefault: (
+                    canAdminister
+                    ? layoutIsDefault()
+                    : Boolean(existing && existing.isDefault)
+                ),
                 name: layoutName().trim()
             }).catch(function (err) {
                 saveLayoutErrDlg.message(err.message);
