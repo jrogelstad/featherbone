@@ -2127,6 +2127,26 @@ button:disabled .fb-ipicon,
   flex: 1 1 auto;
 }
 
+/* The home banner's layout switcher, past the fill -- same input
+   dressing as .fb-rb-field-input, sized for a layout name rather than
+   a zoom percent. */
+.fb-layout-picker {
+  box-sizing: border-box;
+  height: var(--fb-control-height);
+  max-width: 220px;
+  padding: 0 6px;
+  font-size: 13px;
+  background-color: var(--fb-surface);
+  color: var(--fb-text);
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
+}
+
+.fb-layout-picker:focus {
+  outline: none;
+  border-color: var(--fb-accent);
+}
+
 /* Wraps the record buttons only so positionToolbarCenter() has a
    single element whose right edge marks the end of the toolbar's
    left-side content (title + these buttons), without having to know
