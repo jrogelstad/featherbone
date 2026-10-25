@@ -3916,18 +3916,39 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     z-index: 0;
 }
 
-/* With a wallpaper set, everything between it and the tiles/text that
-   used to sit on its own opaque surface -- the title bar, the As Of
-   line, the board itself -- goes transparent, so the one image painted
-   on .fb-dash-page above shows through all of it. Scoped to the
-   "-wallpaper" modifier (added only when wallpaperStyle() returns an
-   image), so a page with no wallpaper keeps its normal surfaces. The
-   layout picker and the tiles themselves are NOT in this list -- they
-   stay on their own opaque surface, same as any card floating over a
-   photo. */
-.fb-dash-page-wallpaper .fb-toolbar-home,
+/* With a wallpaper set, the board itself goes fully transparent -- the
+   tiles are their own opaque cards floating over the image, same as
+   over any photo, so the gaps between them show it plainly. Scoped to
+   the "-wallpaper" modifier (added only when wallpaperStyle() returns
+   an image), so a page with no wallpaper keeps its normal surface. */
 .fb-dash-page-wallpaper .fb-dash-board {
     background: transparent;
+}
+
+/* The title row and the As Of line underneath it are text sitting
+   directly over the image, not cards -- going fully transparent there
+   (as the board does) left the title fighting whatever the wallpaper
+   was doing behind it. Instead they keep a readable surface close
+   behind the text and dissolve it away before the tile grid starts:
+   solid at the very top, and the two rows' gradients meet at the seam
+   between them (both at the same 55% stop) so the pair reads as one
+   continuous fade rather than two separate white scoops. The layout
+   picker is NOT part of this -- it keeps its own opaque surface, same
+   as a tile. */
+.fb-dash-page-wallpaper .fb-toolbar-home {
+    background: linear-gradient(
+        to bottom,
+        var(--fb-surface) 0%,
+        color-mix(in srgb, var(--fb-surface) 55%, transparent) 100%
+    );
+}
+
+.fb-dash-page-wallpaper .fb-dash-refresh-bar {
+    background: linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--fb-surface) 55%, transparent) 0%,
+        transparent 100%
+    );
 }
 
 /* A wallpaper is a photo, and a photo doesn't dim itself just because
