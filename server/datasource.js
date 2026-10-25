@@ -4456,6 +4456,11 @@
     );
     that.registerFunction("GET", "getDashboard", dashboards.getDashboard);
     that.registerFunction("GET", "getDashboards", dashboards.getDashboards);
+    that.registerFunction(
+        "GET",
+        "getDashboardTargets",
+        dashboards.getDashboardTargets
+    );
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction(
@@ -4502,6 +4507,11 @@
     that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
     that.registerFunction("PUT", "saveDashboard", dashboards.saveDashboard);
+    that.registerFunction(
+        "PUT",
+        "saveDashboardTarget",
+        dashboards.saveDashboardTarget
+    );
     that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
     that.registerFunction(
         "PUT",
@@ -4514,6 +4524,11 @@
         "DELETE",
         "deleteDashboard",
         dashboards.deleteDashboard
+    );
+    that.registerFunction(
+        "DELETE",
+        "deleteDashboardTarget",
+        dashboards.deleteDashboardTarget
     );
     that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);
 

@@ -93,6 +93,8 @@
         "admin",
         "currency",
         "dashboard",
+        "dashboard-target",
+        "dashboard-targets",
         "dashboards",
         "data",
         "do",
@@ -1172,6 +1174,45 @@
             name: "saveDashboard",
             user: req.user.name,
             data: spec,
+            tenant: req.tenant
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doGetDashboardTargets(req, res) {
+        doGetMethod("getDashboardTargets", req, res);
+    }
+
+    // Metric from the route, not the body.
+    function doSaveDashboardTarget(req, res) {
+        let payload = {
+            method: "PUT",
+            name: "saveDashboardTarget",
+            user: req.user.name,
+            data: Object.assign({}, req.body, {metric: req.params.metric}),
+            tenant: req.tenant
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doDeleteDashboardTarget(req, res) {
+        let payload = {
+            method: "DELETE",
+            name: "deleteDashboardTarget",
+            user: req.user.name,
+            data: {metric: req.params.metric},
             tenant: req.tenant
         };
 
@@ -4473,6 +4514,12 @@
         dbRouter.get("/:db/dashboard/:name", doGetDashboard);
         dbRouter.put("/:db/dashboard/:name", doSaveDashboard);
         dbRouter.delete("/:db/dashboard/:name", doDeleteDashboard);
+        dbRouter.get("/:db/dashboard-targets", doGetDashboardTargets);
+        dbRouter.put("/:db/dashboard-target/:metric", doSaveDashboardTarget);
+        dbRouter.delete(
+            "/:db/dashboard-target/:metric",
+            doDeleteDashboardTarget
+        );
         dbRouter.get("/:db/workbooks", doGetWorkbooks);
         dbRouter.get(
             "/:db/navigation-categories",

@@ -84,6 +84,8 @@ let saveLayoutDlg;
 let saveLayoutErrDlg;
 let addTileDlg;
 let addTileErrDlg;
+let targetsDlg;
+let targetsErrDlg;
 let pickLayoutDlg;
 let deleteLayoutDlg;
 let deleteLayoutErrDlg;
@@ -373,12 +375,13 @@ const ADD_TILE_SIZES = [
     they apply to any source and to a metrics tile alike.
 */
 const ADD_TILE_TARGETS = [
+    {value: "auto", label: "Each metric's own target, else prior period"},
     {value: "history", label: "Against prior period"},
     {value: "growth", label: "A percentage above prior period"},
     {value: "fixed", label: "A number I set"},
     {value: "none", label: "Nothing"}
 ];
-const addTileTarget = f.prop("history");
+const addTileTarget = f.prop("auto");
 const addTileTargetValue = f.prop("");
 const addTileFilter = f.prop("");
 const addTileWhat = f.prop(ADD_TILE_KPIS);
@@ -387,7 +390,13 @@ const addTileKpis = f.prop([]);
 const addTileSize = f.prop("medium");
 const addTileDisplay = f.prop("bullets");
 const addTileSpark = f.prop(false);
+const addTileHideNames = f.prop(false);
 const addTileId = f.createId();
+
+// Targets dialog draft by metric key: {basis, amount, better}; "" basis
+// means no target.
+const targetsDraft = f.prop({});
+const targetsFilter = f.prop("");
 
 // For saving the board's arrangement as a layout everyone can start from
 const layoutName = f.prop("");
@@ -763,6 +772,35 @@ function homeRibbonGroups() {
                 addTileDlg.show();
             }
         }, {
+            label: "Targets",
+            icon: "flag",
+            // Anyone may look; only an administrator may change.
+            title: (
+                isAdmin
+                ? "Set what each metric is aiming for"
+                : "See what each metric is aiming for"
+            ),
+            onclick: function () {
+                let stored = catalog.store().global().dashboardTargets;
+                let held = (
+                    stored
+                    ? stored()
+                    : {}
+                );
+                let draft = {};
+
+                Object.keys(held).forEach(function (key) {
+                    draft[key] = {
+                        amount: String(held[key].amount),
+                        basis: held[key].basis,
+                        better: held[key].better || ""
+                    };
+                });
+                targetsDraft(draft);
+                targetsFilter("");
+                targetsDlg.show();
+            }
+        }, {
             label: "Refresh",
             icon: "refresh",
             /*
@@ -1093,6 +1131,12 @@ const homeDialogs = {
             }),
             m(components.dialog, {
                 viewModel: g.deleteLayoutErrDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.targetsDlg
+            }),
+            m(components.dialog, {
+                viewModel: g.targetsErrDlg
             })
         ];
     }
@@ -2320,8 +2364,18 @@ function initApp() {
                 }, [
                     m("option", {value: "bullets"}, "Bars with comparison"),
                     m("option", {value: "bars"}, "Ranked bars"),
-                    m("option", {value: "table"}, "Numbers only")
+                    m("option", {value: "table"}, "Numbers only"),
+                    m("option", {
+                        value: "multiples"
+                    }, "Small multiples, a year each")
                 ])));
+
+                // For a tile beside another sorted by name.
+                parts.push(group("Hide names:", m("input", {
+                    type: "checkbox",
+                    checked: addTileHideNames(),
+                    onchange: (e) => addTileHideNames(e.target.checked)
+                })));
 
                 parts.push(group("History:", m("input", {
                     type: "checkbox",
@@ -2330,12 +2384,24 @@ function initApp() {
                 })));
             }
 
+            if (
+                addTileTarget() === "auto" &&
+                addTileWhat() !== ADD_TILE_KPIS
+            ) {
+                addTileTarget("history");
+            }
             parts.push(group("Judged:", m("select", {
                 onchange: function (e) {
                     addTileTarget(e.target.value);
                 },
                 value: addTileTarget()
-            }, ADD_TILE_TARGETS.map(function (one) {
+            }, ADD_TILE_TARGETS.filter(function (one) {
+                // Stored targets exist only for metrics.
+                return (
+                    one.value !== "auto" ||
+                    addTileWhat() === ADD_TILE_KPIS
+                );
+            }).map(function (one) {
                 return m("option", {
                     value: one.value
                 }, one.label);
@@ -2410,6 +2476,7 @@ function initApp() {
                 tile.source = addTileWhat();
                 tile.display = addTileDisplay();
                 tile.showSpark = addTileSpark();
+                tile.hideLabels = addTileHideNames();
                 // Whatever the source asked to be asked, handed back
                 // as tile properties for its own load to read.
                 Object.keys(addTileOpts()).forEach(function (key) {
@@ -2444,6 +2511,197 @@ function initApp() {
                 !addTileKpis().length
             ) {
                 return "Choose at least one metric";
+            }
+        };
+
+        /*
+            View model for metric targets: a number, or a signed percent
+            of the comparison (negative where lower is better).
+        */
+        targetsErrDlg = viewModels.dialog({
+            icon: "error",
+            title: "Error"
+        });
+        targetsDlg = viewModels.dialog({
+            icon: "flag",
+            title: "Metric targets"
+        });
+        targetsDlg.style().width = "680px";
+        targetsDlg.content = function () {
+            let kpis = catalog.store().global().dashboardKpis;
+            let offered = (
+                kpis
+                ? kpis.list()
+                : []
+            );
+            let needle = targetsFilter().trim().toLowerCase();
+            let shown = offered.filter(function (kpi) {
+                return (
+                    !needle ||
+                    kpi.name.toLowerCase().indexOf(needle) > -1 ||
+                    String(kpi.module).toLowerCase().indexOf(needle) > -1
+                );
+            });
+            let draft = targetsDraft();
+
+            function entry(kpi) {
+                return draft[kpi.key] || {amount: "", basis: "", better: ""};
+            }
+
+            function change(kpi, key, value) {
+                let next = Object.assign({}, targetsDraft());
+
+                next[kpi.key] = Object.assign({}, entry(kpi));
+                next[kpi.key][key] = value;
+                targetsDraft(next);
+            }
+
+            function row(kpi) {
+                let one = entry(kpi);
+                let better = one.better || kpi.better || "higher";
+                let hint = (
+                    one.basis === "percent"
+                    ? (
+                        better === "lower"
+                        ? "% vs comparison, e.g. -5"
+                        : "% vs comparison, e.g. 5"
+                    )
+                    : (
+                        kpi.unit === "percent"
+                        ? "e.g. 95"
+                        : "target"
+                    )
+                );
+
+                return m("div", {class: "fb-target-row"}, [
+                    m("div", {class: "fb-target-name"}, [
+                        m("span", kpi.name),
+                        m("span", {class: "fb-target-module"}, kpi.module)
+                    ]),
+                    m("select", {
+                        disabled: !isAdmin,
+                        onchange: (e) => change(kpi, "basis", e.target.value),
+                        value: one.basis
+                    }, [
+                        m("option", {value: ""}, "Prior period"),
+                        m("option", {value: "fixed"}, "A number"),
+                        m("option", {value: "percent"}, "A percentage")
+                    ]),
+                    m("input", {
+                        disabled: !isAdmin || !one.basis,
+                        placeholder: (
+                            one.basis
+                            ? hint
+                            : ""
+                        ),
+                        step: "any",
+                        type: "number",
+                        oninput: (e) => change(kpi, "amount", e.target.value),
+                        value: (
+                            one.basis
+                            ? one.amount
+                            : ""
+                        )
+                    }),
+                    m("select", {
+                        disabled: !isAdmin,
+                        onchange: (e) => change(kpi, "better", e.target.value),
+                        title: "Which way is good for this metric",
+                        value: one.better || kpi.better || "higher"
+                    }, [
+                        m("option", {value: "higher"}, "Higher is better"),
+                        m("option", {value: "lower"}, "Lower is better")
+                    ])
+                ]);
+            }
+
+            return m("div", {class: "pure-form"}, [
+                m("input", {
+                    class: "fb-dialog-picker-filter",
+                    type: "search",
+                    placeholder: "Filter metrics",
+                    oninput: (e) => targetsFilter(e.target.value),
+                    value: targetsFilter()
+                }),
+                m("div", {class: "fb-target-list"}, (
+                    shown.length
+                    ? shown.map(row)
+                    : m("div", {
+                        class: "fb-dialog-picker-none"
+                    }, "No metric matches that.")
+                )),
+                m("div", {
+                    class: "fb-dialog-note"
+                }, (
+                    isAdmin
+                    ? (
+                        "A metric with no target is judged against its " +
+                        "prior period. A percentage is of that prior " +
+                        "period, and is negative where lower is better."
+                    )
+                    : (
+                        "Targets are what every board showing a metric " +
+                        "judges it by, so only an administrator can " +
+                        "change them."
+                    )
+                ))
+            ]);
+        };
+        targetsDlg.onOk(function () {
+            let save = catalog.store().global().dashboardSaveTargets;
+            let stored = catalog.store().global().dashboardTargets;
+            let held = (
+                stored
+                ? stored()
+                : {}
+            );
+            let draft = targetsDraft();
+            let changes = [];
+
+            if (!save || !isAdmin) {
+                return;
+            }
+
+            Object.keys(draft).forEach(function (key) {
+                let one = draft[key];
+                let was = held[key];
+                let basis = (
+                    (one.basis && one.amount !== "")
+                    ? one.basis
+                    : ""
+                );
+
+                if (!basis) {
+                    if (was) {
+                        changes.push({metric: key});
+                    }
+                    return;
+                }
+                if (
+                    was &&
+                    was.basis === basis &&
+                    Number(was.amount) === Number(one.amount) &&
+                    (was.better || "") === (one.better || "")
+                ) {
+                    return;
+                }
+                changes.push({
+                    amount: Number(one.amount),
+                    basis,
+                    better: one.better || null,
+                    metric: key
+                });
+            });
+
+            save(changes).catch(function (err) {
+                targetsErrDlg.message(err.message);
+                targetsErrDlg.show();
+            });
+        });
+        targetsDlg.buttonOk().isDisabled = () => !isAdmin;
+        targetsDlg.buttonOk().title = function () {
+            if (!isAdmin) {
+                return "Only an administrator can change targets";
             }
         };
 
@@ -2727,6 +2985,8 @@ function initApp() {
             "deleteLayoutErrDlg",
             deleteLayoutErrDlg
         );
+        catalog.register("global", "targetsDlg", targetsDlg);
+        catalog.register("global", "targetsErrDlg", targetsErrDlg);
 
         m.route(document.body, "/home", routes);
     });
