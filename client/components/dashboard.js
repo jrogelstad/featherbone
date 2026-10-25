@@ -2851,6 +2851,55 @@ function editControl(tile) {
     }, "\u270e");
 }
 
+/**
+    The board's wallpaper, from whichever package's manifest last
+    carried a sibling "dashboard" image (brandingSettings, set by
+    installer.js's saveBranding -- see scripts/branding-settings.json).
+    `""` when none is set, which leaves `style.background-image` unset.
+
+    Filling the full height and centering is John's call (Oct 2026):
+    scale to the board's height, never stretch, and let an image wider
+    than the board run off both edges rather than shrink to fit --
+    a panorama crops at the sides, which reads as "wallpaper" the way
+    shrinking it to fit would not. An image narrower than the board at
+    full height leaves bare margins instead; nothing here tiles or
+    stretches to close that gap.
+
+    @method wallpaperStyle
+    @return {Object}
+*/
+function wallpaperStyle() {
+    let models = f.catalog().store().models();
+    let settings = (
+        models.brandingSettings
+        ? models.brandingSettings()
+        : null
+    );
+    let value = (
+        (settings && settings.data && settings.data.dashboardImage)
+        ? settings.data.dashboardImage()
+        : ""
+    );
+    let src;
+
+    if (!value) {
+        return {};
+    }
+
+    src = (
+        value.startsWith("http")
+        ? value
+        : "/files/upload/" + value
+    );
+
+    return {
+        "background-image": "url(\"" + src + "\")",
+        "background-position": "center center",
+        "background-repeat": "no-repeat",
+        "background-size": "auto 100%"
+    };
+}
+
 let dashboard = {
     oninit: function () {
         /*
@@ -2900,10 +2949,10 @@ let dashboard = {
             refreshBar(layout),
             m("div", {
                 class: "fb-dash-board",
-                style: {
+                style: Object.assign(wallpaperStyle(), {
                     "grid-template-columns": "repeat(" + DASH_COLS + ", 1fr)",
                     "grid-template-rows": "repeat(" + DASH_ROWS + ", 1fr)"
-                }
+                })
             }, layout.tiles.map(function (tile) {
                 let dragging = (
                     dragState !== null && dragState.id === tile.id

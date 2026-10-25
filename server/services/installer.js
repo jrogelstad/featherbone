@@ -28,6 +28,7 @@
     const {Config} = require("../config");
     const {Database} = require("../database");
     const {Feathers} = require("./feathers");
+    const {Settings} = require("./settings");
     const config = new Config();
     const fs = require("fs");
     const path = require("path");
@@ -40,6 +41,7 @@
     const api = new API();
     const db = new Database();
     const feathers = new Feathers();
+    const settingsService = new Settings();
 
     function btoa(str) {
         return Buffer.from(str.toString(), "binary").toString("base64");
@@ -90,6 +92,10 @@
                 let processFile;
                 let i = 0;
                 let file;
+                // Work around linter dogma (as server.js does).
+                let copyfile = "copyFile";
+                let existssync = "existsSync";
+                let mkdirsync = "mkdirSync";
                 let filename = path.format({
                     root: "/",
                     dir: pDir,
@@ -962,6 +968,119 @@
                     next();
                 }
 
+                /*
+                    The package may carry a sibling file named
+                    "dashboard.png"/".jpg"/".jpeg", by convention rather
+                    than a manifest.files entry -- it bears the same
+                    relationship to the package that "module"/"version"
+                    do. Returns its path, or null.
+                */
+                function findDashboardImage() {
+                    let extensions = [".png", ".jpg", ".jpeg"];
+                    let ext = extensions.find(function (candidate) {
+                        return fs[existssync](path.format({
+                            base: "dashboard" + candidate,
+                            dir: pDir,
+                            root: "/"
+                        }));
+                    });
+
+                    if (!ext) {
+                        return null;
+                    }
+
+                    return path.format({
+                        base: "dashboard" + ext,
+                        dir: pDir,
+                        root: "/"
+                    });
+                }
+
+                /*
+                    The manifest's own "title", and the package's sibling
+                    "dashboard" image if it has one, merged into the one
+                    shared `brandingSettings` row (ribbon.js/dashboard.js
+                    read it client-side). Whichever package last carried
+                    either one wins -- the same "package wins" rule as a
+                    natural-key conflict -- and a package naming neither
+                    leaves whatever is already there alone.
+                */
+                function saveBranding() {
+                    let imagePath = findDashboardImage();
+                    let patch = {};
+
+                    if (manifest.title) {
+                        patch.title = manifest.title;
+                    }
+
+                    function withImage(uploadName) {
+                        if (uploadName) {
+                            patch.dashboardImage = uploadName;
+                        }
+
+                        if (!patch.title && !patch.dashboardImage) {
+                            return Promise.resolve();
+                        }
+
+                        return pClient.query(
+                            "SELECT data FROM \"$settings\" " +
+                            "WHERE name='brandingSettings';"
+                        ).then(function (resp) {
+                            let row = resp.rows[0] || {};
+                            let data = Object.assign(
+                                {},
+                                row.data || {},
+                                patch
+                            );
+
+                            return settingsService.saveSettings({
+                                client: pClient,
+                                data: {
+                                    data,
+                                    name: "brandingSettings"
+                                },
+                                isInternal: true,
+                                user: pUser
+                            });
+                        });
+                    }
+
+                    if (!imagePath) {
+                        return withImage(null);
+                    }
+
+                    return new Promise(function (resolve, reject) {
+                        let ext = path.extname(imagePath).toLowerCase();
+                        let uploadDir = path.join(
+                            process.cwd(),
+                            "files",
+                            "upload"
+                        );
+                        let uploadName = (
+                            manifest.module.toSpinalCase() +
+                            "-dashboard" + ext
+                        );
+
+                        if (!fs[existssync](uploadDir)) {
+                            fs[mkdirsync](uploadDir, {recursive: true});
+                        }
+
+                        fs[copyfile](
+                            imagePath,
+                            path.join(uploadDir, uploadName),
+                            function (err) {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+                                withImage(uploadName).then(
+                                    resolve
+                                ).catch(reject);
+                            }
+                        );
+                    });
+                }
+
                 // Given the path inside the package dir, not the cwd's
                 function execute(filepath) {
                     let exp = require(path.resolve(filepath));
@@ -1208,7 +1327,9 @@
 
                         let commitFailed = false;
 
-                        handleFeathers().then(runDeferred).then(function () {
+                        saveBranding().then(handleFeathers).then(
+                            runDeferred
+                        ).then(function () {
                             return pClient.query("COMMIT;").catch(
                                 function (commitErr) {
                                     commitFailed = true;

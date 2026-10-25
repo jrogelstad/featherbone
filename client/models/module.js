@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser unordered*/
-/*global f, Qs*/
+/*global f, m, Qs*/
 
 function module(data, feather) {
     feather = feather || f.catalog().getFeather("Module");
@@ -97,10 +97,12 @@ module.static = f.prop({
         let dialog = viewModel.confirmDialog();
         let selection = viewModel.selections()[0];
         let name = selection.data.name();
-        let payload = {
-            method: "POST",
-            path: "/module/package/" + name
-        };
+        let includeDashboard = f.prop(true);
+        let defaultContent = dialog.content;
+
+        function restore() {
+            dialog.content = defaultContent;
+        }
 
         function download(filename) {
             let element = document.createElement("a");
@@ -117,6 +119,7 @@ module.static = f.prop({
         }
 
         function error(err) {
+            restore();
             dialog.message(err.message);
             dialog.title("Error");
             dialog.icon("report_error");
@@ -124,7 +127,44 @@ module.static = f.prop({
             dialog.show();
         }
 
-        f.datasource().request(payload).then(download).catch(error);
+        function doPackage() {
+            let payload = {
+                method: "POST",
+                path: "/module/package/" + name,
+                body: {
+                    includeDashboard: includeDashboard()
+                }
+            };
+
+            f.datasource().request(payload).then(download).catch(error);
+        }
+
+        dialog.icon("");
+        dialog.title("Package " + name);
+        dialog.buttonCancel().show();
+        dialog.content = function () {
+            return m("div", {
+                id: dialog.ids().content
+            }, [
+                m("p", {}, "Build a downloadable package of " + name + "."),
+                m("label", {}, [
+                    m("input", {
+                        checked: includeDashboard(),
+                        id: "fb-package-include-dashboard",
+                        onchange: (e) => includeDashboard(e.target.checked),
+                        type: "checkbox"
+                    }),
+                    " Include the dashboard board (the layouts in " +
+                    "use, and the wallpaper image, if any)"
+                ])
+            ]);
+        };
+        dialog.onOk(function () {
+            restore();
+            doPackage();
+        });
+        dialog.onCancel(restore);
+        dialog.show();
     },
     packageCheck: function (selections) {
         return (

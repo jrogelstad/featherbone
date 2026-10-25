@@ -27,6 +27,32 @@ const components = catalog.store().components();
 const viewModels = catalog.store().viewModels();
 const connectionMonitor = catalog.store().global().connectionMonitor;
 
+/**
+    The browser tab's title, in place of "Featherbone" once a package's
+    manifest has carried a "title" (brandingSettings, set by
+    installer.js's saveBranding). Same lookup as ribbon.js's own
+    brandTitle -- kept local here rather than shared, since the two
+    files have no import relationship.
+
+    @method brandTitle
+    @return {String}
+*/
+function brandTitle() {
+    let models = catalog.store().models();
+    let theSettings = (
+        models.brandingSettings
+        ? models.brandingSettings()
+        : null
+    );
+    let title = (
+        (theSettings && theSettings.data && theSettings.data.title)
+        ? theSettings.data.title()
+        : ""
+    );
+
+    return title || "Featherbone";
+}
+
 /*
     A sign-in link from an email that no longer works (two days old, the
     server restarted) is sent here by the server with whose it was, as
@@ -1243,7 +1269,7 @@ const home = {
         let title = document.getElementById("fb-title");
 
         if (title) {
-            title.text = "Featherbone";
+            title.text = brandTitle();
         }
     },
     onupdate: function () {
