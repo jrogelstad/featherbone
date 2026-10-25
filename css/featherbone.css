@@ -3893,6 +3893,31 @@ button:disabled .fb-ipicon,
     color: var(--fb-danger);
 }
 
+/* Same corner, one spot to the left of Remove. */
+.fb-dash-tile-edit {
+    position: absolute;
+    top: 4px;
+    right: 22px;
+    padding: 0 2px;
+    border: none;
+    background: none;
+    color: var(--fb-text-muted);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 120ms ease-in;
+}
+
+.fb-dash-tile:hover .fb-dash-tile-edit,
+.fb-dash-tile-edit:focus {
+    opacity: 1;
+}
+
+.fb-dash-tile-edit:hover {
+    color: var(--fb-accent);
+}
+
 /* The heading is the handle, so it says so by the cursor rather than by
    growing a grip. Its text is not selectable: dragging across a heading
    should move the tile, not highlight the words. */
