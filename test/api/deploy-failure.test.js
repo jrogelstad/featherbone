@@ -319,6 +319,50 @@ describe("a package that seeds records into its own feather", function () {
         );
     });
 
+    it("cannot take the default from an administrator", async function () {
+        /*
+            The administrator moves the default to a board of their own;
+            the package is then deployed again. Its layout still ships
+            and still updates, but its claim on the default is
+            conditional -- honoured only where nobody has chosen -- so
+            the administrator's choice stands. The spec's sentence is
+            exactly this: a reinstall cannot override it.
+        */
+        let resp;
+
+        await db.withClient(settings.testDb, (client) => client.query(
+            "INSERT INTO \"$dashboard\" (" +
+            "_pk, id, name, label, description, module, sequence, " +
+            "is_default, config, created_by, updated_by, created, " +
+            "updated, is_deleted) " +
+            "VALUES (nextval('object__pk_seq'), 'fbtadminboard', " +
+            "'FbtAdminBoard', 'Admin board', '', 'Core', 1, true, " +
+            "'{}'::json, 'admin', 'admin', now(), now(), false);" +
+            "UPDATE \"$dashboard\" SET is_default = false " +
+            "WHERE name <> 'FbtAdminBoard';"
+        ));
+
+        resp = await session.raw("POST", "/platform/instance/deploy", {
+            id: target.id,
+            module: "fbtseed",
+            version: "1.0.0"
+        });
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        resp = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT name FROM \"$dashboard\" " +
+                "WHERE is_default AND NOT is_deleted ORDER BY name"
+            )
+        );
+        assert.deepEqual(
+            resp.rows.map((row) => row.name),
+            ["FbtAdminBoard"],
+            "the administrator's board is still the default"
+        );
+    });
+
     it("leaves the instance open afterwards", async function () {
         let now = await fleetEntry(session);
 
