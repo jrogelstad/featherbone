@@ -66,6 +66,9 @@
             module:      who contributed it
             name:        what the measure is called
             format:      {amount, compact, units} formatters, all optional
+            formatFor:   (tile) -> the same, for a source whose measures
+                         are not all the same kind of number; optional,
+                         wins over `format`
             headingFor:  (tile) -> String, optional, names a tile from its
                          own options
             defaultTile: a tile to put on the default layout, or omitted
@@ -1938,12 +1941,22 @@ function kpiTile(tile) {
     them. A source that says nothing gets plain localized numbers, which is
     wrong for money and right for everything else -- so money sources supply
     their own.
+
+    `formatFor(tile)` is for a source whose measures are not all the same
+    kind of number -- inventory value and inventory quantity on the same
+    tile, say, where money formatting is right for one and wrong for the
+    other. It is asked per tile and wins over `format`; a source whose
+    amount is always money needs only `format`.
 */
-function measureFormats(source) {
+function measureFormats(source, tile) {
     let given = (source && source.format) || {};
     let plain = function (n) {
         return Number(n).toLocaleString();
     };
+
+    if (source && source.formatFor) {
+        given = Object.assign({}, given, source.formatFor(tile || {}));
+    }
 
     return {
         amount: given.amount || plain,
@@ -2073,7 +2086,7 @@ function measureTile(tile) {
     let state = tileState[tile.id] || {status: "loading"};
     let source = sourceRegistry[tile.source] || {};
     let draw = f.catalog().store().global().dashboardDraw;
-    let fmt = measureFormats(source);
+    let fmt = measureFormats(source, tile);
     let data = state.data;
     let display = tile.display || "bullets";
     let better = (
