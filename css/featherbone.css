@@ -3916,18 +3916,31 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     z-index: 0;
 }
 
-/* With a wallpaper set, everything between it and the tiles/text that
-   used to sit on its own opaque surface -- the title bar, the As Of
-   line, the board itself -- goes transparent, so the one image painted
-   on .fb-dash-page above shows through all of it. Scoped to the
-   "-wallpaper" modifier (added only when wallpaperStyle() returns an
-   image), so a page with no wallpaper keeps its normal surfaces. The
-   layout picker and the tiles themselves are NOT in this list -- they
-   stay on their own opaque surface, same as any card floating over a
-   photo. */
-.fb-dash-page-wallpaper .fb-toolbar-home,
+/* With a wallpaper set, the board itself goes fully transparent -- the
+   tiles are their own opaque cards floating over the image, same as
+   over any photo, so the gaps between them show it plainly. Scoped to
+   the "-wallpaper" modifier (added only when wallpaperStyle() returns
+   an image), so a page with no wallpaper keeps its normal surface. */
 .fb-dash-page-wallpaper .fb-dash-board {
     background: transparent;
+}
+
+/* The title row is text sitting directly over the image, not a card --
+   going fully transparent there (as the board does) left the title
+   fighting whatever the wallpaper was doing behind it. Instead the
+   banner stays a crisp surface on the left, where the name is, and
+   dissolves toward the right, letting the image come through behind
+   the empty middle and the layout picker. The As Of line below it
+   stays plain over the image, like the board. The picker keeps its
+   own opaque surface, same as a tile. */
+.fb-dash-page-wallpaper .fb-toolbar-home {
+    background: linear-gradient(
+        to right,
+        var(--fb-surface) 0%,
+        var(--fb-surface) 25%,
+        color-mix(in srgb, var(--fb-surface) 60%, transparent) 45%,
+        transparent 75%
+    );
 }
 
 /* A wallpaper is a photo, and a photo doesn't dim itself just because
