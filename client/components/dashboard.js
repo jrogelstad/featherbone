@@ -2550,11 +2550,27 @@ function histogramTile(tile) {
                     one.schedule.name
                 ]));
             });
+            // A past-due bar is drawn in the alert hue at its series' own
+            // intensity (see dashColumns), so the key needs one swatch per
+            // series too -- a single generic "past due" entry cannot say
+            // which series a dimmer red bar belongs to.
+            series.forEach(function (one, which) {
+                notes.push(m("span", {class: "fb-dash-hist-key"}, [
+                    m("span", {
+                        class: (
+                            "fb-dash-hist-swatch fb-dash-hist-late " +
+                            "fb-dash-hist-s" + which
+                        )
+                    }),
+                    one.schedule.name + " past due"
+                ]));
+            });
+        } else {
+            notes.push(m("span", {class: "fb-dash-hist-key"}, [
+                m("span", {class: "fb-dash-hist-swatch fb-dash-hist-late"}),
+                "past due"
+            ]));
         }
-        notes.push(m("span", {class: "fb-dash-hist-key"}, [
-            m("span", {class: "fb-dash-hist-swatch fb-dash-hist-late"}),
-            "past due"
-        ]));
         if (earlier > 0) {
             notes.push(m("span", {class: "fb-dash-hist-earlier"}, (
                 "Due before " + periodLabel(grid.buckets[0].start, bucket) +
