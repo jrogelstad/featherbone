@@ -2884,6 +2884,22 @@ button:disabled .fb-ipicon,
     mask-position: center;
 }
 
+/* A package's own icon (brandingSettings.icon, set by installer.js's
+   saveBranding -- see scripts/branding-settings.json), in place of the
+   quill above. Not a mask: a brand mark is drawn at its own colors, so
+   this turns the mask off and paints the image as an ordinary
+   background instead -- the same technique as the dashboard
+   wallpaper, just at icon size. ribbon.js adds this modifier class
+   only once a custom icon is actually set. */
+.fb-ribbon-logo-custom {
+    background-color: transparent;
+    -webkit-mask-image: none;
+    mask-image: none;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
 .fb-ribbon-tabs {
     display: flex;
     gap: 2px;
@@ -3880,27 +3896,50 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     background: var(--fb-bg);
 }
 
+/* Wraps the home page's title/picker bar and the dashboard frame
+   together (see client/main.js's home view), so a package's wallpaper
+   (wallpaperStyle() in dashboard.js) paints once as a single backdrop
+   behind both instead of two separate fills that would restart -- and
+   not line up -- at the board's own edge. z-index: 0 gives this its
+   own stacking context, so the dark-mode scrim below (z-index: -1) is
+   pinned between this element's own background-image and everything
+   inside it, regardless of how any of those children are positioned,
+   rather than depending on which of them happen to also be
+   positioned. */
+.fb-dash-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 0;
+}
+
+/* With a wallpaper set, everything between it and the tiles/text that
+   used to sit on its own opaque surface -- the title bar, the As Of
+   line, the board itself -- goes transparent, so the one image painted
+   on .fb-dash-page above shows through all of it. Scoped to the
+   "-wallpaper" modifier (added only when wallpaperStyle() returns an
+   image), so a page with no wallpaper keeps its normal surfaces. The
+   layout picker and the tiles themselves are NOT in this list -- they
+   stay on their own opaque surface, same as any card floating over a
+   photo. */
+.fb-dash-page-wallpaper .fb-toolbar-home,
+.fb-dash-page-wallpaper .fb-dash-board {
+    background: transparent;
+}
+
 /* A wallpaper is a photo, and a photo doesn't dim itself just because
    the rest of the UI went dark -- at full brightness it fights every
-   dark surface around it instead of sitting quietly behind the tiles.
-   The scrim only applies to a board that actually has one (see the
-   "-wallpaper" class dashboard.js adds when wallpaperStyle() returns
-   an image), so a board with no wallpaper is untouched. */
+   dark surface around it instead of sitting quietly behind the title,
+   the As Of line, and the tiles alike. */
 @media (prefers-color-scheme: dark) {
-    .fb-dash-board-wallpaper {
-        position: relative;
-    }
-
-    /* Generated content with no explicit position would become a grid
-       item and eat a cell; absolute takes it out of the grid, and
-       coming first in the markup it paints under the tiles (which are
-       themselves positioned, so ordinary stacking order is enough --
-       no z-index tug-of-war needed) with no cell or z-index of its
-       own. */
-    .fb-dash-board-wallpaper::before {
+    .fb-dash-page-wallpaper::before {
         content: "";
         position: absolute;
         inset: 0;
+        z-index: -1;
         background: rgba(0, 0, 0, 0.45);
         pointer-events: none;
     }
@@ -4061,11 +4100,14 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
 }
 
 /* The board and its status line share a column, so the line takes the
-   height it needs and the grid takes the rest. */
+   height it needs and the grid takes the rest. flex: 1 rather than
+   height: 100% -- this now sits below the title/picker row inside
+   .fb-dash-page's own flex column (see client/main.js's home view),
+   so it needs to take the REMAINING space there, not the whole of it. */
 .fb-dash-frame {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1 1 auto;
     min-height: 0;
     box-sizing: border-box;
 }

@@ -3059,18 +3059,22 @@ function editControl(tile) {
 }
 
 /**
-    The board's wallpaper, from whichever package's manifest last
-    carried a sibling "dashboard" image (brandingSettings, set by
-    installer.js's saveBranding -- see scripts/branding-settings.json).
-    `""` when none is set, which leaves `style.background-image` unset.
+    The wallpaper behind the whole dashboard page -- not just the tile
+    board, but the title bar, the layout picker, and the As Of line
+    above it too (client/main.js's home view reads this same style and
+    wraps all of it in one ".fb-dash-page" element, so the image paints
+    once as a single backdrop rather than restarting at the board's own
+    edge). From whichever package's manifest last carried a sibling
+    "dashboard" image (brandingSettings, set by installer.js's
+    saveBranding -- see scripts/branding-settings.json). `{}` when none
+    is set, which leaves `style.background-image` unset.
 
-    Filling the full height and centering is John's call (Oct 2026):
-    scale to the board's height, never stretch, and let an image wider
-    than the board run off both edges rather than shrink to fit --
-    a panorama crops at the sides, which reads as "wallpaper" the way
-    shrinking it to fit would not. An image narrower than the board at
-    full height leaves bare margins instead; nothing here tiles or
-    stretches to close that gap.
+    `cover` rather than John's original "scale to full height, crop a
+    wide image's sides, leave bare margins around a narrow one" (Oct
+    2026): a photo that doesn't fill its frame reads as broken, not as
+    wallpaper, so every image now fills both dimensions and crops
+    whichever one overflows, centered, regardless of its own aspect
+    ratio.
 
     @method wallpaperStyle
     @return {Object}
@@ -3103,9 +3107,10 @@ function wallpaperStyle() {
         "background-image": "url(\"" + src + "\")",
         "background-position": "center center",
         "background-repeat": "no-repeat",
-        "background-size": "auto 100%"
+        "background-size": "cover"
     };
 }
+f.catalog().register("global", "dashboardWallpaperStyle", wallpaperStyle);
 
 /*
     How tall one board row is, in pixels. Measured from the viewport (the
@@ -3199,13 +3204,6 @@ let dashboard = {
             loadAll(layout);
         }
 
-        let wallStyle = wallpaperStyle();
-        let boardClass = (
-            wallStyle["background-image"]
-            ? "fb-dash-board fb-dash-board-wallpaper"
-            : "fb-dash-board"
-        );
-
         // However many rows the tiles actually need, never fewer than
         // DASH_ROWS -- that floor is what keeps an empty or lightly used
         // board filling the frame instead of looking cramped at the top.
@@ -3225,8 +3223,8 @@ let dashboard = {
                 }
             }, [
                 m("div", {
-                    class: boardClass,
-                    style: Object.assign(wallStyle, {
+                    class: "fb-dash-board",
+                    style: {
                         "grid-template-columns": (
                             "repeat(" + DASH_COLS + ", 1fr)"
                         ),
@@ -3237,7 +3235,7 @@ let dashboard = {
                                 : "1fr"
                             ) + ")"
                         )
-                    })
+                    }
                 }, layout.tiles.map(function (tile) {
                     let dragging = (
                         dragState !== null && dragState.id === tile.id

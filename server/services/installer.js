@@ -970,16 +970,17 @@
 
                 /*
                     The package may carry a sibling file named
-                    "dashboard.png"/".jpg"/".jpeg", by convention rather
-                    than a manifest.files entry -- it bears the same
-                    relationship to the package that "module"/"version"
-                    do. Returns its path, or null.
+                    "<stem>.png"/".jpg"/".jpeg" (plus ".svg" for an
+                    icon), by convention rather than a manifest.files
+                    entry -- it bears the same relationship to the
+                    package that "module"/"version" do. Returns its
+                    path, or null. Shared by findDashboardImage and
+                    findIconImage below.
                 */
-                function findDashboardImage() {
-                    let extensions = [".png", ".jpg", ".jpeg"];
+                function findBrandAsset(stem, extensions) {
                     let ext = extensions.find(function (candidate) {
                         return fs[existssync](path.format({
-                            base: "dashboard" + candidate,
+                            base: stem + candidate,
                             dir: pDir,
                             root: "/"
                         }));
@@ -990,35 +991,98 @@
                     }
 
                     return path.format({
-                        base: "dashboard" + ext,
+                        base: stem + ext,
                         dir: pDir,
                         root: "/"
                     });
                 }
 
+                function findDashboardImage() {
+                    return findBrandAsset("dashboard", [
+                        ".png", ".jpg", ".jpeg"
+                    ]);
+                }
+
+                // Unlike the wallpaper, an icon is as likely to be
+                // drawn as a vector -- it is small and meant to stay
+                // crisp at ribbon/favicon size.
+                function findIconImage() {
+                    return findBrandAsset("icon", [
+                        ".png", ".jpg", ".jpeg", ".svg"
+                    ]);
+                }
+
                 /*
                     The manifest's own "title", and the package's sibling
-                    "dashboard" image if it has one, merged into the one
-                    shared `brandingSettings` row (ribbon.js/dashboard.js
-                    read it client-side). Whichever package last carried
-                    either one wins -- the same "package wins" rule as a
-                    natural-key conflict -- and a package naming neither
-                    leaves whatever is already there alone.
+                    "dashboard"/"icon" images if it has either, merged
+                    into the one shared `brandingSettings` row
+                    (ribbon.js/dashboard.js/main.js read it
+                    client-side). Whichever package last carried any of
+                    the three wins -- the same "package wins" rule as a
+                    natural-key conflict -- and a package naming none of
+                    them leaves whatever is already there alone.
                 */
                 function saveBranding() {
-                    let imagePath = findDashboardImage();
                     let patch = {};
 
                     if (manifest.title) {
                         patch.title = manifest.title;
                     }
 
-                    function withImage(uploadName) {
-                        if (uploadName) {
-                            patch.dashboardImage = uploadName;
+                    // Copies one sibling asset in, if the package has
+                    // one, and records its upload name on patch under
+                    // patchKey -- shared by the dashboard image and
+                    // the icon below, which differ only in which file
+                    // they look for and which setting they land in.
+                    function copyAsset(srcPath, patchKey, suffix) {
+                        if (!srcPath) {
+                            return Promise.resolve();
                         }
 
-                        if (!patch.title && !patch.dashboardImage) {
+                        return new Promise(function (resolve, reject) {
+                            let ext = path.extname(srcPath).toLowerCase();
+                            let uploadDir = path.join(
+                                process.cwd(),
+                                "files",
+                                "upload"
+                            );
+                            let uploadName = (
+                                manifest.module.toSpinalCase() +
+                                "-" + suffix + ext
+                            );
+
+                            if (!fs[existssync](uploadDir)) {
+                                fs[mkdirsync](uploadDir, {recursive: true});
+                            }
+
+                            fs[copyfile](
+                                srcPath,
+                                path.join(uploadDir, uploadName),
+                                function (err) {
+                                    if (err) {
+                                        reject(err);
+                                        return;
+                                    }
+                                    patch[patchKey] = uploadName;
+                                    resolve();
+                                }
+                            );
+                        });
+                    }
+
+                    return Promise.all([
+                        copyAsset(
+                            findDashboardImage(),
+                            "dashboardImage",
+                            "dashboard"
+                        ),
+                        copyAsset(findIconImage(), "icon", "icon")
+                    ]).then(function () {
+                        if (
+                            !patch.title &&
+                            !patch.dashboardImage &&
+                            !patch.icon
+                        ) {
                             return Promise.resolve();
                         }
 
@@ -1043,41 +1107,6 @@
                                 user: pUser
                             });
                         });
-                    }
-
-                    if (!imagePath) {
-                        return withImage(null);
-                    }
-
-                    return new Promise(function (resolve, reject) {
-                        let ext = path.extname(imagePath).toLowerCase();
-                        let uploadDir = path.join(
-                            process.cwd(),
-                            "files",
-                            "upload"
-                        );
-                        let uploadName = (
-                            manifest.module.toSpinalCase() +
-                            "-dashboard" + ext
-                        );
-
-                        if (!fs[existssync](uploadDir)) {
-                            fs[mkdirsync](uploadDir, {recursive: true});
-                        }
-
-                        fs[copyfile](
-                            imagePath,
-                            path.join(uploadDir, uploadName),
-                            function (err) {
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-                                withImage(uploadName).then(
-                                    resolve
-                                ).catch(reject);
-                            }
-                        );
                     });
                 }
 
