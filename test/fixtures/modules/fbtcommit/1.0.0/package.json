@@ -1,0 +1,6 @@
+{
+    "name": "fbtcommit",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Fixture package whose install script commits part of the work and then fails"
+}
