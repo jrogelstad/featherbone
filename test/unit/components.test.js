@@ -628,6 +628,98 @@ describe("client components", function () {
             assert.ok(R.text(out.tree).includes("Row 2"));
         });
 
+        /*
+            The page is drawn at html's zoom (--fb-ui-scale), so a height
+            set on the list's scroll box is stretched by it, while
+            innerHeight and the box's top are in real viewport pixels.
+            Treating them as one scale left every list 13% too tall, with
+            its sticky totals footer pinned below the bottom of the window
+            -- the subtotals looked lost. The footer is only on screen if
+            the scroll box, as drawn, ends inside the window.
+        */
+        describe("scroll box height under the page zoom", function () {
+            const TOP = 250;
+            const WINDOW_HEIGHT = 900;
+            let saved;
+
+            function sizedBox(zoom) {
+                let vm = vms.tableWidget({
+                    config: {
+                        aggregates: [{method: "SUM", property: "qty"}],
+                        columns: [{attr: "name"}, {attr: "qty"}]
+                    },
+                    feather: "TestItem",
+                    models: list
+                });
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let ids = vm.ids();
+                let box = R.find(out.tree, function (n) {
+                    return R.classOf(n).includes("fb-table-scroll");
+                });
+                let dom = {
+                    getBoundingClientRect: () => ({top: TOP}),
+                    style: {}
+                };
+
+                // The header and the totals footer add their own height
+                // to the box, on top of the room the rows get.
+                globalThis.document.getElementById = function (id) {
+                    if (id === ids.header || id === ids.footer) {
+                        return {offsetHeight: 33};
+                    }
+                    return null;
+                };
+                globalThis.innerHeight = WINDOW_HEIGHT;
+                globalThis.getComputedStyle = () => ({zoom});
+                box.attrs.oncreate({dom});
+                return parseFloat(dom.style.height);
+            }
+
+            before(function () {
+                saved = {
+                    getComputedStyle: globalThis.getComputedStyle,
+                    getElementById: globalThis.document.getElementById,
+                    innerHeight: globalThis.innerHeight
+                };
+            });
+
+            after(function () {
+                globalThis.innerHeight = saved.innerHeight;
+                globalThis.getComputedStyle = saved.getComputedStyle;
+                globalThis.document.getElementById = saved.getElementById;
+            });
+
+            it("ends inside the window at the default 1.13 zoom", function () {
+                let height = sizedBox("1.13");
+
+                assert.ok(
+                    TOP + height * 1.13 <= WINDOW_HEIGHT,
+                    "drawn bottom " + (TOP + height * 1.13) +
+                    " is past the window's " + WINDOW_HEIGHT
+                );
+                assert.ok(height > 400, "and still uses the room: " + height);
+            });
+
+            it("ends inside the window at any zoom", function () {
+                ["1", "1.25", "1.5"].forEach(function (zoom) {
+                    let height = sizedBox(zoom);
+
+                    assert.ok(
+                        TOP + height * Number(zoom) <= WINDOW_HEIGHT,
+                        "zoom " + zoom + ": drawn bottom " +
+                        (TOP + height * Number(zoom)) + " > " + WINDOW_HEIGHT
+                    );
+                });
+            });
+
+            it("is unchanged where the page is not zoomed", function () {
+                let unzoomed = WINDOW_HEIGHT - TOP - 82 + 66;
+
+                assert.equal(sizedBox("1"), unzoomed);
+                assert.equal(sizedBox(undefined), unzoomed);
+            });
+        });
+
         it("runs Mode and Selection statecharts", function () {
             let vm = tableVm();
             assert.deepEqual(vm.state().current().slice(0, 2),
