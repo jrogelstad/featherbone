@@ -977,6 +977,19 @@ function createTableFooter(options, col) {
     return fview;
 }
 
+// How much the whole page is drawn larger than its CSS sizes (html's
+// zoom -- see --fb-ui-scale in featherbone.css). 1 where there is none.
+function pageScale() {
+    let scale = parseFloat(
+        window.getComputedStyle(document.documentElement).zoom
+    );
+
+    if (scale > 0) {
+        return scale;
+    }
+    return 1;
+}
+
 // Resize according to surroundings. `vnode` is the scroll box, which
 // holds the header, rows and any totals footer; it's sized so its bottom
 // edge lands where the old separately-scrolled row area's did.
@@ -989,6 +1002,7 @@ function resize(vm, vnode) {
     let tableFooter = document.getElementById(vm.ids().footer);
     let extra = 0;
     let top = e.getBoundingClientRect().top;
+    let scale = pageScale();
     let h;
 
     if (header) {
@@ -1006,14 +1020,19 @@ function resize(vm, vnode) {
         return;
     }
 
+    // innerHeight and the box's top are in real viewport pixels; the
+    // height set below is in the page's own, which html's zoom has
+    // stretched by `scale`. Measuring in the one and assigning in the
+    // other left the box taller than the window, and its sticky totals
+    // footer pinned below the fold.
     if (id) {
         pageFooter = document.getElementById(id);
-        h = window.innerHeight - top;
+        h = (window.innerHeight - top) / scale;
         if (pageFooter) {
             h -= pageFooter.offsetHeight;
         }
     } else {
-        h = window.innerHeight - top - 82;
+        h = (window.innerHeight - top) / scale - 82;
 
         if (h < f.TABLE_MIN_HEIGHT) {
             h = f.TABLE_MIN_HEIGHT;
