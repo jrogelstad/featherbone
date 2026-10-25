@@ -3925,17 +3925,15 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     background: transparent;
 }
 
-/* The title row and the As Of line underneath it are text sitting
-   directly over the image, not cards -- going fully transparent there
-   (as the board does) left the title fighting whatever the wallpaper
-   was doing behind it. Instead the bar stays a crisp surface on the
-   left, where the text is, and dissolves toward the right, letting the
-   image come through behind the empty middle and the layout picker.
-   Both rows carry the same horizontal stops, so they line up as one
-   band rather than two. The picker keeps its own opaque surface, same
-   as a tile. */
-.fb-dash-page-wallpaper .fb-toolbar-home,
-.fb-dash-page-wallpaper .fb-dash-refresh-bar {
+/* The title row is text sitting directly over the image, not a card --
+   going fully transparent there (as the board does) left the title
+   fighting whatever the wallpaper was doing behind it. Instead the
+   banner stays a crisp surface on the left, where the name is, and
+   dissolves toward the right, letting the image come through behind
+   the empty middle and the layout picker. The As Of line below it
+   stays plain over the image, like the board. The picker keeps its
+   own opaque surface, same as a tile. */
+.fb-dash-page-wallpaper .fb-toolbar-home {
     background: linear-gradient(
         to right,
         var(--fb-surface) 0%,
