@@ -361,6 +361,12 @@ const asOfId = f.createId();
     so nothing here knows what a dimension or a measure is.
 */
 const ADD_TILE_KPIS = "__kpis";
+const ADD_TILE_HIST = "__histogram";
+const ADD_TILE_BUCKETS = [
+    {value: "day", label: "Daily"},
+    {value: "week", label: "Weekly"},
+    {value: "month", label: "Monthly"}
+];
 const ADD_TILE_SIZES = [
     {value: "small", label: "Small", cols: 4, rows: 2},
     {value: "medium", label: "Medium", cols: 5, rows: 3},
@@ -390,6 +396,11 @@ const addTileSize = f.prop("medium");
 const addTileDisplay = f.prop("bullets");
 const addTileSpark = f.prop(false);
 const addTileHideNames = f.prop(false);
+// Blank means the tile names itself from its settings.
+const addTileHeading = f.prop("");
+const addTileSchedules = f.prop([]);
+const addTileBucket = f.prop("week");
+const addTileValue = f.prop("amount");
 const addTileId = f.createId();
 // The tile being edited, or null when the dialog is adding a new one.
 const addTileEditingId = f.prop(null);
@@ -415,13 +426,25 @@ function openTileEditor(tile) {
     let kpis = tile.kpis || [];
     let opts = {};
 
+    let schedules = tile.schedules || [];
+
     addTileEditingId(tile.id);
     addTileFilter("");
-    addTileWhat(
-        tile.type === "kpi"
-        ? ADD_TILE_KPIS
-        : tile.source
+    if (tile.type === "kpi") {
+        addTileWhat(ADD_TILE_KPIS);
+    } else if (tile.type === "histogram") {
+        addTileWhat(ADD_TILE_HIST);
+    } else {
+        addTileWhat(tile.source);
+    }
+    addTileHeading(
+        (tile.heading && tile.heading !== "Key Metrics")
+        ? tile.heading
+        : ""
     );
+    addTileSchedules(schedules.slice());
+    addTileBucket(tile.bucket || "week");
+    addTileValue(tile.value || "amount");
     addTileKpis(kpis.slice());
     // Falls back to Medium when the tile was resized by dragging rather
     // than picked from this list -- there is no "custom" entry to show.
@@ -829,6 +852,7 @@ function homeRibbonGroups() {
             onclick: function () {
                 addTileEditingId(null);
                 addTileFilter("");
+                addTileHeading("");
                 addTileDlg.title("Add tile");
                 addTileDlg.buttonOk().label("Add");
                 addTileDlg.show();
@@ -2140,7 +2164,7 @@ function initApp() {
             let byModule = {};
 
             shown.forEach(function (kpi) {
-                let owner = kpi.module || "Other";
+                let owner = kpi.group || kpi.module || "Other";
 
                 if (!byModule[owner]) {
                     byModule[owner] = [];
@@ -2312,6 +2336,7 @@ function initApp() {
             let picked = offer.sources.find(
                 (one) => one.key === addTileWhat()
             );
+            let schedules = offer.schedules || [];
             let parts = [];
 
             function group(label, control) {
@@ -2333,6 +2358,13 @@ function initApp() {
                     id: addTileId,
                     onchange: function (e) {
                         addTileWhat(e.target.value);
+                        // A time axis wants width.
+                        if (
+                            e.target.value === ADD_TILE_HIST &&
+                            addTileSize() === "medium"
+                        ) {
+                            addTileSize("wide");
+                        }
                         // The questions belong to the source that was
                         // chosen, so answers to the last one's are not
                         // carried over.
@@ -2343,15 +2375,72 @@ function initApp() {
                     m("option", {
                         value: ADD_TILE_KPIS
                     }, "Key metrics")
-                ].concat(offer.sources.map(function (one) {
+                ].concat(
+                    schedules.length
+                    ? [m("option", {
+                        value: ADD_TILE_HIST
+                    }, "Due dates (histogram)")]
+                    : []
+                ).concat(offer.sources.map(function (one) {
                     return m("option", {
                         value: one.key
                     }, one.label + " (" + one.module + ")");
                 })))
             ]));
 
+            parts.push(group("Title:", m("input", {
+                oninput: (e) => addTileHeading(e.target.value),
+                placeholder: "Named from its settings",
+                value: addTileHeading()
+            })));
+
             if (addTileWhat() === ADD_TILE_KPIS) {
                 parts.push(group("Metrics:", metricsPicker(offer.kpis)));
+            } else if (addTileWhat() === ADD_TILE_HIST) {
+                parts.push(group("Orders:", m(
+                    "div",
+                    {class: "fb-dialog-picker-list"},
+                    schedules.map(function (one) {
+                        let held = addTileSchedules();
+
+                        return m("label", [
+                            m("input", {
+                                type: "checkbox",
+                                checked: held.indexOf(one.key) !== -1,
+                                onchange: function (e) {
+                                    let next = held.filter(
+                                        (key) => key !== one.key
+                                    );
+
+                                    if (e.target.checked) {
+                                        next.push(one.key);
+                                    }
+                                    // Keep registration order, so the
+                                    // side-by-side order never shuffles.
+                                    addTileSchedules(schedules.map(
+                                        (sched) => sched.key
+                                    ).filter(
+                                        (key) => next.indexOf(key) !== -1
+                                    ));
+                                }
+                            }),
+                            " " + one.label
+                        ]);
+                    })
+                )));
+                parts.push(group("Buckets:", m("select", {
+                    onchange: (e) => addTileBucket(e.target.value),
+                    value: addTileBucket()
+                }, ADD_TILE_BUCKETS.map(function (one) {
+                    return m("option", {value: one.value}, one.label);
+                }))));
+                parts.push(group("Values:", m("select", {
+                    onchange: (e) => addTileValue(e.target.value),
+                    value: addTileValue()
+                }, [
+                    m("option", {value: "amount"}, "Money"),
+                    m("option", {value: "units"}, "Quantity")
+                ])));
             } else if (picked) {
                 picked.options.forEach(function (option) {
                     let held = addTileOpts();
@@ -2408,38 +2497,41 @@ function initApp() {
             ) {
                 addTileTarget("history");
             }
-            parts.push(group("Judged:", m("select", {
-                onchange: function (e) {
-                    addTileTarget(e.target.value);
-                },
-                value: addTileTarget()
-            }, ADD_TILE_TARGETS.filter(function (one) {
-                // Stored targets exist only for metrics.
-                return (
-                    one.value !== "auto" ||
-                    addTileWhat() === ADD_TILE_KPIS
-                );
-            }).map(function (one) {
-                return m("option", {
-                    value: one.value
-                }, one.label);
-            }))));
+            // A histogram is not judged against anything.
+            if (addTileWhat() !== ADD_TILE_HIST) {
+                parts.push(group("Judged:", m("select", {
+                    onchange: function (e) {
+                        addTileTarget(e.target.value);
+                    },
+                    value: addTileTarget()
+                }, ADD_TILE_TARGETS.filter(function (one) {
+                    // Stored targets exist only for metrics.
+                    return (
+                        one.value !== "auto" ||
+                        addTileWhat() === ADD_TILE_KPIS
+                    );
+                }).map(function (one) {
+                    return m("option", {
+                        value: one.value
+                    }, one.label);
+                }))));
 
-            if (addTileTarget() === "growth") {
-                parts.push(group("Percent:", m("input", {
-                    type: "number",
-                    step: "1",
-                    oninput: (e) => addTileTargetValue(e.target.value),
-                    value: addTileTargetValue()
-                })));
-            }
+                if (addTileTarget() === "growth") {
+                    parts.push(group("Percent:", m("input", {
+                        type: "number",
+                        step: "1",
+                        oninput: (e) => addTileTargetValue(e.target.value),
+                        value: addTileTargetValue()
+                    })));
+                }
 
-            if (addTileTarget() === "fixed") {
-                parts.push(group("Target:", m("input", {
-                    type: "number",
-                    oninput: (e) => addTileTargetValue(e.target.value),
-                    value: addTileTargetValue()
-                })));
+                if (addTileTarget() === "fixed") {
+                    parts.push(group("Target:", m("input", {
+                        type: "number",
+                        oninput: (e) => addTileTargetValue(e.target.value),
+                        value: addTileTargetValue()
+                    })));
+                }
             }
 
             parts.push(group("Size:", m("select", {
@@ -2491,10 +2583,21 @@ function initApp() {
                 tile.targetValue = Number(addTileTargetValue());
             }
 
+            let named = addTileHeading().trim();
+
+            if (named) {
+                tile.heading = named;
+            }
             if (addTileWhat() === ADD_TILE_KPIS) {
                 tile.type = "kpi";
-                tile.heading = "Key Metrics";
+                tile.heading = named || "Key Metrics";
                 tile.kpis = addTileKpis();
+            } else if (addTileWhat() === ADD_TILE_HIST) {
+                tile.type = "histogram";
+                tile.schedules = addTileSchedules();
+                tile.bucket = addTileBucket();
+                tile.value = addTileValue();
+                delete tile.targetMode;
             } else {
                 tile.type = "measure";
                 tile.source = addTileWhat();
@@ -2534,8 +2637,11 @@ function initApp() {
         addTileDlg.buttonOk().label("Add");
         addTileDlg.buttonOk().isDisabled = function () {
             return (
-                addTileWhat() === ADD_TILE_KPIS &&
-                !addTileKpis().length
+                (addTileWhat() === ADD_TILE_KPIS && !addTileKpis().length) ||
+                (
+                    addTileWhat() === ADD_TILE_HIST &&
+                    !addTileSchedules().length
+                )
             );
         };
         addTileDlg.buttonOk().title = function () {
@@ -2544,6 +2650,12 @@ function initApp() {
                 !addTileKpis().length
             ) {
                 return "Choose at least one metric";
+            }
+            if (
+                addTileWhat() === ADD_TILE_HIST &&
+                !addTileSchedules().length
+            ) {
+                return "Choose at least one kind of order";
             }
         };
 
