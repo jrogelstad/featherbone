@@ -499,11 +499,156 @@ function dashAlert(opts) {
     }, parts);
 }
 
+/**
+    Columns over time buckets, one per series side by side in each bucket,
+    on one zero-based scale with the axis stated once at the left. Late
+    buckets are drawn in the alert hue at the series' own intensity, and a
+    line marks the reporting date between the last late bucket and the
+    first that is not.
+
+    @param {Object} opts
+    @param {Array} opts.buckets [{label, name, late, values}], oldest first
+    @param {Array} opts.names Series names, for hover text.
+    @param {Number} opts.width
+    @param {Number} opts.height
+    @param {Function} [opts.format] Axis labels.
+    @param {Function} [opts.titleFormat] Hover values.
+    @param {String} [opts.asOfLabel] Said beside the line.
+    @return {Object} Mithril vnode
+*/
+function dashColumns(opts) {
+    let o = opts || {};
+    let width = Math.max(60, o.width || 300);
+    let height = Math.max(50, o.height || 120);
+    let buckets = o.buckets || [];
+    let names = o.names || [];
+    let format = o.format || String;
+    let said = o.titleFormat || format;
+    let left = 44;
+    let top = 14;
+    let bottom = 14;
+    let plotW = width - left - 4;
+    let plotH = height - top - bottom;
+    let count = Math.max(1, buckets.length);
+    let step = plotW / count;
+    let gap = Math.max(1, step * 0.2);
+    let series = Math.max(1, names.length);
+    let barW = (step - gap) / series;
+    let high = 0;
+    let parts = [];
+    let now = buckets.findIndex(function (one) {
+        return !one.late;
+    });
+    let every = Math.max(1, Math.ceil(40 / step));
+    let max;
+
+    buckets.forEach(function (one) {
+        one.values.forEach(function (n) {
+            if (n > high) {
+                high = n;
+            }
+        });
+    });
+    max = dashNiceMax(high);
+
+    [0, 0.5, 1].forEach(function (fraction) {
+        parts.push(m("text", {
+            class: "fb-dash-axis-text",
+            x: left - 4,
+            y: top + plotH - fraction * plotH + 3,
+            "text-anchor": "end"
+        }, format(max * fraction)));
+    });
+    parts.push(m("line", {
+        class: "fb-dash-axis-line",
+        x1: left,
+        x2: left + plotW,
+        y1: top + plotH + 0.5,
+        y2: top + plotH + 0.5
+    }));
+
+    buckets.forEach(function (one, index) {
+        let x = left + index * step + gap / 2;
+
+        one.values.forEach(function (n, which) {
+            let h = dashScale(n, max, plotH);
+
+            if (h <= 0) {
+                return;
+            }
+            parts.push(m("rect", {
+                class: (
+                    one.late
+                    ? "fb-dash-hist-late fb-dash-hist-s" + which
+                    : "fb-dash-hist-bar fb-dash-hist-s" + which
+                ),
+                x: x + which * barW,
+                y: top + plotH - h,
+                width: Math.max(1, barW - (
+                    series > 1
+                    ? 1
+                    : 0
+                )),
+                height: h
+            }, m("title", (
+                (
+                    names[which]
+                    ? names[which] + ", "
+                    : ""
+                ) +
+                (one.name || one.label) + ": " + said(n) +
+                (
+                    one.late
+                    ? ", past due"
+                    : ""
+                )
+            ))));
+        });
+        if (one.label && index % every === 0) {
+            parts.push(m("text", {
+                class: "fb-dash-axis-text",
+                x: left + index * step + step / 2,
+                y: height - 2,
+                "text-anchor": "middle"
+            }, one.label));
+        }
+    });
+
+    if (now > 0) {
+        let at = left + now * step;
+
+        parts.push(m("line", {
+            class: "fb-dash-hist-now",
+            x1: at,
+            x2: at,
+            y1: top - 4,
+            y2: top + plotH
+        }));
+        if (o.asOfLabel) {
+            parts.push(m("text", {
+                class: "fb-dash-axis-text fb-dash-hist-now-text",
+                x: at + 3,
+                y: top - 4,
+                "text-anchor": "start"
+            }, o.asOfLabel));
+        }
+    }
+
+    return m("svg", {
+        class: "fb-dash-columns",
+        viewBox: "0 0 " + width + " " + height,
+        width,
+        height,
+        role: "img"
+    }, parts);
+}
+
 f.catalog().register("global", "dashboardDraw", {
     alert: dashAlert,
     axis: dashAxis,
     bar: dashBar,
     bullet: dashBullet,
+    columns: dashColumns,
     niceMax: dashNiceMax,
     scale: dashScale,
     sparkline: dashSparkline
