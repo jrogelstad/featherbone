@@ -1348,10 +1348,18 @@ function updateTile(id, patch) {
         return false;
     }
 
+    /*
+        A patch that says nothing about size or place leaves both alone:
+        a tile on the board has been put where it is and sized by hand,
+        and editing what it SHOWS is not a reason to move or resize it,
+        or to push its neighbours out of the way (John, Oct 2026).
+    */
     anchor = Object.assign({}, patch, {
-        id: layout.tiles[index].id,
         col: layout.tiles[index].col,
-        row: layout.tiles[index].row
+        cols: patch.cols || layout.tiles[index].cols,
+        id: layout.tiles[index].id,
+        row: layout.tiles[index].row,
+        rows: patch.rows || layout.tiles[index].rows
     });
     // Columns are the one edge with no give -- shift left just enough to
     // stay on the board rather than running off it, same clamp a drag

@@ -117,6 +117,16 @@ function drillRows(tree) {
     });
 }
 
+// The id of the last tile on the board.
+function currentTileId(tree) {
+    let sections = allNodes(tree).filter(function (one) {
+        return one.tag === "section";
+    });
+    let last = sections[sections.length - 1] || {};
+
+    return last.key;
+}
+
 // What the board says, with the functions stripped so it can be walked.
 function boardText() {
     let vnode = {attrs: {}, tag: comps.dashboard};
@@ -240,6 +250,43 @@ describe("dashboard measure tiles", function () {
         }, "doubled in size and place: " + JSON.stringify(spans[0]));
     });
 
+
+    /*
+        A tile on the board has been put where it is and sized by hand.
+        Editing what it SHOWS is not a reason to move or resize it --
+        every edit used to snap it back to a preset size and shove its
+        neighbours down to make room (John, Oct 2026).
+    */
+    it("leaves a tile where it is when it is edited", async function () {
+        let globals = catalog.store().global();
+        let was;
+        let now;
+        let edited;
+
+        catalog.store().global().dashboardSources.register(source({
+            format: {amount: money, compact: money, units: plain},
+            key: "fbtKeep",
+            name: "Keep"
+        }));
+        await boardTree();
+        globals.dashboardAddTile({
+            cols: 6,
+            display: "table",
+            rows: 4,
+            source: "fbtKeep",
+            type: "measure"
+        });
+        was = (await boardSpans()).slice(-1)[0];
+
+        edited = globals.dashboardUpdateTile(
+            currentTileId(await boardTree()),
+            {display: "bars", source: "fbtKeep", type: "measure"}
+        );
+        now = (await boardSpans()).slice(-1)[0];
+
+        assert.ok(edited, "the edit went through");
+        assert.deepEqual(now, was, "same size, same place");
+    });
 
     it("draws amounts with the source's own formatters", async function () {
         catalog.store().global().dashboardSources.register(source({
