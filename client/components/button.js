@@ -417,11 +417,19 @@ button.component = {
         @method view
         @return {Object} View
     */
-    view: function () {
+    view: function (vnode) {
         let opts;
         let view;
         let iconView;
-        let vm = this.viewModel;
+        /*
+            The view model as it is NOW, not as it was when this button
+            was created: oninit runs once, so a caller that swaps in a
+            new one -- a dialog rebuilt for the next thing it is asked
+            to show -- would otherwise keep rendering a button wired to
+            the old one, which does nothing anybody can see (John found
+            a second drill-down that would not close, Oct 2026).
+        */
+        let vm = vnode.attrs.viewModel || this.viewModel;
         let classes = ["pure-button"];
         let title = vm.title();
         let icon = vm.icon();
