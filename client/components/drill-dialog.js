@@ -82,6 +82,11 @@ drillDialog.viewModel = function (options) {
     options = options || {};
     options.icon = options.icon || "search";
     options.title = options.title || "Details";
+    /*
+        A drill-down's title is a sentence naming the figure that was
+        clicked, data and all: shown as written, not tidied into a name.
+    */
+    options.isTitleLiteral = true;
 
     vm = f.createViewModel("Dialog", options);
 
@@ -262,6 +267,16 @@ drillDialog.viewModel = function (options) {
                         viewModel: vm.buttonClear()
                     })
                 ]),
+                /*
+                    Which feather the rows came from. A drill-down is a
+                    list nobody configured and cannot be traced back to
+                    a worksheet, so without this there is no way to tell
+                    where the data is from (John, Oct 2026).
+                */
+                m("div", {
+                    class: "fb-drill-feather",
+                    title: "These records are " + options.feather + "s"
+                }, options.feather),
                 m("div", {class: "fb-toolbar-fill"}),
                 toolButton("Sort", "sort_by_alpha", canFilter, function () {
                     vm.sortDialog().show();

@@ -4432,6 +4432,12 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     gap: 8px;
 }
 
+.fb-drill-feather {
+    font-size: 12px;
+    color: var(--fb-text-muted);
+    white-space: nowrap;
+}
+
 .fb-drill-tool {
     display: inline-flex;
     align-items: center;
