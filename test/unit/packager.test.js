@@ -17,6 +17,7 @@ const {after, before, describe, it} = require("node:test");
 const assert = require("node:assert/strict");
 const AdmZip = require("adm-zip");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 // Adds the String helpers the services take for granted.
@@ -27,6 +28,11 @@ const {Packager} = require("../../server/services/packager");
 const DOWNLOADS = path.join(process.cwd(), "files", "downloads");
 const UPLOADS = path.join(process.cwd(), "files", "upload");
 const ICON = "fbt-packager-icon.svg";
+
+// What a package on disk holds, against what its rows hold.
+const DISK_MODULE = "// from the package\n";
+const DISK_SERVICE = "// from the package: a service\n";
+const ROW_SERVICE = "// from the row\n";
 
 // The one module row addModule reads the manifest from.
 const MODULE = {
@@ -40,6 +46,8 @@ const MODULE = {
 // jslint objects to fs.mkdirSync and friends by name; the services in
 // this repo index fs the same way for the same reason.
 const MKDIR = "mkdirSync";
+const MKTEMP = "mkdtempSync";
+const RMDIR = "rmSync";
 const UNLINK = "unlinkSync";
 const WRITE = "writeFileSync";
 
@@ -83,7 +91,8 @@ function clientOf(answers) {
             }
 
             return Promise.resolve(
-                when("FROM _module", [MODULE]) ||
+                when("FROM _module", [answers.module || MODULE]) ||
+                when("FROM data_service", answers.services || []) ||
                 when("\"$dashboard\"", layouts()) ||
                 when("brandingSettings", answers.branding || []) ||
                 {rows: []}
@@ -94,10 +103,11 @@ function clientOf(answers) {
 
 function exported(answers, sub) {
     let packager = new Packager();
+    let mod = answers.module || MODULE;
 
     return packager.package(
         clientOf(answers),
-        "Fbt",
+        mod.name,
         "admin",
         sub
     ).then(function (filename) {
@@ -224,5 +234,134 @@ describe("packaging a module", function () {
             }),
             "in the zip: " + out.names.join(" ")
         );
+    });
+});
+
+/*
+    Where the code in a package comes from (ADR-002 section 2).
+
+    An export used to read `module.script` and the `data_service` rows.
+    Since ADR-002 a deployment writes code to neither, so for every
+    module the server holds a package for it read the wrong thing twice
+    over: an EMPTY module.js in the zip, and service files that were
+    pre-ADR-002 copies the runtime had already stopped loading. Nobody
+    finds that out until they install the package somewhere else.
+
+    The rows are still right for a module the server holds no package
+    for, which is where a module that has never been repackaged lives.
+*/
+describe("where a package gets its code", function () {
+    let root;
+    let saved;
+
+    function row(name, version, script) {
+        return {
+            dependencies: [],
+            name,
+            npm: [],
+            script,
+            version
+        };
+    }
+
+    // A package as `install.js --package` leaves it on disk.
+    function place(name, version) {
+        let dir = path.join(root, name, version);
+
+        fs[MKDIR](dir, {recursive: true});
+        fs[WRITE](path.join(dir, "manifest.json"), JSON.stringify({
+            files: [
+                {path: "module.js", type: "module"},
+                {name: "doThing", path: "do-thing.js", type: "service"}
+            ],
+            module: name,
+            version
+        }));
+        fs[WRITE](path.join(dir, "module.js"), DISK_MODULE);
+        fs[WRITE](path.join(dir, "do-thing.js"), DISK_SERVICE);
+    }
+
+    function codeIn(out) {
+        return {
+            module: String(out.entries["module.js"]),
+            service: String(out.entries["do-thing.js"])
+        };
+    }
+
+    before(function () {
+        root = fs[MKTEMP](path.join(os.tmpdir(), "fb-packager-"));
+        saved = process.env.modulesDir;
+        process.env.modulesDir = root;
+        fs[MKDIR](DOWNLOADS, {recursive: true});
+    });
+
+    after(function () {
+        if (saved === undefined) {
+            delete process.env.modulesDir;
+        } else {
+            process.env.modulesDir = saved;
+        }
+        fs[RMDIR](root, {force: true, recursive: true});
+    });
+
+    it("takes code off the disk, not the rows", async function () {
+        place("Alpha", "1.0.0");
+
+        let out = await exported({
+            module: row("Alpha", "1.0.0", "// stale row"),
+            services: [{name: "doThing", script: ROW_SERVICE}]
+        }, {includeDashboard: false});
+        let code = codeIn(out);
+
+        assert.equal(code.module, DISK_MODULE, "module.js, not the row");
+        assert.equal(code.service, DISK_SERVICE, "the service, not the row");
+    });
+
+    /*
+        The shape the bug actually took: a deployment leaves the schema
+        in the database and the code on disk, so the row is empty and
+        reading it shipped a zip with nothing in module.js.
+    */
+    it("never ships an empty module.js", async function () {
+        place("Beta", "2.0.0");
+
+        let out = await exported({
+            module: row("Beta", "2.0.0", "")
+        }, {includeDashboard: false});
+
+        assert.notEqual(
+            String(out.entries["module.js"]),
+            "",
+            "an export of a deployed module used to come back empty"
+        );
+        assert.equal(String(out.entries["module.js"]), DISK_MODULE);
+    });
+
+    it("falls back to the rows when there is no package", async function () {
+        // Gamma is never placed on disk.
+        let out = await exported({
+            module: row("Gamma", "3.0.0", "// from the row\n"),
+            services: [{name: "doThing", script: ROW_SERVICE}]
+        }, {includeDashboard: false});
+        let code = codeIn(out);
+
+        assert.equal(code.module, "// from the row\n");
+        assert.equal(code.service, ROW_SERVICE);
+    });
+
+    /*
+        Two databases can be on different versions of one module. The
+        export belongs to the version THIS database deployed, so holding
+        a newer package is not a reason to ship its code.
+    */
+    it("will not ship a version this database never ran", async function () {
+        place("Delta", "1.0.0");
+
+        let out = await exported({
+            module: row("Delta", "0.9.0", "// from the row\n")
+        }, {includeDashboard: false});
+
+        assert.equal(String(out.entries["module.js"]), "// from the row\n");
+        assert.equal(out.manifest.version, "0.9.0");
     });
 });
