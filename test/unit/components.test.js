@@ -941,6 +941,43 @@ describe("client components", function () {
             catalog.store().data().navigationCategories = realCats;
             assert.deepEqual(shown, ["Selling"]);
         });
+
+        /*
+            The ribbon measures itself after every draw and tightens its
+            spacing until it fits. Redrawing when it did not have to
+            tighten asks for another measurement, which asks for another
+            redraw: the page redrew every frame for as long as it was
+            open, and an input being typed into was re-rendered from its
+            model between keystrokes -- which is why a worksheet could
+            not be renamed (John, Oct 2026).
+        */
+        it("stops measuring itself once it fits", function () {
+            let out = R.render(comps.ribbon, {viewModel: vms.ribbon()});
+            let body = R.find(out.tree, R.byId("fb-ribbon-body"));
+            let counted;
+            // Wide enough for its contents: nothing to tighten.
+            let roomy = {
+                classList: {add: () => undefined, remove: () => undefined},
+                clientWidth: 1000,
+                scrollWidth: 900
+            };
+
+            assert.ok(body, "the ribbon drew its body");
+            assert.equal(typeof body.attrs.onupdate, "function");
+
+            // The first pass measures a tab it has not seen; the ones
+            // after it are the redraws that used to feed themselves.
+            body.attrs.onupdate({dom: roomy});
+            counted = env.redraws();
+            body.attrs.onupdate({dom: roomy});
+            body.attrs.onupdate({dom: roomy});
+
+            assert.equal(
+                env.redraws() - counted,
+                0,
+                "a ribbon that fits asks for no redraw"
+            );
+        });
     });
 
     describe("pages", function () {

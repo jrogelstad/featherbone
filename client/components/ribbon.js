@@ -628,11 +628,13 @@ let rbMeasuredTab = null;
 */
 function rbFit(body) {
     let tries = 0;
+    let began;
 
     if (rbFitting || !body) {
         return;
     }
     rbFitting = true;
+    began = rbDensity;
 
     function step() {
         let over = body.scrollWidth > body.clientWidth + 1;
@@ -652,7 +654,18 @@ function rbFit(body) {
             }
         }
         rbFitting = false;
-        m.redraw();
+        /*
+            Only when the density actually moved. The redraw is here to
+            put the class this measured onto the vnode, and redrawing
+            when nothing moved asks for another onupdate, which measures
+            and redraws again: the ribbon redrew every frame for the life
+            of the page, and an input being typed into was re-rendered
+            from its model between keystrokes, which is why a worksheet
+            could not be renamed (John, Oct 2026).
+        */
+        if (rbDensity !== began) {
+            m.redraw();
+        }
     }
 
     step();
