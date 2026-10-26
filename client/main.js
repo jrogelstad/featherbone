@@ -152,6 +152,7 @@ let deleteLayoutErrDlg;
 let acctMenu;
 let models = catalog.store().models();
 let initialized = false;
+let starting = Promise.resolve();
 let isAdmin = false;
 // Whether to open the screens that belong to whoever administers the
 // organization: Settings, Users, Instances (see main.js start-up)
@@ -3745,7 +3746,7 @@ if (window.location.pathname.slice(
 
             // Connection opened
             evsubscr.onopen = function () {
-                evsubscr.send(edata.eventKey);
+                evsubscr.send(catalog.eventKey());
                 connectionMonitor.setSocketUp(true);
             };
 
@@ -3797,12 +3798,15 @@ if (window.location.pathname.slice(
             // Initiate event listener with key on sign in
             f.state().resolve("/SignedIn").enter(listen);
             f.state().resolve("/SignedIn/Ready").enter(function () {
-                if (!hash || (hash === "/sign-in")) {
-                    m.route.set("/home");
-                    window.history.go(0);
-                    return;
-                }
-                m.route.set(hash);
+                // Wait for start() rather than reload to finish it: a
+                // reload loaded every catalog, form and module twice.
+                starting.then(function () {
+                    if (!hash || (hash === "/sign-in")) {
+                        m.route.set("/home");
+                        return;
+                    }
+                    m.route.set(hash);
+                });
             });
 
             if (resp.data.authorized) {
@@ -3811,8 +3815,8 @@ if (window.location.pathname.slice(
                 await start();
             } else {
                 m.route(document.body, "/sign-in", routes);
-                f.state().resolve("/SignedIn").enter(async function () {
-                    await start();
+                f.state().resolve("/SignedIn").enter(function () {
+                    starting = start();
                 });
                 f.state().send("signIn");
             }
