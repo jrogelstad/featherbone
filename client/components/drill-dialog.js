@@ -51,6 +51,12 @@
     (John, Oct 2026). Past the first step this is the app's own
     navigation rather than a second one living inside a dialog.
 
+    Sort and Filter are its own dialogs but are NOT rendered inside it:
+    a modal dialog opened inside another modal dialog paints in front but
+    cannot be clicked -- John got as far as the filter and could not get
+    out of it. Whoever shows this one shows those two beside it, the way
+    a workbook page does (see dashboard.js).
+
     @module DrillDialog
 */
 
@@ -117,9 +123,10 @@ drillDialog.viewModel = function (options) {
     /**
         Opens the record a row stands for, as its own page.
 
-        The dialog closes on the way out: the board is behind it, and
-        coming back to the board with a list still sitting over it is
-        not what the back button promised.
+        The dialog closes on the way out -- it is modal, and the board
+        is leaving with it -- but says so first (options.onLeave), so
+        whoever opened it can put it back when the back button returns
+        to the board.
 
         @method openSelection
     */
@@ -128,6 +135,9 @@ drillDialog.viewModel = function (options) {
 
         if (!model || model.data.isDeleted()) {
             return;
+        }
+        if (options.onLeave) {
+            options.onLeave();
         }
         vm.cancel();
         m.route.set("/edit/:feather/:key", {
@@ -242,13 +252,9 @@ drillDialog.viewModel = function (options) {
     vm.content = function () {
         let searchComponent = f.getComponent("SearchInput");
         let tableComponent = f.getComponent("TableWidget");
-        let sortComponent = f.getComponent("SortDialog");
-        let filterComponent = f.getComponent("FilterDialog");
         let canFilter = vm.tableWidget().models().canFilter();
 
         return m("div", {class: "fb-drill-body"}, [
-            m(sortComponent, {viewModel: vm.sortDialog()}),
-            m(filterComponent, {viewModel: vm.filterDialog()}),
             m("div", {class: "fb-drill-toolbar"}, [
                 m("div", {class: "fb-search-group"}, [
                     m(searchComponent, {viewModel: vm.searchInput()}),

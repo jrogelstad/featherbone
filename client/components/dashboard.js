@@ -231,6 +231,9 @@ let sourceRegistry = {};
 // The drill-down list showing, if any -- see openDrill. One at a time:
 // it is modal.
 let drillViewModel = null;
+// The list to put back when the board is next drawn, set when opening a
+// record takes us off the board. Cleared as soon as it is honoured.
+let drillOnReturn = null;
 let refresherRegistry = {};
 let scheduleRegistry = {};
 let tileState = {};
@@ -2074,9 +2077,19 @@ function openDrill(spec) {
         config: spec.config,
         feather: spec.feather,
         icon: spec.icon,
-        title: spec.title
+        title: spec.title,
+        /*
+            Opening a record leaves the board, which takes the dialog
+            with it. What the back button promises is where you were,
+            so the list is remembered on the way out and put back the
+            next time the board is drawn (John, Oct 2026).
+        */
+        onLeave: function () {
+            drillOnReturn = spec;
+        }
     });
 
+    drillOnReturn = null;
     drillViewModel = vm;
     vm.show();
     m.redraw();
@@ -3320,6 +3333,14 @@ function syncBoardRowHeight(viewport) {
 let dashboard = {
     oninit: function () {
         /*
+            Back from a record opened out of a drill-down: the list that
+            record came from is what "back" meant, so it opens again.
+        */
+        if (drillOnReturn) {
+            openDrill(drillOnReturn);
+        }
+
+        /*
             Coming back to the board, not arriving at it: whatever was
             being arranged is still there. The Home tab's buttons show on
             every page, so a tile can be added from a workbook and found
@@ -3372,9 +3393,23 @@ let dashboard = {
 
         return m("div", {class: "fb-dash-frame"}, [
             // Modal, so it sits with the board rather than over a tile.
+            // Its Sort and Filter dialogs are rendered BESIDE it rather
+            // than inside it: a modal opened inside another modal paints
+            // in front but cannot be clicked. The .pure-form wrapper is
+            // what styles their controls, same as a workbook page.
             (
                 drillViewModel
-                ? m(f.getComponent("Dialog"), {viewModel: drillViewModel})
+                ? m("div", {class: "pure-form"}, [
+                    m(f.getComponent("Dialog"), {
+                        viewModel: drillViewModel
+                    }),
+                    m(f.getComponent("SortDialog"), {
+                        viewModel: drillViewModel.sortDialog()
+                    }),
+                    m(f.getComponent("FilterDialog"), {
+                        viewModel: drillViewModel.filterDialog()
+                    })
+                ])
                 : null
             ),
             refreshBar(layout),
