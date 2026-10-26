@@ -128,6 +128,36 @@ describe("client components", function () {
     });
 
     describe("button.js", function () {
+        /*
+            Same reason as dialog.js above: a button whose view model is
+            swapped acts on the one it is drawn with, not the one it was
+            born with -- otherwise its onclick runs against something
+            nobody can see any more.
+        */
+        it("draws the view model it is handed now", function () {
+            let clicked = [];
+            let first = vms.button({
+                label: "First",
+                onclick: () => clicked.push("first")
+            });
+            let second = vms.button({
+                label: "Second",
+                onclick: () => clicked.push("second")
+            });
+            let vnode = {attrs: {viewModel: first}, tag: comps.button};
+            let state = Object.create(comps.button);
+            let drawn;
+
+            vnode.state = state;
+            state.oninit(vnode);
+            vnode.attrs = {viewModel: second};
+            drawn = state.view.call(state, vnode);
+
+            assert.ok(R.text(drawn).includes("Second"), R.text(drawn));
+            drawn.attrs.onclick({});
+            assert.deepEqual(clicked, ["second"]);
+        });
+
         it("renders label with hot key, icon and title", function () {
             let vm = vms.button({
                 label: "&Save",
@@ -256,6 +286,36 @@ describe("client components", function () {
     });
 
     describe("dialog.js", function () {
+        /*
+            A component reads its view model in oninit, which runs once.
+            Anything that swaps in a new one -- the dashboard, opening a
+            drill-down on a different figure -- gets the new one drawn
+            only if the view prefers what it is handed now. It did not,
+            so a second drill-down showed the first one's title and its
+            Close button closed a dialog that had already gone (John,
+            Oct 2026).
+        */
+        it("draws the view model it is handed now", function () {
+            let first = vms.dialog({message: "First", title: "First"});
+            let second = vms.dialog({message: "Second", title: "Second"});
+            let vnode = {attrs: {viewModel: first}, tag: comps.dialog};
+            let state = Object.create(comps.dialog);
+
+            vnode.state = state;
+            state.oninit(vnode);
+            assert.ok(
+                R.text(R.render(comps.dialog, {viewModel: first}).tree
+                        ).includes("First"),
+                "the one it was made with"
+            );
+
+            vnode.attrs = {viewModel: second};
+            assert.ok(
+                R.text(state.view.call(state, vnode)).includes("Second"),
+                "and the one it is given afterwards"
+            );
+        });
+
         it("renders title, message and Ok/Cancel buttons", function () {
             let vm = vms.dialog({
                 title: "Confirm",
