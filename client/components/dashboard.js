@@ -49,7 +49,13 @@
             format: (Number) -> String
             load:   () -> Promise of {value, comparison, comparisonLabel,
                     spark, pending, pendingLabel}
+            drillFor: (tile) -> list configuration or null; optional
         }
+
+    `drillFor` is what a measure source's own `drillFor` is, minus the row:
+    a metric is a single figure, so the records behind it depend only on the
+    reporting date the tile is showing. A KPI that says nothing is a metric
+    row that does not respond to a click.
 
     `pending` is expected but not yet landed (open orders), drawn as a
     paler extension of the bar.
@@ -1974,7 +1980,7 @@ function kpiTile(tile) {
                 : row.kpi.format(row.value)
             )));
 
-            return m("tr", cells);
+            return m("tr", kpiDrillAttrs(tile, row.kpi), cells);
         });
 
         if (anyScale) {
@@ -2042,22 +2048,46 @@ function kpiTile(tile) {
 */
 function drillAttrs(tile, row) {
     let source = sourceRegistry[tile.source] || {};
-    let layout = currentLayout;
-    let spec;
 
     if (!source.drillFor) {
         return {};
     }
-    /*
-        The reporting date the tile is actually showing, not whatever is
-        stored on it: a tile pins its own date only when somebody has
-        pinned one, and otherwise shows the board's. The source needs the
-        date it drew to list the records behind that figure and no
-        others.
-    */
-    spec = source.drillFor(Object.assign({}, tile, {
+    return drillRow(source.drillFor(drillTile(tile), row));
+}
+
+/**
+    The same, for one metric row of a KPI tile. A metric is a single
+    figure, so its descriptor takes no row.
+
+    @private
+    @param {Object} tile
+    @param {Object} kpi The metric's descriptor
+    @return {Object} Attributes for the row
+*/
+function kpiDrillAttrs(tile, kpi) {
+    if (!kpi || !kpi.drillFor) {
+        return {};
+    }
+    return drillRow(kpi.drillFor(drillTile(tile)));
+}
+
+/*
+    The reporting date the tile is actually showing, not whatever is
+    stored on it: a tile pins its own date only when somebody has pinned
+    one, and otherwise shows the board's. A descriptor needs the date it
+    drew to list the records behind that figure and no others.
+*/
+function drillTile(tile) {
+    let layout = currentLayout;
+
+    return Object.assign({}, tile, {
         asOf: tile.asOf || (layout && layout.asOf) || null
-    }), row);
+    });
+}
+
+// A descriptor that says nothing leaves the row as it was: not
+// clickable, with no pointer inviting a click that does nothing.
+function drillRow(spec) {
     if (!spec) {
         return {};
     }

@@ -262,6 +262,16 @@ drillDialog.viewModel = function (options) {
                         viewModel: vm.buttonClear()
                     })
                 ]),
+                /*
+                    Which feather the rows came from. A drill-down is a
+                    list nobody configured and cannot be traced back to
+                    a worksheet, so without this there is no way to tell
+                    where the data is from (John, Oct 2026).
+                */
+                m("div", {
+                    class: "fb-drill-feather",
+                    title: "These records are " + options.feather + "s"
+                }, options.feather),
                 m("div", {class: "fb-toolbar-fill"}),
                 toolButton("Sort", "sort_by_alpha", canFilter, function () {
                     vm.sortDialog().show();
