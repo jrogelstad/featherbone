@@ -8,6 +8,74 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Merged, 2026-10-25 (ninth round): the dashboard, used in anger
+
+John ran the dashboard against his own data all day and reported as he went.
+Everything here is merged to master (featherbone PRs #343-#359, SupplyChain
+#49-#51). The build status lives in the project doc
+`claude/featherbone-dashboard-build-status.md`; this is the branch record.
+
+- **Drill-down** (#355, #356, #358, #359; SupplyChain #51). Clicking a measure
+  row opens the records behind it in a modal list -- a *copy* of a worksheet's
+  configuration, never a reference to one, so reconfiguring or deleting the
+  worksheet cannot break it. A source answers `drillFor(tile, row)`; a row it
+  says nothing for is not clickable. No edit mode, no import, none of the
+  worksheet's own actions. Three things came back from John's first use: a
+  record now opens as its own page rather than inside the dialog (it had
+  neither the back button nor room to draw), Sort and Filter are rendered
+  *beside* the drill-down rather than inside it (a modal opened inside a modal
+  paints in front but will not take a click) and inside a `.pure-form` wrapper
+  (without one, Pure leaves selects and inputs as raw browser widgets), and the
+  list is reopened when the back button returns to the board.
+- **Two components drew the view model they were born with** (#356, #359).
+  `dialog.js` and `button.js` read `vnode.attrs.viewModel` in `oninit`, which
+  runs once, so swapping in a new view model left the old one on screen: a
+  second drill-down showed the first one's title, and its Close button closed a
+  dialog that had already gone. Both now prefer what they are handed on each
+  draw. A no-op for every caller that passes the same view model every time,
+  which is all of them today.
+- **The board is 24x16 rather than 12x8** (#355), halving the step a tile moves
+  and resizes by. Everything stored is in the old units and is scaled on the
+  way in -- saved layouts and the draft (by a layout's new `grid`), the tiles a
+  package ships, and `defaultTile` (by its own `grid`). A layout saved from now
+  on records its board so it is not scaled twice.
+- **Package branding carries an icon** (#350), a sibling `icon.png`/`.jpg`/
+  `.jpeg`/`.svg`, shown in the ribbon and as the favicon, travelling with every
+  export the way the title does. The wallpaper now blends across the whole
+  dashboard page rather than stopping at the tile grid (same PR), with a
+  surface behind the title that fades out to the right (#351 follow-ups).
+- **Exporting a module carries the layouts people built** (#352). Save Layout
+  records no module, so a layout built on the Home tab had a blank one and
+  belonged to no export -- a package shipped the wallpaper and no boards. A
+  top-level export now takes the unowned layouts too and stamps them with its
+  own module. Caveat worth knowing: on an instance holding layouts for several
+  applications they all go to whichever module is exported.
+- **Lists kept their totals below the bottom of the window** (#353). The
+  interface is drawn at `--fb-ui-scale`, and `table-widget.js` measured the room
+  it had in real viewport pixels but assigned it as a CSS height, which the zoom
+  then stretched: every list came out about 13% too tall and its sticky totals
+  footer sat off-screen. Also the likeliest explanation for the older "board
+  frame runs past the viewport bottom" oddity.
+- **The due-date histogram starts where the data does** (#349) rather than
+  drawing the whole fixed lookback, and **a source may format per tile**
+  (#354, `formatFor`) so inventory value can be money while inventory quantity
+  is a count on the same source.
+- **Inventory on the dashboard** (SupplyChain #50): `bi.inventory_daily` holds
+  each day's net change to the balance, so one table answers both "on hand now"
+  and "on hand a year ago" with no snapshot to keep. Tiles by product, category,
+  group and source; an Inventory Value metric. Reconciles to `Inventory`'s own
+  quantity and total value for every product and site in demo.
+- **The Add Tile metrics picker is two lists** (#357), John's own work brought
+  over from his working copy, plus a fix: the halves are one grid now, so the
+  label, filter box or hint, list and arrows line up across them by
+  construction rather than by matching heights.
+- **Tests** (this round): 443 unit tests, up from 428 at the start of the day.
+  New coverage for the grid migration, `formatFor`, the drill-down's
+  configuration and read-only manners, both view-model staleness bugs, and the
+  package export (unowned layouts, the icon). The histogram trim is **not**
+  covered: its columns are SVG measured against a DOM, and the unit harness has
+  none.
+
 ## Open, 2026-10-24 (eighth round): SupplyChain on disk
 
 Found by John running SupplyChain after the "deploy writes no code rows" change:

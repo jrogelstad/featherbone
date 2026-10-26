@@ -26,6 +26,9 @@ const ROOT = path.resolve(__dirname, "..", "..");
 
 let catalog;
 let comps;
+// What the fake server answers with. One handler for the whole file:
+// a test that installed its own would take the others' answers away.
+let savedLayouts = [];
 
 function money(n) {
     return "$" + Number(n).toLocaleString(undefined, {
@@ -66,6 +69,51 @@ function boardSpans() {
 
             return {col: col.at, cols: col.span, row: row.at, rows: row.span};
         });
+    });
+}
+
+// The board's vnode tree, settled.
+function boardTree() {
+    let vnode = {attrs: {}, tag: comps.dashboard};
+    let state = Object.create(comps.dashboard);
+
+    function draw() {
+        return state.view.call(state, vnode);
+    }
+
+    vnode.state = state;
+    state.oninit(vnode);
+    return env.flush(30).then(draw).then(function () {
+        return env.flush(30);
+    }).then(draw);
+}
+
+// Every vnode in a raw (unexpanded) tree, components included.
+function allNodes(node, found) {
+    let out = found || [];
+
+    if (Array.isArray(node)) {
+        node.forEach(function (one) {
+            allNodes(one, out);
+        });
+        return out;
+    }
+    if (!node || typeof node !== "object") {
+        return out;
+    }
+    out.push(node);
+    allNodes(node.children, out);
+    return out;
+}
+
+// The rows a tile drew that offer a drill-down.
+function drillRows(tree) {
+    return allNodes(tree).filter(function (one) {
+        let attrs = one.attrs || {};
+        // mithril moves `class` to `className` on the way through.
+        let cls = String(attrs.class || attrs.className || "");
+
+        return cls.includes("fb-dash-row-drill");
     });
 }
 
@@ -136,8 +184,22 @@ describe("dashboard measure tiles", function () {
         await import(pathToFileURL(
             ROOT + "/client/components/dashboard.js"
         ).href);
+        await import(pathToFileURL(
+            ROOT + "/client/components/drill-dialog.js"
+        ).href);
         comps = catalog.store().components();
-        env.respond(function () {
+        env.respond(function (req) {
+            let asked = String(req.path || req.url || "");
+
+            // A list with a totals footer asks the server to add the
+            // column up; answering with a list would leave the widget
+            // reading `result` off nothing.
+            if (asked.includes("aggregate")) {
+                return {result: {f1: 0}};
+            }
+            if (asked.startsWith("/dashboards")) {
+                return savedLayouts;
+            }
             return [];
         });
     });
@@ -168,13 +230,7 @@ describe("dashboard measure tiles", function () {
         };
         let spans;
 
-        env.respond(function (req) {
-            if (String(req.path).indexOf("/dashboards") === 0) {
-                return [saved];
-            }
-            return [];
-        });
-
+        savedLayouts = [saved];
         spans = await boardSpans();
         assert.deepEqual(spans[0], {
             col: 1,
@@ -183,6 +239,7 @@ describe("dashboard measure tiles", function () {
             rows: 8
         }, "doubled in size and place: " + JSON.stringify(spans[0]));
     });
+
 
     it("draws amounts with the source's own formatters", async function () {
         catalog.store().global().dashboardSources.register(source({
@@ -232,5 +289,144 @@ describe("dashboard measure tiles", function () {
             !said.includes("Stock " + money(1234)),
             "quantity not drawn as money: " + said
         );
+    });
+
+    /*
+        Clicking a row opens the records behind it. The source says what
+        those are and how to list them (drillFor); a source that answers
+        nothing for a row leaves that row alone, with no pointer
+        inviting a click that would do nothing.
+    */
+    describe("drilling into a row", function () {
+        /*
+            The dialog the row opens, caught as it is made: the board
+            cannot be drawn again while one is open, since a dialog
+            draws a list widget and that wants a DOM.
+        */
+        function opened(row) {
+            let made;
+            let models = catalog.store().viewModels();
+            let original = models.drillDialog;
+
+            models.drillDialog = function (options) {
+                made = original(options);
+                return made;
+            };
+            row.attrs.onclick();
+            models.drillDialog = original;
+            return env.flush(10).then(function () {
+                return made;
+            });
+        }
+
+        function drillSource(extra) {
+            return source(Object.assign({
+                drillFor: function (ignore, row) {
+                    if (row.key === "quiet") {
+                        return null;
+                    }
+                    return {
+                        config: {
+                            aggregates: [{
+                                method: "COUNT",
+                                property: "id"
+                            }],
+                            columns: [{attr: "id"}],
+                            filter: {criteria: [{
+                                property: "item.id",
+                                value: row.key
+                            }]}
+                        },
+                        feather: "Object",
+                        title: "Behind " + row.label
+                    };
+                },
+                format: {amount: money, compact: money, units: plain},
+                load: function () {
+                    return Promise.resolve({
+                        asOf: "2027-06-01",
+                        rows: [{
+                            amount: 1234,
+                            key: "loud",
+                            label: "Widget",
+                            units: 7
+                        }, {
+                            amount: 56,
+                            key: "quiet",
+                            label: "Gadget",
+                            units: 3
+                        }],
+                        total: 1290
+                    });
+                }
+            }, extra));
+        }
+
+        it("offers the drill only where the source answers", async function () {
+            let rows;
+
+            catalog.store().global().dashboardSources.register(drillSource({
+                key: "fbtDrill",
+                name: "Drill"
+            }));
+            rows = drillRows(await boardTree());
+
+            assert.equal(rows.length, 1, "one row of the two");
+            assert.equal(
+                rows[0].attrs.title,
+                "Show the records behind this"
+            );
+            assert.equal(typeof rows[0].attrs.onclick, "function");
+        });
+
+        it("opens a list built from what the source said", async function () {
+            let tree;
+            let vm;
+
+            catalog.store().global().dashboardSources.register(drillSource({
+                key: "fbtDrill2",
+                name: "Drill2"
+            }));
+            tree = await boardTree();
+            vm = await opened(drillRows(tree)[0]);
+
+            assert.ok(vm, "a drill-down is showing");
+            assert.equal(vm.title(), "Behind Widget");
+            assert.equal(vm.tableWidget().feather().name, "Object");
+            assert.deepEqual(
+                vm.tableWidget().filter().criteria,
+                [{property: "item.id", value: "loud"}],
+                "filtered to the row that was clicked"
+            );
+            assert.deepEqual(vm.tableWidget().aggregates(), [{
+                method: "COUNT",
+                property: "id"
+            }], "and totalled the way the source asked");
+        });
+
+        /*
+            A view onto figures rather than a place to work: no edit
+            mode, and Import is not among the list's actions.
+        */
+        it("is read-only and offers no import", async function () {
+            let tree;
+            let vm;
+            let actions;
+
+            catalog.store().global().dashboardSources.register(drillSource({
+                key: "fbtDrill3",
+                name: "Drill3"
+            }));
+            tree = await boardTree();
+            vm = await opened(drillRows(tree)[0]);
+            actions = vm.tableWidget().actionItems().map(function (one) {
+                return one.id;
+            });
+
+            assert.equal(vm.tableWidget().isEditModeEnabled(), false);
+            assert.ok(actions.includes("export"), "export: " + actions);
+            assert.ok(actions.includes("print-list"), "print: " + actions);
+            assert.ok(!actions.includes("import"), "no import: " + actions);
+        });
     });
 });
