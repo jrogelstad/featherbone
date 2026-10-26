@@ -165,10 +165,19 @@ function productionHtml(html, exists) {
     @return {Promise} {code, map, inputs, external, files}
 */
 async function bundle(html, options) {
-    let esbuild = require("esbuild");
+    let esbuild;
     let wantMap = Boolean(options && options.sourcemap);
     let files = bundled(html);
     let result;
+
+    try {
+        esbuild = require("esbuild");
+    } catch (ignore) {
+        esbuild = undefined;
+    }
+    if (!esbuild) {
+        throw new Error("esbuild is not installed. Run `npm install`.");
+    }
 
     files.forEach(function (src) {
         if (!fs.existsSync(path.join(ROOT, src))) {
