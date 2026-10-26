@@ -2895,7 +2895,7 @@ appState = State.define(function () {
                     username: context.username,
                     password: context.password
                 }
-            }).then(function (resp) {
+            }).then(async function (resp) {
                 message("");
                 if (resp.confirmUrl) {
                     f.state().send("confirm", {
@@ -2904,6 +2904,14 @@ appState = State.define(function () {
                         response: resp
                     });
                 } else {
+                    // Who signed in, and an event key for the new
+                    // session, as the confirm path does
+                    resp = await f.datasource().request({
+                        method: "POST",
+                        path: "/connect"
+                    });
+                    f.currentUser(resp.data.authorized);
+                    f.catalog().eventKey(resp.data.eventKey);
                     f.state().send("success");
                 }
             }).catch(function (err) {
@@ -2995,6 +3003,7 @@ appState = State.define(function () {
                     path: "/connect"
                 });
                 f.currentUser(resp.data.authorized);
+                f.catalog().eventKey(resp.data.eventKey);
                 message("");
                 f.state().send("success");
             }).catch(function () {
