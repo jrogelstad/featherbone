@@ -149,8 +149,65 @@
 
         let that = {};
 
+        /*
+            The view column for one property of a feather, read from its
+            table. The full view and the relation views share it.
+        */
+        function columnSql(fthr, key) {
+            let prop = fthr.properties[key];
+            let table = fthr.name.toSnakeCase();
+            let alias = key.toSnakeCase();
+            let type = prop && prop.type;
+            let parent;
+            let view;
+            let col;
+            let sql = "%I";
+
+            if (key === "objectType") {
+                return "to_camel_case(tableoid::regclass::text) AS " + alias;
+            }
+
+            if (typeof type !== "object") {
+                return sql.format([alias]);
+            }
+
+            if (type.childOf) {
+                return (
+                    "_" + alias + "_" + type.relation.toSnakeCase() + "_pk"
+                );
+            }
+
+            parent = (
+                prop.inheritedFrom
+                ? prop.inheritedFrom.toSnakeCase()
+                : table
+            );
+
+            if (type.parentOf) {
+                view = "_" + parent + "$$" + type.relation.toSnakeCase();
+                col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
+
+                sql = (
+                    "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
+                    "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I"
+                );
+                return sql.format(
+                    [view, view, view, col, table, view, view, alias]
+                );
+            }
+
+            col = "_" + alias + "_" + type.relation.toSnakeCase() + "_pk";
+            view = (
+                type.properties
+                ? "_" + parent + "$" + alias
+                : "_" + type.relation.toSnakeCase()
+            );
+
+            sql = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+            return sql.format([view, view, view, col, alias]);
+        }
+
         function createView(obj) {
-            let alias;
             let type;
             let view;
             let sub;
@@ -209,10 +266,19 @@
                     tProps.push("id");
                 }
 
+                /*
+                    Read the related table, not its full view: Postgres
+                    expands every view a view names before it drops the
+                    columns nobody asked for (item 4.2).
+                */
                 i = 0;
                 while (i < tProps.length) {
-                    tCols.push("%I");
-                    tArgs.push(tProps[i].toSnakeCase());
+                    tCols.push("%s");
+                    tArgs.push(
+                        cFeather.isView
+                        ? "\"" + tProps[i].toSnakeCase() + "\""
+                        : columnSql(cFeather, tProps[i])
+                    );
                     i += 1;
                 }
 
@@ -220,9 +286,10 @@
                 tCols.push("%I");
                 tArgs.push("_pk");
 
-                tRel = (
-                    "_" + props[pName].type.relation.toSnakeCase()
-                );
+                tRel = props[pName].type.relation.toSnakeCase();
+                if (cFeather.isView) {
+                    tRel = "_" + tRel;
+                }
                 tArgs.push(tRel);
                 theSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
                 theSql += tCols.join(",");
@@ -246,76 +313,26 @@
                 });
 
                 keys.forEach(function (key) {
-                    let clause;
+                    type = props[key].type;
 
-                    alias = key.toSnakeCase();
-
-                    /* Handle discriminator */
-                    if (key === "objectType") {
-                        cols.push("%s");
-                        clause = "to_camel_case(tableoid::regclass::text) AS ";
-                        clause += alias;
-                        args.push(clause);
-
-                        /* Handle relations */
-                    } else if (typeof props[key].type === "object") {
-                        type = props[key].type;
+                    // A relation listing its properties gets its own view
+                    if (
+                        typeof type === "object" &&
+                        !type.parentOf &&
+                        !type.childOf &&
+                        type.properties
+                    ) {
                         parent = (
                             props[key].inheritedFrom
                             ? props[key].inheritedFrom.toSnakeCase()
                             : table
                         );
-
-                        /* Handle to many */
-                        if (type.parentOf) {
-                            sub = "ARRAY(SELECT %I FROM %I ";
-                            sub += "WHERE %I.%I = %I._pk ";
-                            sub += "AND NOT %I.is_deleted ORDER BY %I._pk) ";
-                            sub += "AS %I";
-                            view = "_" + parent + "$$";
-                            view += props[key].type.relation.toSnakeCase();
-                            col = "_" + type.parentOf.toSnakeCase();
-                            col += "_" + parent + "_pk";
-                            args = args.concat([
-                                view,
-                                view,
-                                view,
-                                col,
-                                table,
-                                view,
-                                view,
-                                alias
-                            ]);
-
-                            /* Handle to one */
-                        } else if (!type.childOf) {
-                            col = "_" + key.toSnakeCase() + "_";
-                            col += props[key].type.relation.toSnakeCase();
-                            col += "_pk";
-                            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) ";
-                            sub += "AS %I";
-
-                            if (props[key].type.properties) {
-                                view = "_" + parent + "$" + key.toSnakeCase();
-                                childSql += createChildView(key);
-                            } else {
-                                view = "_";
-                                view += props[key].type.relation.toSnakeCase();
-                            }
-
-                            args = args.concat([view, view, view, col, alias]);
-                        } else {
-                            sub = "_" + key.toSnakeCase() + "_";
-                            sub += type.relation.toSnakeCase() + "_pk";
-                        }
-
-                        cols.push(sub);
-
-                        /* Handle regular types */
-                    } else {
-                        cols.push("%I");
-                        args.push(alias);
+                        view = "_" + parent + "$" + key.toSnakeCase();
+                        childSql += createChildView(key);
                     }
+
+                    cols.push("%s");
+                    args.push(columnSql(feather, key));
                 });
 
                 sql = "DROP VIEW IF EXISTS %I CASCADE;";
