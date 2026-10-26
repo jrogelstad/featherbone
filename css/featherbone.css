@@ -4273,14 +4273,6 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     max-width: 100%;
 }
 
-/* A record opened from the list stands in the same space the list
-   filled, so the dialog keeps its size as somebody drills in and backs
-   out again rather than snapping between shapes. */
-.fb-drill-body-form {
-    height: 60vh;
-    overflow: auto;
-}
-
 .fb-drill-toolbar {
     display: flex;
     align-items: center;
