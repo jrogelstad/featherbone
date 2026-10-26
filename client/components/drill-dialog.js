@@ -82,6 +82,11 @@ drillDialog.viewModel = function (options) {
     options = options || {};
     options.icon = options.icon || "search";
     options.title = options.title || "Details";
+    /*
+        A drill-down's title is a sentence naming the figure that was
+        clicked, data and all: shown as written, not tidied into a name.
+    */
+    options.isTitleLiteral = true;
 
     vm = f.createViewModel("Dialog", options);
 
