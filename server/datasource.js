@@ -270,7 +270,6 @@
         let onDisk = {};
         let sources;
         let run = [];
-        let fromDisk = {};
 
         Object.keys(baseRegistry).forEach(function (method) {
             Object.assign(reg[method], baseRegistry[method]);
@@ -375,42 +374,22 @@
         );
 
         /*
-            Database rows load in module dependency order. A module the
-            server holds on disk loads from its package files instead,
-            in the same position, so load order matches what a plain
-            database install produces.
+            Order comes from the module list, never from which modules
+            happen to have rows: a module on disk has none, and ordering
+            by rows put it last instead of where its dependencies say.
         */
-        sources.forEach(function (src) {
-            let version = onDisk[src.module];
+        let order = (
+            hasModules.rows[0].found
+            ? await services.getModuleOrder({client})
+            : []
+        );
 
-            if (version !== undefined) {
-                if (!fromDisk[src.module]) {
-                    fromDisk[src.module] = true;
-                    packages.serviceSources(
-                        src.module,
-                        version
-                    ).forEach(function (dsrc) {
-                        run.push(dsrc);
-                    });
-                }
-                return;
-            }
-
-            run.push(src);
-        });
-
-        // A disk module with no service rows in the database still
-        // loads -- Deploy wrote its schema but its code lives here
-        Object.keys(onDisk).forEach(function (name) {
-            if (!fromDisk[name]) {
-                packages.serviceSources(
-                    name,
-                    onDisk[name]
-                ).forEach(function (dsrc) {
-                    run.push(dsrc);
-                });
-            }
-        });
+        run = that.serviceLoadOrder(
+            order,
+            onDisk,
+            sources,
+            packages.serviceSources
+        );
 
         loadTarget = reg;
         dbBuilding[client.database] = reg;
@@ -712,6 +691,54 @@
             );
         }
     }
+
+    /**
+        The service scripts a database runs, in the order it runs them:
+        each module in dependency order, taking its code from the
+        package on disk when the server holds one and from its rows
+        when it does not.
+
+        Order comes from `order` alone, so it does not matter which
+        modules have rows -- a module on disk has none.
+
+        Separate from
+        {{#crossLink "Datasource/buildRegistry:method"}}{{/crossLink}}
+        so the decision can be tested without a database or a packages
+        directory (ADR-002).
+
+        @method serviceLoadOrder
+        @param {Array} order Module names in dependency order
+        @param {Object} onDisk Versions the server holds, by module
+        @param {Array} rows Service rows, in any order
+        @param {Function} fromDisk (name, version) to a module's
+        package sources
+        @return {Array} Sources in load order
+    */
+    that.serviceLoadOrder = function (order, onDisk, rows, fromDisk) {
+        let rowsFor = {};
+        let run = [];
+
+        rows.forEach(function (src) {
+            if (rowsFor[src.module] === undefined) {
+                rowsFor[src.module] = [];
+            }
+            rowsFor[src.module].push(src);
+        });
+
+        order.forEach(function (name) {
+            let version = onDisk[name];
+            let own = rowsFor[name] || [];
+
+            if (version !== undefined) {
+                fromDisk(name, version).forEach((src) => run.push(src));
+                return;
+            }
+
+            own.forEach((src) => run.push(src));
+        });
+
+        return run;
+    };
 
     /**
         The registered instances that are no longer registered, given
