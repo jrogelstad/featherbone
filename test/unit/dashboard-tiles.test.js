@@ -475,5 +475,33 @@ describe("dashboard measure tiles", function () {
             assert.ok(actions.includes("print-list"), "print: " + actions);
             assert.ok(!actions.includes("import"), "no import: " + actions);
         });
+
+        /*
+            Nothing else on the dialog says where the rows are from: the
+            list was configured by a module rather than by a person, so
+            it answers to no worksheet anybody could go and look at
+            (John, Oct 2026).
+        */
+        it("says which feather the records came from", async function () {
+            let tree;
+            let vm;
+            let said;
+
+            catalog.store().global().dashboardSources.register(drillSource({
+                key: "fbtDrill4",
+                name: "Drill4"
+            }));
+            tree = await boardTree();
+            vm = await opened(drillRows(tree)[0]);
+            said = allNodes(vm.content()).filter(function (one) {
+                let attrs = one.attrs || {};
+                let cls = String(attrs.class || attrs.className || "");
+
+                return cls.includes("fb-drill-feather");
+            });
+
+            assert.equal(said.length, 1, "one such label");
+            assert.equal(R.text(said[0]), "Object");
+        });
     });
 });

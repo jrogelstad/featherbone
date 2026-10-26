@@ -194,6 +194,17 @@ dialog.viewModel = function (options) {
     */
     vm.title = f.prop(options.title || "");
     /**
+        Whether the title is already written for reading, in which case it
+        is shown as given. A title is otherwise taken for a property path
+        and tidied into a name, which eats the punctuation in a title that
+        quotes data: a drill-down into product ITEM-08 was headed ITEM08.
+
+        @method isTitleLiteral
+        @param {Boolean} flag
+        @return {Boolean}
+    */
+    vm.isTitleLiteral = f.prop(options.isTitleLiteral === true);
+    /**
         @method state
         @param {String} title
         @return {State}
@@ -361,7 +372,11 @@ dialog.component = {
             header = m("h3", {
                 id: ids.header,
                 class: "fb-header"
-            }, [f.icon(icon, iconClass), vm.title().toName()]);
+            }, [f.icon(icon, iconClass), (
+                (vm.isTitleLiteral && vm.isTitleLiteral())
+                ? vm.title()
+                : vm.title().toName()
+            )]);
         }
 
         return m("dialog", {
