@@ -26,9 +26,16 @@ function fakeClient(database, rows, modules) {
                 return Promise.resolve({rows});
             }
             return Promise.resolve({
-                rows: modules.map(function (name) {
+                rows: modules.map(function (mod) {
+                    // A plain name means no dependencies; {name, needs}
+                    // names what has to load first.
+                    let name = mod.name || mod;
+                    let needs = mod.needs || [];
+
                     return {
-                        dependencies: [],
+                        dependencies: needs.map(function (dep) {
+                            return {module: {name: dep}};
+                        }),
                         name,
                         script: "",
                         version: "1.0.0"
@@ -118,5 +125,40 @@ describe("loading service rows", function () {
         assert.equal(warnings.length, 2);
         assert.match(warnings[0], /"three"/);
         assert.match(warnings[1], /"four"/);
+    });
+
+    /*
+        The order is the module list's, so it holds for modules with no
+        rows at all -- which is every module the server holds a package
+        for, and which is what lets the rows go.
+    */
+    it("orders every module, rows or not", async function () {
+        let client = fakeClient("five", [], [
+            {name: "Sell", needs: ["Common"]},
+            {name: "Core"},
+            {name: "Common", needs: ["Core"]}
+        ]);
+        let order = await services.getModuleOrder({client});
+
+        assert.deepEqual(order, ["Core", "Common", "Sell"]);
+    });
+
+    it("puts a module after what it depends on, not after its row",
+            async function () {
+        let client = fakeClient("six", [], [
+            {name: "Ship", needs: ["Sell", "Core"]},
+            {name: "Sell", needs: ["Core"]},
+            {name: "Core"}
+        ]);
+        let order = await services.getModuleOrder({client});
+
+        assert.ok(
+            order.indexOf("Core") < order.indexOf("Sell"),
+            order.join(" ")
+        );
+        assert.ok(
+            order.indexOf("Sell") < order.indexOf("Ship"),
+            order.join(" ")
+        );
     });
 });
