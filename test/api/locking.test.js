@@ -126,7 +126,7 @@ describe("record locking", function () {
                     id: "nosuchid",
                     eventKey: "ek"
                 }),
-                500,
+                404,
                 "Record nosuchid not found."
             );
             expectError(

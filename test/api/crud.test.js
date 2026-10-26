@@ -462,7 +462,17 @@ describe("data API record lifecycle", function () {
         it("rejects an unknown id", async function () {
             expectError(
                 await admin.raw("DELETE", "/data/kind/nosuchid"),
-                500,
+                404,
+                "Record nosuchid not found."
+            );
+        });
+
+        it("answers 404 to a PATCH of an unknown id", async function () {
+            expectError(
+                await admin.raw("PATCH", "/data/kind/nosuchid", [
+                    {op: "replace", path: "/description", value: "x"}
+                ]),
+                404,
                 "Record nosuchid not found."
             );
         });
