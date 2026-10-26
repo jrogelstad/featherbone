@@ -44,12 +44,12 @@
         an action belongs where somebody is doing the work, not where
         they are reading a number
 
-    Navigation stays inside the dialog. Double-clicking a row opens that
-    record's form here, with Back to return; a relation on that form
-    opens its own record the same way, as deep as somebody cares to go.
-    Nothing routes, so the board behind is still there, still arranged,
-    when the dialog closes -- which is the point of drilling in rather
-    than navigating away.
+    Double-clicking a row opens that record the ordinary way: its own
+    page, with the back button and the whole window to draw in, exactly
+    as opening a record from a worksheet does. A form squeezed into the
+    dialog had neither, and relations already worked well this way
+    (John, Oct 2026). Past the first step this is the app's own
+    navigation rather than a second one living inside a dialog.
 
     @module DrillDialog
 */
@@ -80,16 +80,6 @@ drillDialog.viewModel = function (options) {
     vm = f.createViewModel("Dialog", options);
 
     /**
-        What is on screen: the list, or a record opened from it. A stack
-        rather than a flag, because a relation on a form opens another
-        form, and Back has to come back one step rather than all the way.
-
-        @method stack
-        @return {Array}
-    */
-    vm.stack = f.prop([]);
-
-    /**
         The list itself.
 
         @method tableWidget
@@ -104,6 +94,15 @@ drillDialog.viewModel = function (options) {
     vm.searchInput = f.prop();
 
     /**
+        Empties the search box, the same clear a worksheet puts inside
+        its own search field.
+
+        @method buttonClear
+        @return {ViewModels.Button}
+    */
+    vm.buttonClear = f.prop();
+
+    /**
         @method sortDialog
         @return {ViewModels.SortDialog}
     */
@@ -116,95 +115,25 @@ drillDialog.viewModel = function (options) {
     vm.filterDialog = f.prop();
 
     /**
-        The form showing, if any -- the top of the stack.
+        Opens the record a row stands for, as its own page.
 
-        @method formWidget
-        @return {ViewModels.FormWidget}
-    */
-    vm.formWidget = function () {
-        let stack = vm.stack();
-
-        if (!stack.length) {
-            return undefined;
-        }
-        return stack[stack.length - 1].form;
-    };
-
-    /**
-        Opens a record's form inside the dialog.
-
-        The model is fetched rather than taken from the list, so this
-        works the same whether it came from a row that is already loaded
-        or from a relation on a form that was never in the list at all.
-
-        @method openRecord
-        @param {String} feather
-        @param {String} id
-        @param {String} [name] What to call it in the heading
-    */
-    vm.openRecord = function (feather, id, name) {
-        let model = f.createModel(feather);
-        let widget;
-
-        model.id(id);
-        widget = f.createViewModel("FormWidget", {
-            config: f.getForm({feather}),
-            id: f.createId(),
-            model,
-            outsideElementIds: []
-        });
-        vm.stack().push({
-            feather,
-            form: widget,
-            name: name || feather.toName()
-        });
-        model.fetch();
-        m.redraw();
-    };
-
-    /**
-        Opens the record a row stands for.
+        The dialog closes on the way out: the board is behind it, and
+        coming back to the board with a list still sitting over it is
+        not what the back button promised.
 
         @method openSelection
     */
     vm.openSelection = function () {
         let model = vm.tableWidget().selection();
 
-        if (!model) {
+        if (!model || model.data.isDeleted()) {
             return;
         }
-        vm.openRecord(
-            model.data.objectType(),
-            model.id(),
-            recordName(model)
-        );
-    };
-
-    /**
-        Back one step: out of a form to whatever it was opened from. Does
-        nothing on the list, which is the bottom.
-
-        @method back
-    */
-    vm.back = function () {
-        vm.stack().pop();
-        m.redraw();
-    };
-
-    /**
-        What the heading says: the figure, then wherever drilling has
-        reached since.
-
-        @method heading
-        @return {String}
-    */
-    vm.heading = function () {
-        let said = [options.title];
-
-        vm.stack().forEach(function (step) {
-            said.push(step.name);
+        vm.cancel();
+        m.route.set("/edit/:feather/:key", {
+            feather: model.data.objectType(),
+            key: model.id()
         });
-        return said.join(" › ");
     };
 
     /**
@@ -222,14 +151,6 @@ drillDialog.viewModel = function (options) {
         });
     };
 
-    /**
-        @method isListShowing
-        @return {Boolean}
-    */
-    vm.isListShowing = function () {
-        return !vm.stack().length;
-    };
-
     // ..........................................................
     // PRIVATE
     //
@@ -240,6 +161,20 @@ drillDialog.viewModel = function (options) {
         }
     });
     vm.searchInput(searchInput);
+
+    vm.buttonClear(f.createViewModel("Button", {
+        class: "fb-toolbar-button fb-toolbar-button-clear",
+        icon: "clear",
+        onclick: searchInput.clear,
+        title: "Clear search"
+    }));
+    vm.buttonClear().disable();
+    searchInput.state().resolve("/Search/On").enter(function () {
+        vm.buttonClear().enable();
+    });
+    searchInput.state().resolve("/Search/Off").enter(function () {
+        vm.buttonClear().disable();
+    });
 
     tableWidget = f.createViewModel("TableWidget", {
         actions: [],
@@ -273,39 +208,6 @@ drillDialog.viewModel = function (options) {
         feather: f.catalog().getFeather(options.feather)
     }));
 
-    /*
-        A relation on a form opened here drills in place instead of
-        routing, so the dialog -- and the board behind it -- survive.
-        Registered while this dialog is showing and taken away when it
-        closes, so a relation widget anywhere else keeps routing as it
-        always did (see relation-widget.js).
-    */
-    vm.state().resolve("/Display/Showing").enter(function () {
-        f.catalog().register("global", "openRecordInPlace", function (spec) {
-            vm.openRecord(spec.feather, spec.id, spec.name);
-        });
-    });
-    vm.state().resolve("/Display/Closed").enter(function () {
-        f.catalog().register("global", "openRecordInPlace", undefined);
-        vm.stack([]);
-    });
-
-    /**
-        Back out of a form. Hidden on the list, which has nothing behind
-        it but the board the dialog came from -- Close is how you get
-        back there.
-
-        @method buttonBack
-        @return {ViewModels.Button}
-    */
-    vm.buttonBack = f.prop(f.createViewModel("Button", {
-        class: "fb-dialog-button",
-        label: "&Back",
-        onclick: vm.back
-    }));
-    vm.buttonBack().icon("arrow_back");
-    vm.buttonBack().title("Back to the list");
-
     /**
         @method buttonClose
         @return {ViewModels.Button}
@@ -317,7 +219,7 @@ drillDialog.viewModel = function (options) {
     }));
     vm.buttonClose().isPrimary(true);
 
-    vm.buttons([vm.buttonBack, vm.buttonClose]);
+    vm.buttons([vm.buttonClose]);
 
     /*
         The list fills the dialog; the dialog is sized against the
@@ -337,32 +239,23 @@ drillDialog.viewModel = function (options) {
     });
     vm.class("fb-drill-dialog");
 
-    vm.title = vm.heading;
-
     vm.content = function () {
         let searchComponent = f.getComponent("SearchInput");
         let tableComponent = f.getComponent("TableWidget");
-        let formComponent = f.getComponent("FormWidget");
         let sortComponent = f.getComponent("SortDialog");
         let filterComponent = f.getComponent("FilterDialog");
-        let form = vm.formWidget();
         let canFilter = vm.tableWidget().models().canFilter();
 
-        if (form) {
-            vm.buttonBack().show();
-            return m("div", {
-                class: "fb-drill-body fb-drill-body-form"
-            }, [
-                m(formComponent, {viewModel: form})
-            ]);
-        }
-
-        vm.buttonBack().hide();
         return m("div", {class: "fb-drill-body"}, [
             m(sortComponent, {viewModel: vm.sortDialog()}),
             m(filterComponent, {viewModel: vm.filterDialog()}),
             m("div", {class: "fb-drill-toolbar"}, [
-                m(searchComponent, {viewModel: vm.searchInput()}),
+                m("div", {class: "fb-search-group"}, [
+                    m(searchComponent, {viewModel: vm.searchInput()}),
+                    m(f.getComponent("Button"), {
+                        viewModel: vm.buttonClear()
+                    })
+                ]),
                 m("div", {class: "fb-toolbar-fill"}),
                 toolButton("Sort", "sort_by_alpha", canFilter, function () {
                     vm.sortDialog().show();
@@ -385,21 +278,6 @@ drillDialog.viewModel = function (options) {
 
     return vm;
 };
-
-/*
-    What to call a record in the heading: its natural key where it has
-    one (an invoice number says more than "Invoice"), else the name of
-    what it is.
-*/
-function recordName(model) {
-    let said = (
-        typeof model.naturalKey === "function"
-        ? model.naturalKey()
-        : ""
-    );
-
-    return said || String(model.data.objectType()).toName();
-}
 
 /*
     One of the small buttons along the top of the list. Plain vnodes
