@@ -630,7 +630,7 @@ describe("purchasing", function () {
                 ids: ["no-such-planned-order"],
                 supplierId: s2.id
             });
-            assert.equal(resp.status, 500);
+            assert.equal(resp.status, 404);
         });
     });
 
