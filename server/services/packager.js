@@ -26,6 +26,12 @@
     const fs = require("fs");
     const path = require("path");
     const {
+        Config
+    } = require("../config");
+    const {
+        Packages
+    } = require("./packages");
+    const {
         Tools
     } = require("./tools");
     const propExclusions = [
@@ -62,6 +68,51 @@
     ];
 
     const tools = new Tools();
+    const config = new Config();
+    const packages = new Packages();
+
+    /*
+        Code comes out of a package the same way it goes in: from the
+        files on disk, at the version this database deployed (ADR-002
+        section 2). Reading the rows instead was how an export of a
+        deployed module came out wrong -- a deployment writes no code to
+        rows, so `module.script` was empty and the zip carried an empty
+        module.js, while the `data_service` rows it did find were
+        pre-ADR-002 copies the runtime had long since stopped loading.
+
+        A module the server holds no package for still answers from its
+        rows, which is where a module that has never been repackaged
+        lives.
+    */
+    function diskSources(mod) {
+        let src;
+
+        if (
+            !mod || !mod.name || !mod.version ||
+            !packages.resolve(mod.name, mod.version)
+        ) {
+            return undefined;
+        }
+
+        src = packages.clientSource(mod.name, mod.version);
+
+        return {
+            script: (
+                src === undefined
+                ? undefined
+                : src.script
+            ),
+            services: packages.serviceSources(mod.name, mod.version)
+        };
+    }
+
+    // Packaging is rare and user-initiated, and a package may have been
+    // installed since this process started, so the scan is not cached.
+    function scanPackages() {
+        return config.read().then(function (conf) {
+            packages.scan(conf.modulesDir);
+        });
+    }
 
     function getSortedModules(client, name) {
         return new Promise(function (resolve, reject) {
@@ -157,8 +208,9 @@
         });
     }
 
-    function addModule(manifest, zip, resp, folder) {
+    function addModule(manifest, zip, resp, folder, disk) {
         let content;
+        let script;
         let filename = folder + "module.js";
 
         content = resp.slice().pop();
@@ -179,9 +231,16 @@
             path: "module.js"
         });
 
+        script = (
+            (disk && disk.script !== undefined)
+            ? disk.script
+            : content.script
+        );
+        script = script || "";
+
         zip.addFile(
             filename,
-            Buffer.alloc(content.script.length, content.script)
+            Buffer.alloc(script.length, script)
         );
     }
 
@@ -445,8 +504,12 @@
         }
     }
 
-    function addServices(manifest, zip, resp, folder) {
-        let content = resp.rows;
+    function addServices(manifest, zip, resp, folder, disk) {
+        let content = (
+            disk === undefined
+            ? resp.rows
+            : disk.services
+        );
 
         if (content.length) {
             content.forEach(function (service) {
@@ -764,7 +827,8 @@
                                 zip: pzip,
                                 folder: folder + name.toSpinalCase() + "/",
                                 includeDashboard,
-                                module: mod
+                                module: mod,
+                                scanned: true
                             }
                         ).then(callback).catch(reject);
                     });
@@ -788,6 +852,18 @@
         */
         that.package = function (client, name, user, sub) {
             sub = sub || {};
+
+            /*
+                Once per export, not once per submodule: the index is
+                read on the way in, and addDependencies passes `scanned`
+                when it recurses through here.
+            */
+            if (!sub.scanned) {
+                sub.scanned = true;
+                return scanPackages().then(
+                    () => that.package(client, name, user, sub)
+                );
+            }
 
             return new Promise(function (resolve, reject) {
                 let sql;
@@ -956,9 +1032,22 @@
                     });
 
                     function finishPackage() {
+                        /*
+                            The module row this package is built from --
+                            the same one addModule writes to the
+                            manifest, read here because the services go
+                            in before it and need to know which version
+                            on disk to take their code from.
+                        */
+                        let modRow = (
+                            sub.module ||
+                            resp[0].slice().pop()
+                        );
+                        let disk = diskSources(modRow);
+
                         addFeathers(manifest, zip, resp[1], folder);
                         addRelWidgets(manifest, zip, resp[8], folder);
-                        addServices(manifest, zip, resp[3], folder);
+                        addServices(manifest, zip, resp[3], folder, disk);
                         addBatch("HelpLink", manifest, zip, resp[9], folder);
                         addForms(manifest, zip, resp[2], folder);
                         addBatch("Route", manifest, zip, resp[4], folder);
@@ -997,9 +1086,15 @@
                         }
 
                         if (sub.module) {
-                            addModule(manifest, zip, [sub.module], folder);
+                            addModule(
+                                manifest,
+                                zip,
+                                [sub.module],
+                                folder,
+                                disk
+                            );
                         } else {
-                            addModule(manifest, zip, resp[0], folder);
+                            addModule(manifest, zip, resp[0], folder, disk);
                         }
 
                         if (manifest.version) {
