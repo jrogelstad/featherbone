@@ -1129,6 +1129,159 @@ button:disabled .fb-ipicon,
   margin-top: 4px;
 }
 
+/* Two lists side by side: what a tile could show on the left, what it
+   does show on the right, in the order it shows them. Checkboxes could
+   say which metrics a tile carried but nothing about their order, so a
+   tile's rows read as arbitrary (John, Oct 2026). The right list is the
+   tile, top to bottom, so it is reorderable by drag or by the arrows,
+   and the left is a plain alphabetical list of what is left. */
+/* One grid for both sides rather than two columns side by side, so the
+   four rows -- label, the filter box or the hint that stands in for it,
+   the list, the arrows -- line up across the halves by construction.
+   Side by side they did not: the left side's filter box is taller than
+   the right side's one line of hint, which left the right-hand list
+   starting 8px high (John, Oct 2026). */
+.fb-dual {
+  display: grid;
+  /* Equal halves that may shrink: a long "Group - Metric" must not
+     push the dialog wider than the viewport. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
+  gap: 0 12px;
+  text-align: left;
+  width: 100%;
+}
+
+/* No box of its own: its children are the grid's cells, which is what
+   lets the two sides share rows. Each side is pinned to its own column
+   so the cells cannot flow across the halves. */
+.fb-dual-side {
+  display: contents;
+}
+
+.fb-dual-side:first-child > * {
+  grid-column: 1;
+}
+
+.fb-dual-side:last-child > * {
+  grid-column: 2;
+}
+
+/* Row by row, said outright: auto-placement runs forward only, so the
+   second side's cells would otherwise land below the first side's
+   instead of beside them. */
+.fb-dual-side > *:nth-child(1) {
+  grid-row: 1;
+}
+
+.fb-dual-side > *:nth-child(2) {
+  grid-row: 2;
+}
+
+.fb-dual-side > *:nth-child(3) {
+  grid-row: 3;
+}
+
+.fb-dual-side > *:nth-child(4) {
+  grid-row: 4;
+}
+
+.fb-dual-label {
+  color: var(--fb-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Sits where the left side's filter box does, so the two lists below
+   start at the same height. */
+.fb-dual-hint {
+  color: var(--fb-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 3px 0;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fb-dual-list {
+  height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
+  background: var(--fb-surface);
+}
+
+/* The list being dragged into, while it is being dragged into. */
+.fb-dual-list-over {
+  border-color: var(--fb-accent);
+}
+
+.fb-dual-row {
+  padding: 3px 6px;
+  border-radius: 3px;
+  cursor: grab;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* The insertion line is drawn as a border, so every row reserves
+     the space for one and the list does not jump as it moves. */
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+}
+
+.fb-dual-row:hover {
+  background-color: var(--fb-hover-accent-tint);
+}
+
+.fb-dual-row-selected {
+  background-color: var(--fb-selected-bg);
+}
+
+.fb-dual-row-selected:hover {
+  background-color: var(--fb-selected-hover-bg);
+}
+
+.fb-dual-row-drop-before {
+  border-top-color: var(--fb-accent);
+}
+
+.fb-dual-row-drop-after {
+  border-bottom-color: var(--fb-accent);
+}
+
+.fb-dual-empty {
+  padding: 6px;
+  color: var(--fb-text-muted);
+  font-size: 11px;
+}
+
+/* The buttons under each list. Arrows sit on the right of the chosen
+   list the way row actions sit on the right of a toolbar. */
+.fb-dual-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  min-height: 28px;
+}
+
+/* A dialog field whose control wants the whole width rather than the
+   column beside a label -- the label goes above it instead. */
+.fb-dialog-wide-group > label {
+  display: block;
+  width: auto;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
 /* A reference a row has but cannot be drawn against -- a percentage of
    zero. Shown rather than left blank: an empty cell among full ones
    reads as a drawing failure rather than as an answer. */
