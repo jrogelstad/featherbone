@@ -20,6 +20,14 @@ $ npm install
 
 Every installation is one **manager** database plus one or more **instance** databases holding application data -- there is no single-database mode. "The manager and instances" just below has the build commands, and "Starting a new installation" has the full walkthrough: building the manager, building an instance, and the first sign-in. An installation from before 3.0 is not moved to it by copying files over; see "Moving an existing installation".
 
+The browser client is served as one minified bundle, `client/clientmin.js`, unless `"debug": true` is set in `config.json`, which serves the unbundled source that `index_debug.html` lists instead. The bundle and `index.html` are generated from `index_debug.html` -- every module script it names goes into the bundle, in order -- so after changing anything under `client/`, or adding a script to the debug page, rebuild them and commit the result:
+
+```text
+$ npm run build:client
+```
+
+Add `-- --check` to change nothing and fail if either file is out of date (for a release), or `-- --sourcemap` to write `client/clientmin.js.map` for debugging the bundle. Edit `index_debug.html`, never `index.html` or `clientmin.js`.
+
 A documentation server may be installed from [here](https://github.com/jrogelstad/featherbone-docs)
 
 ## The manager and instances
@@ -410,10 +418,9 @@ organization, which is also how an organization whose only
 administrator has left is rescued) and to anybody appointed over more
 than one. Every change is audited against the organization acted on.
 
-It is served from `client/components/admin-page.js`, which the
-unbundled client (`index_debug.html`, `"debug": true` in `config.json`)
-loads; the production bundle `client/clientmin.js` has to be rebuilt
-before the page appears outside debug mode.
+It is served from `client/components/admin-page.js`, which
+`index_debug.html` lists and so `npm run build:client` bundles into
+`client/clientmin.js`.
 
 ### Settings the platform owns
 

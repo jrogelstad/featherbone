@@ -319,6 +319,6 @@ wiring, safe to delete.
 - The lint baseline is per file and only ever lowered. A new warning in a file
   that already has some fails the run, so diff the warnings before and after
   rather than reading the count.
-- Both admin screens are absent from `client/clientmin.js`, so anything here
-  needs `"debug": true` until that bundle is rebuilt. A `server/` change needs
-  a process restart; `debug` only affects how the client is served.
+- Both admin screens are in `client/clientmin.js` once `npm run build:client`
+  has been run after a client change. A `server/` change needs a process
+  restart; `debug` only affects how the client is served.
