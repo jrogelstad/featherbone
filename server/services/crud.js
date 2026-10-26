@@ -1054,7 +1054,9 @@
                     oldRec = resp;
 
                     if (!oldRec) {
-                        reject("Record " + obj.id + " not found.");
+                        let err = new Error("Record " + obj.id + " not found.");
+                        err.statusCode = 404;
+                        reject(err);
                         return;
                     }
 
@@ -2640,8 +2642,9 @@
             let resp = await client.query(sql, [id]);
 
             if (!resp.rows.length) {
-                msg = "Record " + id + " not found.";
-                throw new Error(msg);
+                let err = new Error("Record " + id + " not found.");
+                err.statusCode = 404;
+                throw err;
             }
 
             if (
