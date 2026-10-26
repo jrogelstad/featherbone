@@ -464,6 +464,32 @@ const addTileFilter = f.prop("");
 const addTileWhat = f.prop(ADD_TILE_KPIS);
 const addTileOpts = f.prop({});
 const addTileKpis = f.prop([]);
+/*
+    The Add Tile metrics picker's two lists: which rows are highlighted
+    in each, and the row a shift click measures its run from. The drag
+    state says which list a drag started in and where it would land, so
+    the row under the pointer can show the insertion line.
+*/
+const addTileAvailSel = f.prop([]);
+const addTileChosenSel = f.prop([]);
+const addTileAvailAnchor = f.prop(null);
+const addTileChosenAnchor = f.prop(null);
+const addTileDragFrom = f.prop(null);
+const addTileDrop = f.prop(null);
+
+/**
+    Forgets what was highlighted in the Add Tile metrics picker. The
+    chosen metrics themselves are the caller's business -- editing a
+    tile keeps them, adding one does not.
+*/
+function clearMetricsPicker() {
+    addTileAvailSel([]);
+    addTileChosenSel([]);
+    addTileAvailAnchor(null);
+    addTileChosenAnchor(null);
+    addTileDragFrom(null);
+    addTileDrop(null);
+}
 const addTileSize = f.prop("medium");
 const addTileDisplay = f.prop("bullets");
 const addTileSpark = f.prop(false);
@@ -505,6 +531,7 @@ function openTileEditor(tile) {
 
     addTileEditingId(tile.id);
     addTileFilter("");
+    clearMetricsPicker();
     if (tile.type === "kpi") {
         addTileWhat(ADD_TILE_KPIS);
     } else if (tile.type === "histogram") {
@@ -933,6 +960,12 @@ function homeRibbonGroups() {
                 addTileEditingId(null);
                 addTileFilter("");
                 addTileHeading("");
+                // Without this a fresh tile opens carrying whatever
+                // the last edited tile showed -- invisible when the
+                // metrics were checkboxes somewhere down a scrolling
+                // list, obvious now they sit in a list of their own.
+                addTileKpis([]);
+                clearMetricsPicker();
                 addTileDlg.title("Add tile");
                 addTileDlg.buttonOk().label("Add");
                 addTileDlg.show();
@@ -2242,92 +2275,441 @@ function initApp() {
             ]);
         };
         /*
-            The metrics list on the Add Tile dialog.
+            The metrics list on the Add Tile dialog: what is available
+            on the left, what the tile actually shows on the right.
 
-            A flat column of checkboxes was fine for one metric and
-            would be unusable at the dozens that packages will
-            contribute between them, so it filters as you type and
-            groups what is left under whichever module contributed it --
-            the only grouping that means anything when the names come
-            from different places and may well collide.
+            Checkboxes said which metrics were on a tile but nothing
+            about the order its rows appear in -- that was whatever
+            order the boxes happened to be ticked in, so a tile read
+            as arbitrary and there was no way to change it (John, Oct
+            2026). The right-hand list IS the tile, top to bottom:
+            drag a row within it, or use the arrows, and the tile
+            follows.
 
-            The count of what is already ticked is stated, because a
-            filter hides things, and a list that hides a ticked box
-            without saying so loses somebody's work silently.
+            Left is one flat alphabetical list of "Group - Metric".
+            The prefix carries the grouping the old module headings
+            did, and sorting the whole label keeps one contributor's
+            metrics together anyway, so the headings are redundant.
+            The filter narrows the left list only -- what is already
+            chosen is never hidden, since a filter that hides
+            somebody's work loses it silently.
+
+            Several rows can be taken at once (ctrl or cmd click to
+            add one, shift click for a run), because moving a dozen
+            metrics one at a time is the thing this replaces.
         */
         function metricsPicker(offered) {
             let needle = addTileFilter().trim().toLowerCase();
             let chosen = addTileKpis();
-            let shown = offered.filter(function (kpi) {
-                if (!needle) {
-                    return true;
+            let byKey = {};
+            let avail;
+
+            offered.forEach(function (kpi) {
+                byKey[kpi.key] = kpi;
+            });
+
+            // A metric names its contributor as well as itself: two
+            // packages may well both ship an "On Time Completions".
+            function label(key) {
+                let kpi = byKey[key];
+
+                if (!kpi) {
+                    return key;
                 }
                 return (
-                    kpi.label.toLowerCase().indexOf(needle) > -1 ||
-                    String(kpi.module).toLowerCase().indexOf(needle) > -1
+                    (kpi.group || kpi.module || "Other") + " - " + kpi.label
                 );
-            });
-            let modules = [];
-            let byModule = {};
-
-            shown.forEach(function (kpi) {
-                let owner = kpi.group || kpi.module || "Other";
-
-                if (!byModule[owner]) {
-                    byModule[owner] = [];
-                    modules.push(owner);
-                }
-                byModule[owner].push(kpi);
-            });
-            modules.sort();
-
-            function box(kpi) {
-                return m("label", [
-                    m("input", {
-                        type: "checkbox",
-                        checked: chosen.indexOf(kpi.key) > -1,
-                        onchange: function (e) {
-                            let held = addTileKpis().filter(
-                                (key) => key !== kpi.key
-                            );
-
-                            if (e.target.checked) {
-                                held.push(kpi.key);
-                            }
-                            addTileKpis(held);
-                        }
-                    }),
-                    m("span", " " + kpi.label)
-                ]);
             }
 
-            return m("div", {class: "fb-dialog-picker"}, [
-                m("input", {
-                    class: "fb-dialog-picker-filter",
-                    type: "search",
-                    placeholder: "Filter metrics",
-                    oninput: (e) => addTileFilter(e.target.value),
-                    value: addTileFilter()
-                }),
-                m("div", {class: "fb-dialog-picker-list"}, (
-                    shown.length
-                    ? modules.map(function (owner) {
-                        return m("div", {class: "fb-dialog-picker-group"}, [
-                            m("div", {
-                                class: "fb-dialog-picker-group-label"
-                            }, owner),
-                            byModule[owner].map(box)
-                        ]);
+            avail = offered.map(function (kpi) {
+                return kpi.key;
+            }).filter(function (key) {
+                return chosen.indexOf(key) === -1;
+            }).filter(function (key) {
+                return (
+                    !needle || label(key).toLowerCase().indexOf(needle) > -1
+                );
+            }).sort(function (a, b) {
+                return label(a).localeCompare(label(b));
+            });
+
+            /*
+                Puts `keys` into the chosen list at `at`, whether they
+                come from the left list or are being shuffled within
+                the right one -- the two are the same operation, since
+                a key can only be in one list at a time. `from` says
+                which order the moved rows keep among themselves: the
+                left list's alphabetical one, or the order they
+                already sit in on the right.
+            */
+            function moveTo(keys, at, from) {
+                let kept = chosen.filter(function (key) {
+                    return keys.indexOf(key) === -1;
+                });
+                // Pulling rows out from above the drop point shifts it.
+                let lifted = chosen.slice(0, at).filter(function (key) {
+                    return keys.indexOf(key) > -1;
+                }).length;
+                let where = at - lifted;
+                let ordered = (
+                    from === "avail"
+                    ? avail
+                    : chosen
+                ).filter(function (key) {
+                    return keys.indexOf(key) > -1;
+                });
+
+                if (!ordered.length) {
+                    return;
+                }
+                addTileKpis(
+                    kept.slice(0, where).concat(ordered, kept.slice(where))
+                );
+                addTileAvailSel([]);
+                addTileChosenSel(ordered);
+            }
+
+            function take(keys) {
+                let ordered = chosen.filter(function (key) {
+                    return keys.indexOf(key) > -1;
+                });
+
+                if (!ordered.length) {
+                    return;
+                }
+                addTileKpis(chosen.filter(function (key) {
+                    return keys.indexOf(key) === -1;
+                }));
+                addTileChosenSel([]);
+                addTileAvailSel(ordered);
+            }
+
+            /*
+                Moves every selected row one place up or down, as a
+                block: a row stays put when the place it would go to
+                is off the end or is itself selected, which is what
+                keeps a multiple-row selection together at the edges.
+            */
+            function nudge(delta) {
+                let next = chosen.slice();
+                let sel = addTileChosenSel();
+                let order = next.map(function (ignore, idx) {
+                    return idx;
+                });
+
+                if (delta > 0) {
+                    order.reverse();
+                }
+                order.forEach(function (idx) {
+                    let to = idx + delta;
+                    let key = next[idx];
+
+                    if (
+                        sel.indexOf(key) > -1 &&
+                        to >= 0 && to < next.length &&
+                        sel.indexOf(next[to]) === -1
+                    ) {
+                        next[idx] = next[to];
+                        next[to] = key;
+                    }
+                });
+                addTileKpis(next);
+            }
+
+            function canNudge(delta) {
+                let sel = addTileChosenSel();
+
+                return sel.length > 0 && sel.some(function (key) {
+                    let to = chosen.indexOf(key) + delta;
+
+                    return (
+                        to >= 0 && to < chosen.length &&
+                        sel.indexOf(chosen[to]) === -1
+                    );
+                });
+            }
+
+            /*
+                Click to select, ctrl or cmd click to add one, shift
+                click for a run from the last plain click.
+            */
+            function clicked(e, key, list, selProp, anchorProp) {
+                let sel = selProp();
+                let from = list.indexOf(anchorProp());
+                let to = list.indexOf(key);
+
+                if (e.shiftKey && from > -1) {
+                    selProp(list.slice(
+                        Math.min(from, to),
+                        Math.max(from, to) + 1
+                    ));
+                } else if (e.ctrlKey || e.metaKey) {
+                    selProp(
+                        sel.indexOf(key) > -1
+                        ? sel.filter((one) => one !== key)
+                        : sel.concat([key])
+                    );
+                    anchorProp(key);
+                } else {
+                    selProp([key]);
+                    anchorProp(key);
+                }
+            }
+
+            // Dragging anything not already selected takes that row
+            // alone, the way a file manager does.
+            function dragging(key, selProp) {
+                let sel = selProp();
+
+                return (
+                    sel.indexOf(key) > -1
+                    ? sel
+                    : [key]
+                );
+            }
+
+            function markDrop(e, side, at) {
+                let drop = addTileDrop();
+
+                e.preventDefault();
+                if (drop && drop.side === side && drop.at === at) {
+                    // dragover fires continuously; only a change is
+                    // worth a redraw.
+                    e.redraw = false;
+                    return;
+                }
+                addTileDrop({side, at});
+            }
+
+            function row(key, side, idx) {
+                let isChosen = side === "chosen";
+                let siblings = (
+                    isChosen
+                    ? chosen
+                    : avail
+                );
+                let selProp = (
+                    isChosen
+                    ? addTileChosenSel
+                    : addTileAvailSel
+                );
+                let anchorProp = (
+                    isChosen
+                    ? addTileChosenAnchor
+                    : addTileAvailAnchor
+                );
+                let drop = addTileDrop();
+                let classes = ["fb-dual-row"];
+
+                if (selProp().indexOf(key) > -1) {
+                    classes.push("fb-dual-row-selected");
+                }
+                if (isChosen && drop && drop.side === "chosen") {
+                    if (drop.at === idx) {
+                        classes.push("fb-dual-row-drop-before");
+                    }
+                    if (drop.at === idx + 1 && idx === chosen.length - 1) {
+                        classes.push("fb-dual-row-drop-after");
+                    }
+                }
+                return m("li", {
+                    class: classes.join(" "),
+                    draggable: true,
+                    key,
+                    title: label(key),
+                    onclick: function (e) {
+                        clicked(e, key, siblings, selProp, anchorProp);
+                    },
+                    ondblclick: function () {
+                        if (isChosen) {
+                            take([key]);
+                        } else {
+                            moveTo([key], chosen.length, "avail");
+                        }
+                    },
+                    ondragstart: function (e) {
+                        let moved = dragging(key, selProp);
+
+                        selProp(moved);
+                        addTileDragFrom(side);
+                        // Firefox will not start a drag without this.
+                        e.dataTransfer.setData("text/plain", moved.join(" "));
+                        e.dataTransfer.effectAllowed = "move";
+                    },
+                    ondragend: function (e) {
+                        addTileDragFrom(null);
+                        addTileDrop(null);
+                        e.redraw = false;
+                    },
+                    ondragover: function (e) {
+                        let half = e.currentTarget.getBoundingClientRect();
+                        let after = e.clientY > half.top + half.height / 2;
+
+                        markDrop(e, side, (
+                            isChosen
+                            ? idx + Number(after)
+                            : 0
+                        ));
+                    },
+                    ondrop: function (e) {
+                        let from = addTileDragFrom();
+                        let landing = addTileDrop();
+
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isChosen) {
+                            moveTo(
+                                (
+                                    from === "chosen"
+                                    ? addTileChosenSel()
+                                    : addTileAvailSel()
+                                ),
+                                (
+                                    landing
+                                    ? landing.at
+                                    : chosen.length
+                                ),
+                                from
+                            );
+                        } else if (from === "chosen") {
+                            take(addTileChosenSel());
+                        }
+                        addTileDragFrom(null);
+                        addTileDrop(null);
+                    }
+                }, label(key));
+            }
+
+            function list(side, keys, empty) {
+                let isChosen = side === "chosen";
+
+                return m("ul", {
+                    class: (
+                        (
+                            addTileDrop() &&
+                            addTileDrop().side === side &&
+                            addTileDragFrom() &&
+                            addTileDragFrom() !== side
+                        )
+                        ? "fb-dual-list fb-dual-list-over"
+                        : "fb-dual-list"
+                    ),
+                    // Dropping below the last row, on the empty part
+                    // of the box, means the end of the list.
+                    ondragover: (e) => markDrop(e, side, keys.length),
+                    ondrop: function (e) {
+                        let from = addTileDragFrom();
+
+                        e.preventDefault();
+                        if (isChosen && from === "avail") {
+                            moveTo(addTileAvailSel(), chosen.length, "avail");
+                        } else if (isChosen) {
+                            moveTo(
+                                addTileChosenSel(),
+                                chosen.length,
+                                "chosen"
+                            );
+                        } else if (from === "chosen") {
+                            take(addTileChosenSel());
+                        }
+                        addTileDragFrom(null);
+                        addTileDrop(null);
+                    }
+                }, (
+                    keys.length
+                    ? keys.map(function (key, idx) {
+                        return row(key, side, idx);
                     })
-                    : m("div", {
-                        class: "fb-dialog-picker-none"
-                    }, "No metric matches that.")
-                )),
-                m("div", {class: "fb-dialog-picker-count"}, (
-                    chosen.length === 1
-                    ? "1 metric chosen"
-                    : chosen.length + " metrics chosen"
-                ))
+                    : m("li", {class: "fb-dual-empty"}, empty)
+                ));
+            }
+
+            function arrow(icon, hint, why, disabled, onclick) {
+                return m("button[type=button]", {
+                    class: (
+                        disabled
+                        ? "pure-button fb-icon-only fb-button-disabled"
+                        : "pure-button fb-icon-only"
+                    ),
+                    disabled,
+                    title: (
+                        disabled
+                        ? why
+                        : hint
+                    ),
+                    onclick
+                }, f.icon(icon, "fb-button-icon"));
+            }
+
+            return m("div", {class: "fb-dual"}, [
+                m("div", {class: "fb-dual-side"}, [
+                    m("div", {class: "fb-dual-label"}, "Available"),
+                    m("input", {
+                        class: "fb-dialog-picker-filter",
+                        type: "search",
+                        placeholder: "Filter metrics",
+                        oninput: function (e) {
+                            addTileFilter(e.target.value);
+                            addTileAvailSel([]);
+                        },
+                        value: addTileFilter()
+                    }),
+                    list("avail", avail, (
+                        needle
+                        ? "No metric matches that."
+                        : "Every metric is on the tile."
+                    )),
+                    m("div", {class: "fb-dual-note"}, arrow(
+                        "arrow_forward",
+                        "Put the selected metrics on the tile",
+                        "Select a metric on the left first",
+                        !addTileAvailSel().length,
+                        () => moveTo(
+                            addTileAvailSel(),
+                            chosen.length,
+                            "avail"
+                        )
+                    ))
+                ]),
+                m("div", {class: "fb-dual-side"}, [
+                    m("div", {class: "fb-dual-label"}, "On the tile"),
+                    m("div", {
+                        class: "fb-dual-hint"
+                    }, "Top to bottom, as the tile shows them"),
+                    list("chosen", chosen, "Nothing on this tile yet."),
+                    m("div", {class: "fb-dual-note"}, [
+                        arrow(
+                            "arrow_back",
+                            "Take the selected metrics off the tile",
+                            "Select a metric on the right first",
+                            !addTileChosenSel().length,
+                            () => take(addTileChosenSel())
+                        ),
+                        m("span", {class: "fb-toolbar-fill"}),
+                        arrow(
+                            "arrow_upward",
+                            "Move up",
+                            (
+                                addTileChosenSel().length
+                                ? "Already at the top"
+                                : "Select a metric on the right first"
+                            ),
+                            !canNudge(-1),
+                            () => nudge(-1)
+                        ),
+                        arrow(
+                            "arrow_downward",
+                            "Move down",
+                            (
+                                addTileChosenSel().length
+                                ? "Already at the bottom"
+                                : "Select a metric on the right first"
+                            ),
+                            !canNudge(1),
+                            () => nudge(1)
+                        )
+                    ])
+                ])
             ]);
         }
 
@@ -2446,6 +2828,16 @@ function initApp() {
             let schedules = offer.schedules || [];
             let parts = [];
 
+            // Two lists side by side want more room than one column
+            // of fields. Set here rather than once at creation
+            // because it depends on what the dialog is showing, and
+            // the dialog reads its style after asking for content.
+            addTileDlg.style().width = (
+                addTileWhat() === ADD_TILE_KPIS
+                ? "760px"
+                : "520px"
+            );
+
             function group(label, control) {
                 return m("div", {
                     class: "pure-control-group"
@@ -2502,7 +2894,12 @@ function initApp() {
             })));
 
             if (addTileWhat() === ADD_TILE_KPIS) {
-                parts.push(group("Metrics:", metricsPicker(offer.kpis)));
+                parts.push(m("div", {
+                    class: "pure-control-group fb-dialog-wide-group"
+                }, [
+                    m("label", "Metrics:"),
+                    metricsPicker(offer.kpis)
+                ]));
             } else if (addTileWhat() === ADD_TILE_HIST) {
                 parts.push(group("Orders:", m(
                     "div",
