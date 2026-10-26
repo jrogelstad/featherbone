@@ -3790,6 +3790,7 @@
                             let err = new Error(
                                 "Record " + obj.id + " not found."
                             );
+                            err.statusCode = 404;
                             await rollback(err);
                             throw err;
                         }
