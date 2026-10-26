@@ -978,6 +978,58 @@ describe("client components", function () {
                 "a ribbon that fits asks for no redraw"
             );
         });
+
+        /*
+            The other half of the same rule, and the one with somewhere
+            left to go wrong: a ribbon that does NOT fit has to redraw,
+            because the class it just measured has to reach the vnode.
+            It must still stop once it is as tight as it goes -- the
+            loop only has to survive in one branch to take every text
+            field in the app down with it again.
+        */
+        it("stops once it has tightened as far as it goes",
+                async function () {
+            let out = R.render(comps.ribbon, {viewModel: vms.ribbon()});
+            let body = R.find(out.tree, R.byId("fb-ribbon-body"));
+            let counted;
+            let added = [];
+            // Narrower than its contents at any spacing.
+            let cramped = {
+                classList: {
+                    add: (c) => added.push(c),
+                    remove: () => undefined
+                },
+                clientWidth: 400,
+                scrollWidth: 1600
+            };
+
+            // Each tightening step is deferred to requestAnimationFrame,
+            // which the harness runs as setTimeout(0).
+            function settle() {
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, 0);
+                });
+            }
+
+            body.attrs.onupdate({dom: cramped});
+            await settle();
+            await settle();
+            await settle();
+
+            assert.ok(added.length, "it gave up spacing rather than scroll");
+
+            counted = env.redraws();
+            body.attrs.onupdate({dom: cramped});
+            body.attrs.onupdate({dom: cramped});
+            await settle();
+            await settle();
+
+            assert.equal(
+                env.redraws() - counted,
+                0,
+                "at the tightest spacing there is nothing left to change"
+            );
+        });
     });
 
     describe("pages", function () {
