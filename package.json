@@ -12,6 +12,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "build:client": "node scripts/build-client.js",
     "dev:load": "node scripts/dev/load.js",
     "test": "node test/run.js",
     "test:unit": "node test/run.js unit",
@@ -59,5 +60,8 @@
     "winston-daily-rotate-file": "^4.6.1",
     "ws": "^8.17.1",
     "xlsx": "file:vendor/xlsx-0.20.2.tgz"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

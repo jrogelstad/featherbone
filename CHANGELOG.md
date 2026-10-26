@@ -5,6 +5,17 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **`npm run build:client` builds the production client.** It bundles and
+  minifies every module script `index_debug.html` names into
+  `client/clientmin.js` and writes `index.html` to match, so the two pages
+  can no longer drift. The bundle had not been rebuilt since 2.2.0 and was
+  missing nine components (the ribbon, the toolbar, the dashboard, the Users
+  and Instances screens, the connection banner and four more), so none of
+  them appeared without `"debug": true`; `index.html` also lacked the print stylesheet. A unit
+  test fails when `index.html` is not what the debug page produces, or a
+  client file is left out of the bundle. Rebuild after changing anything
+  under `client/` (`npm run build:client -- --check` says whether it is
+  due). Adds `esbuild` as a dev dependency.
 * **The dashboard can be drilled into.** Clicking a row on a measure
   tile opens the records that add up to it, in a modal list with a
   worksheet's manners: search (with a clear), sort, filter, export,
