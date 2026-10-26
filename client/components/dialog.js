@@ -302,9 +302,17 @@ dialog.component = {
         @method view
         @return {Object} View
     */
-    view: function () {
+    view: function (vnode) {
         let content;
-        let vm = this.viewModel;
+        /*
+            The view model as it is NOW, not as it was when this
+            component was created: oninit runs once, so a caller that
+            swaps in a new view model -- the dashboard, opening a
+            drill-down on a different figure -- would otherwise keep
+            rendering the first one, which by then is closed (John
+            reported a second drill doing nothing, Oct 2026).
+        */
+        let vm = vnode.attrs.viewModel || this.viewModel;
         let ids = vm.ids();
         let header;
         let icon = vm.icon();
