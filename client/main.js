@@ -3054,14 +3054,24 @@ function initApp() {
                 }
             }
 
-            parts.push(group("Size:", m("select", {
-                onchange: (e) => addTileSize(e.target.value),
-                value: addTileSize()
-            }, ADD_TILE_SIZES.map(function (size) {
-                return m("option", {
-                    value: size.value
-                }, size.label);
-            }))));
+            /*
+                Size is asked only when adding. A tile already on the
+                board has been put where it is and sized by hand, and
+                answering this question again would undo both -- every
+                edit snapping it back to a preset and shoving its
+                neighbours out of the way (John, Oct 2026). Drag its
+                corner to resize it.
+            */
+            if (!addTileEditingId()) {
+                parts.push(group("Size:", m("select", {
+                    onchange: (e) => addTileSize(e.target.value),
+                    value: addTileSize()
+                }, ADD_TILE_SIZES.map(function (size) {
+                    return m("option", {
+                        value: size.value
+                    }, size.label);
+                }))));
+            }
 
             parts.push(m("div", {
                 class: "fb-dialog-note"
@@ -3081,10 +3091,13 @@ function initApp() {
             let size = ADD_TILE_SIZES.find(
                 (one) => one.value === addTileSize()
             );
-            let tile = {
-                cols: size.cols,
-                rows: size.rows
-            };
+            // Editing says nothing about size, so the tile keeps the one
+            // it has -- see the dialog's own note above.
+            let tile = (
+                editingId
+                ? {}
+                : {cols: size.cols, rows: size.rows}
+            );
             let placed;
 
             if (editingId) {
@@ -3150,9 +3163,7 @@ function initApp() {
             if (!placed) {
                 addTileErrDlg.message(
                     editingId
-                    ? "There is no room left on the board for a tile " +
-                    "that size. Make it smaller, or move something " +
-                    "else first."
+                    ? "That tile could not be changed."
                     : "There is no room left on the board for a tile " +
                     "that size. Take one off, or choose a smaller size."
                 );
