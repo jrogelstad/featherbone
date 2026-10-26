@@ -345,10 +345,15 @@ dialog.component = {
         content.unshift(vm.content());
 
         if (vm.icon() || vm.title()) {
+            // Icon and title as ONE array of children rather than two
+            // arguments: as two, the title is a text node sitting beside
+            // an array, and a dialog that changes its own title while
+            // open -- a drill-down naming where it has got to -- kept
+            // showing the title it opened with.
             header = m("h3", {
                 id: ids.header,
                 class: "fb-header"
-            }, [f.icon(icon, iconClass)], vm.title().toName());
+            }, [f.icon(icon, iconClass), vm.title().toName()]);
         }
 
         return m("dialog", {

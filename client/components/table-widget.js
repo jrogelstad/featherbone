@@ -1898,15 +1898,20 @@ tableWidget.viewModel = function (options) {
             onclick: doExport
         });
 
-        data.push({
-            id: "import",
-            icon: "file_upload",
-            outlined: true,
-            name: "Import",
-            title: "Import data",
-            enabled: true,
-            onclick: doImport
-        });
+        // A list that is a view onto figures rather than a place to work
+        // -- a dashboard drill-down -- offers no way to put data in; see
+        // drill-dialog.js.
+        if (vm.isImportEnabled()) {
+            data.push({
+                id: "import",
+                icon: "file_upload",
+                outlined: true,
+                name: "Import",
+                title: "Import data",
+                enabled: true,
+                onclick: doImport
+            });
+        }
 
         return data;
     }
@@ -2012,6 +2017,15 @@ tableWidget.viewModel = function (options) {
         @param {Boolean} flag
         @return {Boolean}
     */
+    /**
+        Whether Import is offered among the list's actions. Default true.
+
+        @method isImportEnabled
+        @param {Boolean} [flag]
+        @return {Boolean}
+    */
+    vm.isImportEnabled = f.prop(options.isImportEnabled !== false);
+
     vm.isEditModeEnabled = function (...args) {
         let enable = args[0];
         if (enable === false) {

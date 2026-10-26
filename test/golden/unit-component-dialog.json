@@ -15,17 +15,13 @@
       },
       "children": [
         {
-          "fragment": [
-            {
-              "attrs": {
-                "alt": "",
-                "class": "material-icons-outlined fb-dialog-icon fb-ipicon",
-                "draggable": false,
-                "src": "/media/icons/iconpark/help.svg"
-              },
-              "tag": "img"
-            }
-          ]
+          "attrs": {
+            "alt": "",
+            "class": "material-icons-outlined fb-dialog-icon fb-ipicon",
+            "draggable": false,
+            "src": "/media/icons/iconpark/help.svg"
+          },
+          "tag": "img"
         },
         "Confirm"
       ],

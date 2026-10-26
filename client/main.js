@@ -435,12 +435,16 @@ const ADD_TILE_HORIZON_NOUNS = {
     week: "weeks",
     month: "months"
 };
+// In board cells, which are half the size they were: the board was
+// doubled so a tile can be nudged by half of what used to be the
+// smallest possible step (see DASH_COLS in dashboard.js). The sizes
+// themselves are unchanged -- Medium is the same Medium.
 const ADD_TILE_SIZES = [
-    {value: "small", label: "Small", cols: 4, rows: 2},
-    {value: "medium", label: "Medium", cols: 5, rows: 3},
-    {value: "large", label: "Large", cols: 7, rows: 4},
-    {value: "wide", label: "Wide", cols: 9, rows: 3},
-    {value: "tall", label: "Tall", cols: 4, rows: 5}
+    {value: "small", label: "Small", cols: 8, rows: 4},
+    {value: "medium", label: "Medium", cols: 10, rows: 6},
+    {value: "large", label: "Large", cols: 14, rows: 8},
+    {value: "wide", label: "Wide", cols: 18, rows: 6},
+    {value: "tall", label: "Tall", cols: 8, rows: 10}
 ];
 /*
     How a tile is judged. These are the framework's own options rather
