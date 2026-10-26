@@ -5,6 +5,55 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The dashboard can be drilled into.** Clicking a row on a measure
+  tile opens the records that add up to it, in a modal list with a
+  worksheet's manners: search (with a clear), sort, filter, export,
+  print, and a totals footer that adds up to the figure that was
+  clicked. The list is a copy of a worksheet's configuration, never a
+  reference to one, so reconfiguring or deleting a worksheet cannot
+  break drilling in. It is a view onto figures rather than a place to
+  work: no edit mode, no import, and none of the inspiring worksheet's
+  own actions. Double-clicking a row opens that record as its own page,
+  with the back button; coming back to the board brings the list back
+  with it. A source offers all this by answering `drillFor(tile, row)`;
+  one that says nothing leaves its rows as they were. SupplyChain's
+  revenue tiles answer it first, listing the invoice lines behind a
+  figure by customer, product, product category, product group or site.
+* **Tiles move and resize in steps half the size.** The board is 24
+  columns by 16 rows rather than 12 by 8, so a tile that was a little
+  too big or a little too small for its contents can be made to fit.
+  Nothing on screen changes size: saved layouts, the working draft,
+  the tiles a package ships and the defaults a module registers are all
+  in the old units and are scaled on the way in, and a layout saved from
+  now on records the board it was saved on.
+* **Inventory joins the dashboard.** Value and quantity on hand, grouped
+  by product, product category, product group or product source, and an
+  Inventory Value metric with the balance a year earlier beside it and
+  twelve month-end balances as its history. Inventory is a balance
+  rather than a flow, so its tiles have no period to choose: they say
+  what is on hand at the reporting date (SupplyChain).
+* **A package can carry its own icon**, a sibling `icon.png`, `.jpg`,
+  `.jpeg` or `.svg` beside its manifest, which replaces the Featherbone
+  quill in the ribbon and in the browser tab. It travels with every
+  export, the way a package's title does, because it says which
+  application this is rather than being part of any one screen.
+* **A package's wallpaper now blends across the whole dashboard**, title
+  bar and As-Of line included, rather than stopping at the tile grid,
+  and fills the page whatever shape the image is. The banner carrying
+  the dashboard's name keeps a readable surface that fades out to the
+  right, so the title is legible over a busy picture.
+* **Exporting a module carries the dashboard layouts people built.**
+  Save Layout records no module, so every layout built on the Home tab
+  had a blank one and belonged to no export: a package shipped the
+  wallpaper and none of the boards.
+* **Lists keep their totals on screen.** The interface is drawn at a
+  zoom, and a list measured the room it had in real pixels but then
+  claimed it in zoomed ones, so every list was about 13% too tall for
+  its window and the totals footer sat below the bottom of the screen.
+* **The due-date histogram starts where the data does.** Its lookback is
+  a fixed number of periods, so a report whose data began part way
+  through the window opened on a run of empty columns.
+
 * **The Users screen says what an administrator's badge reaches.** A
   platform administrator wore "platform" and "admin" at once, which said
   the same thing twice now that the tiers are a hierarchy. There is now
