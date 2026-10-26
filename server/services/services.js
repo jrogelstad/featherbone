@@ -105,6 +105,22 @@
         let that = {};
 
         /**
+            Module names in dependency order: what loads before what.
+            The order a database's modules impose, not the order of
+            whichever of them happen to have rows anywhere.
+
+            @method getModuleOrder
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @return {Promise} Resolves an array of module names
+        */
+        that.getModuleOrder = async function (obj) {
+            let mods = await getSortedModules(obj.client);
+
+            return mods.map((mod) => mod.name);
+        };
+
+        /**
             Fetch all service scripts from the database and resolve in promise.
             @method getServices
             @param {Object} payload Request payload
