@@ -158,9 +158,8 @@ describe("authentication", function () {
     });
 
     // Improvement plan 1.6: failed sign-ins must not strand connections
-    it("does not leak database connections on failed sign-ins", {
-        todo: "plan 1.6: authenticate() leaks a pooled connection per failure"
-    }, async function () {
+    it("does not leak database connections on failed sign-ins",
+            async function () {
         async function connections() {
             let r = await db.query(
                 "SELECT count(*)::int AS n FROM pg_stat_activity " +
