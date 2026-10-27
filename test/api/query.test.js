@@ -578,6 +578,76 @@ describe("data API queries", function () {
             assert.deepEqual(resp.body, {result: {f1: 1500, f2: 500}});
         });
 
+        /*
+            A list footer under a money column used to add up each row's
+            own-currency amount and label the sum as base. Totals are now
+            of what each value is worth in base (money_base), so rows in
+            different currencies add up to a number in one.
+        */
+        it("totals money in the base currency", async function () {
+            let base = (await admin.raw("GET", "/currency/base")).body;
+            let foreign = await admin.create("Currency", {
+                code: uniq("FA").slice(0, 14),
+                description: "Aggregate foreign",
+                minorUnit: 2,
+                symbol: "F"
+            });
+            let fx = uniq("QRYFX");
+            let resp;
+            let reverse = await admin.create("Currency", {
+                code: uniq("FB").slice(0, 14),
+                description: "Aggregate reverse",
+                minorUnit: 2,
+                symbol: "R"
+            });
+
+            // 1 foreign = 0.25 base; 1 base = 4 reverse (stored that way)
+            await admin.create("CurrencyConversion", {
+                fromCurrency: {id: foreign.id},
+                ratio: 0.25,
+                toCurrency: {id: base.id}
+            });
+            await admin.create("CurrencyConversion", {
+                fromCurrency: {id: base.id},
+                ratio: 4,
+                toCurrency: {id: reverse.id}
+            });
+            await admin.create("Terms", {
+                code: fx + "-A",
+                depositAmount: money(100, foreign.code),
+                depositRequired: true,
+                policy: "N"
+            });
+            await admin.create("Terms", {
+                code: fx + "-B",
+                depositAmount: money(40, reverse.code),
+                depositRequired: true,
+                policy: "N"
+            });
+            await admin.create("Terms", {
+                code: fx + "-C",
+                depositAmount: money(7, base.code),
+                depositRequired: true,
+                policy: "N"
+            });
+
+            resp = await admin.raw("POST", "/do/aggregate/", {
+                aggregations: [
+                    {method: "SUM", property: "depositAmount.amount"},
+                    {method: "COUNT", property: "depositAmount.amount"}
+                ],
+                filter: {criteria: [{
+                    operator: "~",
+                    property: "code",
+                    value: "^" + escapeRegExp(fx)
+                }]},
+                name: "Terms"
+            });
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            // 100 x 0.25 + 40 / 4 + 7, not 147
+            assert.deepEqual(resp.body, {result: {f1: 42, f2: 3}});
+        });
+
         it("honors the filter", async function () {
             assert.deepEqual(
                 (await aggregate(

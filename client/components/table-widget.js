@@ -1726,7 +1726,10 @@ tableWidget.viewModel = function (options) {
                     f.isMoney(prop.format) &&
                     aggregates[i].method !== "COUNT"
                 ) {
-                    val = f.money(val); // Hack, what if mixed currency?
+                    // In base currency: the server totals what each
+                    // value is worth in base (money_base), whatever
+                    // currency the rows are in.
+                    val = f.money(val);
                 }
                 aggs[p] = val;
 
