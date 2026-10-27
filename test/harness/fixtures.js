@@ -28,9 +28,16 @@ function money(amount, currency) {
     return {amount, currency: currency || "USD"};
 }
 
+/*
+    The UTC date, offset by whole days. The offset is added in UTC too:
+    adding it to the local date and then printing the UTC one is a day
+    out whenever a daylight saving change falls in between and the
+    local evening is already the next day in UTC (Toronto at 19:55 on
+    Oct 27, plus 11 days, is Nov 8 00:55 UTC).
+*/
 function today(offsetDays) {
     let d = new Date();
-    d.setDate(d.getDate() + (offsetDays || 0));
+    d.setUTCDate(d.getUTCDate() + (offsetDays || 0));
     return d.toISOString().slice(0, 10);
 }
 
