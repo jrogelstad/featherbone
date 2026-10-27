@@ -26,6 +26,10 @@ let catalog;
 let comps;
 // What drillFor was handed, so the test can see the date it was given.
 let asked;
+// How many times the lazy descriptor was asked to get its records ready.
+let readied = 0;
+// What the second level was asked to drill from.
+let drilledFrom;
 
 // Every vnode in a raw (unexpanded) tree, components included.
 function allNodes(node, found) {
@@ -90,6 +94,29 @@ function opened(row) {
     models.drillDialog = original;
     return env.flush(10).then(function () {
         return made;
+    });
+}
+
+/*
+    Every drill-down made while `act` runs and settles, in order: a lazy
+    descriptor opens its list after a round trip, and a drill from a row
+    closes one list and opens the next.
+*/
+function made(act) {
+    let all = [];
+    let models = catalog.store().viewModels();
+    let original = models.drillDialog;
+
+    models.drillDialog = function (options) {
+        let vm = original(options);
+
+        all.push(vm);
+        return vm;
+    };
+    act();
+    return env.flush(20).then(function () {
+        models.drillDialog = original;
+        return all;
     });
 }
 
@@ -160,6 +187,69 @@ describe("drilling into a metric", function () {
             name: "Fbt Quiet"
         });
 
+        // One whose records have to be got ready first, so its
+        // descriptor is a function the board calls on the click.
+        globals.dashboardKpis.register({
+            drillFor: function (tile) {
+                return function () {
+                    readied += 1;
+                    return Promise.resolve({
+                        config: {
+                            columns: [{attr: "id"}],
+                            filter: {criteria: [{
+                                property: "id",
+                                value: "ready-" + tile.asOf
+                            }]}
+                        },
+                        feather: "Object",
+                        title: "Balances at " + tile.asOf
+                    });
+                };
+            },
+            format: String,
+            isStandard: false,
+            key: "fbtLater",
+            load: function () {
+                return Promise.resolve({value: 7});
+            },
+            module: "Test",
+            name: "Fbt Later"
+        });
+
+        // One that drills again: from a row of its list to another list.
+        globals.dashboardKpis.register({
+            drillFor: function () {
+                return {
+                    config: {columns: [{attr: "id"}]},
+                    drillFor: function (record) {
+                        drilledFrom = record;
+                        return {
+                            config: {
+                                columns: [{attr: "id"}],
+                                filter: {criteria: [{
+                                    property: "id",
+                                    value: record.id
+                                }]}
+                            },
+                            feather: "Object",
+                            title: "Behind " + record.id
+                        };
+                    },
+                    drillLabel: "What changed",
+                    feather: "Object",
+                    title: "Top level"
+                };
+            },
+            format: String,
+            isStandard: false,
+            key: "fbtDeeper",
+            load: function () {
+                return Promise.resolve({value: 3});
+            },
+            module: "Test",
+            name: "Fbt Deeper"
+        });
+
         env.respond(function (req) {
             let asking = String(req.path || req.url || "");
 
@@ -179,7 +269,12 @@ describe("drilling into a metric", function () {
                             cols: 12,
                             grid: 24,
                             id: "fbt-metrics",
-                            kpis: ["fbtBacklog", "fbtQuiet"],
+                            kpis: [
+                                "fbtBacklog",
+                                "fbtQuiet",
+                                "fbtLater",
+                                "fbtDeeper"
+                            ],
                             row: 1,
                             rows: 6,
                             type: "kpi"
@@ -233,5 +328,69 @@ describe("drilling into a metric", function () {
 
         assert.ok(metricRow(tree, "Fbt Backlog"), "the other one still does");
         assert.equal(metricRow(tree, "Fbt Quiet"), undefined);
+    });
+
+    /*
+        Records that have to be got ready first -- a balance at a date,
+        built from the ledger -- are got ready when the row is clicked,
+        not every time the board is drawn.
+    */
+    it("gets a drill ready only when it is clicked", async function () {
+        let tree = await boardTree();
+        let row = metricRow(tree, "Fbt Later");
+        let lists;
+
+        assert.ok(row, "the metric row offers a drill");
+        assert.equal(readied, 0, "drawing the board readied nothing");
+        lists = await made(function () {
+            row.attrs.onclick();
+        });
+        assert.equal(readied, 1, "the click readied the records");
+        assert.equal(lists.length, 1);
+        assert.equal(lists[0].title(), "Balances at " + AS_OF);
+        assert.deepEqual(lists[0].tableWidget().filter().criteria, [{
+            property: "id",
+            value: "ready-" + AS_OF
+        }]);
+    });
+
+    /*
+        From a balance to the transactions that made it: a list can
+        offer a further drill from the row selected, which opens in its
+        place with a Back button to return.
+    */
+    it("drills again from a row, and Back returns", async function () {
+        let tree = await boardTree();
+        let row = metricRow(tree, "Fbt Deeper");
+        let top;
+        let next;
+        let back;
+
+        top = (await made(function () {
+            row.attrs.onclick();
+        }))[0];
+        assert.equal(top.title(), "Top level");
+        assert.equal(top.buttonBack(), undefined, "nowhere to go back to");
+
+        // Nothing selected, nothing to drill from.
+        assert.equal((await made(top.drillSelection)).length, 0);
+
+        top.tableWidget().selection = function () {
+            return {
+                toJSON: function () {
+                    return {id: "row-7"};
+                }
+            };
+        };
+        next = (await made(top.drillSelection))[0];
+        assert.deepEqual(drilledFrom, {id: "row-7"});
+        assert.equal(next.title(), "Behind row-7");
+        assert.ok(next.buttonBack(), "the next list offers Back");
+
+        back = (await made(function () {
+            next.buttonBack().onclick()();
+        }))[0];
+        assert.equal(back.title(), "Top level", "Back reopens the first");
+        assert.equal(back.buttonBack(), undefined);
     });
 });
