@@ -73,6 +73,12 @@ const drillDialog = {};
     @param {Object} options.config List configuration: columns,
     aggregates and filter, shaped as a worksheet's `list`
     @param {String} [options.icon] Dialog icon
+    @param {Object} [options.drill] A further drill-down from the row
+    selected: `{label, icon, onclick(record)}`, `record` being the row's
+    data. Shown as a tool beside Sort and Filter, live while a row is
+    selected.
+    @param {Function} [options.onBack] Return to the list this one was
+    drilled from; adds a Back button.
 */
 drillDialog.viewModel = function (options) {
     let vm;
@@ -224,6 +230,22 @@ drillDialog.viewModel = function (options) {
     }));
 
     /**
+        Drills again from the selected row -- from a balance to the
+        transactions that made it, say. Nothing selected, nothing to
+        drill from.
+
+        @method drillSelection
+    */
+    vm.drillSelection = function () {
+        let model = vm.tableWidget().selection();
+
+        if (!model || !options.drill) {
+            return;
+        }
+        options.drill.onclick(model.toJSON());
+    };
+
+    /**
         @method buttonClose
         @return {ViewModels.Button}
     */
@@ -234,7 +256,24 @@ drillDialog.viewModel = function (options) {
     }));
     vm.buttonClose().isPrimary(true);
 
-    vm.buttons([vm.buttonClose]);
+    /**
+        Back to the list this one was drilled from. Only there when it
+        was drilled from one.
+
+        @method buttonBack
+        @return {ViewModels.Button}
+    */
+    vm.buttonBack = f.prop();
+    if (options.onBack) {
+        vm.buttonBack(f.createViewModel("Button", {
+            class: "fb-dialog-button",
+            label: "&Back",
+            onclick: options.onBack
+        }));
+        vm.buttons([vm.buttonBack, vm.buttonClose]);
+    } else {
+        vm.buttons([vm.buttonClose]);
+    }
 
     /*
         The list fills the dialog; the dialog is sized against the
@@ -278,6 +317,16 @@ drillDialog.viewModel = function (options) {
                     title: "These records are " + options.feather + "s"
                 }, options.feather),
                 m("div", {class: "fb-toolbar-fill"}),
+                (
+                    options.drill
+                    ? toolButton(
+                        options.drill.label || "Drill down",
+                        options.drill.icon || "zoom_in",
+                        Boolean(vm.tableWidget().selection()),
+                        vm.drillSelection
+                    )
+                    : null
+                ),
                 toolButton("Sort", "sort_by_alpha", canFilter, function () {
                     vm.sortDialog().show();
                 }),

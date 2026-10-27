@@ -57,6 +57,31 @@
     reporting date the tile is showing. A KPI that says nothing is a metric
     row that does not respond to a click.
 
+    What `drillFor` answers -- for a metric, or for a measure source's row
+    -- is a drill-down descriptor:
+
+        {
+            feather: what to list
+            title:   what the figure was
+            icon:    optional
+            config:  {columns, aggregates, filter}, shaped as a worksheet
+            drillFor:   (record) -> another descriptor, optional: a
+                        further drill from the row selected in this one
+            drillLabel: what to call that, optional ("Drill down")
+            drillIcon:  optional
+        }
+
+    or a function that returns one, or a promise of one. A function is
+    called only when the row is clicked: for records that have to be got
+    ready first -- a balance at a date, built from the ledger -- which is
+    not something to do for every row of every tile each time the board is
+    drawn. Answering nothing, then, is a click that opens nothing; failing
+    shows the failure.
+
+    A further drill opens in place of the list it came from, with a Back
+    button to return to it; opening a record from any of them and coming
+    back to the board puts the whole trail back.
+
     `pending` is expected but not yet landed (open orders), drawn as a
     paler extension of the bar.
 
@@ -238,7 +263,8 @@ let sourceRegistry = {};
 // it is modal.
 let drillViewModel = null;
 // The list to put back when the board is next drawn, set when opening a
-// record takes us off the board. Cleared as soon as it is honoured.
+// record takes us off the board: {spec, trail}, trail being the lists it
+// was drilled from, nearest last. Cleared as soon as it is honoured.
 let drillOnReturn = null;
 let refresherRegistry = {};
 let scheduleRegistry = {};
@@ -2094,10 +2120,61 @@ function drillRow(spec) {
     return {
         class: "fb-dash-row-drill",
         onclick: function () {
-            openDrill(spec);
+            startDrill(spec, []);
         },
         title: "Show the records behind this"
     };
+}
+
+/**
+    Gets a descriptor ready and opens it. A plain descriptor opens at
+    once; a function is called now, on the click, and what it answers --
+    or resolves to -- is opened (see the module comment).
+
+    @private
+    @param {Object|Function} spec
+    @param {Array} trail The lists this one is drilled from, nearest last
+    @return {Promise}
+*/
+function startDrill(spec, trail) {
+    if (typeof spec !== "function") {
+        openDrill(spec, trail);
+        return Promise.resolve();
+    }
+
+    return Promise.resolve().then(spec).then(function (ready) {
+        if (ready) {
+            openDrill(ready, trail);
+        }
+    }).catch(function (err) {
+        showDrillError(err, trail);
+    });
+}
+
+/*
+    Getting a drill-down ready failed: say so where the list would have
+    been, with the way back if there was somewhere to go back to.
+*/
+function showDrillError(err, trail) {
+    let vm = f.createViewModel("Dialog", {
+        icon: "error",
+        message: (
+            (err && err.message)
+            ? err.message
+            : String(err)
+        ),
+        title: "Could not show the records behind this"
+    });
+
+    vm.buttonCancel().hide();
+    if (trail && trail.length) {
+        vm.onOk(function () {
+            openDrill(trail[trail.length - 1], trail.slice(0, -1));
+        });
+    }
+    drillViewModel = vm;
+    vm.show();
+    m.redraw();
 }
 
 /**
@@ -2105,13 +2182,18 @@ function drillRow(spec) {
 
     One dialog, rebuilt each time rather than one per tile: only one can
     be open at a time (it is modal), and a list configured for the last
-    thing clicked is exactly what the next click wants replaced.
+    thing clicked is exactly what the next click wants replaced. A
+    further drill from it replaces it in turn, remembering it in the
+    trail so Back can reopen it.
 
     @private
-    @param {Object} spec What drillFor returned
+    @param {Object} spec A descriptor (see the module comment)
+    @param {Array} [trail] The lists this one is drilled from
 */
-function openDrill(spec) {
-    let vm = f.createViewModel("DrillDialog", {
+function openDrill(spec, trail) {
+    let vm;
+    let behind = trail || [];
+    let options = {
         config: spec.config,
         feather: spec.feather,
         icon: spec.icon,
@@ -2123,10 +2205,33 @@ function openDrill(spec) {
             next time the board is drawn (John, Oct 2026).
         */
         onLeave: function () {
-            drillOnReturn = spec;
+            drillOnReturn = {spec, trail: behind};
         }
-    });
+    };
 
+    if (spec.drillFor) {
+        options.drill = {
+            icon: spec.drillIcon,
+            label: spec.drillLabel,
+            onclick: function (record) {
+                let next = spec.drillFor(record);
+
+                if (!next) {
+                    return;
+                }
+                vm.cancel();
+                startDrill(next, behind.concat([spec]));
+            }
+        };
+    }
+    if (behind.length) {
+        options.onBack = function () {
+            vm.cancel();
+            openDrill(behind[behind.length - 1], behind.slice(0, -1));
+        };
+    }
+
+    vm = f.createViewModel("DrillDialog", options);
     drillOnReturn = null;
     drillViewModel = vm;
     vm.show();
@@ -3375,7 +3480,7 @@ let dashboard = {
             record came from is what "back" meant, so it opens again.
         */
         if (drillOnReturn) {
-            openDrill(drillOnReturn);
+            openDrill(drillOnReturn.spec, drillOnReturn.trail);
         }
 
         /*
@@ -3438,15 +3543,28 @@ let dashboard = {
             (
                 drillViewModel
                 ? m("div", {class: "pure-form"}, [
-                    m(f.getComponent("Dialog"), {
+                    // Keyed, so the next list in a drill is a new dialog
+                    // rather than this one redrawn with another's model.
+                    // In a fragment of its own: mithril wants keyed
+                    // siblings or none.
+                    [m(f.getComponent("Dialog"), {
+                        key: drillViewModel.ids().dialog,
                         viewModel: drillViewModel
-                    }),
-                    m(f.getComponent("SortDialog"), {
-                        viewModel: drillViewModel.sortDialog()
-                    }),
-                    m(f.getComponent("FilterDialog"), {
-                        viewModel: drillViewModel.filterDialog()
-                    })
+                    })],
+                    (
+                        drillViewModel.sortDialog
+                        ? m(f.getComponent("SortDialog"), {
+                            viewModel: drillViewModel.sortDialog()
+                        })
+                        : null
+                    ),
+                    (
+                        drillViewModel.filterDialog
+                        ? m(f.getComponent("FilterDialog"), {
+                            viewModel: drillViewModel.filterDialog()
+                        })
+                        : null
+                    )
                 ])
                 : null
             ),
