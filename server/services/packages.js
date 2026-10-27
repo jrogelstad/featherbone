@@ -848,7 +848,11 @@
                 }
 
                 fs.mkdirSync(place, {recursive: true});
-                fs.cpSync(from, place, {recursive: true});
+                // A working copy's history is not part of the package
+                fs.cpSync(from, place, {
+                    filter: (src) => path.basename(src) !== ".git",
+                    recursive: true
+                });
 
                 /*
                     The module's own libraries, installed inside its own

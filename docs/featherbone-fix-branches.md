@@ -8,6 +8,45 @@
 
 Read this together with `featherbone-review-handover.md`. Started 2026-10-01.
 
+## Open, 2026-10-27 (tenth round): module tests live in their modules
+
+John, 2026-10-27: "unit tests for specific supply chain functionality
+should live within their respective modules within supply chain". Decided
+in `docs/adr-003-module-tests-and-help.md`, which also covers help (not
+built yet). Three branches; **merge in this order**, the first two in
+`jrogelstad/featherbone`:
+
+1. `docs/adr-003-module-tests-and-help` -- the ADR.
+2. `feat/module-tests` (on the first). `test/run.js` reads the copy's
+   `module` rows and runs the `test/` folders of each deployed package and
+   the modules it carries. Only the version deployed in the source database
+   is tested. `Package@version` deploys that version into the copy first,
+   and `--package <dir>` deploys a working copy from a scratch modules
+   directory. Module tests reach the harness as
+   `require("featherbone-test")` (`test/export`, on `NODE_PATH`), golden
+   files can sit beside a module's tests (`golden.at(__dirname)`), and the
+   reporter names module files `<module>/<version>/...`.
+   `test/supplychain` and the SupplyChain builders in
+   `test/harness/fixtures.js` are removed. Installing a package from a
+   directory no longer copies its `.git`, with a unit test for that.
+3. `feat/module-tests` in `jrogelstad/SupplyChain`: the nine suites, their
+   three helpers and the builders, moved into the sub-modules. Version
+   2.2.39, rebased on SupplyChain main after #56-#58.
+
+Merge 2 and 3 together: core without 3 runs no SupplyChain tests, and 3
+needs 2's `featherbone-test`. After merging, install and deploy SupplyChain
+2.2.39 into `demo`, or run `node test/run.js SupplyChain@2.2.39`. That
+version needs `money_base()` from framework #372, so upgrade the instance
+first (`node install.js --instance demo`). **Proved
+in the cloud sandbox** with SupplyChain installed from its repo HEAD (the
+first time it has installed there). The moved suites give 154 pass / 1 fail /
+27 todo, identical to the old `test/supplychain` run on the same database:
+the one failure (`inventory` "transactions are read only over the data
+API", 500 against 404) and the 16 todo tests that now pass are the same in
+both runs, and again after rebasing all three on the new masters. Unit 473
+pass. `api/crud` and `api/catalog` fail as on master
+here, for want of Job Shop.
+
 ## Merged, 2026-10-25 (ninth round): the dashboard, used in anger
 
 John ran the dashboard against his own data all day and reported as he went.
