@@ -31,6 +31,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const util = require("util");
 
 const MAX_MESSAGE = 240;
 const TESTS_DIR = path.resolve(__dirname, "..");
@@ -105,6 +106,33 @@ function where(error) {
     return found.trim().replace(/^at\s+/, "").replace(
         /\(?(?:file:\/\/)?([^()]*[\\/]test[\\/][^()]*)\)?$/,
         (all, file) => relative(file)
+    );
+}
+
+/*
+    Full detail of one failure -- the whole message and stack, and the
+    properties a driver error carries (a Postgres detail and hint, say)
+    -- appended to FB_TEST_FAILURE_LOG the moment it happens. The
+    summary prints only a clipped line per failure, and only once the
+    whole run is over; a file such as identity.test.js takes two minutes
+    by itself, so this is what can be read, or tailed, while it runs.
+*/
+function logFailure(name, file, error) {
+    let log = process.env.FB_TEST_FAILURE_LOG;
+
+    if (!log) {
+        return;
+    }
+    let text = util.inspect(inner(error), {
+        breakLength: 100,
+        depth: 3,
+        maxArrayLength: 20,
+        maxStringLength: 4000
+    });
+
+    fs.appendFileSync(
+        log,
+        "=== " + file + " > " + name + "\n" + text + "\n\n"
     );
 }
 
@@ -209,6 +237,7 @@ async function* report(source) {
                 data.details.error.failureType !== "subtestsFailed") {
                 let f = entry(data.file);
                 f.fail += 1;
+                logFailure(data.name, f.name, data.details.error);
                 failures.push({
                     file: f.name,
                     name: data.name,
@@ -232,6 +261,7 @@ async function* report(source) {
             f.pass += 1;
         } else {
             f.fail += 1;
+            logFailure(data.name, f.name, data.details && data.details.error);
             failures.push({
                 file: f.name,
                 name: data.name,

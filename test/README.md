@@ -77,6 +77,7 @@ Settings, all optional:
 | `FB_TEST_KEEP_DB=1` | | Keep the copy after the run for inspection |
 | `FB_UPDATE_GOLDEN=1` | | Rewrite golden files instead of comparing |
 | `FB_TEST_SKIP` | | Comma separated path fragments to leave out, for a file too slow to sit through: `FB_TEST_SKIP=upgrade` runs everything but `api/upgrade.test.js` (and `unit/upgrade.test.js`, which matches the same fragment). Skipped files are named at the start of the run, so a green run cannot quietly be a partial one |
+| `FB_TEST_FAILURE_LOG` | `test/.artifacts/failures.log` | Where each failure's full detail is written as it happens |
 | `FB_TEST_REPORTER` | `test/harness/reporter.js` | Any `node --test` reporter, e.g. `spec` (every test, full errors, SQL and stacks) or `tap` |
 
 The default reporter prints results only: one line per test file, then each failure once (test name, the first lines of its message cut to 240 characters, and where in the tests it was thrown), then one set of totals. Known-defect (todo) tests are counted, and any that now pass are named so they can be promoted. Console output from the tests is dropped. Use `FB_TEST_REPORTER=spec` when you need the full detail.
@@ -88,6 +89,13 @@ per instance, and an upgrade costs what the instance's data costs, so on a
 large `demo` it can run for many minutes.
 
 Server output goes to `test/.artifacts/server-<db>.log`.
+
+Each failure's **full** detail (whole message, stack, and the properties a
+driver error carries, such as a Postgres `code` and `hint`) is appended to
+`test/.artifacts/failures.log` the moment it happens, so a failure can be
+read, or followed with `tail -f`, while a long file is still running. The
+summary above is clipped and comes last. The log is emptied at the start of
+each run, and `FB_TEST_FAILURE_LOG` moves it.
 
 **A run that is interrupted can leave state behind.** `api/module-install.test.js`
 installs a fixture package into the packages directory and removes it in its
