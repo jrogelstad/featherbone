@@ -881,12 +881,47 @@
             let feather;
             let agg;
 
+            /*
+                A total of money is a total in the base currency. A list
+                asks for `<money>.amount`, which is the amount in each
+                row's own currency; adding those up across rows in
+                different currencies gives a number in no currency at
+                all, which the footer then labels as base. So the total
+                is taken of what each value is worth in base instead --
+                money_base (scripts/money-functions.js) -- which for a
+                list in one currency is the same number (John, Oct
+                2026).
+            */
+            function isMoneyAmount(attr) {
+                let parts = attr.split(".");
+                let fp = feather.properties[parts[0]];
+
+                return (
+                    parts.length === 2 &&
+                    parts[1] === "amount" &&
+                    Boolean(fp) &&
+                    Boolean(formats[fp.format]) &&
+                    formats[fp.format].isMoney === true
+                );
+            }
+
             function toCols(agg) {
                 let attr = agg.property;
-                let prop = tools.resolvePath(agg.property, tokens);
-                let ret = agg.method.toUpperCase() + "(" + prop + ")";
+                let prop;
+                let ret;
                 let idx = attr.indexOf(".");
                 let comp;
+
+                if (
+                    agg.method.toUpperCase() !== "COUNT" &&
+                    isMoneyAmount(attr)
+                ) {
+                    tokens.push(attr.slice(0, idx).toSnakeCase());
+                    prop = "money_base(%I)";
+                } else {
+                    prop = tools.resolvePath(agg.property, tokens);
+                }
+                ret = agg.method.toUpperCase() + "(" + prop + ")";
 
                 if (idx === -1) {
                     subt.push(attr.toSnakeCase());

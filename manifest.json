@@ -53,6 +53,11 @@
             "path": "scripts/relation-indexes.js"
         },
         {
+            "type": "execute",
+            "path": "scripts/money-functions.js",
+            "target": "instance"
+        },
+        {
             "type": "workbook",
             "path": "scripts/workbooks.json"
         },
