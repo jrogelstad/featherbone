@@ -46,6 +46,15 @@ const TALLY = path.join(
     "fb-test-tally-" + process.pid + ".jsonl"
 );
 
+/*
+    Each failure's full detail, written as it happens (the summary at the
+    end is clipped and comes last). Emptied at the start of every run.
+*/
+const FAILURE_LOG = process.env.FB_TEST_FAILURE_LOG || path.join(
+    settings.artifacts,
+    "failures.log"
+);
+
 const SKIP_ASKED = process.env.FB_TEST_SKIP || "";
 const SKIP = SKIP_ASKED.split(",").map(
     (part) => part.trim()
@@ -373,7 +382,11 @@ function runNodeTest(files, extraEnv) {
     let result = spawnSync(process.execPath, args.concat(files), {
         cwd: settings.root,
         stdio: "inherit",
-        env: Object.assign({FB_TEST_TALLY: TALLY}, process.env, extraEnv)
+        env: Object.assign(
+            {FB_TEST_FAILURE_LOG: FAILURE_LOG, FB_TEST_TALLY: TALLY},
+            process.env,
+            extraEnv
+        )
     });
     return result.status;
 }
@@ -401,6 +414,15 @@ function runSerially(files, extraEnv, isAlive) {
 
 async function main() {
     let {arg, want} = parse(process.argv);
+
+    await fs.promises.mkdir(path.dirname(FAILURE_LOG), {recursive: true});
+    await fs.promises.writeFile(FAILURE_LOG, "");
+    if (!process.env.FB_TEST_REPORTER) {
+        console.log(
+            "# failure detail as it happens: " +
+            path.relative(process.cwd(), FAILURE_LOG)
+        );
+    }
     let unit = [];
     let integration = [];
     let withModules = arg !== "core" && arg !== "unit";
@@ -436,6 +458,13 @@ async function main() {
         withModules = Boolean(want.packageSrc) || anyModuleTest(arg);
         unit = unit.filter((f) => f.includes(arg));
         integration = integration.filter((f) => f.includes(arg));
+    }
+
+    if (!withModules && anyModuleTest("")) {
+        console.log(
+            "# module tests not run by this selection (" +
+            "`node test/run.js` runs them, or name a package)"
+        );
     }
 
     let status = runNodeTest(unit, {});
@@ -507,6 +536,11 @@ async function main() {
 
     if (!process.env.FB_TEST_REPORTER) {
         console.log(reporter.summarize(TALLY));
+        if ((await fs.promises.stat(FAILURE_LOG)).size) {
+            console.log(
+                "Full detail: " + path.relative(process.cwd(), FAILURE_LOG)
+            );
+        }
     }
     fs.rmSync(TALLY, {force: true});
     process.exit(status);
