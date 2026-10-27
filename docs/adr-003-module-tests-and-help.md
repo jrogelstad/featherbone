@@ -1,0 +1,241 @@
+# ADR-003: Tests and help travel with their modules
+
+Status: **accepted**, 2026-10-27.
+Author: John, written up by Claude from his direction of 2026-10-27.
+Builds on ADR-002 (packages on disk). Implementation status is the last
+section.
+
+## 1. The question
+
+Two pieces of infrastructure are monolithic and live in the wrong place.
+
+- **Tests.** Every SupplyChain test sits in core under `test/supplychain`,
+  next to the framework's own. Tests for a module's behaviour belong to
+  that module and should change in the same commit as the code they pin.
+- **Help.** The old `help_files` branch put the whole Job Shop manual in
+  one file under `public/help`. Its links are wired through a help URL on
+  each worksheet, which John says "has caused a lot of trouble in the
+  past, and gets really problematic if the customer wants to write their
+  own help."
+
+Both used to have a good excuse. A module was a zip that the installer
+read
+one manifest entry at a time, and anything that was not `install`,
+`execute`, `module`, `service`, `feather`, `batch`, `workbook` or
+`settings` rolled the install back. ADR-002 removed that excuse: a package
+is now a directory on the server, `<modulesDir>/<name>/<version>/`, and
+anything in that directory travels with it, whatever the manifest says.
+
+## 2. Decision
+
+1. **A module's tests live in the module**, in a `test/` folder next to
+   its manifest. The core runner finds them through the package registry
+   and runs the tests of **the version deployed into the source
+   database** (`demo` by default).
+2. **A module's help lives in the module**, in a `help/` folder of
+   Markdown pages with a `help.json` index. It is served from the version
+   the database deployed.
+3. **Help is found by the form the user is looking at, not by a stored
+   URL.** A form defines the actions that apply and is what a list
+   drills into, so different presentations of one feather can have
+   different help (John, 2026-10-27). The feather is the fallback.
+4. **The help link becomes the customer's supplement**: a URL
+   to start, held by reference and never copied into a worksheet's
+   saved configuration.
+5. **Help opens in one named pop-out window** that the app reuses,
+   replacing its content when help is asked for somewhere else.
+
+## 3. Tests
+
+### Where they live
+
+| Was in core | Now in SupplyChain |
+| --- | --- |
+| `test/supplychain/billing.test.js` | `bill/test/billing.test.js` |
+| `count.test.js` | `count/test/count.test.js` |
+| `design.test.js` | `design/test/design.test.js` |
+| `inventory.test.js` | `stock/test/inventory.test.js` |
+| `manufacturing.test.js` | `make/test/manufacturing.test.js` |
+| `planning.test.js` | `plan/test/planning.test.js` |
+| `purchasing.test.js` | `buy/test/purchasing.test.js` |
+| `sales.test.js` | `sell/test/sales.test.js` |
+| `shipping.test.js` | `ship/test/shipping.test.js` |
+| `lib/buy.js`, `lib/make.js`, `lib/sell.js` | `buy/test/lib/`, `make/test/lib/`, `sell/test/lib/` |
+| SupplyChain builders in `test/harness/fixtures.js` | `common/test/lib/fixtures.js` |
+
+Sub-modules of one package share helpers by relative path, since an
+umbrella package installs as one directory. Core keeps only the generic
+fixtures (`uniq`, `money`, `today`, `ref`, `findOne`, `ensure`).
+
+### How module tests reach the harness
+
+A package can live anywhere `modulesDir` points, so a module test cannot
+reach core's harness by relative path. The runner puts
+`test/export` on `NODE_PATH`, where `featherbone-test` resolves to the
+harness:
+
+```js
+const {http, db, env, fixtures, golden} = require("featherbone-test");
+```
+
+That makes the harness a public interface for module authors. Changing it
+is now a breaking change for every package with tests.
+
+Golden files for a module live beside its tests:
+`golden.at(__dirname).matchGolden(name, value)` writes to `./golden/`.
+
+### What runs
+
+The runner clones the source database as before, then reads the clone's
+`module` rows to see what is deployed, and for each top-level package
+there collects the `test/` folder of the package and of each module it
+carries. Packages hold several versions on disk; only the version
+deployed is tested, so older ones are ignored without anyone choosing.
+
+```text
+node test/run.js                       core, then every deployed module
+node test/run.js core                  core only (unit + api)
+node test/run.js SupplyChain           one package
+node test/run.js sell                  one sub-module of a package
+node test/run.js SupplyChain@2.2.32    that version, deployed into the copy first
+node test/run.js --package ~/Documents/SupplyChain [sell]
+                                       a working copy, installed for this run only
+node test/run.js unit | integration | <path fragment>   as before
+```
+
+`@version` and `--package` deploy into the throwaway copy only
+(`install.js --deploy` aimed at it), never into the source. If that
+deploy fails, the run fails. `--package` installs the working copy into a
+scratch modules directory under `test/.artifacts` that links to everything
+else the server holds, so you can test before packaging.
+
+Module tests run in their own phase against the server's real modules
+directory, as the SupplyChain suites already did. That is because a
+deployed module's code is read from its package.
+
+### What it costs
+
+- Test files are copied with the package to every server that installs
+  it. Nothing loads them, since the installer acts only on manifest
+  entries, so they cost disk and nothing else.
+- Core API suites that lean on Job Shop or SupplyChain feathers (Terms,
+  Employee, Product in crud, query, locking, catalog, users) and the five
+  catalog snapshots that need Job Shop are not moved by this ADR. Moving
+  them to the module that owns the feathers, or giving core its own test
+  feathers, would let core's tests run with no modules installed. That is
+  the follow-up.
+
+## 4. Help
+
+### Why the worksheet URL kept going wrong
+
+When a worksheet is configured, `workbook-page.js` copies the whole
+`HelpLink` record, URL included, into the sheet. The sheet is saved into
+`default_config`, `local_config` and each user's profile. So a change to
+the HelpLink row, or a package upgrade, never reaches a sheet that was
+saved before it. One field also serves two owners: a reinstall overwrites
+the customer's link, or the customer's edit hides the vendor's link for
+good.
+
+### The model
+
+- **Content.** Each module that has help carries `help/` with Markdown
+  pages and `help.json`:
+
+  ```json
+  {
+      "title": "Sales",
+      "forms": {"Sales Order": "sales-orders.md"},
+      "feathers": {"SalesOrder": "sales-orders.md"}
+  }
+  ```
+
+- **Serving.** `GET /:db/help/:module/<path>` serves from `help/` of the
+  version that database deployed (`packages.resolve`). Two instances on
+  different versions each get help that matches them. Core's generic
+  help (workbooks, filters, worksheets) is served from the checkout the
+  same way.
+- **Finding the topic.** A worksheet names the form it drills into
+  (`sheet.form`, a form name, or `"D"` for the feather's default form).
+  An open record shows a form. Forms and feathers both record their
+  module. In order:
+  1. the `forms` entry of the form's module;
+  2. the `feathers` entry of the feather's module;
+  3. core's generic page.
+
+  Form names are unique (SupplyChain's 72 are), so the name is the key.
+  Nothing about help is stored on a worksheet or a form any more. The
+  original idea was keying by feather. It moved to the form because the
+  form is where the actions are, and one feather can have more than one
+  form.
+- **The customer supplement.** A customer link is a `HelpLink` row that
+  belongs to no module, keyed by the form it supplements.
+  It is found when help opens and is never copied into a configuration.
+  Deploys write only rows that belong to a module, so a deploy can't
+  touch it. The help window shows it beside the standard topic, under the
+  customer's own heading. A URL to start (John); pages the customer
+  writes inside the app can come later if wanted.
+- **Moving off the old links** is a one-way script. A worksheet or form
+  `helpLink` that points at a row belonging to a module is dropped,
+  because package help covers it. One pointing at a row that belongs to
+  no module becomes a supplement. Then the property is removed from
+  worksheets and forms.
+
+### The help window
+
+Help opens with `window.open(url, "featherbone-help", "popup,…")`.
+Because the window is named, the browser keeps one: the first request opens
+a separate small window, and later requests reuse that window instead of
+opening a tab. The user can move it to another screen and resize it. It is
+the same origin, so it is signed in and styled like the app, dark mode
+included.
+
+- The app sends a new topic to the open window with `postMessage`, so the
+  window keeps its own Back history, then brings it to the front.
+- The window saves its size and position when closed, and the app asks
+  for the same placement next time. The browser decides whether it
+  honours that, but Chrome usually does, second screen included.
+- Markdown is turned into HTML in the window by one vendored npm
+  library (`marked`). The reader needs nothing else installed (John: "ok
+  with markdown if it just means including an npm file").
+- On phones and tablets the window opens as a tab, which is the right
+  thing there.
+
+Chrome's Document Picture-in-Picture window was considered and set aside:
+it works only in Chrome, and it always stays on top, which gets in the way
+when help sits on its own screen.
+
+### The Job Shop manual
+
+The 197 topics generated on the `help_files` branch are split up. Most
+document SupplyChain behaviour and go to the sub-modules' `help/`
+folders. Job Shop keeps navigation and getting-started, and core takes
+the generic workbook how-tos. The generator's anchors make the mapping
+mechanical. The 22 unwritten articles are still unwritten.
+
+## 5. Questions settled
+
+| Question | Answer |
+| --- | --- |
+| Which version's tests does "all" run? | The version deployed into the source database ("I meant deployed into demo"). |
+| What is help keyed by? | The form, because it defines the actions and is what a list drills into. Feather as the fallback. First answer was the feather; moved to the form the same day. |
+| Customer help | A URL to start. |
+| Markdown | Yes, rendered in the browser by a vendored library. |
+| New tab or pop-out | One reusable pop-out window. |
+
+## 6. Implementation status, 2026-10-27
+
+- **Tests, core side**: branch `feat/module-tests` in
+  `jrogelstad/featherbone`. The runner discovers module tests,
+  `featherbone-test` resolves on `NODE_PATH`, goldens can be per module,
+  `@version` and `--package` work, and `test/supplychain` plus the
+  SupplyChain fixtures are removed from core.
+- **Tests, SupplyChain side**: branch `feat/module-tests` in
+  `jrogelstad/SupplyChain`. The suites move into the sub-modules and the
+  version is bumped so there is a package to deploy.
+- **Merge order**: both together. Core without the SupplyChain branch
+  runs no SupplyChain tests. The SupplyChain branch's tests need the core
+  runner to resolve `featherbone-test`.
+- **Help**: not started. Order: the route and `help.json` resolution,
+  the help window, the customer supplement and its migration, then
+  splitting the Job Shop manual.
