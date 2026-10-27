@@ -18,6 +18,7 @@ const path = require("path");
 const {pathToFileURL} = require("url");
 const env = require("./lib/browser-env");
 const R = require("./lib/render");
+const testFeathers = require("./lib/test-feathers");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const AS_OF = "2027-06-01";
@@ -141,6 +142,7 @@ describe("drilling into a metric", function () {
         await import(pathToFileURL(
             ROOT + "/client/components/drill-dialog.js"
         ).href);
+        testFeathers.registerAll(env);
         comps = catalog.store().components();
         globals = catalog.store().global();
 
@@ -392,5 +394,30 @@ describe("drilling into a metric", function () {
         }))[0];
         assert.equal(back.title(), "Top level", "Back reopens the first");
         assert.equal(back.buttonBack(), undefined);
+    });
+
+    /*
+        A list of child rows filtered by their parent -- one snapshot's
+        lines -- must not ask the server for the parent link, which the
+        child's view has no column for.
+    */
+    it("lists child rows by their parent", async function () {
+        let fields;
+        let vm = catalog.store().viewModels().drillDialog({
+            config: {
+                columns: [{attr: "product"}, {attr: "qty"}],
+                filter: {criteria: [{
+                    property: "parent.id",
+                    value: "p-1"
+                }]}
+            },
+            feather: "TestItemLine",
+            title: "Lines of p-1"
+        });
+
+        await env.flush(10);
+        fields = vm.tableWidget().models().properties();
+        assert.ok(fields.includes("product"), "the columns are asked for");
+        assert.ok(!fields.includes("parent"), "the parent link is not");
     });
 });
