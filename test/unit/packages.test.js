@@ -202,6 +202,23 @@ describe("installed packages", function () {
         fs.rmSync(into, {recursive: true, force: true});
     });
 
+    it("leaves a working copy's .git behind, and keeps its tests",
+            function () {
+        let into = fs.mkdtempSync(path.join(os.tmpdir(), "fb-into-"));
+        let src = place("gitted", "1.0.0", {
+            module: "gitted",
+            version: "1.0.0"
+        });
+        let dir;
+
+        write(path.join(src, ".git"), "HEAD", "ref: refs/heads/master\n");
+        write(path.join(src, "test"), "one.test.js", "\"use strict\";\n");
+        dir = packages.install(src, {dir: into}).dir;
+        assert.ok(!fs.existsSync(path.join(dir, ".git")));
+        assert.ok(fs.existsSync(path.join(dir, "test", "one.test.js")));
+        fs.rmSync(into, {force: true, recursive: true});
+    });
+
     it("refuses a package that disagrees with itself", function () {
         let into = fs.mkdtempSync(path.join(os.tmpdir(), "fb-into-"));
 

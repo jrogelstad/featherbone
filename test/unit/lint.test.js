@@ -4,8 +4,7 @@
     The project's own linter (`client/jslint.mjs`, the one the script
     editor uses) is run over each `.js` and `.mjs` file, honouring the
     jslint directive comment the file carries. node_modules, the
-    vendored archives, logs, the tests of modules that live in other
-    repositories (`test/supplychain`), the packages installed into
+    vendored archives, logs, the packages installed into
     `modules` at the root (each belongs to the repository it was built
     from -- the fixture packages under `test/fixtures` are this
     project's and are linted) and the
@@ -57,13 +56,11 @@ const SKIP_DIRS = new Set([
 
 /*
     Paths, relative to the root, that are not the project's own source:
-    the tests of modules that live in their own repositories
-    (SupplyChain's Design, Billing and the rest), which are linted
-    there and will be split out the same way eventually, and the
-    packages installed on this server, which belong to whichever
-    repository each was built from.
+    the packages installed on this server, which belong to whichever
+    repository each was built from, tests included (ADR-003), and the
+    copies a test run makes of them under test/.artifacts.
 */
-const SKIP_PATHS = ["modules", "test/supplychain"];
+const SKIP_PATHS = ["modules", "test/.artifacts"];
 
 /*
     The linter itself, and two files the build writes: the client bundle

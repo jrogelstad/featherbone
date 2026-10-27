@@ -2,8 +2,9 @@
     Regression test harness: golden files.
 
     matchGolden(name, value) compares value (after normalize) with
-    test/golden/<name>.json. When the file is missing, or when
-    FB_UPDATE_GOLDEN=1, it writes the file instead and the test passes.
+    test/golden/<name>.json, or <dir>/golden/ through at(dir). When the
+    file is missing, or when FB_UPDATE_GOLDEN=1, it writes the file
+    instead and the test passes.
     Commit golden files so a refactor is checked against them.
 */
 /*jslint node*/
@@ -67,13 +68,13 @@ function normalize(value, opts) {
     return walk(value);
 }
 
-function goldenPath(name) {
-    return path.join(settings.goldenDir, name + ".json");
+function goldenPath(name, dir) {
+    return path.join(dir || settings.goldenDir, name + ".json");
 }
 
 function matchGolden(name, value, opts) {
     let actual = normalize(value, opts);
-    let file = goldenPath(name);
+    let file = goldenPath(name, opts && opts.dir);
 
     if (settings.updateGolden || !fs.existsSync(file)) {
         fs.mkdirSync(path.dirname(file), {recursive: true});
@@ -91,4 +92,17 @@ function matchGolden(name, value, opts) {
     return {written: false};
 }
 
-module.exports = {VOLATILE, matchGolden, normalize};
+// Golden files beside a module's tests: at(__dirname) writes ./golden/
+function at(dir) {
+    let where = path.join(dir, "golden");
+
+    return {
+        matchGolden: (name, value, opts) => matchGolden(
+            name,
+            value,
+            Object.assign({}, opts, {dir: where})
+        )
+    };
+}
+
+module.exports = {VOLATILE, at, matchGolden, normalize};

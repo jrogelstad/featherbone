@@ -1,17 +1,53 @@
 # Featherbone regression tests
 
-Pins the current behavior of the framework and the SupplyChain modules so a
-refactor can be checked against it. No new dependencies: the suite uses
+Pins the current behavior of the framework, and runs the tests modules
+carry in their own packages, so a refactor can be checked against it. No new dependencies: the suite uses
 `node:test` and `node:assert` (Node 18+; developed on Node 22).
 
 ## Running
 
 ```text
-node test/run.js                # everything: unit, then integration
+node test/run.js                # core, then every module deployed in demo
+node test/run.js core           # core only: unit, then api
 node test/run.js unit           # unit tests only, no database needed
-node test/run.js integration    # api/ and supplychain/ against a database
-node test/run.js supplychain/purchasing   # files whose path contains this
+node test/run.js integration    # api/ and deployed modules
+node test/run.js SupplyChain    # one package's tests
+node test/run.js sell           # one module a package carries
+node test/run.js SupplyChain@2.2.32   # deploy that version into the copy first
+node test/run.js --package ~/Documents/SupplyChain [sell]   # a working copy
+node test/run.js api/crud       # files whose path contains this
 ```
+
+### Module tests
+
+A module's tests live in its package, in a `test/` folder beside its
+manifest (ADR-003): SupplyChain's are in `sell/test`, `buy/test` and so
+on. The runner reads the copy's `module` rows and runs the tests of the
+version **deployed in the source database**; other versions on disk are
+ignored. Module names are not case sensitive, and a name the server does
+not hold is taken as a path fragment.
+
+- `<Package>@<version>` deploys that installed version into the
+  throwaway copy before running. A failed deploy fails the run.
+- `--package <dir>` installs a working copy into a scratch modules
+  directory (`test/.artifacts/modules`, holding copies of the other
+  deployed packages) and deploys it into the copy, so tests can run before
+  anything is packaged. The server's own modules directory is not
+  touched.
+
+Module tests run against the server's real modules directory
+(`modulesDir`, or `FB_TEST_MODULES`). They reach the harness as
+`require("featherbone-test")`, which the runner resolves through
+`NODE_PATH` (`test/export`):
+
+```js
+const {http, db, env, fixtures, golden} = require("featherbone-test");
+const {matchGolden} = golden.at(__dirname);   // ./golden/<name>.json
+```
+
+That module is a public interface: changing what it exports breaks every
+package's tests. `fixtures` holds only builders over framework feathers;
+a module keeps its own (SupplyChain's are in `common/test/lib`).
 
 Integration runs clone the source database into a throwaway copy, start a
 Featherbone server on its own port against that copy, run the test files
@@ -37,6 +73,7 @@ Settings, all optional:
 | `FB_TEST_DB` | `featherbone_test` | Throwaway copy (dropped afterwards) |
 | `FB_TEST_PORT` | `3990` | Port for the test server |
 | `FB_TEST_PGHOST`, `FB_TEST_PGPORT`, `FB_TEST_PGUSER`, `FB_TEST_PGPASSWORD` | from `server/config.json` | Postgres connection |
+| `FB_TEST_MODULES` | `modulesDir` from config | Packages directory the module tests come from |
 | `FB_TEST_KEEP_DB=1` | | Keep the copy after the run for inspection |
 | `FB_UPDATE_GOLDEN=1` | | Rewrite golden files instead of comparing |
 | `FB_TEST_SKIP` | | Comma separated path fragments to leave out, for a file too slow to sit through: `FB_TEST_SKIP=upgrade` runs everything but `api/upgrade.test.js` (and `unit/upgrade.test.js`, which matches the same fragment). Skipped files are named at the start of the run, so a green run cannot quietly be a partial one |
@@ -74,9 +111,7 @@ test/unit/               no database: common/ helpers, client/state.js
 test/api/                framework over HTTP: auth, users, authorization,
                          crud, query, locking, catalog, settings, workbooks,
                          schema (SQL-level), security
-test/supplychain/        flows over HTTP: purchasing, inventory, count,
-                         design (BOM, costing), manufacturing, sales,
-                         shipping, billing, planning
+test/export/             featherbone-test, the harness as module tests see it
 test/golden/             snapshots (catalog, schema, workbook and component
                          shapes); commit them
 ```
@@ -89,8 +124,8 @@ can run alone or together in one server.
 
 `unit/lint.test.js` runs the project's own JSLint (`client/jslint.mjs`)
 over every JavaScript file, skipping `node_modules`, `vendor`, the
-generated `client/clientmin.js`, the linter itself and `test/supplychain`
-(those modules, and their tests, live in their own repositories). Not every file is
+generated `client/clientmin.js`, the linter itself and the packages under
+`modules` (they, and their tests, live in their own repositories). Not every file is
 clean yet, so it is a ratchet: `test/lint-baseline.json` records the
 warnings each file is known to have, no file may exceed its entry, and a
 file with no entry (a new one) must have none. Fixing warnings never
@@ -120,12 +155,13 @@ file) and commit.
 
 Copy the shape of an existing file. Integration files get a signed-in
 session with `const admin = await signedIn();` (from `harness/http.js`),
-build data with `harness/fixtures.js` (`configure`, `world`,
-`purchasedItem`, `manufacturedItem`, `cabinetAssembly`, `supplier`,
-`customer`), call routes with `admin.route("/buy/post-purchase-order-receipts",
-body)` and assert with API reads or `db.query(sql, params)`. Some module
-routes start a server process and return before the work is done; the
-`lib/` helpers in each area poll for completion.
+build data with `harness/fixtures.js` (`uniq`, `money`, `address`,
+`currency`, `settings` and the like; a module's tests use its own builders,
+such as SupplyChain's `world` and `purchasedItem`), call routes with
+`admin.route("/buy/post-purchase-order-receipts", body)` and assert with
+API reads or `db.query(sql, params)`. Some module routes start a server
+process and return before the work is done; the `lib/` helpers beside
+those tests poll for completion.
 
 For large structures use `matchGolden("area-thing", value)`; the first run
 writes `test/golden/area-thing.json`, later runs compare. Volatile record
