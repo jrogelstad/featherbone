@@ -120,11 +120,23 @@ describe("the platform console (G.2, G.3)", function () {
 
         assert.ok(names.includes(PLATFORM), "a person who can sign in");
         assert.ok(names.includes(ORG_ADMIN), "from another account too");
+        /*
+            The server orders by lower(username) in the database's
+            collation, which is not JavaScript's: en_US ignores the
+            underscore, so fbtest_admin sorts before fbt_forgot there
+            and after it in a C-collated cluster. Ask the database.
+        */
+        let ordered = await db.withClient(
+            settings.managerDb,
+            (client) => client.query(
+                "SELECT n FROM unnest($1::text[]) AS n ORDER BY lower(n)",
+                [names]
+            )
+        );
+
         assert.deepEqual(
             names,
-            names.slice().sort(
-                (a, b) => a.toLowerCase().localeCompare(b.toLowerCase())
-            ),
+            ordered.rows.map((row) => row.n),
             "in name order"
         );
         assert.ok(

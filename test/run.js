@@ -460,6 +460,13 @@ async function main() {
         integration = integration.filter((f) => f.includes(arg));
     }
 
+    if (!withModules && anyModuleTest("")) {
+        console.log(
+            "# module tests not run by this selection (" +
+            "`node test/run.js` runs them, or name a package)"
+        );
+    }
+
     let status = runNodeTest(unit, {});
 
     if (integration.length || withModules) {

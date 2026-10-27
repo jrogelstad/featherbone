@@ -336,7 +336,16 @@ describe("a package that seeds records into its own feather", function () {
         target = await fleetEntry(session);
     });
 
+    /*
+        The install script's table has no keys, so left behind it fails
+        schema.test.js ("indexes the primary and surrogate keys of every
+        table") for every later file in the same database.
+    */
     after(async function () {
+        await db.withClient(
+            settings.testDb,
+            (client) => client.query("DROP TABLE IF EXISTS fbt_seed_marker;")
+        );
         await flags(settings.adminUser, {});
     });
 
