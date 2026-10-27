@@ -49,49 +49,71 @@
 (function (exports) {
     "use strict";
 
-    // The base currency in force on a day: the latest one that had taken
-    // effect by the end of it, or the earliest there is for a day before
-    // them all (Services.Currency.baseCurrency does the same).
-    const BASE = (
-        "SELECT (bc.currency).code AS code, " +
-        "  (bc.currency).minor_unit AS minor " +
-        "FROM _base_currency bc, d " +
-        "WHERE NOT bc.is_deleted " +
-        "ORDER BY (bc.effective <= d.until) DESC, " +
-        "  CASE WHEN bc.effective <= d.until THEN bc.effective END DESC, " +
-        "  bc.effective ASC " +
-        "LIMIT 1"
-    );
-
+    /*
+        PL/pgSQL, so the common cases return before any query runs: a
+        settled value, or no value, costs a field test. The first version
+        was one SQL statement that looked the base currency up through
+        the currency views on every call, settled or not -- 30 µs a value,
+        five seconds for one column of a demo's 109,000 inventory
+        transactions, and an inventory drill-down that took a minute
+        (John, Oct 2026). The lookups read the tables, not the views.
+    */
     const SQL = (
         "CREATE OR REPLACE FUNCTION money_base(" +
         "  m mono, on_date date DEFAULT NULL) " +
         "RETURNS numeric AS $$ " +
-        "WITH d AS (SELECT (COALESCE(on_date, current_date) + 1)" +
-        "  ::timestamptz AS until), " +
-        "b AS (" + BASE + ") " +
-        "SELECT CASE " +
-        "  WHEN m IS NULL OR (m).amount IS NULL THEN NULL " +
-        "  WHEN (m).effective IS NOT NULL AND (m).base_amount IS NOT NULL " +
-        "    THEN (m).base_amount " +
-        "  WHEN (m).currency IS NULL OR (m).currency = b.code " +
-        "    THEN (m).amount " +
-        "  ELSE (" +
-        "    SELECT round(CASE " +
-        "      WHEN (cc.from_currency).code = b.code " +
-        "        THEN (m).amount / NULLIF(cc.ratio, 0) " +
-        "      ELSE (m).amount * cc.ratio END, b.minor) " +
-        "    FROM _currency_conversion cc, d " +
-        "    WHERE NOT cc.is_deleted " +
-        "      AND (cc.from_currency).code IN ((m).currency, b.code) " +
-        "      AND (cc.to_currency).code IN ((m).currency, b.code) " +
-        "      AND cc.effective < d.until " +
-        "    ORDER BY cc.effective DESC LIMIT 1) " +
-        "  END " +
-        "FROM b " +
-        "UNION ALL SELECT (m).amount WHERE NOT EXISTS (SELECT FROM b) " +
-        "LIMIT 1; " +
-        "$$ LANGUAGE sql STABLE;"
+        "DECLARE " +
+        "  until timestamptz; " +
+        "  base_code text; " +
+        "  base_minor integer; " +
+        "  from_code text; " +
+        "  rate numeric; " +
+        "BEGIN " +
+        "  IF m IS NULL OR (m).amount IS NULL THEN " +
+        "    RETURN NULL; " +
+        "  END IF; " +
+        "  IF (m).effective IS NOT NULL AND (m).base_amount IS NOT NULL THEN " +
+        "    RETURN (m).base_amount; " +
+        "  END IF; " +
+        "  IF (m).currency IS NULL THEN " +
+        "    RETURN (m).amount; " +
+        "  END IF; " +
+
+        // The base currency in force by the end of the day, or the
+        // earliest there is for a day before them all.
+        "  until := (COALESCE(on_date, current_date) + 1)::timestamptz; " +
+        "  SELECT c.code, c.minor_unit INTO base_code, base_minor " +
+        "  FROM base_currency bc " +
+        "  JOIN currency c ON c._pk = bc._currency_currency_pk " +
+        "  WHERE NOT bc.is_deleted " +
+        "  ORDER BY (bc.effective <= until) DESC, " +
+        "    CASE WHEN bc.effective <= until THEN bc.effective END DESC, " +
+        "    bc.effective ASC " +
+        "  LIMIT 1; " +
+        "  IF base_code IS NULL OR (m).currency = base_code THEN " +
+        "    RETURN (m).amount; " +
+        "  END IF; " +
+
+        // The latest rate between the two on or before the day.
+        "  SELECT fc.code, cc.ratio INTO from_code, rate " +
+        "  FROM currency_conversion cc " +
+        "  JOIN currency fc ON fc._pk = cc._from_currency_currency_pk " +
+        "  JOIN currency tc ON tc._pk = cc._to_currency_currency_pk " +
+        "  WHERE NOT cc.is_deleted " +
+        "    AND fc.code IN ((m).currency, base_code) " +
+        "    AND tc.code IN ((m).currency, base_code) " +
+        "    AND cc.effective < until " +
+        "  ORDER BY cc.effective DESC " +
+        "  LIMIT 1; " +
+        "  IF rate IS NULL OR rate = 0 THEN " +
+        "    RETURN NULL; " +
+        "  END IF; " +
+        "  IF from_code = base_code THEN " +
+        "    RETURN round((m).amount / rate, COALESCE(base_minor, 2)); " +
+        "  END IF; " +
+        "  RETURN round((m).amount * rate, COALESCE(base_minor, 2)); " +
+        "END; " +
+        "$$ LANGUAGE plpgsql STABLE;"
     );
 
     exports.execute = async function (obj) {
