@@ -55,7 +55,14 @@ function relative(file) {
     if (!file) {
         return "(unknown file)";
     }
-    return path.relative(TESTS_DIR, file.replace(/^file:\/\//, ""));
+    let abs = file.replace(/^file:\/\//, "");
+    let pkgs = process.env.FB_TEST_MODULES_ROOT;
+
+    // A package's tests read as <module>/<version>/..., not ../../modules
+    if (pkgs && abs.startsWith(path.resolve(pkgs) + path.sep)) {
+        return path.relative(pkgs, abs);
+    }
+    return path.relative(TESTS_DIR, abs);
 }
 
 // The error Node hands over wraps the one the test threw.
