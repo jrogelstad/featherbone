@@ -1675,8 +1675,21 @@ tableWidget.viewModel = function (options) {
                     props.push(a);
                 }
             });
-            // Exclude calculated columns
-            props = props.filter((p) => fp[p] && !fp[p].isCalculated);
+            /*
+                Exclude calculated columns, and a child's link to its
+                parent: the child's view has no column for it, so a list
+                of child rows filtered by their parent (a drill-down
+                listing one snapshot's lines, say) asked for a column
+                that is not there and got nothing back.
+            */
+            props = props.filter(function (p) {
+                return (
+                    fp[p] && !fp[p].isCalculated && !(
+                        typeof fp[p].type === "object" &&
+                        fp[p].type.childOf
+                    )
+                );
+            });
             if (props.indexOf("id") === -1) {
                 props.unshift("id");
             }
