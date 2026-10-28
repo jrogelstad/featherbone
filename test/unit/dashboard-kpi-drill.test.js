@@ -420,4 +420,47 @@ describe("drilling into a metric", function () {
         assert.ok(fields.includes("product"), "the columns are asked for");
         assert.ok(!fields.includes("parent"), "the parent link is not");
     });
+
+    /*
+        A parent link that lists properties is a column of the child's
+        view, and a list that shows or filters on it needs it: leaving it
+        out emptied the purchase order line and receipt line drill-downs.
+    */
+    it("keeps a parent link that has columns", async function () {
+        let fields;
+        let vm;
+
+        env.registerFeather({
+            description: "Child whose link to its parent lists columns",
+            name: "TestShownLine",
+            plural: "TestShownLines",
+            properties: {
+                order: {
+                    type: {
+                        childOf: "shownLines",
+                        properties: ["name"],
+                        relation: "TestItem"
+                    }
+                },
+                product: {type: "string"}
+            }
+        });
+        vm = catalog.store().viewModels().drillDialog({
+            config: {
+                columns: [{attr: "product"}, {attr: "order.name"}],
+                filter: {criteria: [{
+                    operator: ">=",
+                    property: "order.name",
+                    value: "A"
+                }]}
+            },
+            feather: "TestShownLine",
+            title: "Shown lines"
+        });
+
+        await env.flush(10);
+        fields = vm.tableWidget().models().properties();
+        assert.ok(fields.includes("order"), "the parent link is asked for");
+        assert.ok(fields.includes("product"));
+    });
 });

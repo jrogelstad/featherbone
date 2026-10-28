@@ -1677,16 +1677,24 @@ tableWidget.viewModel = function (options) {
             });
             /*
                 Exclude calculated columns, and a child's link to its
-                parent: the child's view has no column for it, so a list
-                of child rows filtered by their parent (a drill-down
-                listing one snapshot's lines, say) asked for a column
-                that is not there and got nothing back.
+                parent when that link lists no properties: the child's
+                view has no column for it then, so a list of child rows
+                filtered by their parent (one inventory snapshot's
+                lines) asked for a column that is not there and got
+                nothing back. A link that does list properties -- a
+                purchase order line's purchaseOrder, a receipt line's
+                purchaseOrderReceipt -- is a column like any other, and
+                leaving it out emptied every list that showed or
+                filtered on it (John, Oct 2026).
             */
             props = props.filter(function (p) {
+                let type = fp[p] && fp[p].type;
+
                 return (
                     fp[p] && !fp[p].isCalculated && !(
-                        typeof fp[p].type === "object" &&
-                        fp[p].type.childOf
+                        typeof type === "object" &&
+                        type.childOf &&
+                        !(type.properties && type.properties.length)
                     )
                 );
             });
