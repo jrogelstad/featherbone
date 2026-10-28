@@ -7,7 +7,7 @@ carry in their own packages, so a refactor can be checked against it. No new dep
 ## Running
 
 ```text
-node test/run.js                # core, then every module in the seed
+node test/run.js                # core, then every module in the SupplyChain seed
 node test/run.js core           # core only: unit, then api
 node test/run.js unit           # unit tests only, no database needed
 node test/run.js integration    # api/ and deployed modules
@@ -49,30 +49,42 @@ That module is a public interface: changing what it exports breaks every
 package's tests. `fixtures` holds only builders over framework feathers;
 a module keeps its own (SupplyChain's are in `common/test/lib`).
 
-### The seed database
+### The seed databases
 
-Integration runs clone **the seed**, `featherbone_test_source`, which
-`test/seed.js` builds from the installers themselves: Core, then the
-packages and versions pinned in `test/seed.json` (SupplyChain, today), and
-nothing else. Nobody uses it, so what the tests see does not move with
-somebody's `demo`: the golden files, the module versions and the data all
-come from the pins.
+Integration runs clone a **seed**, built by `test/seed.js` from the
+installers themselves and named in `test/seed.json`. Nobody uses them, so
+what the tests see does not move with somebody's `demo`: the golden files,
+the module versions and the data all come from the pins.
+
+| Seed | Database | Holds | Used by |
+| --- | --- | --- | --- |
+| `core` | `featherbone_test_core` | Core, and the `FbtModel` fixture package (`test/fixtures/modules`) | the framework's api tests, with their goldens in `test/golden` |
+| `supplychain` | `featherbone_test_supplychain` | Core, and the SupplyChain version pinned | each package's tests, with their goldens in the package |
+
+The two phases of a run clone their own seed, so the framework's tests
+never see a module and a module's tests never see another's. `FbtModel`
+gives the framework tests feathers shaped like a module's (`FbtTerms`,
+`FbtCategory`, `FbtLocation`) to exercise the data API with, in place of
+borrowing SupplyChain's.
 
 ```text
-node test/seed.js            build it if missing or out of date
-node test/seed.js --force    build it again
+node test/seed.js            build them if missing or out of date
+node test/seed.js core       one of them
+node test/seed.js --force    build them again
 ```
 
-The runner does the first itself. "Out of date" is the Core version, a hash
-of `scripts/` and the pins, recorded in the database's comment; a change to
-server code that makes different SQL without touching those needs
-`--force`. The pinned packages must be installed on the server
-(`node install.js --package <dir>`), and the build says so when one is not.
+The runner does the first itself. "Out of date" is the Core version, a
+hash of `scripts/`, the pins and, for a package kept in the tests, its
+files, recorded in the database's comment; a change to server code that
+makes different SQL without touching those needs `--force`. The pinned
+packages must be installed on the server (`node install.js --package
+<dir>`), and the build says so when one is not.
 
 To move to a new SupplyChain: install it, change the pin, run the suite,
-and regenerate the goldens (`FB_UPDATE_GOLDEN=1`) -- the diff is the
-review. `FB_TEST_SOURCE_DB=demo` still points the run at any other database,
-for trying a real one; goldens are only expected to match the seed.
+and regenerate the package's goldens (`FB_UPDATE_GOLDEN=1`) -- the diff is
+the review. A pin moves only the SupplyChain goldens, never Core's.
+`FB_TEST_SOURCE_DB=demo` still points every phase at one other database,
+for trying a real one; goldens are only expected to match the seeds.
 
 Goldens are plain Postgres output. They were regenerated on Postgres 16;
 if one differs on yours for no reason in the code, say so.
@@ -89,7 +101,7 @@ which needs those tools on the path -- but `api/deploy.test.js` makes a
 template copy of the source for its own claims, and Postgres refuses that
 outright while anything is connected ("source database ... is being
 accessed by other users"). Nine of its claims fail for that reason alone.
-The seed has no users, so with it this does not come up; it can with
+The seeds have no users, so with them this does not come up; it can with
 `FB_TEST_SOURCE_DB=demo` and a server or pgAdmin session open on `demo`.
 
 The Postgres user in `server/config.json` must be able to `CREATE DATABASE`
@@ -99,8 +111,7 @@ Settings, all optional:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `FB_TEST_SOURCE_DB` | the seed | Database to clone from, instead of the seed |
-| `FB_TEST_SEED_DB` | `featherbone_test_source` | Name of the seed database |
+| `FB_TEST_SOURCE_DB` | the seeds | Database every phase clones, instead of its seed |
 | `FB_TEST_DB` | `featherbone_test` | Throwaway copy (dropped afterwards) |
 | `FB_TEST_PORT` | `3990` | Port for the test server |
 | `FB_TEST_PGHOST`, `FB_TEST_PGPORT`, `FB_TEST_PGUSER`, `FB_TEST_PGPASSWORD` | from `server/config.json` | Postgres connection |

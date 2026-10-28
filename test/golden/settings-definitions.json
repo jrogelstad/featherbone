@@ -1,23 +1,4 @@
 {
-  "alertSettings": {
-    "encrypted": [],
-    "module": "Common",
-    "properties": [
-      "emailTo",
-      "severity"
-    ]
-  },
-  "billSettings": {
-    "encrypted": [],
-    "module": "Bill",
-    "properties": [
-      "mailText",
-      "onCreate",
-      "prepaidInvoice",
-      "shipmentInvoice",
-      "standardInvoice"
-    ]
-  },
   "brandingSettings": {
     "encrypted": [],
     "module": "Core",
@@ -25,44 +6,6 @@
       "dashboardImage",
       "icon",
       "title"
-    ]
-  },
-  "buySettings": {
-    "encrypted": [],
-    "module": "Buy",
-    "properties": [
-      "mailText",
-      "onRelease",
-      "packingSlip",
-      "printOnShip",
-      "purchaseOrder"
-    ]
-  },
-  "commonSettings": {
-    "encrypted": [],
-    "module": "Common",
-    "properties": [
-      "costDecimals",
-      "purchasePriceDecimals",
-      "salesPriceDecimals"
-    ]
-  },
-  "countSettings": {
-    "encrypted": [],
-    "module": "Count",
-    "properties": [
-      "countForm",
-      "recountForm"
-    ]
-  },
-  "designSettings": {
-    "encrypted": [],
-    "module": "Design",
-    "properties": [
-      "defaultIssueMethod",
-      "defaultManufacturePlanningPolicy",
-      "defaultPurchasePlanningPolicy",
-      "defaultSite"
     ]
   },
   "globalSettings": {
@@ -86,68 +29,6 @@
       "state",
       "street",
       "unit"
-    ]
-  },
-  "makeSettings": {
-    "encrypted": [],
-    "module": "Make",
-    "properties": [
-      "automaticClose",
-      "defaultStatus",
-      "printOnRelease",
-      "traveler"
-    ]
-  },
-  "planSettings": {
-    "encrypted": [],
-    "module": "Plan",
-    "properties": [
-      "shippingBuffer"
-    ]
-  },
-  "projectSettings": {
-    "encrypted": [],
-    "module": "Tracker",
-    "properties": [
-      "projectForm"
-    ]
-  },
-  "sellSettings": {
-    "encrypted": [],
-    "module": "Sell",
-    "properties": [
-      "confirmation",
-      "mailText",
-      "onRelease"
-    ]
-  },
-  "shipEngineSettings": {
-    "encrypted": [
-      "apiKey"
-    ],
-    "module": "ShipEngine",
-    "properties": [
-      "apiKey",
-      "createLabelOnShip",
-      "shipWeightUnit"
-    ]
-  },
-  "shipSettings": {
-    "encrypted": [],
-    "module": "Ship",
-    "properties": [
-      "packingSlip",
-      "pickList",
-      "printOnRelease",
-      "printOnShip",
-      "useBackOrder"
-    ]
-  },
-  "stockSettings": {
-    "encrypted": [],
-    "module": "Stock",
-    "properties": [
-      "weightUnit"
     ]
   }
 }

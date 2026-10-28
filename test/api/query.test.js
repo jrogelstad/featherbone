@@ -55,7 +55,7 @@ describe("data API queries", function () {
         ];
         let i = 0;
         while (i < spec.length) {
-            terms[spec[i][0]] = await admin.create("Terms", {
+            terms[spec[i][0]] = await admin.create("FbtTerms", {
                 code: pre + "-" + spec[i][0],
                 policy: "N",
                 net: spec[i][1],
@@ -74,17 +74,17 @@ describe("data API queries", function () {
             code: pre + "-K2",
             description: "beta kind"
         });
-        cats.C1 = await admin.create("Category", {
+        cats.C1 = await admin.create("FbtCategory", {
             code: pre + "-C1",
             description: "gamma",
             parent: {id: kinds.K1.id}
         });
-        cats.C2 = await admin.create("Category", {
+        cats.C2 = await admin.create("FbtCategory", {
             code: pre + "-C2",
             description: "delta",
             parent: {id: kinds.K2.id}
         });
-        cats.C3 = await admin.create("Category", {
+        cats.C3 = await admin.create("FbtCategory", {
             code: pre + "-C3",
             description: "orphan"
         });
@@ -110,11 +110,11 @@ describe("data API queries", function () {
 
         it("= is the default operator", async function () {
             assert.deepEqual(
-                await sorted("TermsList", [{property: "net", value: 20}]),
+                await sorted("FbtTermsList", [{property: "net", value: 20}]),
                 ["T4"]
             );
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: "=", value: 20}
                 ]),
                 ["T4"]
@@ -123,7 +123,7 @@ describe("data API queries", function () {
 
         it("!=", async function () {
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: "!=", value: 20}
                 ]),
                 ["T1", "T2", "T3", "T5"]
@@ -132,25 +132,25 @@ describe("data API queries", function () {
 
         it("<, <=, >, >=", async function () {
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: "<", value: 30}
                 ]),
                 ["T2", "T4"]
             );
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: "<=", value: 30}
                 ]),
                 ["T1", "T2", "T4"]
             );
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: ">", value: 30}
                 ]),
                 ["T3", "T5"]
             );
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: ">=", value: 30}
                 ]),
                 ["T1", "T3", "T5"]
@@ -159,7 +159,7 @@ describe("data API queries", function () {
 
         it("combines criteria with AND", async function () {
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: ">", value: 10},
                     {property: "discount", value: 2}
                 ]),
@@ -169,13 +169,13 @@ describe("data API queries", function () {
 
         it("IN, and IN [] matches nothing", async function () {
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: "IN", value: [10, 50, 99]}
                 ]),
                 ["T2", "T3"]
             );
             assert.deepEqual(
-                await sorted("TermsList", [
+                await sorted("FbtTermsList", [
                     {property: "net", operator: "IN", value: []}
                 ]),
                 []
@@ -260,7 +260,7 @@ describe("data API queries", function () {
         it("fails on an unknown property with a database error",
                 async function () {
             expectError(
-                await admin.raw("POST", "/data/terms-list", {filter: {
+                await admin.raw("POST", "/data/fbt-terms-list", {filter: {
                     criteria: [{property: "bogus", value: 1}]
                 }}),
                 500,
@@ -294,28 +294,28 @@ describe("data API queries", function () {
             );
             assert.deepEqual(
                 await sorted("Kinds", [
-                    {property: "objectType", value: "Category"}
+                    {property: "objectType", value: "FbtCategory"}
                 ]),
                 ["C1", "C2", "C3"]
             );
             let rows = await admin.list("Kinds", {filter: {criteria: [
                 mine,
-                {property: "objectType", value: "Category"}
+                {property: "objectType", value: "FbtCategory"}
             ]}});
-            assert.ok(rows.every((r) => r.objectType === "Category"));
+            assert.ok(rows.every((r) => r.objectType === "FbtCategory"));
         });
     });
 
     describe("relations", function () {
         it("filters through a dot path", async function () {
             assert.deepEqual(
-                await sorted("Categories", [
+                await sorted("FbtCategories", [
                     {property: "parent.code", value: pre + "-K2"}
                 ]),
                 ["C2"]
             );
             assert.deepEqual(
-                await sorted("Categories", [{
+                await sorted("FbtCategories", [{
                     property: "parent.description",
                     operator: "~*",
                     value: "kind"
@@ -326,7 +326,7 @@ describe("data API queries", function () {
 
         it("filters on a relation given as {id}", async function () {
             assert.deepEqual(
-                await sorted("Categories", [
+                await sorted("FbtCategories", [
                     {property: "parent", value: {id: kinds.K1.id}}
                 ]),
                 ["C1"]
@@ -339,14 +339,16 @@ describe("data API queries", function () {
                     "parent.id = undefined so nothing matches"
         }, async function () {
             assert.deepEqual(
-                await sorted("Categories", [{property: "parent", value: {}}]),
+                await sorted("FbtCategories", [
+                    {property: "parent", value: {}}
+                ]),
                 ["C3"]
             );
         });
 
         it("sorts by a dot path", async function () {
             assert.deepEqual(
-                await codes("Categories", [{
+                await codes("FbtCategories", [{
                     property: "parent.description",
                     operator: "~*",
                     value: "kind"
@@ -359,13 +361,13 @@ describe("data API queries", function () {
                 async function () {
             // parent -> parent.code; NULL sorts first descending
             assert.deepEqual(
-                await codes("Categories", [], {filter: {
+                await codes("FbtCategories", [], {filter: {
                     sort: [{property: "parent", order: "desc"}]
                 }}),
                 ["C3", "C2", "C1"]
             );
             assert.deepEqual(
-                await codes("Categories", [], {filter: {
+                await codes("FbtCategories", [], {filter: {
                     sort: [{property: "parent"}]
                 }}),
                 ["C1", "C2", "C3"]
@@ -377,20 +379,20 @@ describe("data API queries", function () {
         it("sorts ascending by default and descending on request",
                 async function () {
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {
+                await codes("FbtTermsList", [], {filter: {
                     sort: [{property: "net"}]
                 }}),
                 ["T2", "T4", "T1", "T5", "T3"]
             );
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {
+                await codes("FbtTermsList", [], {filter: {
                     sort: [{property: "net", order: "DESC"}]
                 }}),
                 ["T3", "T5", "T1", "T4", "T2"]
             );
             // order is case insensitive
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {
+                await codes("FbtTermsList", [], {filter: {
                     sort: [{property: "net", order: "desc"}]
                 }}),
                 ["T3", "T5", "T1", "T4", "T2"]
@@ -399,14 +401,14 @@ describe("data API queries", function () {
 
         it("sorts by several properties in order", async function () {
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {sort: [
+                await codes("FbtTermsList", [], {filter: {sort: [
                     {property: "discount"},
                     {property: "net", order: "desc"}
                 ]}}),
                 ["T3", "T5", "T1", "T4", "T2"]
             );
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {sort: [
+                await codes("FbtTermsList", [], {filter: {sort: [
                     {property: "discount", order: "desc"},
                     {property: "net"}
                 ]}}),
@@ -416,7 +418,7 @@ describe("data API queries", function () {
 
         it("sorts by the amount of a money property", async function () {
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {sort: [
+                await codes("FbtTermsList", [], {filter: {sort: [
                     {property: "depositAmount.amount", order: "desc"}
                 ]}}),
                 ["T3", "T4", "T1", "T5", "T2"]
@@ -425,7 +427,7 @@ describe("data API queries", function () {
 
         it("filters on the amount of a money property", async function () {
             assert.deepEqual(
-                await sorted("TermsList", [{
+                await sorted("FbtTermsList", [{
                     property: "depositAmount.amount",
                     operator: ">",
                     value: 250
@@ -436,7 +438,7 @@ describe("data API queries", function () {
 
         it("rejects an unknown sort order", async function () {
             expectError(
-                await admin.raw("POST", "/data/terms-list", {filter: {
+                await admin.raw("POST", "/data/fbt-terms-list", {filter: {
                     criteria: [mine],
                     sort: [{property: "net", order: "UP"}]
                 }}),
@@ -448,11 +450,11 @@ describe("data API queries", function () {
         it("pages with limit and offset", async function () {
             let sort = [{property: "net"}];
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {sort, limit: 2}}),
+                await codes("FbtTermsList", [], {filter: {sort, limit: 2}}),
                 ["T2", "T4"]
             );
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {
+                await codes("FbtTermsList", [], {filter: {
                     sort,
                     limit: 2,
                     offset: 2
@@ -460,12 +462,12 @@ describe("data API queries", function () {
                 ["T1", "T5"]
             );
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {sort, offset: 4}}),
+                await codes("FbtTermsList", [], {filter: {sort, offset: 4}}),
                 ["T3"]
             );
             // String values work too (query strings from the client)
             assert.deepEqual(
-                await codes("TermsList", [], {filter: {
+                await codes("FbtTermsList", [], {filter: {
                     sort,
                     limit: "1",
                     offset: "1"
@@ -477,7 +479,7 @@ describe("data API queries", function () {
 
     describe("projection and deleted records", function () {
         it("returns only the requested properties", async function () {
-            let rows = await admin.list("TermsList", {
+            let rows = await admin.list("FbtTermsList", {
                 properties: ["code", "net"],
                 filter: {criteria: [mine], sort: [{property: "net"}]}
             });
@@ -488,7 +490,7 @@ describe("data API queries", function () {
 
         it("returns the whole relation for a dot path property",
                 async function () {
-            let rows = await admin.list("Categories", {
+            let rows = await admin.list("FbtCategories", {
                 properties: ["code", "parent.code"],
                 filter: {criteria: [{property: "code", value: pre + "-C1"}]}
             });
@@ -535,7 +537,7 @@ describe("data API queries", function () {
     describe("POST /do/aggregate/", function () {
         function aggregate(aggregations, criteria) {
             return admin.raw("POST", "/do/aggregate/", {
-                name: "Terms",
+                name: "FbtTerms",
                 filter: {criteria: [mine].concat(criteria || [])},
                 aggregations
             });
@@ -612,19 +614,19 @@ describe("data API queries", function () {
                 ratio: 4,
                 toCurrency: {id: reverse.id}
             });
-            await admin.create("Terms", {
+            await admin.create("FbtTerms", {
                 code: fx + "-A",
                 depositAmount: money(100, foreign.code),
                 depositRequired: true,
                 policy: "N"
             });
-            await admin.create("Terms", {
+            await admin.create("FbtTerms", {
                 code: fx + "-B",
                 depositAmount: money(40, reverse.code),
                 depositRequired: true,
                 policy: "N"
             });
-            await admin.create("Terms", {
+            await admin.create("FbtTerms", {
                 code: fx + "-C",
                 depositAmount: money(7, base.code),
                 depositRequired: true,
@@ -641,7 +643,7 @@ describe("data API queries", function () {
                     property: "code",
                     value: "^" + escapeRegExp(fx)
                 }]},
-                name: "Terms"
+                name: "FbtTerms"
             });
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
             // 100 x 0.25 + 40 / 4 + 7, not 147

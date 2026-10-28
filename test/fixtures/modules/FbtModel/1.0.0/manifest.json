@@ -1,0 +1,10 @@
+{
+    "module": "FbtModel",
+    "version": "1.0.0",
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        }
+    ]
+}

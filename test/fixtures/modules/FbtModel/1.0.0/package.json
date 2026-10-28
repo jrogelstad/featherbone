@@ -1,0 +1,6 @@
+{
+    "name": "fbtmodel",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Fixture package: feathers shaped like the ones the data API tests need, so Core's tests do not borrow a module's"
+}

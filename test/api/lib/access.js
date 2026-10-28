@@ -55,7 +55,10 @@ async function createContact(admin, name, email) {
         data.number = uniq("EMP");
     }
 
-    return admin.create(feather, data);
+    let made = await admin.create(feather, data);
+
+    made.feather = feather;
+    return made;
 }
 
 /*
@@ -110,7 +113,14 @@ async function createUser(admin, opts) {
         "VALUES ($1, $2, 'everyone', false, now(), $3, now(), $3)"
     ), [id + "m", row.rows[0]._pk, settings.adminUser]);
 
-    return {name, password, id, email, contactId: emp.id};
+    return {
+        contactFeather: emp.feather,
+        contactId: emp.id,
+        email,
+        id,
+        name,
+        password
+    };
 }
 
 /*
