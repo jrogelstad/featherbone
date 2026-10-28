@@ -236,16 +236,26 @@ mechanical. The 22 unwritten articles are still unwritten.
 - **Merge order**: both together. Core without the SupplyChain branch
   runs no SupplyChain tests. The SupplyChain branch's tests need the core
   runner to resolve `featherbone-test`.
-- **Seed database** (branch `feat/test-seed-database`): the runner clones
-  `featherbone_test_source`, built by `test/seed.js` from Core and the
-  versions in `test/seed.json`, instead of `demo`. A used database moved
-  the results under the tests (an approved proposed cost, Postgres
-  collation, a combined manager/instance shape, authorization grants), and
-  the goldens recorded whatever it held. Job Shop is not in the seed. Two
-  gaps it exposed: the api phase loads no module code (so a SupplyChain
-  trigger is not reachable there; Terms' belongs in SupplyChain's own
-  tests), and `TenantService` is a manager feather, so the two security
-  tests that need an encrypted column skip on an instance.
+- **Seed databases** (branches `feat/test-seed-database`, then
+  `feat/test-seed-split`): the runner clones seeds that `test/seed.js`
+  builds from the installers and `test/seed.json` pins, instead of
+  `demo`. A used database moved the results under the tests (an approved
+  proposed cost, Postgres collation, a combined manager/instance shape,
+  authorization grants), and the goldens recorded whatever it held. There
+  are two: `core`, Core with the `FbtModel` fixture package, for the
+  framework's tests, and `supplychain`, Core with the pinned SupplyChain,
+  for the packages'. Each phase clones its own, so Core's goldens hold
+  Core alone and SupplyChain's (`common/test/golden`) hold SupplyChain's.
+  Job Shop is in neither. Core tests that borrowed SupplyChain's Terms,
+  Category and Location now use `FbtTerms`, `FbtCategory` and
+  `FbtLocation`; the tests of what the module itself adds (the Terms
+  trigger, Product's inheritance of Item, the catalog, routes, settings
+  and schema it contributes) moved into the package. Two gaps remain:
+  the api phase loads no module code, and `TenantService` is a manager
+  feather, so the two security tests that need an encrypted column skip
+  on an instance. Seeds carrying domain data for a package are future
+  work; today the SupplyChain seed is the package as installed, and each
+  test makes its own records.
 - **Help**: not started. Order: the route and `help.json` resolution,
   the help window, the customer supplement and its migration, then
   splitting the Job Shop manual.

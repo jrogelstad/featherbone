@@ -146,7 +146,7 @@ describe("database schema", function () {
                     }
                 });
             });
-            assert.ok(checked > 50, "found " + checked + " money properties");
+            assert.ok(checked > 0, "found " + checked + " money properties");
             assert.deepEqual(problems, []);
         });
 
@@ -415,7 +415,7 @@ describe("database schema", function () {
                     out[t].triggers.push(r.def);
                 }
             });
-            assert.ok(Object.keys(out).length > 150);
+            assert.ok(Object.keys(out).length > 40);
             matchGolden("schema-tables", out, KEEP_ALL);
         });
 

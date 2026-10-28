@@ -22,8 +22,9 @@
     everything but `api/upgrade.test.js`. Skipped files are named at the
     start of the run, so a green run cannot quietly be a partial one.
 
-    Integration runs clone FB_TEST_SOURCE_DB (default: the pinned
-    seed, test/seed.js) into
+    Integration runs clone a seed database (test/seed.js: Core for the
+    framework's tests, Core with SupplyChain for the packages'; or
+    FB_TEST_SOURCE_DB for every phase) into
     FB_TEST_DB (default "featherbone_test"), start a server on
     FB_TEST_PORT (default 3990), run the tests one file at a time, then
     stop the server and drop the copy (FB_TEST_KEEP_DB=1 keeps it).
@@ -281,7 +282,7 @@ async function moduleTests(want, fragment) {
     if (want.top && !files.length) {
         console.log(
             "# no tests in " + want.name + " as deployed in " +
-            settings.sourceDb + " (" + rows.filter(
+            "the module database" + " (" + rows.filter(
                 (row) => row.name === want.top
             ).map((row) => row.name + " " + row.version).join("") + ")"
         );
@@ -413,6 +414,51 @@ function runSerially(files, extraEnv, isAlive) {
     return status;
 }
 
+/*
+    One phase: a fresh copy of the database it starts from, a server on
+    it, its files run one at a time, then the server stopped and the copy
+    dropped. The framework's own suites run on Core alone with the fixture
+    packages; a module's on a database that carries the module, from the
+    real packages (a deployed module's code is read from its package on
+    disk). Returns the exit status.
+*/
+async function phase(seedName, pick) {
+    const db = require("./harness/db");
+    const server = require("./harness/server");
+    const seed = require("./seed");
+    // FB_TEST_SOURCE_DB names one database for every phase
+    let source = settings.sourceDb || await seed.ensure(seedName);
+    let ret = 0;
+
+    console.log("# cloning " + source + " -> " + settings.testDb);
+    await db.clone(source);
+    await db.bootstrap();
+    // The files that look for the source (deploy.test.js) read it
+    process.env.FB_TEST_SOURCE_DB = source;
+    try {
+        let picked = await pick();
+
+        if (picked.files.length) {
+            console.log("# starting server on port " + settings.port);
+            let url = await server.start(picked.options);
+
+            ret = runSerially(
+                picked.files,
+                {
+                    FB_TEST_MODULES_ROOT: modulesRoot,
+                    FB_TEST_URL: url,
+                    NODE_PATH: EXPORT_PATH
+                },
+                server.isAlive
+            );
+        }
+    } finally {
+        await server.stop();
+        await db.drop();
+    }
+    return ret;
+}
+
 async function main() {
     let {arg, want} = parse(process.argv);
 
@@ -471,71 +517,28 @@ async function main() {
     let status = runNodeTest(unit, {});
 
     if (integration.length || withModules) {
-        const db = require("./harness/db");
-        const server = require("./harness/server");
-        let url;
+        let ran;
 
-        // The pinned seed is built on first use, and again when it is stale
-        if (settings.sourceDb === settings.seedDb) {
-            await require("./seed").ensure();
-        }
-        console.log(
-            "# cloning " + settings.sourceDb + " -> " + settings.testDb
-        );
-        await db.clone();
-        await db.bootstrap();
-
-        try {
-            /*
-                Framework suites run against the fixture packages,
-                module suites against the real ones: a deployed module's
-                code is read from its package on disk.
-            */
-            let phases = [];
-            let modFiles = (
-                withModules
-                ? await moduleTests(want, fragment)
-                : []
+        if (integration.length) {
+            ran = await phase(
+                "core",
+                () => ({files: integration, options: {}})
             );
 
-            if (SKIP.length) {
-                modFiles = modFiles.filter(
-                    (f) => !SKIP.some((part) => f.includes(part))
-                );
-            }
-            if (integration.length) {
-                phases.push({files: integration, options: {}});
-            }
-            if (modFiles.length) {
-                phases.push({
-                    files: modFiles,
-                    options: {modulesDir: modulesRoot}
-                });
-            }
+            status = status || ran;
+        }
+        if (withModules) {
+            ran = await phase("supplychain", async function () {
+                let files = await moduleTests(want, fragment);
 
-            let at = 0;
-
-            while (at < phases.length) {
-                if (at > 0) {
-                    await server.stop();
+                if (SKIP.length) {
+                    files = files.filter(
+                        (f) => !SKIP.some((part) => f.includes(part))
+                    );
                 }
-                console.log("# starting server on port " + settings.port);
-                url = await server.start(phases[at].options);
-                let s2 = runSerially(
-                    phases[at].files,
-                    {
-                        FB_TEST_MODULES_ROOT: modulesRoot,
-                        FB_TEST_URL: url,
-                        NODE_PATH: EXPORT_PATH
-                    },
-                    server.isAlive
-                );
-                status = status || s2;
-                at += 1;
-            }
-        } finally {
-            await server.stop();
-            await db.drop();
+                return {files, options: {modulesDir: modulesRoot}};
+            });
+            status = status || ran;
         }
     }
 

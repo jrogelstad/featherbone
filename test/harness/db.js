@@ -1,7 +1,7 @@
 /*
     Regression test harness: database lifecycle.
 
-    clone()     copy the source database (default "demo") into the test
+    clone()     copy the source database (a seed, test/seed.js) into the test
                 database, dropping any previous copy first
     bootstrap() create the super user the suite signs in as
     drop()      remove the test database and test roles
@@ -49,7 +49,7 @@ async function exists(client, name) {
 
 // Fallback when the source database has open connections (for example a
 // running Featherbone server): dump and restore with the pg client tools.
-function dumpRestore(target) {
+function dumpRestore(source, target) {
     const envVars = Object.assign({}, process.env, {
         PGPASSWORD: settings.pgPassword
     });
@@ -59,7 +59,7 @@ function dumpRestore(target) {
         "-U", settings.pgUser
     ];
     const dump = execFileSync("pg_dump", common.concat([
-        "-Fc", settings.sourceDb
+        "-Fc", source
     ]), {env: envVars, maxBuffer: 1024 * 1024 * 1024});
     execFileSync("pg_restore", common.concat([
         "--no-owner", "-d", target
@@ -112,7 +112,7 @@ async function copyInto(client, target, template) {
         }
         // Source is in use: create empty and copy with pg_dump
         await client.query(format("CREATE DATABASE %I", target));
-        dumpRestore(target);
+        dumpRestore(template, target);
     }
 }
 
@@ -367,15 +367,15 @@ function upgradeManager() {
     );
 }
 
-async function clone() {
-    if (settings.testDb === settings.sourceDb) {
+async function clone(source) {
+    if (settings.testDb === source) {
         throw new Error("FB_TEST_DB must differ from the source database");
     }
     if (settings.testDb2 === settings.testDb) {
         throw new Error("FB_TEST_DB2 must differ from FB_TEST_DB");
     }
     if (
-        settings.managerDb === settings.sourceDb ||
+        settings.managerDb === source ||
         settings.managerDb === settings.testDb ||
         settings.managerDb === settings.testDb2
     ) {
@@ -385,13 +385,13 @@ async function clone() {
     }
 
     await withClient("postgres", async function (client) {
-        if (!await exists(client, settings.sourceDb)) {
+        if (!await exists(client, source)) {
             throw new Error(
-                "Source database \"" + settings.sourceDb +
+                "Source database \"" + source +
                 "\" not found. Set FB_TEST_SOURCE_DB."
             );
         }
-        await copyInto(client, settings.testDb, settings.sourceDb);
+        await copyInto(client, settings.testDb, source);
 
         // Nothing is connected to the fresh copy yet, so template
         // clones of it are cheap and always available
