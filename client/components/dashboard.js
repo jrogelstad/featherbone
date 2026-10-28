@@ -155,6 +155,19 @@
     reporting date. The tile does the bucketing, so schedules side by side
     always line up.
 
+    A schedule may also say what stands behind a bar:
+
+            drillFor: ({asOf, bucket, from, to, late, label}) ->
+                      descriptor or null; optional
+
+    `from` and `to` are the first and last due dates the bar counts,
+    inclusive, as YYYY-MM-DD: a whole period, or -- for the period the
+    reporting date falls in, which is drawn as two bars -- the part due
+    before the reporting date (`late`) or the part from it on. `label` is
+    the period as the axis says it. The descriptor is the same as a
+    source's or a KPI's (see below), and may be a function, built on the
+    click.
+
     A KPI may say `better: "neither"` (no alert either way),
     `isStandard: false` (not on the composed board, only by choice) and
     `group` (its heading in the Add Tile picker, else its module).
@@ -2882,6 +2895,30 @@ function histMeasure(id) {
     return {oncreate: measure, onupdate: measure};
 }
 
+/*
+    The due dates a bar counts, first and last inclusive. A whole period
+    for a bar that is all one side of the reporting date; the current
+    period is drawn as two bars, its late half ending the day before the
+    reporting date and its other half starting on it.
+*/
+function histBarWindow(column, bucket, asOf) {
+    let start = column.start;
+    let end = addPeriods(start, bucket, 1);
+    let at = utcDay(asOf);
+    let last;
+
+    end.setUTCDate(end.getUTCDate() - 1);
+    last = end;
+    if (column.partial && column.late) {
+        last = new Date(at.getTime());
+        last.setUTCDate(last.getUTCDate() - 1);
+    }
+    if (column.partial && !column.late) {
+        start = at;
+    }
+    return {from: dayText(start), to: dayText(last)};
+}
+
 function histogramTile(tile) {
     let state = tileState[tile.id] || {status: "loading"};
     let draw = f.catalog().store().global().dashboardDraw;
@@ -3006,6 +3043,7 @@ function histogramTile(tile) {
                 name: label,
                 late: one.late,
                 partial: one.partial,
+                start: one.start,
                 values: sums.map(function (by) {
                     return by[one.key] || 0;
                 })
@@ -3047,6 +3085,28 @@ function histogramTile(tile) {
                     names: series.map(function (one) {
                         return one.schedule.name;
                     }),
+                    /*
+                        A bar offers what stands behind it when its
+                        schedule says (drillFor) -- the same click and
+                        list as a measure row's.
+                    */
+                    barAttrs: function (column, which) {
+                        let schedule = series[which].schedule;
+                        let span;
+
+                        if (!schedule.drillFor) {
+                            return null;
+                        }
+                        span = histBarWindow(column, bucket, asOf);
+                        return drillRow(schedule.drillFor({
+                            asOf,
+                            bucket,
+                            from: span.from,
+                            label: column.name,
+                            late: column.late,
+                            to: span.to
+                        }));
+                    },
                     titleFormat: fmt.amount,
                     width: size.width
                 })
