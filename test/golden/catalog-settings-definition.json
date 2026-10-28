@@ -110,6 +110,27 @@
     }
   },
   {
+    "description": "App title, dashboard wallpaper, and ribbon/tab icon. Values are set by whichever installed package's manifest most recently declared one, not edited by hand.",
+    "module": "Core",
+    "name": "brandingSettings",
+    "properties": {
+      "dashboardImage": {
+        "description": "Wallpaper behind the dashboard page (title bar, As Of line, and tiles alike): a URL, or the name of a file uploaded to this server",
+        "format": "image",
+        "type": "string"
+      },
+      "icon": {
+        "description": "Shown in place of the Featherbone quill mark in the ribbon and browser tab: a URL, or the name of a file uploaded to this server. Unlike the quill, drawn at full color rather than tinted to the theme.",
+        "format": "image",
+        "type": "string"
+      },
+      "title": {
+        "description": "Shown in place of \"Featherbone\" in the ribbon and browser tab",
+        "type": "string"
+      }
+    }
+  },
+  {
     "description": "Buy settings",
     "module": "Buy",
     "name": "buySettings",
@@ -308,56 +329,59 @@
     "properties": {
       "city": {
         "description": "City on printed forms",
+        "isOrganization": true,
         "type": "string"
       },
       "country": {
         "default": "United States",
         "description": "Country on printed forms",
+        "isOrganization": true,
         "type": "string"
       },
       "logo": {
-        "description": "User defined logo",
-        "type": {
-          "properties": [
-            "icon",
-            "label",
-            "resource",
-            "displayValue"
-          ],
-          "relation": "ResourceLink"
-        }
+        "description": "Logo on printed forms: a URL, or the name of a file uploaded to this server",
+        "format": "image",
+        "isOrganization": true,
+        "type": "string"
       },
       "name": {
         "description": "Organization name on printed forms",
+        "isOrganization": true,
         "type": "string"
       },
       "phone": {
         "description": "Phone on printed forms",
         "format": "tel",
+        "isOrganization": true,
         "type": "string"
       },
       "postalCode": {
         "description": "Postal code on printed forms",
+        "isOrganization": true,
         "type": "string"
       },
       "smtpHost": {
         "description": "SMTP host address",
+        "isOrganization": true,
         "type": "string"
       },
       "smtpPassword": {
         "description": "SMTP password",
         "format": "password",
         "isEncrypted": true,
+        "isOrganization": true,
         "type": "string"
       },
       "smtpPort": {
         "default": 465,
         "description": "SMTP port",
+        "isOrganization": true,
         "type": "integer"
       },
       "smtpSecure": {
         "default": true,
         "description": "Whether SMTP connection is secure",
+        "isOrganization": true,
         "type": "boolean"
       },
       "smtpType": {
@@ -378,49 +402,28 @@
         "default": "None",
         "description": "SMTP connection method",
         "format": "enum",
+        "isOrganization": true,
         "isRequired": true,
         "type": "string"
       },
       "smtpUser": {
         "description": "SMTP email account",
+        "isOrganization": true,
         "type": "string"
       },
       "state": {
         "description": "State or province on printed forms",
+        "isOrganization": true,
         "type": "string"
       },
       "street": {
         "description": "Street address on printed forms",
+        "isOrganization": true,
         "type": "string"
       },
       "unit": {
         "description": "Unit on printed forms",
-        "type": "string"
-      }
-    }
-  },
-  {
-    "description": "Job shop settings",
-    "module": "JobShop",
-    "name": "jobShopSettings",
-    "properties": {
-      "edition": {
-        "dataList": [
-          {
-            "label": "Standard",
-            "value": "Standard"
-          },
-          {
-            "label": "Professional",
-            "value": "Professional"
-          },
-          {
-            "label": "Enterprise",
-            "value": "Enterprise"
-          }
-        ],
-        "default": "Standard",
-        "description": "Edition set to",
+        "isOrganization": true,
         "type": "string"
       }
     }

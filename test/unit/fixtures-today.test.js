@@ -1,6 +1,6 @@
 /*
-    today(n) is the UTC date n days on, whatever the zone and wherever a
-    daylight saving change falls in between.
+    today(n) is the local date n days on, as the server reads it, wherever
+    a daylight saving change falls in between.
 */
 /*jslint node*/
 "use strict";
@@ -22,7 +22,7 @@ describe("today", function () {
 
     it("adds days across the autumn change in a Toronto evening", function (t) {
         process.env.TZ = "America/Toronto";
-        // 19:55 EDT on Oct 27 2026, which is still Oct 27 in UTC
+        // 19:55 EDT on Oct 27 2026
         t.mock.timers.enable({
             apis: ["Date"],
             now: Date.UTC(2026, 9, 27, 23, 55)
@@ -41,7 +41,19 @@ describe("today", function () {
             now: Date.UTC(2026, 2, 2, 0, 55)
         });
 
-        assert.equal(today(), "2026-03-02");
-        assert.equal(today(10), "2026-03-12");
+        assert.equal(today(), "2026-03-01");
+        assert.equal(today(10), "2026-03-11");
+    });
+
+    it("is still the local day when UTC has turned over", function (t) {
+        process.env.TZ = "America/Toronto";
+        // 20:23 EDT on Oct 27 2026 is already Oct 28 in UTC
+        t.mock.timers.enable({
+            apis: ["Date"],
+            now: Date.UTC(2026, 9, 28, 0, 23)
+        });
+
+        assert.equal(today(), "2026-10-27");
+        assert.equal(today(1), "2026-10-28");
     });
 });

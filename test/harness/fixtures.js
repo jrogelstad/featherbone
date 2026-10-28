@@ -29,16 +29,20 @@ function money(amount, currency) {
 }
 
 /*
-    The UTC date, offset by whole days. The offset is added in UTC too:
-    adding it to the local date and then printing the UTC one is a day
-    out whenever a daylight saving change falls in between and the
-    local evening is already the next day in UTC (Toronto at 19:55 on
-    Oct 27, plus 11 days, is Nov 8 00:55 UTC).
+    The local date, offset by whole calendar days, as the server reads it
+    (the framework's today() is the local date: a sales order cannot ship
+    before its requested date). Days are added to the calendar date, never
+    as 24-hour spans, so a daylight saving change in between does not
+    move it; and it is printed from local parts, not toISOString(), which
+    is a day out on a local evening that is already tomorrow in UTC.
 */
 function today(offsetDays) {
     let d = new Date();
-    d.setUTCDate(d.getUTCDate() + (offsetDays || 0));
-    return d.toISOString().slice(0, 10);
+    let pad = (n) => String(n).padStart(2, "0");
+
+    d.setDate(d.getDate() + (offsetDays || 0));
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" +
+            pad(d.getDate());
 }
 
 function ref(rec) {
