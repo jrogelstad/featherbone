@@ -507,12 +507,7 @@ describe("user accounts", function () {
 
         // server.js doQueryRequest forces isSuper for Form, Module, Role
         // and UserAccount queries
-        it("cannot list all user accounts", {
-            todo: (
-                "defect: POST /data/user-accounts runs as super user for " +
-                "any signed-in user (server.js doQueryRequest)"
-            )
-        }, async function () {
+        it("cannot list all user accounts", async function () {
             let rows = await session.list("UserAccounts", {
                 properties: ["name"]
             });
