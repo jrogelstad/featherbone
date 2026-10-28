@@ -1,0 +1,48 @@
+{
+    "title": "Featherbone",
+    "default": "worksheets.md",
+    "pages": [
+        {"path": "workbooks.md", "title": "Workbooks"},
+        {"path": "worksheets.md", "title": "Worksheets"},
+        {"path": "concepts.md", "title": "Concepts"},
+        {"path": "user-accounts.md", "title": "User accounts"},
+        {"path": "authorizations.md", "title": "Authorizations"},
+        {"path": "print-forms.md", "title": "Print forms"},
+        {"path": "developing.md", "title": "Developing"},
+        {"path": "glossary.md", "title": "Glossary"}
+    ],
+    "forms": {
+        "DataService": "developing.md",
+        "Feather": "developing.md",
+        "FeatherOverload": "developing.md",
+        "FeatherProperty": "developing.md",
+        "Form": "developing.md",
+        "FormAttr": "developing.md",
+        "Module": "developing.md",
+        "Print Form": "print-forms.md",
+        "Relation Widget": "developing.md",
+        "Role": "authorizations.md",
+        "Route": "developing.md",
+        "Style": "developing.md",
+        "System Print Form": "print-forms.md",
+        "User Account": "user-accounts.md"
+    },
+    "feathers": {
+        "DataService": "developing.md",
+        "Feather": "developing.md",
+        "FeatherOverload": "developing.md",
+        "FeatherProperty": "developing.md",
+        "Form": "developing.md",
+        "FormAttr": "developing.md",
+        "Module": "developing.md",
+        "ObjectAuthorization": "authorizations.md",
+        "PrintForm": "print-forms.md",
+        "RelationWidget": "developing.md",
+        "Role": "authorizations.md",
+        "Route": "developing.md",
+        "Style": "developing.md",
+        "SystemPrintForm": "print-forms.md",
+        "UserAccount": "user-accounts.md",
+        "Workbook": "workbooks.md"
+    }
+}

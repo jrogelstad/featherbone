@@ -99,6 +99,8 @@
         "data",
         "do",
         "feather",
+        "help",
+        "help-topic",
         "module",
         "modules",
         "navigation-categories",
@@ -1873,6 +1875,66 @@
     }
 
     /*
+        The help window (ADR-003): one page, which asks for a topic and
+        renders the module's Markdown itself. Served from the checkout
+        like index.html, and behind the session like the rest of an
+        instance.
+    */
+    function doGetHelpPage(ignore, res) {
+        fs.readFile("./help.html", function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.write(resp);
+            res.end();
+        });
+    }
+
+    // Which page answers for a form or a feather, and the customer's own
+    function doGetHelpTopic(req, res) {
+        let payload = {
+            data: {
+                feather: req.query.feather,
+                form: req.query.form
+            },
+            method: "GET",
+            name: "getHelpTopic",
+            tenant: req.tenant,
+            user: req.user.name
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
+    /*
+        A help file of the module version this database deployed. The
+        service refuses a path that leaves the module's help folder.
+    */
+    function doGetHelpFile(req, res) {
+        let payload = {
+            data: {
+                module: req.params.module,
+                path: req.params[0]
+            },
+            method: "GET",
+            name: "getHelpFile",
+            tenant: req.tenant,
+            user: req.user.name
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(function (resp) {
+            res.type(resp.type);
+            res.sendFile(resp.file);
+        }).catch(error.bind(res));
+    }
+
+    /*
         "Forgot password": mail a link that signs the person in and
         sends them to the change-password page.
 
@@ -3487,6 +3549,7 @@
         "/node_modules/event-source-polyfill/src/eventsource.js",
         "/node_modules/fast-json-patch/dist/fast-json-patch.js",
         "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
+        "/node_modules/marked/lib/marked.umd.js",
         "/node_modules/mithril/mithril.js",
         "/node_modules/mithril/mithril.min.js",
         "/node_modules/qs/dist/qs.js",
@@ -4506,6 +4569,9 @@
         dbRouter.post("/:db/module/package/:name", doPackageModule);
         dbRouter.post("/:db/module/install/:query", doInstall);
         dbRouter.post("/:db/do/upgrade/:query", doUpgrade);
+        dbRouter.get("/:db/help", doGetHelpPage);
+        dbRouter.get("/:db/help-topic", doGetHelpTopic);
+        dbRouter.get("/:db/help/:module/*", doGetHelpFile);
         dbRouter.get("/:db/profile", doGetProfile);
         dbRouter.put("/:db/profile", doPutProfile);
         dbRouter.patch("/:db/profile", doPatchProfile);

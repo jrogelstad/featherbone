@@ -1,6 +1,6 @@
 {
     "module": "Core",
-    "version": "3.0.0-alpha.8",
+    "version": "3.0.0-alpha.9",
     "files": [
         {
             "type": "execute",
@@ -30,6 +30,10 @@
             "isSystem": false
         },
         {
+            "type": "execute",
+            "path": "scripts/retire-help-links.js"
+        },
+        {
             "type": "feather",
             "path": "scripts/feathers.json"
         },
@@ -37,6 +41,10 @@
             "type": "feather",
             "path": "scripts/feathers-manager.json",
             "target": "manager"
+        },
+        {
+            "type": "execute",
+            "path": "scripts/retire-help-links.js"
         },
         {
             "type": "execute",

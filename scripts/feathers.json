@@ -208,6 +208,11 @@
                 "description": "Internal notes",
                 "type": "string",
                 "format": "textArea"
+            },
+            "form": {
+                "description": "Form supplemented by customer help",
+                "type": "string",
+                "isIndexed": true
             }
         }
     },
@@ -321,18 +326,6 @@
             "hideLogo": {
                 "description": "When printing do not include the logo",
                 "type": "boolean"
-            },
-            "helpLink": {
-                "description": "Help file for form",
-                "type": {
-                    "relation": "HelpLink",
-                    "properties": [
-                        "label",
-                        "icon",
-                        "resource",
-                        "displayValue"
-                    ]
-                }
             }
         }
     },
