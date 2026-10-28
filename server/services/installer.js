@@ -1695,6 +1695,16 @@
                             "DELETE FROM style WHERE module=$1",
                             [name]
                         ),
+                        /*
+                            The vendor's help links. A customer's own
+                            belongs to no module (ADR-003), so the
+                            bright line holds here too: removing a
+                            module never takes their help with it.
+                        */
+                        vClient.query(
+                            "DELETE FROM help_link WHERE module=$1",
+                            [name]
+                        ),
                         vClient.query(
                             "DELETE FROM \"$workbook\" WHERE module=$1",
                             [name]

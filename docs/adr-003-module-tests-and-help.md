@@ -309,14 +309,19 @@ mechanical. The 22 unwritten articles are still unwritten.
   - **Corrected the same day** (Core 3.0.0-alpha.10), after a deploy of
     Job Shop to the cloud demo failed on `duplicate key value violates
     unique constraint "help_link_id_key"`:
-    - The migration no longer deletes a help link that belongs to a
-      module. It had soft-deleted 90 of them in that database on the
-      theory that nothing reads them. A deleted row keeps its id, and
-      the unique index on id covers deleted rows, so the next deploy of
-      a package that still carries one could not insert it. The rows
-      are left where they are; the Help Files worksheet shows `module`
-      beside `form`, so a customer can see which are theirs, rather
-      than a filter that might hide a row they had just made.
+    - **The bright line** (John): our standard help is files in a
+      package; the customer's is records they keep in a workbook; and
+      neither writes over the other. So the migration now *removes*
+      every help link that belongs to a module -- it had soft-deleted
+      90 of them in that database, and a deleted row keeps its id,
+      which is what the duplicate key was. Removing frees the id, so
+      even a package still carrying one can install it. The clear-out
+      runs on every upgrade rather than once, so a stale package that
+      puts some back does not leave them there for good, and
+      `deleteModule` now takes a module's links with it the way it
+      already took its forms and routes. A link belonging to no module
+      is the customer's and is never in scope for any of it; the Help
+      Files worksheet is their own list, with nothing of ours in it.
     - A POST naming the id of a deleted record now brings that record
       back instead of failing on a duplicate key (`doUpsert` in
       datasource.js). This was not new and not only about help: it bit

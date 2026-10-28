@@ -147,21 +147,6 @@ describe("retiring the stored help link", function () {
         );
     });
 
-    /*
-        The vendor's link is left where it is. Nothing reads it now that
-        the module's help folder answers, and deleting it would only
-        make the next deploy of a package that still carries it fail on
-        an id that is taken but invisible.
-    */
-    it("leaves the vendor's link alone", async function () {
-        let rows = await links();
-        let vendor = rows.filter((row) => row.module === "Design");
-
-        assert.equal(vendor.length, 1);
-        assert.equal(vendor[0].is_deleted, false);
-        assert.ok(!vendor[0].form, "it supplements no form");
-    });
-
     it("drops the copy a worksheet saved", async function () {
         let resp = await db.query(
             "SELECT default_config FROM \"$workbook\" WHERE name = $1",
@@ -172,6 +157,23 @@ describe("retiring the stored help link", function () {
         assert.equal(sheets.length, 2);
         assert.equal(sheets[0].helpLink, undefined);
         assert.equal(sheets[0].name, "Sheet");
+    });
+
+    /*
+        The bright line (John, Oct 2026): our standard help is files in
+        a package, the customer's is records they keep in a workbook,
+        and neither writes over the other. Nothing a package ships
+        survives here; everything the customer made does.
+    */
+    it("clears every link that belongs to a module", async function () {
+        let rows = await links();
+
+        assert.deepEqual(
+            rows.filter((row) => row.module).map((row) => row.label),
+            [],
+            "a vendor's link is the vendor's to ship, not ours to keep"
+        );
+        assert.equal(rows.length, 2, "the customer's two are still here");
     });
 
     it("leaves nothing behind to carry", async function () {
