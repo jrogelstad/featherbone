@@ -20,8 +20,7 @@ describe("today", function () {
         }
     });
 
-    it("adds days across the autumn change in a Toronto evening",
-            function (t) {
+    it("adds days across the autumn change in a Toronto evening", function (t) {
         process.env.TZ = "America/Toronto";
         // 19:55 EDT on Oct 27 2026, which is still Oct 27 in UTC
         t.mock.timers.enable({
@@ -34,8 +33,7 @@ describe("today", function () {
         assert.equal(today(-1), "2026-10-26");
     });
 
-    it("adds days across the spring change in a Toronto evening",
-            function (t) {
+    it("adds days across the spring change in a Toronto evening", function (t) {
         process.env.TZ = "America/Toronto";
         // 19:55 EST on Mar 1 2026; the change is on Mar 8
         t.mock.timers.enable({
