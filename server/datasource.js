@@ -3654,6 +3654,35 @@
             }
 
             resp = await crud.doSelect(payload, false, isSuperUser);
+
+            /*
+                An id that is here but deleted. Deleting a record does
+                not free its id -- the unique index on id covers deleted
+                rows too -- so inserting would fail on a duplicate key,
+                which is what a package deploy used to die on whenever
+                somebody had deleted one of the records it carries
+                (John, Oct 2026: the same deploy failure "for the
+                umpteenth time"). A POST that names an id is asserting
+                that record, so it comes back and the write lands on it.
+            */
+            if (!resp) {
+                let gone = await crud.doSelect({
+                    client: theClient,
+                    id: obj.id,
+                    name: obj.name,
+                    showDeleted: true
+                }, false, isSuperUser);
+
+                if (gone) {
+                    await theClient.query(
+                        "UPDATE object SET is_deleted = false, " +
+                        "  updated = now(), updated_by = $2 WHERE id = $1",
+                        [obj.id, theClient.currentUser()]
+                    );
+                    resp = await crud.doSelect(payload, false, isSuperUser);
+                }
+            }
+
             if (resp) {
                 obj.name = resp.objectType;
                 obj.oldRec = Object.freeze(f.copy(resp));

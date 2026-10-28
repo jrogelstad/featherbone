@@ -32,8 +32,14 @@
 
       * a link that belongs to no module is the customer's own, and
         becomes a supplement naming the form it supplemented;
-      * a link that belongs to a module is the vendor's, and goes: the
-        module's own help folder answers for it now;
+      * a link that belongs to a module is the vendor's, and goes
+        altogether: the module's own help folder answers for it now,
+        and the Help Files worksheet is the customer's own list to
+        keep (John, Oct 2026: "clearing out all help links in job shop
+        or any other packages ... a clean state for the customer to add
+        their own"). The row is removed rather than marked deleted,
+        which keeps its id taken and was what made a deploy of a
+        package still carrying one fail on a duplicate key;
       * `helpLink` is dropped from worksheet configurations wherever one
         was saved.
 
@@ -44,6 +50,11 @@
     and parks them; the second writes the supplements once the new column
     exists, and clears up. Which pass this is, is read off the database
     rather than passed in.
+
+    Clearing the vendor's links is not part of either pass: it runs
+    every time, so a stale package that puts some back does not leave
+    them there for good. A link belonging to no module is the
+    customer's and is never touched by any of this.
 
     A fresh install has neither column and does nothing. Idempotent: a
     second upgrade finds no references left to move.
@@ -83,12 +94,6 @@
         "WHERE NOT h.is_deleted ORDER BY f.name"
     );
 
-    const SQL_RETIRE = (
-        "UPDATE help_link SET is_deleted = true, updated = now()," +
-        "  updated_by = 'install' " +
-        "WHERE coalesce(module, '') <> '' AND NOT is_deleted"
-    );
-
     const SQL_CARRIED = (
         "SELECT form, id, label, icon, resource, notes FROM \"" + CARRY +
         "\" WHERE coalesce(module, '') = '' ORDER BY form"
@@ -122,7 +127,23 @@
         "  display_value" +
         ") VALUES (" +
         "  nextval('object__pk_seq'), $1, now(), 'install', now()," +
-        "  'install', false, 'install', $1, NULL, $2, $3, $4, $5, $6, $7" +
+        "  'install', false, 'install', $1, '', $2, $3, $4, $5, $6, $7" +
+        ")"
+    );
+
+    /*
+        Removed, not marked deleted. A deleted row keeps its id, the
+        unique index on id covers deleted rows, and the next deploy of
+        a package that still carries the link could then neither insert
+        it nor see it.
+    */
+    const SQL_CLEAR = (
+        "DELETE FROM help_link WHERE coalesce(module, '') <> ''"
+    );
+
+    const SQL_UNSUBSCRIBE = (
+        "DELETE FROM \"$subscription\" WHERE objectid IN (" +
+        "  SELECT id FROM help_link WHERE coalesce(module, '') <> ''" +
         ")"
     );
 
@@ -240,7 +261,6 @@
             let counted = resp.rows[0];
             let books = await stripWorkbooks();
             let profiles = await stripProfiles();
-            let retired = await client.query(SQL_RETIRE);
             let said = [];
 
             if (counted.theirs) {
@@ -248,12 +268,6 @@
                     counted.theirs + " form reference(s) to a module's " +
                     "own help dropped, which its help folder answers " +
                     "for now"
-                );
-            }
-            if (retired.rowCount) {
-                said.push(
-                    retired.rowCount + " help link(s) belonging to a " +
-                    "module retired"
                 );
             }
             if (books || profiles) {
@@ -317,19 +331,38 @@
             }
         }
 
+        // Every vendor link, whoever shipped it and whenever
+        async function clear() {
+            await client.query(SQL_UNSUBSCRIBE);
+
+            let gone = await client.query(SQL_CLEAR);
+
+            if (gone.rowCount) {
+                console.log(
+                    gone.rowCount + " help link(s) belonging to a module " +
+                    "cleared: help travels with the module now, and the " +
+                    "Help Files worksheet is the customer's own."
+                );
+            }
+        }
+
         async function run() {
+            if (!await has("help_link")) {
+                return;
+            }
+
             let old = (
-                await has("form") && await has("help_link") &&
+                await has("form") &&
                 await hasColumn("form", "_help_link_help_link_pk")
             );
 
             if (old) {
                 await park();
-                return;
-            }
-            if (await has(CARRY)) {
+            } else if (await has(CARRY)) {
                 await apply();
             }
+
+            await clear();
         }
 
         return run();

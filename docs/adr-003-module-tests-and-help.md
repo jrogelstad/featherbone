@@ -277,7 +277,7 @@ mechanical. The 22 unwritten articles are still unwritten.
   work; today the SupplyChain seed is the package as installed, and each
   test makes its own records.
 - **Help** (branches `feat/module-help` in both repositories, Core
-  3.0.0-alpha.9 and SupplyChain 2.2.44). Built as planned:
+  3.0.0-alpha.10 and SupplyChain 2.2.44). Built as planned:
   - `server/services/help.js` and three routes: `/:db/help` (the
     window), `/:db/help-topic` (which page answers, with the customer's
     supplement), `/:db/help/:module/<path>` (the file, from the version
@@ -306,6 +306,28 @@ mechanical. The 22 unwritten articles are still unwritten.
     `common/test/help.test.js` in SupplyChain, which holds the join
     between a page on disk, a form name in the database and the entry
     that ties them.
+  - **Corrected the same day** (Core 3.0.0-alpha.10), after a deploy of
+    Job Shop to the cloud demo failed on `duplicate key value violates
+    unique constraint "help_link_id_key"`:
+    - **The bright line** (John): our standard help is files in a
+      package; the customer's is records they keep in a workbook; and
+      neither writes over the other. So the migration now *removes*
+      every help link that belongs to a module -- it had soft-deleted
+      90 of them in that database, and a deleted row keeps its id,
+      which is what the duplicate key was. Removing frees the id, so
+      even a package still carrying one can install it. The clear-out
+      runs on every upgrade rather than once, so a stale package that
+      puts some back does not leave them there for good, and
+      `deleteModule` now takes a module's links with it the way it
+      already took its forms and routes. A link belonging to no module
+      is the customer's and is never in scope for any of it; the Help
+      Files worksheet is their own list, with nothing of ours in it.
+    - A POST naming the id of a deleted record now brings that record
+      back instead of failing on a duplicate key (`doUpsert` in
+      datasource.js). This was not new and not only about help: it bit
+      any time somebody deleted a record a package ships, which is
+      John's "umpteenth time". `deploy-failure.test.js` deletes a
+      record the fixture package carries and deploys it again.
   - **Still to do**: Job Shop's own help folder (navigation and
     getting-started), which is where the manual's remaining front
     matter belongs. The generated `job-shop-help.html` on the
