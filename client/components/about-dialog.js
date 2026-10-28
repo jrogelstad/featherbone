@@ -40,6 +40,7 @@ aboutDialog.viewModel = function () {
     });
     let info;
     let failed;
+    let expanded = {};
     let db = location.pathname.split("/")[1];
 
     function row(name, version, cls) {
@@ -54,6 +55,60 @@ aboutDialog.viewModel = function () {
             m("caption", caption),
             m("tbody", rows)
         ]);
+    }
+
+    function toggle(name) {
+        expanded[name] = !expanded[name];
+    }
+
+    // Umbrella packages as a tree, collapsed until asked. A module whose
+    // parent isn't listed stands on its own.
+    function modules() {
+        let names = new Set(info.modules.map((mod) => mod.name));
+        let rows = [];
+
+        info.modules.forEach(function (mod) {
+            let kids;
+
+            if (mod.parent && names.has(mod.parent)) {
+                return;
+            }
+            kids = info.modules.filter((kid) => kid.parent === mod.name);
+            if (!kids.length) {
+                rows.push(row(mod.name, mod.version));
+                return;
+            }
+            rows.push(m("tr", {
+                class: "fb-about-parent",
+                onclick: () => toggle(mod.name)
+            }, [
+                m("td", m("button[type=button]", {
+                    class: "fb-about-toggle",
+                    "aria-expanded": Boolean(expanded[mod.name]),
+                    title: (
+                        expanded[mod.name]
+                        ? "Hide the modules in " + mod.name
+                        : "Show the modules in " + mod.name
+                    )
+                }, [
+                    f.icon(
+                        expanded[mod.name]
+                        ? "expand_more"
+                        : "chevron_right"
+                    ),
+                    mod.name,
+                    m("span", {class: "fb-about-count"}, kids.length)
+                ])),
+                m("td", {class: "fb-about-version"}, mod.version)
+            ]));
+            if (expanded[mod.name]) {
+                kids.forEach((kid) => rows.push(
+                    row(kid.name, kid.version, "fb-about-child")
+                ));
+            }
+        });
+
+        return rows;
     }
 
     function framework() {
@@ -74,6 +129,7 @@ aboutDialog.viewModel = function () {
     vm.open = function () {
         info = undefined;
         failed = undefined;
+        expanded = {};
         vm.show();
         m.request({
             method: "GET",
@@ -110,15 +166,7 @@ aboutDialog.viewModel = function () {
             table("Framework", [row(info.name, framework())]),
             (
                 info.modules.length
-                ? table("Modules", info.modules.map((mod) => row(
-                    mod.name,
-                    mod.version,
-                    (
-                        mod.parent
-                        ? "fb-about-child"
-                        : undefined
-                    )
-                )))
+                ? table("Modules", modules())
                 : undefined
             ),
             table("Infrastructure", info.infrastructure.map(
