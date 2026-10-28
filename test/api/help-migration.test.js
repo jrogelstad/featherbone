@@ -138,25 +138,28 @@ describe("retiring the stored help link", function () {
 
     it("keeps the customer's link as its form's supplement", async function () {
         let rows = await links();
-        let kept = rows.filter((row) => !row.is_deleted);
+        let mine_ = rows.filter((row) => !row.module && !row.is_deleted);
 
         assert.deepEqual(
-            kept.map((row) => row.form).sort(),
+            mine_.map((row) => row.form).sort(),
             [FORMS[0], FORMS[1]],
             "a link two forms shared becomes one supplement each"
         );
-        assert.ok(
-            kept.every((row) => !row.module),
-            "a supplement belongs to no module"
-        );
     });
 
-    it("retires the vendor's link, its module answers now", async function () {
+    /*
+        The vendor's link is left where it is. Nothing reads it now that
+        the module's help folder answers, and deleting it would only
+        make the next deploy of a package that still carries it fail on
+        an id that is taken but invisible.
+    */
+    it("leaves the vendor's link alone", async function () {
         let rows = await links();
-        let gone = rows.filter((row) => row.is_deleted);
+        let vendor = rows.filter((row) => row.module === "Design");
 
-        assert.equal(gone.length, 1);
-        assert.equal(gone[0].module, "Design");
+        assert.equal(vendor.length, 1);
+        assert.equal(vendor[0].is_deleted, false);
+        assert.ok(!vendor[0].form, "it supplements no form");
     });
 
     it("drops the copy a worksheet saved", async function () {

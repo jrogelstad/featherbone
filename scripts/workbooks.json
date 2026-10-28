@@ -226,6 +226,8 @@
                     "columns": [{
                         "attr": "form"
                     }, {
+                        "attr": "module"
+                    }, {
                         "attr": "label"
                     }, {
                         "attr": "notes"
