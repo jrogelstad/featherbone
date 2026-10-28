@@ -119,7 +119,8 @@ describe("client components", function () {
             "toolbar", "urlWidget", "workbookPage"
         ]);
         assert.deepEqual(Object.keys(vms).sort(), [
-            "accountMenu", "aggregateDialog", "button", "childFormPage",
+            "aboutDialog", "accountMenu", "aggregateDialog", "button",
+            "childFormPage",
             "childTable", "contactRelation", "dialog", "filterDialog",
             "formDialog", "formWidget", "gantt", "helpLinkRelation",
             "navigatorMenu", "relationWidget", "resourceLinkRelation", "ribbon",
@@ -1297,6 +1298,75 @@ describe("client components", function () {
                     name
                 );
             });
+        });
+    });
+
+    describe("about-dialog.js", function () {
+        it("shows versions and opens the REST reference", async function () {
+            let opened = [];
+            let open = globalThis.open;
+            let vm = vms.aboutDialog();
+            let out;
+            let text;
+
+            env.respond(function (req) {
+                if (req.url === "/demo/about") {
+                    return {
+                        deployedVersion: "2.9.0",
+                        description: "A framework.",
+                        infrastructure: [
+                            {name: "Node.js", version: "22.0.0"},
+                            {name: "PostgreSQL", version: "16.4"}
+                        ],
+                        modules: [
+                            {name: "SupplyChain", version: "2.2.45"},
+                            {
+                                name: "Sell",
+                                parent: "SupplyChain",
+                                version: "2.1.19"
+                            }
+                        ],
+                        name: "Featherbone",
+                        version: "3.0.0"
+                    };
+                }
+                return server.handle(req);
+            });
+            globalThis.open = (url, name) => opened.push([url, name]);
+            vm.open();
+            await env.flush();
+            out = R.render(comps.dialog, {viewModel: vm});
+            text = R.text(out.tree);
+            vm.openApi();
+            globalThis.open = open;
+            env.respond(server.handle);
+
+            assert.ok(text.includes("3.0.0 (instance at 2.9.0)"), text);
+            assert.ok(text.includes("PostgreSQL"));
+            // Subordinate modules start out of sight, under their package
+            assert.ok(text.includes("SupplyChain"));
+            assert.equal(text.includes("Sell"), false);
+            assert.equal(
+                R.findAll(out.tree, R.byClass("fb-about-child")).length,
+                0
+            );
+            R.find(out.tree, R.byClass("fb-about-parent")).attrs.onclick();
+            out = R.render(comps.dialog, {viewModel: vm});
+            assert.ok(R.text(out.tree).includes("Sell"));
+            assert.equal(
+                R.findAll(out.tree, R.byClass("fb-about-child")).length,
+                1
+            );
+            R.find(out.tree, R.byClass("fb-about-parent")).attrs.onclick();
+            out = R.render(comps.dialog, {viewModel: vm});
+            assert.equal(R.text(out.tree).includes("Sell"), false);
+            R.find(out.tree, R.byClass("fb-about-parent")).attrs.onclick();
+            out = R.render(comps.dialog, {viewModel: vm});
+            assert.deepEqual(
+                buttons(out.tree).map((b) => b.text),
+                ["SupplyChain 1", "REST API", "C lose"]
+            );
+            assert.deepEqual(opened, [["/demo/api", "featherbone-api"]]);
         });
     });
 

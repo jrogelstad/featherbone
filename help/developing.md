@@ -70,6 +70,56 @@ standard page, under the organization's own heading. A package deploy
 writes only records that belong to a module, so a deploy can never
 overwrite it.
 
+## REST API reference
+
+**About** (the Info button beside the bell) shows what the instance runs,
+and its **REST API** button opens the instance's API reference. The page
+is `/<db>/api`; the document behind it is `GET /<db>/openapi.json`, an
+OpenAPI 3.0 document put together each time it is asked for from three
+sources:
+
+1. the framework's own `openapi.json`, at the root of the checkout;
+2. every feather in the instance's catalog, which gets the paths the
+   server mounts for it (`/data/<feather>`, `/data/<feather>/{id}` and
+   `/data/<plural>`) and a schema of its own name;
+3. the `openapi.json` beside the manifest of each module the instance
+   deployed, read from the version deployed.
+
+A module documents the routes in its `routes.json`, with the paths
+written the same way and every one a `post`:
+
+```json
+{
+    "openapi": "3.0.3",
+    "info": {"title": "Sell", "version": "2.1.19"},
+    "tags": [{"name": "Sales order actions"}],
+    "paths": {
+        "/close-sales-order": {
+            "post": {
+                "tags": ["Sales order actions"],
+                "operationId": "doCloseSalesOrder",
+                "summary": "Close sales orders",
+                "requestBody": {"content": {"application/json": {
+                    "schema": {"type": "object"}
+                }}},
+                "responses": {
+                    "204": {"description": "Closed"},
+                    "default": {"$ref": "#/components/responses/Error"}
+                }
+            }
+        }
+    }
+}
+```
+
+The server prefixes each path with the module's name in spinal case, the
+way the route is served (`/sell/close-sales-order`). A module may refer
+to `#/components/responses/Error`, `#/components/schemas/Money` and any
+feather by name (`#/components/schemas/SalesOrder`); schemas of its own
+should carry the module's name (`SellKpi`) so they cannot clash. Tags
+group under the module's name in the reference. A name that is taken
+already is renamed, never lost.
+
 ## Roles
 
 *Not written yet.*

@@ -265,6 +265,7 @@ const HUE_COUNT = 8;
 let selectedTab;      // tab whose buttons are showing
 let lastRoute;        // route selectedTab was last synced to
 let popupOpen = false; // collapsed mode: buttons dropped over the page
+let about;            // the About dialog, one for every page
 let collapsed = (function () {
     try {
         return window.localStorage.getItem(COLLAPSED_KEY) === "true";
@@ -849,6 +850,7 @@ ribbon.component = {
         let selectedKey = vm.selected();
         let alertsWb = vm.alertsWorkbook();
         let alertsButton;
+        let aboutButton;
         let whoButton;
         let whoUser = f.currentUser() || {};
         let routeTab = (
@@ -1099,6 +1101,20 @@ ribbon.component = {
             ]);
         }
 
+        /*
+            Beside the bell: what this instance runs, and the way to
+            its REST API reference.
+        */
+        if (!about) {
+            about = f.createViewModel("AboutDialog");
+        }
+        aboutButton = m("button[type=button]", {
+            class: "fb-ribbon-about",
+            title: "About: versions and the REST API",
+            "aria-label": "About",
+            onclick: about.open
+        }, f.icon("info"));
+
         let showBody = !collapsed || vm.isPopupOpen();
         let logoSrc = brandIcon();
 
@@ -1191,6 +1207,7 @@ ribbon.component = {
                 attrs.topRight || [],
                 whoButton,
                 alertsButton,
+                aboutButton,
                 m("button[type=button]", {
                     class: "fb-ribbon-collapse",
                     title: (
@@ -1255,7 +1272,8 @@ ribbon.component = {
                     }
                 }, groups)
                 : undefined
-            )
+            ),
+            m(f.getComponent("Dialog"), {viewModel: about})
         ]);
     }
 };

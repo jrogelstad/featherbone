@@ -50,7 +50,6 @@ node/npm-debug.log
 node_modules
 server/config.json
 logs
-api.json
 client/out
 client/api.js
 server/out

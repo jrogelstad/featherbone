@@ -5,6 +5,25 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **About, and a REST API reference.** An Info button beside the bell
+  on every screen opens an About dialog: what Featherbone is, the
+  framework version, each module the instance deployed (sub-modules
+  under their package, collapsed until opened) and the software
+  underneath (Node.js, PostgreSQL, Express, node-postgres, Mithril, the
+  operating system).
+  Its REST API button opens `/<db>/api`, where Redoc renders the
+  instance's own OpenAPI document from `GET /<db>/openapi.json`. That
+  document is assembled on request from core's `openapi.json` (which
+  replaces the stale `server/api-base.json`), a path set and schema for
+  every feather in the instance's catalog, and the `openapi.json` each
+  deployed module carries beside its manifest, its paths prefixed the
+  way module routes are. Each source is its own tag group. A unit test
+  fails when a route the server mounts is missing from core's document,
+  or the document names one it doesn't mount. This replaces the old
+  plumbing: the installer no longer tries to write `api.json` into a
+  sibling `featherbone-docs` checkout, and the server no longer offers a
+  root `/api.json`.
+  Adds `redoc` (3.0.1) as a dependency: run `npm install`.
 * **`npm run build:client` builds the production client.** It bundles and
   minifies every module script `index_debug.html` names into
   `client/clientmin.js` and writes `index.html` to match, so the two pages

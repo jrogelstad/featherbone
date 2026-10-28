@@ -50,7 +50,7 @@ const COMPONENT_FILES = [
     "form-widget", "money-relation", "search-input", "search-page",
     "sort-dialog", "settings-page", "table-dialog", "table-widget",
     "url-widget", "image-upload-widget", "gantt", "sign-in-page",
-    "form-page", "workbook-page",
+    "form-page", "workbook-page", "about-dialog",
     "account-menu", "navigator-menu", "send-mail-page", "ribbon"
 ];
 

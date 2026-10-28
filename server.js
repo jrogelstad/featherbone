@@ -90,7 +90,9 @@
     }
 
     const check = [
+        "about",
         "admin",
+        "api",
         "currency",
         "dashboard",
         "dashboard-target",
@@ -104,6 +106,7 @@
         "module",
         "modules",
         "navigation-categories",
+        "openapi.json",
         "profile",
         "sessions",
         "settings",
@@ -1912,6 +1915,32 @@
     }
 
     /*
+        The REST API reference: one page that has Redoc render the
+        instance's own OpenAPI document. Served like the help window.
+    */
+    function doGetApiPage(ignore, res) {
+        fs.readFile("./api.html", function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.write(resp);
+            res.end();
+        });
+    }
+
+    // Framework, module and infrastructure versions for About
+    function doGetAbout(req, res) {
+        doGetMethod("getAbout", req, res);
+    }
+
+    // The instance's OpenAPI document: core, its feathers, its modules
+    function doGetOpenApi(req, res) {
+        doGetMethod("getOpenApi", req, res);
+    }
+
+    /*
         A help file of the module version this database deployed. The
         service refuses a path that leaves the module's help folder.
     */
@@ -3539,7 +3568,6 @@
     ];
 
     const files = [
-        "/api.json",
         "/index.html",
         "/media/featherbone.png",
         "/files/logo.jpg",
@@ -3552,6 +3580,7 @@
         "/node_modules/marked/lib/marked.umd.js",
         "/node_modules/mithril/mithril.js",
         "/node_modules/mithril/mithril.min.js",
+        "/node_modules/redoc/bundles/redoc.standalone.js",
         "/node_modules/qs/dist/qs.js",
         "/node_modules/purecss/build/pure-min.css",
         "/node_modules/purecss/build/grids-responsive-min.css",
@@ -4572,6 +4601,9 @@
         dbRouter.get("/:db/help", doGetHelpPage);
         dbRouter.get("/:db/help-topic", doGetHelpTopic);
         dbRouter.get("/:db/help/:module/*", doGetHelpFile);
+        dbRouter.get("/:db/about", doGetAbout);
+        dbRouter.get("/:db/api", doGetApiPage);
+        dbRouter.get("/:db/openapi.json", doGetOpenApi);
         dbRouter.get("/:db/profile", doGetProfile);
         dbRouter.put("/:db/profile", doPutProfile);
         dbRouter.patch("/:db/profile", doPatchProfile);

@@ -34,6 +34,8 @@
     const {Currency} = require("./services/currency");
     const {Feathers} = require("./services/feathers");
     const {Help} = require("./services/help");
+    const {About} = require("./services/about");
+    const {OpenApi} = require("./services/openapi");
     const {Importer, Exporter} = require("./services/io");
     const {Installer} = require("./services/installer");
     const {
@@ -66,6 +68,8 @@
     const exporter = new Exporter();
     const feathers = new Feathers();
     const help = new Help();
+    const about = new About();
+    const openApi = new OpenApi();
     const importer = new Importer();
     const installer = new Installer();
     const manager = new Manager();
@@ -3654,6 +3658,35 @@
             }
 
             resp = await crud.doSelect(payload, false, isSuperUser);
+
+            /*
+                An id that is here but deleted. Deleting a record does
+                not free its id -- the unique index on id covers deleted
+                rows too -- so inserting would fail on a duplicate key,
+                which is what a package deploy used to die on whenever
+                somebody had deleted one of the records it carries
+                (John, Oct 2026: the same deploy failure "for the
+                umpteenth time"). A POST that names an id is asserting
+                that record, so it comes back and the write lands on it.
+            */
+            if (!resp) {
+                let gone = await crud.doSelect({
+                    client: theClient,
+                    id: obj.id,
+                    name: obj.name,
+                    showDeleted: true
+                }, false, isSuperUser);
+
+                if (gone) {
+                    await theClient.query(
+                        "UPDATE object SET is_deleted = false, " +
+                        "  updated = now(), updated_by = $2 WHERE id = $1",
+                        [obj.id, theClient.currentUser()]
+                    );
+                    resp = await crud.doSelect(payload, false, isSuperUser);
+                }
+            }
+
             if (resp) {
                 obj.name = resp.objectType;
                 obj.oldRec = Object.freeze(f.copy(resp));
@@ -4476,6 +4509,8 @@
     that.registerFunction("GET", "getFeather", feathers.getFeather);
     that.registerFunction("GET", "getHelpFile", help.getFile);
     that.registerFunction("GET", "getHelpTopic", help.getTopic);
+    that.registerFunction("GET", "getAbout", about.getAbout);
+    that.registerFunction("GET", "getOpenApi", openApi.getSpec);
     that.registerFunction("GET", "getProfile", profile.getProfile);
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getRouteFunction", getRouteFunction);

@@ -138,25 +138,13 @@ describe("retiring the stored help link", function () {
 
     it("keeps the customer's link as its form's supplement", async function () {
         let rows = await links();
-        let kept = rows.filter((row) => !row.is_deleted);
+        let mine_ = rows.filter((row) => !row.module && !row.is_deleted);
 
         assert.deepEqual(
-            kept.map((row) => row.form).sort(),
+            mine_.map((row) => row.form).sort(),
             [FORMS[0], FORMS[1]],
             "a link two forms shared becomes one supplement each"
         );
-        assert.ok(
-            kept.every((row) => !row.module),
-            "a supplement belongs to no module"
-        );
-    });
-
-    it("retires the vendor's link, its module answers now", async function () {
-        let rows = await links();
-        let gone = rows.filter((row) => row.is_deleted);
-
-        assert.equal(gone.length, 1);
-        assert.equal(gone[0].module, "Design");
     });
 
     it("drops the copy a worksheet saved", async function () {
@@ -169,6 +157,23 @@ describe("retiring the stored help link", function () {
         assert.equal(sheets.length, 2);
         assert.equal(sheets[0].helpLink, undefined);
         assert.equal(sheets[0].name, "Sheet");
+    });
+
+    /*
+        The bright line (John, Oct 2026): our standard help is files in
+        a package, the customer's is records they keep in a workbook,
+        and neither writes over the other. Nothing a package ships
+        survives here; everything the customer made does.
+    */
+    it("clears every link that belongs to a module", async function () {
+        let rows = await links();
+
+        assert.deepEqual(
+            rows.filter((row) => row.module).map((row) => row.label),
+            [],
+            "a vendor's link is the vendor's to ship, not ours to keep"
+        );
+        assert.equal(rows.length, 2, "the customer's two are still here");
     });
 
     it("leaves nothing behind to carry", async function () {

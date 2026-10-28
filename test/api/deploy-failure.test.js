@@ -393,6 +393,46 @@ describe("a package that seeds records into its own feather", function () {
         );
     });
 
+    /*
+        Deleting a record does not free its id -- the unique index on id
+        covers deleted rows -- so deploying the package again used to
+        fail the whole deployment on a raw duplicate key, with nothing
+        to do but put the row back by hand (John, Oct 2026: the same
+        deploy failure "for the umpteenth time"). The package is
+        asserting its own records, so a deleted one comes back.
+    */
+    it("deploys again over a record somebody deleted", async function () {
+        await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "UPDATE object SET is_deleted = true " +
+                "WHERE id = 'fbtseedalpha1'"
+            )
+        );
+
+        let resp = await session.raw("POST", "/platform/instance/deploy", {
+            id: target.id,
+            module: "fbtseed",
+            version: "1.0.0"
+        });
+
+        assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+        let rows = await db.withClient(
+            settings.testDb,
+            (client) => client.query(
+                "SELECT code FROM fbt_seed WHERE NOT is_deleted " +
+                "ORDER BY code"
+            )
+        );
+
+        assert.deepEqual(
+            rows.rows.map((row) => row.code),
+            ["ALPHA", "BETA"],
+            "the deleted record came back rather than being inserted twice"
+        );
+    });
+
     it("has the dashboard layout the package shipped", async function () {
         let resp = await db.withClient(
             settings.testDb,
