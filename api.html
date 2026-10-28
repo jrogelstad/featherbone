@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Featherbone REST API</title>
+<link rel="icon" href="/media/featherbone.png">
+<!--
+    The REST API reference, opened from About > REST API. Redoc renders
+    this instance's own OpenAPI document (GET /<db>/openapi.json), which
+    the server assembles from core, the instance's feathers and the
+    modules it deployed. Redoc is served from node_modules, no CDN.
+-->
+<style>
+body{margin:0;padding:0}
+#status{font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:#5d6672;font-style:italic;padding:24px}
+#status.failed{color:#a33;font-style:normal}
+</style>
+</head>
+<body>
+<div id="status">Loading…</div>
+<div id="redoc"></div>
+<script type="module">
+const status = document.getElementById("status");
+const db = window.location.pathname.split("/")[1];
+
+function fail(msg) {
+    status.textContent = msg;
+    status.className = "failed";
+    status.style.display = "";
+}
+
+// Fetch first, so a lapsed session reads as such rather than as Redoc's
+fetch("/" + db + "/openapi.json", {credentials: "same-origin"}).then(
+    async function (resp) {
+        if (!resp.ok) {
+            throw new Error(await resp.json().catch(() => resp.statusText));
+        }
+        return resp.json();
+    }
+).then(function (spec) {
+    document.title = spec.info.title;
+    return import("/node_modules/redoc/bundles/redoc.standalone.js").then(
+        function (redoc) {
+            // Hash routing: the page's own path must stay /<db>/api
+            redoc.init(spec, {
+                disableTelemetry: true,
+                router: "hash"
+            }, document.getElementById("redoc"));
+            status.style.display = "none";
+        },
+        function (err) {
+            fail(
+                "Could not load the API viewer (" + err.message + "). " +
+                "If the server was just upgraded, run npm install and " +
+                "restart it."
+            );
+        }
+    );
+}).catch(function (err) {
+    fail("Could not load the API reference: " + err.message);
+});
+</script>
+</body>
+</html>

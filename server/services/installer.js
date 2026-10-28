@@ -1370,8 +1370,6 @@
                             return resp;
                         }).then(
                             api.buildClientApi.bind(null, pDatasource, pUser)
-                        ).then(
-                            api.buildRestApi.bind(null, pDatasource, pUser)
                         ).then(complete).catch(function (err) {
                             if (!committed) {
                                 rollback(err, {commitFailed});
