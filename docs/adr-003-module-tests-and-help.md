@@ -277,7 +277,7 @@ mechanical. The 22 unwritten articles are still unwritten.
   work; today the SupplyChain seed is the package as installed, and each
   test makes its own records.
 - **Help** (branches `feat/module-help` in both repositories, Core
-  3.0.0-alpha.9 and SupplyChain 2.2.44). Built as planned:
+  3.0.0-alpha.10 and SupplyChain 2.2.44). Built as planned:
   - `server/services/help.js` and three routes: `/:db/help` (the
     window), `/:db/help-topic` (which page answers, with the customer's
     supplement), `/:db/help/:module/<path>` (the file, from the version
@@ -306,6 +306,23 @@ mechanical. The 22 unwritten articles are still unwritten.
     `common/test/help.test.js` in SupplyChain, which holds the join
     between a page on disk, a form name in the database and the entry
     that ties them.
+  - **Corrected the same day** (Core 3.0.0-alpha.10), after a deploy of
+    Job Shop to the cloud demo failed on `duplicate key value violates
+    unique constraint "help_link_id_key"`:
+    - The migration no longer deletes a help link that belongs to a
+      module. It had soft-deleted 90 of them in that database on the
+      theory that nothing reads them. A deleted row keeps its id, and
+      the unique index on id covers deleted rows, so the next deploy of
+      a package that still carries one could not insert it. The rows
+      are left where they are; the Help Files worksheet shows `module`
+      beside `form`, so a customer can see which are theirs, rather
+      than a filter that might hide a row they had just made.
+    - A POST naming the id of a deleted record now brings that record
+      back instead of failing on a duplicate key (`doUpsert` in
+      datasource.js). This was not new and not only about help: it bit
+      any time somebody deleted a record a package ships, which is
+      John's "umpteenth time". `deploy-failure.test.js` deletes a
+      record the fixture package carries and deploys it again.
   - **Still to do**: Job Shop's own help folder (navigation and
     getting-started), which is where the manual's remaining front
     matter belongs. The generated `job-shop-help.html` on the
