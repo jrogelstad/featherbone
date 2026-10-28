@@ -1,0 +1,66 @@
+{
+    "module": "SupplyChain",
+    "version": "2.2.45",
+    "dependencies": [
+        "Buy",
+        "Count",
+        "Make",
+        "ShipEngine",
+        "Bill"
+    ],
+    "files": [
+        {
+            "type": "install",
+            "path": "common/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "project/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "stock/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "count/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "design/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "sell/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "plan/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "buy/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "make/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "ship/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "bill/manifest.json"
+        },
+        {
+            "type": "install",
+            "path": "ship-engine/manifest.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}

@@ -1,0 +1,417 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Stock",
+        "version": "2.2.7",
+        "description": "Inventory: items, sites, on-hand balances and the inventory transaction ledger, with posting of adjustments and location moves, inventory valuation snapshots and dashboard figures."
+    },
+    "tags": [
+        {
+            "name": "Inventory posting actions",
+            "description": "Post documents to the inventory ledger."
+        },
+        {
+            "name": "Inventory valuation",
+            "description": "Valuation snapshots, dashboard figures and the rollup behind them."
+        },
+        {
+            "name": "Stock lookups",
+            "description": "Small reads and number assignment."
+        }
+    ],
+    "paths": {
+        "/calculate-inventory-report": {
+            "post": {
+                "tags": [
+                    "Inventory valuation"
+                ],
+                "operationId": "doCalculateInventoryReport",
+                "summary": "Calculate an inventory value snapshot",
+                "description": "Builds an InventoryValue for a date: one InventoryValueDetail per product and site with non-zero quantity or value, summed from every inventory transaction dated on or before `asOf`, valued in the base currency in force on each transaction's date. A working snapshot (`isClosing` false) is reused when no transaction dated by then has been entered since it was built; otherwise older working snapshots for the same date and site are deleted and a new one built. A closing snapshot is kept as reported and never rebuilt. Refuses when the site is not found, when a closing snapshot already exists for the date and site, or when no base currency is set.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "description": "Balance date, `YYYY-MM-DD`; defaults to today"
+                                    },
+                                    "siteId": {
+                                        "type": "string",
+                                        "description": "Site id; omit for all sites combined"
+                                    },
+                                    "isClosing": {
+                                        "type": "boolean",
+                                        "description": "Keep as the closing value for a period (only the boolean `true` counts)",
+                                        "default": false
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "description": "Notes stored on the snapshot"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Id of the InventoryValue",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "InventoryValue id"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-ship-container-number": {
+            "post": {
+                "tags": [
+                    "Stock lookups"
+                ],
+                "operationId": "doShipContainerAutoNumber",
+                "summary": "Get the next shipment container number",
+                "description": "Takes and returns the next value of the ShipmentContainer auto-number sequence (prefix, zero-padded number, suffix). The number is consumed whether or not it is used.",
+                "responses": {
+                    "200": {
+                        "description": "Next container number",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "Container number"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-site-data": {
+            "post": {
+                "tags": [
+                    "Stock lookups"
+                ],
+                "operationId": "doGetSiteData",
+                "summary": "Get a site",
+                "description": "Returns the site record. Answers 204 with no body when the site is not found or not readable.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Site id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The site",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Site"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-inventory-adjustments": {
+            "post": {
+                "tags": [
+                    "Inventory posting actions"
+                ],
+                "operationId": "doPostInventoryAdjustment",
+                "summary": "Post inventory adjustments",
+                "description": "Posts unposted inventory adjustments; already posted ones are skipped. Waits for and locks each adjustment, then for each posts `Adjustment` inventory transactions (one per detail line when there are details, with location and trace; trace records are created or set on hand as needed), releases allocations when an out (`O`) adjustment cuts into allocated stock, marks the adjustment posted with the posting date, and recalculates inventory orders for the item and site. All or nothing: on failure the posting rolls back, the error is written to each adjustment's `error` and a warning Alert is raised. Refuses when a quantity is not above zero, when a location-controlled site or traced item has no detail lines or their total differs from the quantity, or when an out adjustment has no inventory record.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "InventoryAdjustment id (when posting one)"
+                                    },
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "InventoryAdjustment ids; takes precedence over `id`"
+                                    },
+                                    "postDate": {
+                                        "type": "string",
+                                        "description": "Posting date, `YYYY-MM-DD`; defaults to today"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Adjustments posted"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-move-inventory": {
+            "post": {
+                "tags": [
+                    "Inventory posting actions"
+                ],
+                "operationId": "doPostMoveInventory",
+                "summary": "Post inventory moves",
+                "description": "Posts pending (`P`) location moves; others are skipped. Waits for and locks each move, then posts two `Move Inventory` transactions dated today (out of the from location, into the to location, same trace) and sets the move to Complete (`C`) with today's date. All or nothing: on failure the posting rolls back, the error is written to each move's `error` and a warning Alert is raised. Refuses when a quantity is not above zero, a traced item has no trace, or the site is not location controlled.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "MoveInventory id (when posting one)"
+                                    },
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "MoveInventory ids; takes precedence over `id`"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Moves posted"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-inventory-kpis": {
+            "post": {
+                "tags": [
+                    "Inventory valuation"
+                ],
+                "operationId": "doGetInventoryKpis",
+                "summary": "Get inventory dashboard figures",
+                "description": "Returns Inventory Value (balance at the reporting date, a year earlier, and at the last 12 month ends) from the `bi.inventory_daily` rollup, and Inventory Late Postings (transactions entered after the latest closing snapshot but dated on or before it) read from the ledger. Amounts are numbers in the base currency.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "description": "Reporting date, `YYYY-MM-DD`; defaults to today"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Figures",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StockInventoryKpis"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/refresh-inventory-bi": {
+            "post": {
+                "tags": [
+                    "Inventory valuation"
+                ],
+                "operationId": "doRefreshInventoryBi",
+                "summary": "Rebuild the inventory rollup",
+                "description": "Truncates and rebuilds `bi.inventory_daily` from the inventory transactions (net base-currency value and quantity per day, product and site) and logs the refresh. Safe to repeat. Fails when the rollup table has not been deployed.",
+                "responses": {
+                    "200": {
+                        "description": "Rollup rebuilt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "buckets": {
+                                            "type": "integer",
+                                            "description": "Rows written"
+                                        },
+                                        "refreshed": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "description": "When the refresh was logged"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "StockInventoryKpis": {
+                "type": "object",
+                "description": "Inventory figures for the dashboard Key Metrics tile",
+                "properties": {
+                    "asOf": {
+                        "type": "string",
+                        "description": "Reporting date used, `YYYY-MM-DD`"
+                    },
+                    "needsRefresh": {
+                        "type": "boolean",
+                        "description": "True when the inventory rollup has never been built (`/refresh-inventory-bi`); `kpis.inventoryValue` is then absent"
+                    },
+                    "refreshedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "When the rollup was last rebuilt"
+                    },
+                    "kpis": {
+                        "type": "object",
+                        "description": "Figures; each is omitted when it cannot be computed",
+                        "properties": {
+                            "inventoryValue": {
+                                "type": "object",
+                                "description": "Present only once the rollup has been built",
+                                "properties": {
+                                    "value": {
+                                        "type": "number",
+                                        "description": "Inventory value at the reporting date, base currency"
+                                    },
+                                    "comparison": {
+                                        "type": "number",
+                                        "nullable": true,
+                                        "description": "Value one year earlier; null when the ledger has nothing that old"
+                                    },
+                                    "comparisonLabel": {
+                                        "type": "string",
+                                        "description": "Always `a year ago`"
+                                    },
+                                    "spark": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "number"
+                                        },
+                                        "description": "Balance at each of the last 12 month ends, oldest first; the last is the balance at the reporting date"
+                                    }
+                                }
+                            },
+                            "latePostings": {
+                                "type": "object",
+                                "description": "Present only when a closing inventory value exists",
+                                "properties": {
+                                    "close": {
+                                        "type": "object",
+                                        "description": "Latest closing snapshot on or before the reporting date",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "InventoryValue id of the closing snapshot"
+                                            },
+                                            "asOf": {
+                                                "type": "string",
+                                                "description": "Closing date, `YYYY-MM-DD`"
+                                            },
+                                            "reported": {
+                                                "type": "number",
+                                                "description": "Total value reported at close, base currency"
+                                            },
+                                            "site": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "description": "Site id; null for all sites"
+                                            },
+                                            "siteCode": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "description": "Site code"
+                                            }
+                                        }
+                                    },
+                                    "count": {
+                                        "type": "integer",
+                                        "description": "Transactions dated on or before the close but entered after it"
+                                    },
+                                    "value": {
+                                        "type": "number",
+                                        "description": "Their total value, base currency"
+                                    },
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "InventoryTransaction ids, first 500 in entry order"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

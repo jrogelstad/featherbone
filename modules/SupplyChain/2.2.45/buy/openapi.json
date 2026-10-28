@@ -1,0 +1,539 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Buy",
+        "version": "2.1.20",
+        "description": "Purchasing: suppliers, purchase orders, conversion of planned purchases into orders, receipt posting into inventory, and the purchasing dashboard figures."
+    },
+    "tags": [
+        {
+            "name": "Purchase order actions",
+            "description": "Create, convert and change the status of purchase orders, and look up the supplier data used when entering order lines."
+        },
+        {
+            "name": "Purchase receipt actions",
+            "description": "Read the order a receipt is entered against and post receipts into inventory."
+        },
+        {
+            "name": "Purchasing analytics",
+            "description": "Figures for the purchasing dashboard tiles and the rollup table they read from."
+        }
+    ],
+    "paths": {
+        "/change-purchase-order-status": {
+            "post": {
+                "tags": [
+                    "Purchase order actions"
+                ],
+                "operationId": "doChangePurchaseOrderStatus",
+                "summary": "Change purchase order status",
+                "description": "Locks every given purchase order, then sets each one's `status` to the value given (a PATCH, so the purchase order triggers run). The value is not validated here beyond what the PurchaseOrder feather and its triggers enforce. The server function is implemented in the Make sub-module, which must be installed for this route to answer. Fails if any order is locked by someone else.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "One id; used when `ids` is not given"
+                                    },
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Ids to process; takes precedence over `id`"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "P",
+                                            "A",
+                                            "R",
+                                            "B",
+                                            "C"
+                                        ],
+                                        "description": "New status: P Pending, A Active, R Receiving, B Backorder, C Closed"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Statuses changed."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/convert-planned-purchase": {
+            "post": {
+                "tags": [
+                    "Purchase order actions"
+                ],
+                "operationId": "doConvertPlannedPurchase",
+                "summary": "Convert planned purchases to a purchase order",
+                "description": "Turns planned purchases into lines on a new purchase order for one supplier, or appends them to an existing order when `purchaseOrderId` is given. A new order takes its contact, currency, terms, ship method and Incoterms from the supplier, its site, ship-to and bill-to from the first planned purchase's site, the signed-in user's employee record as buyer, today as order date, the earliest planned due date as planned delivery, and status P. Lines are added in the order of `ids`. Each planned purchase is deleted; its allocations to work order requirements, sales order lines and requirements and outside processes are moved to the new order line, and the plan status of those work orders and sales orders is updated. Locks the planned purchases and the existing order. Refuses when the existing order is not found or is closed, or when none of the planned purchases are found.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids",
+                                    "supplierId"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "PlannedPurchase ids, in the order the lines should appear"
+                                    },
+                                    "supplierId": {
+                                        "type": "string",
+                                        "description": "Supplier id for a new order"
+                                    },
+                                    "purchaseOrderId": {
+                                        "type": "string",
+                                        "description": "Existing PurchaseOrder id to add the lines to. Omit to create a new order."
+                                    },
+                                    "feather": {
+                                        "type": "string",
+                                        "description": "Feather to save the order as (PurchaseOrder or a feather inheriting from it). Default `PurchaseOrder`."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Id of the purchase order created or updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-item-supplier": {
+            "post": {
+                "tags": [
+                    "Purchase order actions"
+                ],
+                "operationId": "doGetItemSupplier",
+                "summary": "Get an item's supplier record",
+                "description": "Returns the item's supplier record for the given supplier or, without `supplierId`, the item's primary supplier record (else its first). Used to fill supplier item number, unit and manufacturer on a purchase order line.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "itemId"
+                                ],
+                                "properties": {
+                                    "itemId": {
+                                        "type": "string",
+                                        "description": "Item id"
+                                    },
+                                    "supplierId": {
+                                        "type": "string",
+                                        "description": "Supplier id. Omit for the primary supplier."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The matching item supplier record.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemSupplier"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "The item has no matching supplier record."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-purchase-order-receipt-data": {
+            "post": {
+                "tags": [
+                    "Purchase receipt actions"
+                ],
+                "operationId": "doGetPurchaseOrderReceiptData",
+                "summary": "Get purchase order data for a receipt",
+                "description": "Returns the purchase order a receipt is being entered against, limited to its number, site, status and lines.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "PurchaseOrder id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The purchase order with only `number`, `site`, `status` and `lines` populated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PurchaseOrder"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-purchase-order-receipts": {
+            "post": {
+                "tags": [
+                    "Purchase receipt actions"
+                ],
+                "operationId": "doPostPurchaseOrderReceipts",
+                "summary": "Post purchase order receipts",
+                "description": "Posts pending (status P) purchase order receipts; ids of receipts in any other status are skipped. For each line: adds the quantity to the order line's `received`, records the line's value as a Money `amount` (quantity x the order line's unit price in the order currency, with the base-currency amount at today's rate), and creates inventory transactions at the receipt's site (quantity x the line's unit ratio; kit components receive their own quantities; location- or trace-controlled lines post one transaction per detail record). Allocations against the receipt are transacted. For outside-process service lines it instead updates the outside process and posts an operation completion for the signed-in user's employee. Sets the receipt to status R with today's receipt date and clears its error, and sets the order to status C when every line is fully received, else B. Locks receipts and orders. Refuses when a receipt has no quantity, a quantity is negative, a controlled line lacks detail or its detail does not sum to the line quantity, a service receipt exceeds the quantity shipped, or a needed rate, allocation or employee record is missing; on failure an Alert is raised and the error is written to the receipts.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "One id; used when `ids` is not given"
+                                    },
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Ids to process; takes precedence over `id`"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Receipts posted (or nothing pending among the ids)."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-purchase-kpis": {
+            "post": {
+                "tags": [
+                    "Purchasing analytics"
+                ],
+                "operationId": "doGetPurchaseKpis",
+                "summary": "Get purchasing KPIs",
+                "description": "Key metrics for the purchasing dashboard at a reporting date, each with the figure a year earlier and a monthly history. Purchased YTD/MTD/WTD come from the rollup table built by `/refresh-purchase-bi` and are left out until it has run at least once. On-time receipt and open-order backlog are computed live. Money figures are numbers in the base currency.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date, `YYYY-MM-DD`. Defaults to the database server's current date."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "KPI figures.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "asOf": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Reporting date used, `YYYY-MM-DD`"
+                                        },
+                                        "kpis": {
+                                            "type": "object",
+                                            "properties": {
+                                                "purchasedYtd": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/BuyKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Value of posted receipts, year to date. Only when the rollup has been built."
+                                                },
+                                                "purchasedMtd": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/BuyKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Value of posted receipts, month to date. Only when the rollup has been built."
+                                                },
+                                                "purchasedWtd": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/BuyKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Value of posted receipts, week to date. Only when the rollup has been built."
+                                                },
+                                                "onTimeReceipt": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/BuyKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Percent (0-100) of posted receipt lines this year received by the confirmed delivery date, else planned delivery, else due date. `value`/`comparison` are null when there were no receipts."
+                                                },
+                                                "backlog": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/BuyKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Value of quantities open on purchase orders at the reporting date. History is the backlog at each of the last eleven month ends, then the reporting date."
+                                                },
+                                                "overdueBacklog": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/BuyKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Part of the backlog due before the reporting date."
+                                                }
+                                            }
+                                        },
+                                        "needsRefresh": {
+                                            "type": "boolean",
+                                            "description": "True when the rollup has never been built, so the purchased figures are missing"
+                                        },
+                                        "refreshedAt": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true,
+                                            "description": "When the rollup was last rebuilt; null if never"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-purchase-schedule": {
+            "post": {
+                "tags": [
+                    "Purchasing analytics"
+                ],
+                "operationId": "doGetPurchaseSchedule",
+                "summary": "Get open purchase order schedule",
+                "description": "Purchase order line quantities open at the reporting date (ordered on or before it, less received by it), grouped by due-date bucket for the due-date histogram. Closed lines count only up to what they received. Refuses an unknown `bucket`.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date, `YYYY-MM-DD`. Defaults to the database server's current date."
+                                    },
+                                    "bucket": {
+                                        "type": "string",
+                                        "enum": [
+                                            "day",
+                                            "week",
+                                            "month"
+                                        ],
+                                        "default": "week",
+                                        "description": "Bucket size"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Open quantities by bucket.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "asOf": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Reporting date used, `YYYY-MM-DD`"
+                                        },
+                                        "rows": {
+                                            "type": "array",
+                                            "description": "One row per bucket and late flag, in period order",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "period": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "description": "First day of the bucket, `YYYY-MM-DD`"
+                                                    },
+                                                    "late": {
+                                                        "type": "boolean",
+                                                        "description": "Due before the reporting date"
+                                                    },
+                                                    "amount": {
+                                                        "type": "number",
+                                                        "description": "Open value in the base currency"
+                                                    },
+                                                    "units": {
+                                                        "type": "number",
+                                                        "description": "Open quantity in inventory units"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/refresh-purchase-bi": {
+            "post": {
+                "tags": [
+                    "Purchasing analytics"
+                ],
+                "operationId": "doRefreshPurchaseBi",
+                "summary": "Rebuild the purchasing rollup",
+                "description": "Rebuilds `bi.purchase_daily` from scratch: received value (from posted receipt lines, by receipt date) and ordered value (from order lines, by order date), per day, item, supplier and site, in the base currency and inventory units, then logs the run in `bi.refresh_log`. Safe to repeat. Refuses when the rollup table has not been created (SupplyChain not deployed to the instance).",
+                "responses": {
+                    "200": {
+                        "description": "Rebuild result.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "buckets": {
+                                            "type": "integer",
+                                            "description": "Rows now in the rollup"
+                                        },
+                                        "refreshed": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "description": "Time of this refresh"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "BuyKpi": {
+                "type": "object",
+                "description": "One key metric",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Figure at the reporting date"
+                    },
+                    "comparison": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Same figure a year earlier"
+                    },
+                    "comparisonLabel": {
+                        "type": "string",
+                        "description": "Label for the comparison, e.g. \"a year ago\""
+                    },
+                    "spark": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        },
+                        "description": "Monthly history, oldest first, ending with the current month"
+                    }
+                }
+            }
+        }
+    }
+}
