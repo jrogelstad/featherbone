@@ -17,6 +17,7 @@ process.env.TZ = "America/Chicago";
 
 const {describe, it, before, beforeEach, after} = require("node:test");
 const assert = require("node:assert/strict");
+const fsp = require("fs/promises");
 const path = require("path");
 const {pathToFileURL} = require("url");
 const env = require("./lib/browser-env");
@@ -1079,6 +1080,48 @@ describe("client components", function () {
             assert.equal(save.disabled, true, "invalid new record");
             assert.equal(save.title, "\"Name\" is required");
             assert.ok(labels(out.tree).includes("Name:"));
+        });
+
+        /*
+            A form takes the room left under the ribbon, toolbar and title
+            and scrolls inside it. It had been sized to the whole layout
+            (absolute, 100% high) while starting below those, so a form
+            taller than the window ran past the bottom of it, scrollbar
+            and all, and the rest -- a long timeline chart, say -- could
+            not be reached (John, Oct 2026). Layout needs a browser; this
+            pins the two halves: the page marks its frame, and the style
+            for that frame gives the form what is left.
+        */
+        it("form-page.js frames the form to fill the room left under it",
+                async function () {
+            let out = R.render(comps.formPage, {
+                create: true,
+                feather: "test-item",
+                isNew: true,
+                key: "unit-frame"
+            });
+            let frame = R.find(out.tree, R.byClass("fb-ribbon-page-form"));
+            let css = await fsp.readFile(
+                path.resolve(__dirname, "..", "..", "css", "featherbone.css"),
+                "utf8"
+            );
+            let rule = function (selector) {
+                let found = css.match(new RegExp(
+                    selector.replace(/[.>]/g, "\\$&") + "\\s*\\{([^}]*)\\}"
+                )) || [];
+
+                let body = found[1] || "";
+
+                return body.replace(/\s+/g, " ");
+            };
+
+            assert.ok(frame, "the page's frame says it holds a form");
+            assert.ok(R.find(frame, R.byClass("fb-form-content")),
+                    "and the scrolling form is inside it");
+            assert.match(rule(".fb-ribbon-page-form"),
+                    /display: flex; flex-direction: column;/);
+            assert.match(rule(".fb-ribbon-page-form > .fb-form-content"),
+                    /flex: 1 1 auto; min-height: 0; height: auto;/);
         });
 
         it("child-form-page.js edits a child row", function () {
