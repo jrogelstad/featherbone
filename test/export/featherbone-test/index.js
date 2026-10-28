@@ -8,6 +8,7 @@
 "use strict";
 
 module.exports = {
+    catalog: require("../../harness/catalog"),
     db: require("../../harness/db"),
     env: require("../../harness/env"),
     fixtures: require("../../harness/fixtures"),

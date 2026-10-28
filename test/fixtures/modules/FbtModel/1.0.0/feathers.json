@@ -1,0 +1,312 @@
+[
+    {
+        "name": "FbtTerms",
+        "description": "Payment terms, as a feather with every kind of property the data API handles",
+        "plural": "FbtTermsList",
+        "module": "FbtModel",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "policy": {
+                "description": "Policy",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Prepay"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Immediate"
+                    },
+                    {
+                        "value": "N",
+                        "label": "Net"
+                    },
+                    {
+                        "value": "D",
+                        "label": "Day of month"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "net": {
+                "description": "Net",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "0",
+                        "label": "Immediate"
+                    },
+                    {
+                        "value": "10",
+                        "label": "10 Days"
+                    },
+                    {
+                        "value": "15",
+                        "label": "15 Days"
+                    },
+                    {
+                        "value": "30",
+                        "label": "30 Days"
+                    },
+                    {
+                        "value": "60",
+                        "label": "60 Days"
+                    },
+                    {
+                        "value": "90",
+                        "label": "90 Days"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "day": {
+                "description": "Day of the month",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "min": 1,
+                "max": 31,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "discountDays": {
+                "description": "Early payment discount days",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "discount": {
+                "description": "Discount percent",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "depositRequired": {
+                "description": "Deposit required",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "depositPercent": {
+                "description": "Deposit percent",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 100,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "depositAmount": {
+                "description": "Deposit amount",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        },
+        "authorizations": [
+            {
+                "role": "everyone",
+                "actions": {
+                    "canCreate": true,
+                    "canRead": true,
+                    "canUpdate": true,
+                    "canDelete": true
+                }
+            }
+        ]
+    },
+    {
+        "name": "FbtCategory",
+        "description": "A Kind with a parent",
+        "plural": "FbtCategories",
+        "module": "FbtModel",
+        "inherits": "Kind",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "parent": {
+                "description": "Parent category",
+                "alias": "",
+                "type": {
+                    "relation": "Kind",
+                    "properties": [
+                        "code",
+                        "description"
+                    ]
+                },
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "authorizations": [
+            {
+                "role": "everyone",
+                "actions": {
+                    "canCreate": true,
+                    "canRead": true,
+                    "canUpdate": true,
+                    "canDelete": true
+                }
+            }
+        ]
+    },
+    {
+        "name": "FbtLocation",
+        "description": "A feather with defaults and a required description",
+        "plural": "FbtLocations",
+        "module": "FbtModel",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Decscription",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "N",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "N",
+                        "label": "Nettable"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Inspection"
+                    },
+                    {
+                        "value": "B",
+                        "label": "Blocked"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "authorizations": [
+            {
+                "role": "everyone",
+                "actions": {
+                    "canCreate": true,
+                    "canRead": true,
+                    "canUpdate": true,
+                    "canDelete": true
+                }
+            }
+        ]
+    }
+]

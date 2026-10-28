@@ -14,7 +14,23 @@
 const {describe, it, before, after} = require("node:test");
 const assert = require("node:assert/strict");
 const db = require("../harness/db");
-const {signedIn} = require("../harness/http");
+const settings = require("../harness/env");
+
+// The control plane lives in the manager database, not in an instance
+function manager(sql, params) {
+    return db.withClient(
+        settings.managerDb,
+        (client) => client.query(sql, params)
+    );
+}
+
+async function managerCatalog() {
+    let resp = await manager(
+        "SELECT data FROM \"$settings\" WHERE name = 'catalog'"
+    );
+
+    return resp.rows[0].data;
+}
 
 const FEATHERS = ["Organization", "Identity", "AccessGrant", "AdminAudit"];
 
@@ -28,7 +44,7 @@ const DOC_VALUES = (
 );
 
 function addOrganization(id, name) {
-    return db.query(
+    return manager(
         "INSERT INTO organization (" + DOC + "," +
         "name,is_active,authentication,is_two_factor_required) VALUES (" +
         DOC_VALUES + ",$3,true,'password',false)",
@@ -37,7 +53,7 @@ function addOrganization(id, name) {
 }
 
 function addIdentity(id, organizationId, username) {
-    return db.query(
+    return manager(
         "INSERT INTO identity (" + DOC + "," +
         "_organization_organization_pk,username,full_name,status," +
         "is_platform_admin,is_org_admin,failed_attempts) " +
@@ -48,43 +64,45 @@ function addIdentity(id, organizationId, username) {
 }
 
 describe("the identity model", function () {
-    let admin;
+    let catalog;
     const made = [];
 
     before(async function () {
-        admin = await signedIn();
+        catalog = await managerCatalog();
     });
 
     after(async function () {
         // Leave the copy as it was found, so order between files cannot matter
-        await db.query("DELETE FROM identity WHERE id = ANY($1)", [made]);
-        await db.query("DELETE FROM organization WHERE id = ANY($1)", [made]);
+        await manager("DELETE FROM identity WHERE id = ANY($1)", [made]);
+        await manager("DELETE FROM organization WHERE id = ANY($1)", [made]);
     });
 
     describe("the feathers", function () {
         FEATHERS.forEach(function (name) {
             it("declares \"" + name + "\" and grants it to nobody",
                     async function () {
-                let spinal = name.replace(
-                    /([a-z])([A-Z])/g,
-                    "$1-$2"
-                ).toLowerCase();
-                let feather = await admin.get("/feather/" + spinal);
+                let id = name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
+                let granted = await manager(
+                    "SELECT auth.role FROM \"$auth\" AS auth, " +
+                    "  \"$feather\" AS feather " +
+                    "WHERE feather.id = $1 AND feather._pk = auth.object_pk",
+                    [id]
+                );
 
-                assert.equal(feather.name, name);
-                assert.equal(feather.module, "Core");
+                assert.ok(catalog[name], name + " is declared");
+                assert.equal(catalog[name].module, "Core");
                 // Same choice as Tenant: reachable only to a super user
                 // until A.4 gives the administration model its own roles
-                assert.deepEqual(feather.authorizations, []);
+                assert.deepEqual(granted.rows, []);
             });
         });
 
-        it("lets an instance exist without a contact", async function () {
+        it("lets an instance exist without a contact", function () {
             // The installer registers an instance it has just created
             // and has nobody to name as the contact; a contact belongs
             // to the owning organization anyway (tenant plan A.3), so
             // requiring one here only blocked `install --instance`
-            let feather = await admin.get("/feather/tenant");
+            let feather = catalog.Tenant;
 
             assert.notEqual(
                 feather.properties.contact.isRequired,
@@ -92,8 +110,8 @@ describe("the identity model", function () {
             );
         });
 
-        it("hangs an organization off an instance", async function () {
-            let feather = await admin.get("/feather/tenant");
+        it("hangs an organization off an instance", function () {
+            let feather = catalog.Tenant;
 
             assert.equal(
                 feather.properties.organization.type.relation,
@@ -107,21 +125,19 @@ describe("the identity model", function () {
         });
     });
 
-    describe("usernames belong to an organization", function () {
-        it("lets two organizations each employ an \"alice\"",
-                async function () {
+    // A username was once unique only within an organization; it is now
+    // unique across the installation (global-usernames.test.js).
+    describe("usernames are unique across the installation", function () {
+        it("refuses an \"alice\" in a second organization", async function () {
             made.push("fbt_org_a", "fbt_org_b", "fbt_id_a", "fbt_id_b");
             await addOrganization("fbt_org_a", "Fbtest Acme");
             await addOrganization("fbt_org_b", "Fbtest Globex");
             await addIdentity("fbt_id_a", "fbt_org_a", "fbt_alice");
-            await addIdentity("fbt_id_b", "fbt_org_b", "fbt_alice");
 
-            let resp = await db.query(
-                "SELECT count(*)::int AS n FROM identity " +
-                "WHERE username = 'fbt_alice' AND NOT is_deleted"
+            await assert.rejects(
+                () => addIdentity("fbt_id_b", "fbt_org_b", "fbt_alice"),
+                /identity_unique_username|duplicate key/i
             );
-
-            assert.equal(resp.rows[0].n, 2, "both should exist");
         });
 
         it("refuses the same username twice in one organization",
@@ -136,7 +152,7 @@ describe("the identity model", function () {
             );
         });
 
-        it("treats a username as case-insensitive within an organization",
+        it("treats a username as case-insensitive",
                 async function () {
             made.push("fbt_id_c3");
 
@@ -149,7 +165,7 @@ describe("the identity model", function () {
         it("frees a username once the identity is deleted",
                 async function () {
             made.push("fbt_id_c4");
-            await db.query(
+            await manager(
                 "UPDATE identity SET is_deleted = true WHERE id = $1",
                 ["fbt_id_c1"]
             );
@@ -158,7 +174,7 @@ describe("the identity model", function () {
             // row must not reserve its name forever
             await addIdentity("fbt_id_c4", "fbt_org_c", "fbt_bob");
 
-            let resp = await db.query(
+            let resp = await manager(
                 "SELECT count(*)::int AS n FROM identity " +
                 "WHERE username = 'fbt_bob' AND NOT is_deleted"
             );

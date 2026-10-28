@@ -48,13 +48,10 @@ const settings = Object.freeze({
     goldenDir: path.join(TEST_DIR, "golden"),
     config,
     /*
-        The pinned database test/seed.js builds, and the one the test
-        copy is cloned from unless FB_TEST_SOURCE_DB names another
-        (demo, say, to try a real one).
+        Set to clone this database in every phase, instead of the
+        pinned seeds test/seed.js builds (demo, say, to try a real one).
     */
-    seedDb: env.FB_TEST_SEED_DB || "featherbone_test_source",
-    sourceDb: env.FB_TEST_SOURCE_DB || env.FB_TEST_SEED_DB ||
-            "featherbone_test_source",
+    sourceDb: env.FB_TEST_SOURCE_DB || "",
     // Throwaway database the suite runs against
     testDb: env.FB_TEST_DB || "featherbone_test",
     /*

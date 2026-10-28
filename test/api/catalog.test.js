@@ -21,6 +21,7 @@ const db = require("../harness/db");
 const {Session, signedIn} = require("../harness/http");
 const {uniq} = require("../harness/fixtures");
 const {matchGolden} = require("../harness/golden");
+const {describeFeather} = require("../harness/catalog");
 const {
     dropUser,
     expectError,
@@ -32,107 +33,6 @@ const KEEP_ALL = {drop: new Set()};
 
 function toSnake(name) {
     return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
-}
-
-// One line per property so golden diffs stay readable. owner is the
-// feather the property is read from: an inheritedFrom naming it is
-// dropped because getFeather sets that inconsistently (see todo below).
-function propertySignature(p, owner) {
-    let sig;
-    let t = p.type;
-
-    if (t && typeof t === "object") {
-        sig = "relation(" + t.relation + ")";
-        if (t.childOf) {
-            sig += " childOf:" + t.childOf;
-        }
-        if (t.parentOf) {
-            sig += " parentOf:" + t.parentOf;
-        }
-        if (t.isChild) {
-            sig += " isChild";
-        }
-        if (Array.isArray(t.properties)) {
-            sig += " [" + t.properties.join(",") + "]";
-        }
-    } else {
-        sig = String(t);
-    }
-    if (p.format) {
-        sig += ":" + p.format;
-    }
-    [
-        ["isRequired", "required"],
-        ["isNaturalKey", "naturalKey"],
-        ["isReadOnly", "readOnly"],
-        ["isLabelKey", "labelKey"],
-        ["isIndexed", "indexed"],
-        ["isEncrypted", "encrypted"],
-        ["isAlwaysLoad", "alwaysLoad"]
-    ].forEach(function (pair) {
-        if (p[pair[0]]) {
-            sig += " " + pair[1];
-        }
-    });
-    if (p.default !== undefined && p.default !== null && p.default !== "") {
-        sig += " default=" + JSON.stringify(p.default);
-    }
-    // The feather editor (client/models/feather.js, type change) writes
-    // precision/scale -1 and min/max 0 onto a property to mean "not
-    // applicable"; installed feathers leave them out. Treat both the
-    // same so a feather saved through the UI matches a fresh install.
-    // A max of 0 is ignored by the model (`prop.max && ...`), and a min
-    // of 0 is deliberately set on quantities that must not go negative,
-    // so a database may carry it where a fresh install does not. Neither
-    // zero is part of the signature; any other min or max is.
-    let notApplicable = function (key, value) {
-        return p[key] === value;
-    };
-    // Precision and scale are the exception: -1 is the sentinel whatever
-    // the type. Nothing in the framework or in SupplyChain declares -1,
-    // and a number with no declared precision carries it too, so rendering
-    // it produced "numeric(-1,-1)" on every undeclared numeric property.
-    if (p.precision !== undefined && p.precision !== -1) {
-        sig += " numeric(" + p.precision + "," + p.scale + ")";
-    }
-    if (p.min !== undefined && !notApplicable("min", 0)) {
-        sig += " min=" + p.min;
-    }
-    if (p.max !== undefined && !notApplicable("max", 0)) {
-        sig += " max=" + p.max;
-    }
-    if (p.autonumber) {
-        // Key order depends on how the catalog was stored (json vs jsonb)
-        sig += " autonumber=" + JSON.stringify(
-            p.autonumber,
-            Object.keys(p.autonumber).sort()
-        );
-    }
-    if (Array.isArray(p.dataList)) {
-        sig += " list=" + p.dataList.map(
-            (d) => (
-                typeof d === "object"
-                ? d.value
-                : d
-            )
-        ).join("|");
-    }
-    if (p.inheritedFrom && p.inheritedFrom !== owner) {
-        sig += " <" + p.inheritedFrom;
-    }
-    return sig;
-}
-
-// Strip generated ids out of overload data lists
-function overloadSignature(overloads) {
-    let out = {};
-    Object.keys(overloads || {}).forEach(function (key) {
-        out[key] = propertySignature(Object.assign(
-            {type: "(overload)"},
-            overloads[key]
-        ));
-    });
-    return out;
 }
 
 describe("catalog endpoints", function () {
@@ -171,9 +71,9 @@ describe("catalog endpoints", function () {
         });
 
         it("accepts spinal and camel case names", async function () {
-            let a = await admin.get("/feather/sales-order");
-            let b = await admin.get("/feather/SalesOrder");
-            assert.equal(a.name, "SalesOrder");
+            let a = await admin.get("/feather/fbt-category");
+            let b = await admin.get("/feather/FbtCategory");
+            assert.equal(a.name, "FbtCategory");
             assert.deepEqual(a, b);
         });
 
@@ -183,19 +83,19 @@ describe("catalog endpoints", function () {
             assert.equal(resp.body, false);
         });
 
-        it("merges inherited properties (Category <- Kind <- Document)",
+        it("merges inherited properties (FbtCategory <- Kind <- Document)",
                 async function () {
-            let cat = merged.Category;
+            let cat = merged.FbtCategory;
             assert.equal(cat.inherits, "Kind");
-            assert.equal(cat.module, "Common");
-            assert.equal(cat.plural, "Categories");
+            assert.equal(cat.module, "FbtModel");
+            assert.equal(cat.plural, "FbtCategories");
             assert.equal(cat.properties.id.inheritedFrom, "Object");
             assert.equal(cat.properties.owner.inheritedFrom, "Document");
             assert.equal(cat.properties.code.inheritedFrom, "Kind");
             assert.equal(cat.properties.code.isNaturalKey, true);
             /*
                 A property the feather defines itself is not stamped
-                with an ancestor. It used to say "Category", the
+                with an ancestor. It used to say "FbtCategory", the
                 self-reference plan 0.17 repairs; an installed catalog
                 carries the installer's empty default instead of
                 leaving the key out, the same as isChild below, and
@@ -215,20 +115,6 @@ describe("catalog endpoints", function () {
                     properties: ["code", "description"],
                     isChild: false
                 }
-            );
-        });
-
-        it("merges SupplyChain feathers (Product <- Item)", async function () {
-            let product = merged.Product;
-            assert.equal(product.inherits, "Item");
-            assert.equal(product.module, "Design");
-            assert.equal(product.properties.number.inheritedFrom, "Item");
-            assert.equal(product.properties.number.isNaturalKey, true);
-            assert.equal(product.properties.materialCost.format, "unitCost");
-            assert.equal(product.properties.price.format, "salesPrice");
-            assert.deepEqual(
-                product.overloads.type.dataList.map((d) => d.value),
-                ["I", "E", "K"]
             );
         });
 
@@ -287,22 +173,7 @@ describe("catalog endpoints", function () {
                 async function () {
             let out = {};
             Object.keys(merged).forEach(function (name) {
-                let f = merged[name];
-                let props = {};
-                Object.keys(f.properties).forEach(function (key) {
-                    props[key] = propertySignature(f.properties[key], name);
-                });
-                out[name] = {
-                    inherits: f.inherits || null,
-                    module: f.module,
-                    plural: f.plural,
-                    isChild: Boolean(f.isChild),
-                    isReadOnly: Boolean(f.isReadOnly),
-                    isSystem: Boolean(f.isSystem),
-                    isFetchOnStartup: Boolean(f.isFetchOnStartup),
-                    overloads: overloadSignature(f.overloads),
-                    properties: props
-                };
+                out[name] = describeFeather(merged[name], name);
             });
             matchGolden("catalog-feathers", out, KEEP_ALL);
         });
@@ -314,7 +185,6 @@ describe("catalog endpoints", function () {
             assert.ok(Array.isArray(defs));
             let names = defs.map((d) => d.name);
             assert.ok(names.includes("globalSettings"));
-            assert.ok(names.includes("buySettings"));
             matchGolden(
                 "catalog-settings-definition",
                 defs.slice().sort((a, b) => a.name.localeCompare(b.name)),
@@ -380,10 +250,10 @@ describe("catalog endpoints", function () {
                     "$1-$2"
                 ).toLowerCase() + r.path + " -> " + r.function
             ).sort();
-            assert.ok(out.includes(
-                "/buy/post-purchase-order-receipts -> " +
-                "doPostPurchaseOrderReceipts"
-            ), "known SupplyChain route present");
+            assert.ok(
+                out.includes("/fbtest/version -> fbtestVersion"),
+                "known fixture route present"
+            );
             matchGolden("catalog-routes", out, KEEP_ALL);
         });
     });

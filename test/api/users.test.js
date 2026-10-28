@@ -302,7 +302,7 @@ describe("user accounts", function () {
         });
 
         assert.equal(resp.status, 204);
-        let contact = await admin.read("Employee", u.contactId);
+        let contact = await admin.read(u.contactFeather, u.contactId);
         assert.equal(contact.firstName, "Changed");
         assert.equal(contact.lastName, "Person");
         assert.equal(contact.email, email);
