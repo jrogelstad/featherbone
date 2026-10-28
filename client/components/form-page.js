@@ -1354,7 +1354,7 @@ formPage.component = {
                     )
                 }),
                 m("div", {
-                    class: "fb-ribbon-page"
+                    class: "fb-ribbon-page fb-ribbon-page-form"
                 }, [
                     m(toolbar, {
                         id: "toolbar",

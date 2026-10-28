@@ -2823,6 +2823,32 @@ button:disabled .fb-ipicon,
     overflow: hidden;
 }
 
+/* A form page: toolbar and title, then the form itself, which takes
+   whatever height is left and scrolls inside it. The form's own rule
+   (.fb-form-content: absolute, 100% high) is measured from the whole
+   layout, ribbon included, while the form starts below the ribbon,
+   toolbar and title -- so its bottom, and the scrollbar with it, ended
+   up past the bottom of the window and anything tall (a long form, the
+   timeline chart) could not be scrolled into view (John, Oct 2026). The
+   script that used to size it to the room left over is commented out in
+   form-widget.js; this does it without script. */
+.fb-ribbon-page-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.fb-ribbon-page-form > * {
+    flex: 0 0 auto;
+}
+
+.fb-ribbon-page-form > .fb-form-content {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    width: auto;
+}
+
 /* The toolbar above the grid: worksheet title, Record/List buttons,
    search box. min-width reserves a constant block for the title so the
    buttons after it land at the same spot for every worksheet -- a
@@ -4402,6 +4428,12 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
 
 .fb-dash-row-drill:hover {
     background: var(--fb-surface-alt);
+}
+
+/* A histogram bar that drills: SVG has no background to tint, so the bar
+   itself lightens under the pointer. */
+rect.fb-dash-row-drill:hover {
+    opacity: 0.75;
 }
 
 /* The list is given its own height (60vh, in the view model) and the
