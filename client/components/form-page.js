@@ -523,7 +523,6 @@ formPage.viewModel = function (options) {
     let isRowAuth = f.catalog().getFeather(
         theFeather
     ).enableRowAuthorization;
-    let hasHelp = form.helpLink && form.helpLink.resource;
     let pathname = "/" + location.pathname.replaceAll("/", "");
 
     // Helper function to pass back data to sending model
@@ -1125,20 +1124,11 @@ formPage.viewModel = function (options) {
     }));
 
     vm.buttonHelp(f.createViewModel("Button", {
-        onclick: function () {
-            if (hasHelp) {
-                window.open(form.helpLink.resource);
-            }
-        },
+        onclick: () => f.openHelp({feather: theFeather, form: form.name}),
         icon: "help",
-        title: "Open help file",
+        title: "Open help",
         class: "fb-icon-button"
     }));
-
-    if (!hasHelp) {
-        vm.buttonHelp().disable();
-        vm.buttonHelp().title("No help page assigned");
-    }
 
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,

@@ -33,6 +33,7 @@
     const {CRUD} = require("./services/crud");
     const {Currency} = require("./services/currency");
     const {Feathers} = require("./services/feathers");
+    const {Help} = require("./services/help");
     const {Importer, Exporter} = require("./services/io");
     const {Installer} = require("./services/installer");
     const {
@@ -64,6 +65,7 @@
     const dashboards = new Dashboards();
     const exporter = new Exporter();
     const feathers = new Feathers();
+    const help = new Help();
     const importer = new Importer();
     const installer = new Installer();
     const manager = new Manager();
@@ -4472,6 +4474,8 @@
     that.registerFunction("GET", "convertCurrency", currency.convertCurrency);
     that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
+    that.registerFunction("GET", "getHelpFile", help.getFile);
+    that.registerFunction("GET", "getHelpTopic", help.getTopic);
     that.registerFunction("GET", "getProfile", profile.getProfile);
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getRouteFunction", getRouteFunction);
