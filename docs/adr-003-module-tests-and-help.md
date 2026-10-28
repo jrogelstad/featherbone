@@ -236,6 +236,16 @@ mechanical. The 22 unwritten articles are still unwritten.
 - **Merge order**: both together. Core without the SupplyChain branch
   runs no SupplyChain tests. The SupplyChain branch's tests need the core
   runner to resolve `featherbone-test`.
+- **Seed database** (branch `feat/test-seed-database`): the runner clones
+  `featherbone_test_source`, built by `test/seed.js` from Core and the
+  versions in `test/seed.json`, instead of `demo`. A used database moved
+  the results under the tests (an approved proposed cost, Postgres
+  collation, a combined manager/instance shape, authorization grants), and
+  the goldens recorded whatever it held. Job Shop is not in the seed. Two
+  gaps it exposed: the api phase loads no module code (so a SupplyChain
+  trigger is not reachable there; Terms' belongs in SupplyChain's own
+  tests), and `TenantService` is a manager feather, so the two security
+  tests that need an encrypted column skip on an instance.
 - **Help**: not started. Order: the route and `help.json` resolution,
   the help window, the customer supplement and its migration, then
   splitting the Job Shop manual.

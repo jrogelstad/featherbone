@@ -47,8 +47,14 @@ const settings = Object.freeze({
     artifacts: ARTIFACTS,
     goldenDir: path.join(TEST_DIR, "golden"),
     config,
-    // Database the test copy is cloned from
-    sourceDb: env.FB_TEST_SOURCE_DB || "demo",
+    /*
+        The pinned database test/seed.js builds, and the one the test
+        copy is cloned from unless FB_TEST_SOURCE_DB names another
+        (demo, say, to try a real one).
+    */
+    seedDb: env.FB_TEST_SEED_DB || "featherbone_test_source",
+    sourceDb: env.FB_TEST_SOURCE_DB || env.FB_TEST_SEED_DB ||
+            "featherbone_test_source",
     // Throwaway database the suite runs against
     testDb: env.FB_TEST_DB || "featherbone_test",
     /*

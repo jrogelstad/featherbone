@@ -19,6 +19,21 @@ const access = require("./lib/access");
 
 const MARK = "fbt-" + Date.now().toString(36);
 
+/*
+    TenantService is the manager's feather. An instance made by the
+    installer does not have it (a database made before the registry moved
+    out did), and no instance carries another encrypted column to stand in.
+*/
+const NO_TENANT_SERVICE = "TenantService is not in an instance database";
+
+async function hasTenantService() {
+    let resp = await db.query(
+        "SELECT 1 FROM \"$feather\" WHERE id = 'tenant_service'"
+    );
+
+    return resp.rows.length > 0;
+}
+
 // Session id as stored in "$session" (cookie is s:<sid>.<signature>)
 function sessionId(session) {
     let value = decodeURIComponent(session.cookie.split("=")[1]);
@@ -101,6 +116,10 @@ describe("security", function () {
     // appears in SQL text (pg_stat_activity, statement logs).
     // TenantService.pgPassword is the core encrypted column.
     it("keeps the crypto key out of SQL text (plan 1.8)", async function (t) {
+        if (!await hasTenantService()) {
+            t.skip(NO_TENANT_SERVICE);
+            return;
+        }
         let key = settings.config.pgCryptoKey;
         let svc = await admin.create("TenantService", {
             name: MARK,
@@ -190,7 +209,11 @@ describe("security", function () {
     });
 
     it("does not show decrypted tenant service passwords to ordinary users",
-            async function () {
+            async function (t) {
+        if (!await hasTenantService()) {
+            t.skip(NO_TENANT_SERVICE);
+            return;
+        }
         let secret = "Tenant-Secret-" + MARK;
         let svc = await admin.create("TenantService", {
             name: MARK + "-2",
