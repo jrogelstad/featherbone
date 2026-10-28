@@ -224,7 +224,7 @@
                 "feather": "HelpLink",
                 "list": {
                     "columns": [{
-                        "attr": "module"
+                        "attr": "form"
                     }, {
                         "attr": "label"
                     }, {
@@ -234,7 +234,7 @@
                     }],
                     "filter": {
                         "sort": [{
-                            "property": "module",
+                            "property": "form",
                             "order": "ASC"
                         }, {
                             "property": "label",

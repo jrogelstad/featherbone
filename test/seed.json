@@ -10,7 +10,7 @@
         "supplychain": {
             "database": "featherbone_test_supplychain",
             "modules": {
-                "SupplyChain": "2.2.43"
+                "SupplyChain": "2.2.44"
             }
         }
     }

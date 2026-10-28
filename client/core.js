@@ -20,6 +20,7 @@
     @module Core
 */
 import createProperty from "./property.js";
+import openHelp from "./help.js";
 import createModel from "./models/model.js";
 import createList from "./models/list.js";
 import catalog from "./models/catalog.js";
@@ -3039,6 +3040,15 @@ f.State = State;
     @return {String}
 */
 f.version = createProperty();
+/**
+    Show help for a form or a feather, in the pop-out help window
+    (client/help.js, ADR-003).
+
+    @method openHelp
+    @param {Object} [topic] {form, feather}
+    @return {Void}
+*/
+f.openHelp = openHelp;
 f.TABLE_MIN_HEIGHT = 200;
 f.TABLE_COLUMN_WIDTH_DEFAULT = 150;
 

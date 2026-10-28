@@ -15,10 +15,16 @@ const build = require("../../scripts/build-client");
 const ROOT = path.resolve(__dirname, "..", "..");
 const DEBUG = fs.readFileSync(path.join(ROOT, "index_debug.html"), "utf8");
 
-// Client files the bundle is not meant to hold
+/*
+    Client files the bundle is not meant to hold: the bundle itself, the
+    generated API documentation, the linter shim and its 500 KB linter,
+    and the two pages that are not the app -- the instance picker and the
+    help window, each of which the browser loads on its own.
+*/
 const NOT_BUNDLED = new Set([
     "client/clientmin.js",
     "client/api.js",
+    "client/help-window.js",
     "client/javascript-lint.js",
     "client/jslint.mjs",
     "client/picker.js"
