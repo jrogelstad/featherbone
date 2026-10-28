@@ -22,7 +22,8 @@
     everything but `api/upgrade.test.js`. Skipped files are named at the
     start of the run, so a green run cannot quietly be a partial one.
 
-    Integration runs clone FB_TEST_SOURCE_DB (default "demo") into
+    Integration runs clone FB_TEST_SOURCE_DB (default: the pinned
+    seed, test/seed.js) into
     FB_TEST_DB (default "featherbone_test"), start a server on
     FB_TEST_PORT (default 3990), run the tests one file at a time, then
     stop the server and drop the copy (FB_TEST_KEEP_DB=1 keeps it).
@@ -474,6 +475,10 @@ async function main() {
         const server = require("./harness/server");
         let url;
 
+        // The pinned seed is built on first use, and again when it is stale
+        if (settings.sourceDb === settings.seedDb) {
+            await require("./seed").ensure();
+        }
         console.log(
             "# cloning " + settings.sourceDb + " -> " + settings.testDb
         );

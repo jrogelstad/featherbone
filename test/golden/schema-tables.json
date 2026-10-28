@@ -12,6 +12,33 @@
     "inherits": [],
     "triggers": []
   },
+  "$dashboard": {
+    "columns": {
+      "config": "json",
+      "description": "text",
+      "is_default": "boolean default false",
+      "label": "text default ''::text",
+      "module": "text",
+      "name": "text",
+      "sequence": "smallint"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": []
+  },
+  "$dashboard_target": {
+    "columns": {
+      "amount": "numeric not null default 0",
+      "basis": "text not null default 'fixed'::text",
+      "better": "text",
+      "metric": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": []
+  },
   "$db": {
     "columns": {
       "created": "timestamp with time zone not null default now()",
@@ -107,23 +134,6 @@
     ],
     "triggers": []
   },
-  "access_grant": {
-    "columns": {
-      "_granted_by_identity_pk": "bigint",
-      "_identity_identity_pk": "bigint",
-      "_tenant_tenant_pk": "bigint",
-      "granted": "timestamp with time zone",
-      "is_active": "boolean"
-    },
-    "inherits": [
-      "document"
-    ],
-    "triggers": [
-      "CREATE TRIGGER access_grant_delete_trigger AFTER DELETE ON public.access_grant FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
-      "CREATE TRIGGER access_grant_insert_trigger AFTER INSERT ON public.access_grant FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
-      "CREATE TRIGGER access_grant_update_trigger AFTER UPDATE ON public.access_grant FOR EACH ROW EXECUTE FUNCTION update_trigger()"
-    ]
-  },
   "address": {
     "columns": {
       "city": "text",
@@ -143,24 +153,6 @@
       "CREATE TRIGGER address_delete_trigger AFTER DELETE ON public.address FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER address_insert_trigger AFTER INSERT ON public.address FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER address_update_trigger AFTER UPDATE ON public.address FOR EACH ROW EXECUTE FUNCTION update_trigger()"
-    ]
-  },
-  "admin_audit": {
-    "columns": {
-      "_actor_identity_pk": "bigint",
-      "_on_behalf_of_organization_pk": "bigint",
-      "_target_identity_identity_pk": "bigint",
-      "action": "text",
-      "detail": "text",
-      "occurred": "timestamp with time zone"
-    },
-    "inherits": [
-      "document"
-    ],
-    "triggers": [
-      "CREATE TRIGGER admin_audit_delete_trigger AFTER DELETE ON public.admin_audit FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
-      "CREATE TRIGGER admin_audit_insert_trigger AFTER INSERT ON public.admin_audit FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
-      "CREATE TRIGGER admin_audit_update_trigger AFTER UPDATE ON public.admin_audit FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "alert": {
@@ -982,29 +974,6 @@
       "CREATE TRIGGER honorific_update_trigger AFTER UPDATE ON public.honorific FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
-  "identity": {
-    "columns": {
-      "_organization_organization_pk": "bigint",
-      "email": "text",
-      "failed_attempts": "integer",
-      "full_name": "text",
-      "is_org_admin": "boolean",
-      "is_platform_admin": "boolean",
-      "last_signed_in": "timestamp with time zone",
-      "locked_until": "timestamp with time zone",
-      "password_hash": "text",
-      "status": "text",
-      "username": "text"
-    },
-    "inherits": [
-      "document"
-    ],
-    "triggers": [
-      "CREATE TRIGGER identity_delete_trigger AFTER DELETE ON public.identity FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
-      "CREATE TRIGGER identity_insert_trigger AFTER INSERT ON public.identity FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
-      "CREATE TRIGGER identity_update_trigger AFTER UPDATE ON public.identity FOR EACH ROW EXECUTE FUNCTION update_trigger()"
-    ]
-  },
   "inco_terms": {
     "columns": {
       "code": "text",
@@ -1052,6 +1021,7 @@
       "_item_item_pk": "bigint",
       "_site_site_pk": "bigint",
       "comments": "text",
+      "error": "text",
       "is_posted": "boolean",
       "number": "text",
       "posted_date": "date",
@@ -1093,6 +1063,45 @@
       "CREATE TRIGGER inventory_location_delete_trigger AFTER DELETE ON public.inventory_location FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER inventory_location_insert_trigger AFTER INSERT ON public.inventory_location FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER inventory_location_update_trigger AFTER UPDATE ON public.inventory_location FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_report": {
+    "columns": {
+      "_site_site_pk": "bigint",
+      "as_of": "date",
+      "labor_value": "mono",
+      "material_value": "mono",
+      "notes": "text",
+      "overhead_value": "mono",
+      "service_value": "mono",
+      "total_value": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_report_delete_trigger AFTER DELETE ON public.inventory_report FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_report_insert_trigger AFTER INSERT ON public.inventory_report FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_report_update_trigger AFTER UPDATE ON public.inventory_report FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_report_detail": {
+    "columns": {
+      "_site_site_pk": "bigint",
+      "labor_value": "mono",
+      "material_value": "mono",
+      "overhead_value": "mono",
+      "quantity": "numeric(18,8)",
+      "service_value": "mono",
+      "total_value": "mono"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_report_detail_delete_trigger AFTER DELETE ON public.inventory_report_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_report_detail_insert_trigger AFTER INSERT ON public.inventory_report_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_report_detail_update_trigger AFTER UPDATE ON public.inventory_report_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "inventory_trace": {
@@ -1139,6 +1148,33 @@
       "CREATE TRIGGER inventory_transaction_delete_trigger AFTER DELETE ON public.inventory_transaction FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER inventory_transaction_insert_trigger AFTER INSERT ON public.inventory_transaction FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER inventory_transaction_update_trigger AFTER UPDATE ON public.inventory_transaction FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_value": {
+    "columns": {
+      "is_closing": "boolean"
+    },
+    "inherits": [
+      "inventory_report"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_value_delete_trigger AFTER DELETE ON public.inventory_value FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_value_insert_trigger AFTER INSERT ON public.inventory_value FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_value_update_trigger AFTER UPDATE ON public.inventory_value FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "inventory_value_detail": {
+    "columns": {
+      "_inventory_value_inventory_value_pk": "bigint",
+      "_item_item_pk": "bigint"
+    },
+    "inherits": [
+      "inventory_report_detail"
+    ],
+    "triggers": [
+      "CREATE TRIGGER inventory_value_detail_delete_trigger AFTER DELETE ON public.inventory_value_detail FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER inventory_value_detail_insert_trigger AFTER INSERT ON public.inventory_value_detail FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER inventory_value_detail_update_trigger AFTER UPDATE ON public.inventory_value_detail FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "invoice": {
@@ -1566,6 +1602,7 @@
       "_to_location_location_pk": "bigint",
       "_trace_trace_pk": "bigint",
       "date": "date",
+      "error": "text",
       "number": "text",
       "quantity": "numeric(18,8)",
       "status": "text"
@@ -1675,22 +1712,6 @@
       "CREATE TRIGGER operation_completion_delete_trigger AFTER DELETE ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER operation_completion_insert_trigger AFTER INSERT ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER operation_completion_update_trigger AFTER UPDATE ON public.operation_completion FOR EACH ROW EXECUTE FUNCTION update_trigger()"
-    ]
-  },
-  "organization": {
-    "columns": {
-      "authentication": "text",
-      "is_active": "boolean",
-      "is_two_factor_required": "boolean",
-      "name": "text"
-    },
-    "inherits": [
-      "document"
-    ],
-    "triggers": [
-      "CREATE TRIGGER organization_delete_trigger AFTER DELETE ON public.organization FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
-      "CREATE TRIGGER organization_insert_trigger AFTER INSERT ON public.organization FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
-      "CREATE TRIGGER organization_update_trigger AFTER UPDATE ON public.organization FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "outside_process": {
@@ -2186,7 +2207,8 @@
     "columns": {
       "_item_item_pk": "bigint",
       "_purchase_order_line_purchase_order_line_pk": "bigint",
-      "_purchase_order_receipt_purchase_order_receipt_pk": "bigint"
+      "_purchase_order_receipt_purchase_order_receipt_pk": "bigint",
+      "amount": "mono"
     },
     "inherits": [
       "receipt_line"
@@ -2536,6 +2558,31 @@
       "CREATE TRIGGER sales_order_tax_delete_trigger AFTER DELETE ON public.sales_order_tax FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER sales_order_tax_insert_trigger AFTER INSERT ON public.sales_order_tax FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER sales_order_tax_update_trigger AFTER UPDATE ON public.sales_order_tax FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_region": {
+    "columns": {},
+    "inherits": [
+      "category"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_region_delete_trigger AFTER DELETE ON public.sales_region FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_region_insert_trigger AFTER INSERT ON public.sales_region FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_region_update_trigger AFTER UPDATE ON public.sales_region FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
+  "sales_region_state": {
+    "columns": {
+      "_region_sales_region_pk": "bigint",
+      "state": "text"
+    },
+    "inherits": [
+      "object"
+    ],
+    "triggers": [
+      "CREATE TRIGGER sales_region_state_delete_trigger AFTER DELETE ON public.sales_region_state FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER sales_region_state_insert_trigger AFTER INSERT ON public.sales_region_state FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER sales_region_state_update_trigger AFTER UPDATE ON public.sales_region_state FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "script": {
@@ -3024,46 +3071,6 @@
       "CREATE TRIGGER tax_type_delete_trigger AFTER DELETE ON public.tax_type FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
       "CREATE TRIGGER tax_type_insert_trigger AFTER INSERT ON public.tax_type FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
       "CREATE TRIGGER tax_type_update_trigger AFTER UPDATE ON public.tax_type FOR EACH ROW EXECUTE FUNCTION update_trigger()"
-    ]
-  },
-  "tenant": {
-    "columns": {
-      "_contact_contact_pk": "bigint",
-      "_edition_edition_pk": "bigint",
-      "_organization_organization_pk": "bigint",
-      "_pg_service_tenant_service_pk": "bigint",
-      "expiration": "timestamp with time zone",
-      "is_active": "boolean",
-      "is_demo": "boolean",
-      "is_maintenance": "boolean",
-      "modules": "json",
-      "name": "text",
-      "pg_database": "text"
-    },
-    "inherits": [
-      "document"
-    ],
-    "triggers": [
-      "CREATE TRIGGER tenant_delete_trigger AFTER DELETE ON public.tenant FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
-      "CREATE TRIGGER tenant_insert_trigger AFTER INSERT ON public.tenant FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
-      "CREATE TRIGGER tenant_update_trigger AFTER UPDATE ON public.tenant FOR EACH ROW EXECUTE FUNCTION update_trigger()"
-    ]
-  },
-  "tenant_service": {
-    "columns": {
-      "name": "text",
-      "pg_host": "text",
-      "pg_password": "text",
-      "pg_port": "text",
-      "pg_user": "text"
-    },
-    "inherits": [
-      "document"
-    ],
-    "triggers": [
-      "CREATE TRIGGER tenant_service_delete_trigger AFTER DELETE ON public.tenant_service FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
-      "CREATE TRIGGER tenant_service_insert_trigger AFTER INSERT ON public.tenant_service FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
-      "CREATE TRIGGER tenant_service_update_trigger AFTER UPDATE ON public.tenant_service FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
   "terms": {

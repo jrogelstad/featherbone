@@ -7,7 +7,7 @@ carry in their own packages, so a refactor can be checked against it. No new dep
 ## Running
 
 ```text
-node test/run.js                # core, then every module deployed in demo
+node test/run.js                # core, then every module in the seed
 node test/run.js core           # core only: unit, then api
 node test/run.js unit           # unit tests only, no database needed
 node test/run.js integration    # api/ and deployed modules
@@ -49,18 +49,48 @@ That module is a public interface: changing what it exports breaks every
 package's tests. `fixtures` holds only builders over framework feathers;
 a module keeps its own (SupplyChain's are in `common/test/lib`).
 
+### The seed database
+
+Integration runs clone **the seed**, `featherbone_test_source`, which
+`test/seed.js` builds from the installers themselves: Core, then the
+packages and versions pinned in `test/seed.json` (SupplyChain, today), and
+nothing else. Nobody uses it, so what the tests see does not move with
+somebody's `demo`: the golden files, the module versions and the data all
+come from the pins.
+
+```text
+node test/seed.js            build it if missing or out of date
+node test/seed.js --force    build it again
+```
+
+The runner does the first itself. "Out of date" is the Core version, a hash
+of `scripts/` and the pins, recorded in the database's comment; a change to
+server code that makes different SQL without touching those needs
+`--force`. The pinned packages must be installed on the server
+(`node install.js --package <dir>`), and the build says so when one is not.
+
+To move to a new SupplyChain: install it, change the pin, run the suite,
+and regenerate the goldens (`FB_UPDATE_GOLDEN=1`) -- the diff is the
+review. `FB_TEST_SOURCE_DB=demo` still points the run at any other database,
+for trying a real one; goldens are only expected to match the seed.
+
+Goldens are plain Postgres output. They were regenerated on Postgres 16;
+if one differs on yours for no reason in the code, say so.
+
 Integration runs clone the source database into a throwaway copy, start a
 Featherbone server on its own port against that copy, run the test files
 one at a time, then stop the server and drop the copy. Nothing touches the
 source database. A full run takes about five minutes.
 
-**Stop your own server first, and close the browser on it.** The clone
+**Connections to the source stop template copies.** The clone
 itself copes with a busy source -- `CREATE DATABASE ... TEMPLATE` needs no
 other connections, and the harness falls back to `pg_dump | pg_restore`,
 which needs those tools on the path -- but `api/deploy.test.js` makes a
 template copy of the source for its own claims, and Postgres refuses that
 outright while anything is connected ("source database ... is being
 accessed by other users"). Nine of its claims fail for that reason alone.
+The seed has no users, so with it this does not come up; it can with
+`FB_TEST_SOURCE_DB=demo` and a server or pgAdmin session open on `demo`.
 
 The Postgres user in `server/config.json` must be able to `CREATE DATABASE`
 and `CREATE ROLE` (the tests create login roles for their test users).
@@ -69,7 +99,8 @@ Settings, all optional:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `FB_TEST_SOURCE_DB` | `demo` | Database to clone from |
+| `FB_TEST_SOURCE_DB` | the seed | Database to clone from, instead of the seed |
+| `FB_TEST_SEED_DB` | `featherbone_test_source` | Name of the seed database |
 | `FB_TEST_DB` | `featherbone_test` | Throwaway copy (dropped afterwards) |
 | `FB_TEST_PORT` | `3990` | Port for the test server |
 | `FB_TEST_PGHOST`, `FB_TEST_PGPORT`, `FB_TEST_PGUSER`, `FB_TEST_PGPASSWORD` | from `server/config.json` | Postgres connection |
@@ -125,7 +156,7 @@ test/golden/             snapshots (catalog, schema, workbook and component
 ```
 
 Every file builds its own data with an `RT-`-style unique prefix, so the
-tests pass on a clone of the demo database and on a fresh install, and files
+tests pass on a clone of the seed and on a fresh install, and files
 can run alone or together in one server.
 
 ## Lint
