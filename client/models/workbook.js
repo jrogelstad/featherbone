@@ -206,12 +206,6 @@ const workbookDefaultConifg = {
             description: "Flags whether in edit mode",
             type: "boolean",
             default: false
-        },
-        helpLink: {
-            description: "Link to help file",
-            type: {
-                relation: "HelpLink"
-            }
         }
     }
 };
@@ -759,14 +753,6 @@ workbookChild.calculated = f.prop({});
     @type Property
 */
 /**
-    Help file link.
-
-    __Type:__ `HelpLink`
-
-    @property data.helpLink
-    @type Property
-*/
-/**
     Menu actions that can be performed on rows.
 
     __Type:__ `Object`
@@ -891,12 +877,6 @@ const worksheet = {
             type: {
                 parentOf: "parent",
                 relation: "WorksheetAction"
-            }
-        },
-        helpLink: {
-            description: "Link to help file",
-            type: {
-                relation: "HelpLink"
             }
         }
     }

@@ -534,7 +534,6 @@
   },
   "form": {
     "columns": {
-      "_help_link_help_link_pk": "bigint",
       "focus": "text",
       "font": "text",
       "hide_logo": "boolean",
@@ -653,6 +652,7 @@
   "help_link": {
     "columns": {
       "display_value": "text",
+      "form": "text",
       "icon": "text",
       "label": "text",
       "module": "text",

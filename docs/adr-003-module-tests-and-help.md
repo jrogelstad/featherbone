@@ -144,11 +144,17 @@ good.
 
   ```json
   {
-      "title": "Sales",
+      "title": "Sell",
+      "default": "sales-orders.md",
+      "pages": [{"path": "sales-orders.md", "title": "Sales orders"}],
       "forms": {"Sales Order": "sales-orders.md"},
       "feathers": {"SalesOrder": "sales-orders.md"}
   }
   ```
+
+  `pages` is the module's contents list, in reading order, which the
+  window offers; `default` is what the module answers with when it has
+  nothing on this particular form.
 
 - **Serving.** `GET /:db/help/:module/<path>` serves from `help/` of the
   version that database deployed (`packages.resolve`). Two instances on
@@ -161,7 +167,12 @@ good.
   module. In order:
   1. the `forms` entry of the form's module;
   2. the `feathers` entry of the feather's module;
-  3. core's generic page.
+  3. the `default` page of either, in that order;
+  4. core's generic page.
+
+  Step 3 was added while building it: a module that says nothing about
+  this form still answers better about itself than core's generic page
+  does, and it keeps the per-module maps small.
 
   Form names are unique (SupplyChain's 72 are), so the name is the key.
   Nothing about help is stored on a worksheet or a form any more. The
@@ -180,6 +191,15 @@ good.
   because package help covers it. One pointing at a row that belongs to
   no module becomes a supplement. Then the property is removed from
   worksheets and forms.
+
+  The manifest runs `scripts/retire-help-links.js` twice, either side of
+  the feathers, because the feathers are where the two columns change
+  hands: `Form.helpLink` is dropped there and `HelpLink.form` is added
+  there. The first pass reads the references while the old column is
+  still there and parks them in a carry table; the second writes the
+  supplements once the new column exists, and clears up. Which pass it
+  is, the script reads off the database. A link two forms shared becomes
+  one supplement each, since a supplement answers for a form.
 
 ### The help window
 
@@ -256,6 +276,37 @@ mechanical. The 22 unwritten articles are still unwritten.
   on an instance. Seeds carrying domain data for a package are future
   work; today the SupplyChain seed is the package as installed, and each
   test makes its own records.
-- **Help**: not started. Order: the route and `help.json` resolution,
-  the help window, the customer supplement and its migration, then
-  splitting the Job Shop manual.
+- **Help** (branches `feat/module-help` in both repositories, Core
+  3.0.0-alpha.9 and SupplyChain 2.2.44). Built as planned:
+  - `server/services/help.js` and three routes: `/:db/help` (the
+    window), `/:db/help-topic` (which page answers, with the customer's
+    supplement), `/:db/help/:module/<path>` (the file, from the version
+    that database deployed). A path that leaves a module's help folder
+    is refused.
+  - The window is `help.html` and `client/help-window.js`: one named
+    pop-out, Markdown rendered by `marked` (vendored as a dependency),
+    its own Back history, a contents list for the module, placement
+    remembered, a tab on a narrow screen. `f.openHelp` opens it, and
+    `client/core.js` attaches that before it freezes `f` -- a module
+    script loaded later cannot add to `f` at all, which is worth
+    knowing.
+  - `Form.helpLink` and the worksheet's are gone, with the Form editor
+    field and the worksheet configuration field; `HelpLink.form` is the
+    customer's supplement; the Help Files worksheet lists those.
+  - Core carries `help/`: workbooks, worksheets, concepts, user
+    accounts, authorizations, print forms, developing (with a written
+    account of this design) and a glossary.
+  - SupplyChain carries help in each of its twelve modules, 28 pages.
+    All 197 generated topics are placed, each exactly once: 165 in
+    SupplyChain, 32 in core. The 38 the generator left as stubs are
+    still stubs, now reading "Not written yet" rather than naming the
+    Job Shop knowledge base.
+  - Tests: `test/api/help.test.js`, `test/api/help-migration.test.js`
+    (which builds the old shape and upgrades it), and
+    `common/test/help.test.js` in SupplyChain, which holds the join
+    between a page on disk, a form name in the database and the entry
+    that ties them.
+  - **Still to do**: Job Shop's own help folder (navigation and
+    getting-started), which is where the manual's remaining front
+    matter belongs. The generated `job-shop-help.html` on the
+    `help_files` branch can be retired once that is done.

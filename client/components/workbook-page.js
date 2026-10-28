@@ -108,10 +108,6 @@ const editSheetConfig = {
         label: "Enable edit mode",
         grid: 1
     }, {
-        attr: "helpLink",
-        grid: 1,
-        label: "Help Page"
-    }, {
         attr: "columns",
         showLabel: false,
         height: "144px",
@@ -360,8 +356,7 @@ workbookPage.viewModel = function (options) {
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
-            columns: sheet.list.columns || [],
-            helpLink: sheet.helpLink || ""
+            columns: sheet.list.columns || []
         };
 
         sheetEditModel.set(data, true, true);
@@ -379,7 +374,6 @@ workbookPage.viewModel = function (options) {
             sheet.list.columns.length = 0;
             sheet.actions = sheet.actions || [];
             sheet.actions.length = 0;
-            sheet.helpLink = data.helpLink;
             data.columns.forEach(function (d) {
                 if (d === undefined) { // Deleted
                     return;
@@ -536,6 +530,25 @@ workbookPage.viewModel = function (options) {
                 }
             });
         }
+    };
+    /**
+        What this worksheet is about, for help to answer on: the form it
+        drills into, and the feather behind it. "D" is the feather's
+        default form, which may have help of its own, so it is resolved
+        to a name here rather than left to the feather (ADR-003).
+
+        @method helpTopic
+        @return {Object} {feather, form}
+    */
+    vm.helpTopic = function () {
+        let sheet = vm.sheet() || {};
+        let name = sheet.form;
+
+        if (!name || name === "D") {
+            name = f.getForm({feather: theFeather.name}).name;
+        }
+
+        return {feather: theFeather.name, form: name};
     };
     /**
         Open model in form.
@@ -1332,16 +1345,10 @@ workbookPage.viewModel = function (options) {
     }));
 
     vm.buttonHelp(f.createViewModel("Button", {
-        onclick: function () {
-            let link = vm.sheet().helpLink;
-
-            if (link && link.resource) {
-                window.open(link.resource);
-            }
-        },
+        onclick: () => f.openHelp(vm.helpTopic()),
         icon: "help",
         hotkey: "H",
-        title: "Open help page",
+        title: "Open help (Alt+H)",
         class: "fb-toolbar-button"
     }));
 
@@ -1595,16 +1602,6 @@ workbookPage.component = {
             oninit: btn.oninit,
             view: spinButtonView
         };
-
-        let hbtn = vm.buttonHelp();
-
-        if (!vm.sheet().helpLink || !vm.sheet().helpLink.resource) {
-            hbtn.disable();
-            hbtn.title("No help page assigned to this worksheet");
-        } else {
-            hbtn.enable();
-            hbtn.title("Open help page (Alt+H)");
-        }
 
         if (formWidget) {
             drawerForm = m("div", {
