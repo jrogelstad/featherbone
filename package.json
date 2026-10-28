@@ -53,6 +53,7 @@
     "print-js": "^1.6.0",
     "purecss": "^2.1.0",
     "qs": "^6.16.2",
+    "redoc": "3.0.1",
     "shipengine": "^1.0.1",
     "table-layout": "^3.0.0",
     "tinymce": "^8.9.3",
