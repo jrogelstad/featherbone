@@ -3322,7 +3322,43 @@ button:disabled .fb-ipicon,
 }
 
 .fb-about-child td:first-child {
-    padding-left: 16px;
+    padding-left: 20px;
+}
+
+.fb-about-parent {
+    cursor: pointer;
+}
+
+.fb-about-parent:hover {
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-about-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.fb-about-toggle .material-icons-outlined {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+}
+
+.fb-about-count {
+    margin-left: 6px;
+    padding: 0 6px;
+    font-size: 0.8em;
+    color: var(--fb-text-muted);
+    border: 1px solid var(--fb-border);
+    border-radius: 8px;
 }
 
 .fb-about-error {

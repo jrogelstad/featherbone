@@ -1342,15 +1342,29 @@ describe("client components", function () {
             env.respond(server.handle);
 
             assert.ok(text.includes("3.0.0 (instance at 2.9.0)"), text);
-            assert.ok(text.includes("Sell"));
             assert.ok(text.includes("PostgreSQL"));
+            // Subordinate modules start out of sight, under their package
+            assert.ok(text.includes("SupplyChain"));
+            assert.equal(text.includes("Sell"), false);
+            assert.equal(
+                R.findAll(out.tree, R.byClass("fb-about-child")).length,
+                0
+            );
+            R.find(out.tree, R.byClass("fb-about-parent")).attrs.onclick();
+            out = R.render(comps.dialog, {viewModel: vm});
+            assert.ok(R.text(out.tree).includes("Sell"));
             assert.equal(
                 R.findAll(out.tree, R.byClass("fb-about-child")).length,
                 1
             );
+            R.find(out.tree, R.byClass("fb-about-parent")).attrs.onclick();
+            out = R.render(comps.dialog, {viewModel: vm});
+            assert.equal(R.text(out.tree).includes("Sell"), false);
+            R.find(out.tree, R.byClass("fb-about-parent")).attrs.onclick();
+            out = R.render(comps.dialog, {viewModel: vm});
             assert.deepEqual(
                 buttons(out.tree).map((b) => b.text),
-                ["REST API", "C lose"]
+                ["SupplyChain 1", "REST API", "C lose"]
             );
             assert.deepEqual(opened, [["/demo/api", "featherbone-api"]]);
         });
