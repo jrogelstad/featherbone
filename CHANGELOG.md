@@ -8,8 +8,9 @@ Notable changes to Featherbone. Dates are the day the work landed on
 * **About, and a REST API reference.** An Info button beside the bell
   on every screen opens an About dialog: what Featherbone is, the
   framework version, each module the instance deployed (sub-modules
-  under their package) and the software underneath (Node.js,
-  PostgreSQL, Express, node-postgres, Mithril, the operating system).
+  under their package, collapsed until opened) and the software
+  underneath (Node.js, PostgreSQL, Express, node-postgres, Mithril, the
+  operating system).
   Its REST API button opens `/<db>/api`, where Redoc renders the
   instance's own OpenAPI document from `GET /<db>/openapi.json`. That
   document is assembled on request from core's `openapi.json` (which
