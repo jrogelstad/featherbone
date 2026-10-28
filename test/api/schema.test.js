@@ -268,10 +268,7 @@ describe("database schema", function () {
             assert.deepEqual(missing, []);
         });
 
-        it("enforces every natural key with a unique index", {
-            todo: "plan 2.6: natural keys are only checked by crud.js, " +
-                    "never by a unique index"
-        }, function () {
+        it("enforces every natural key with a unique index", function () {
             let missing = [];
             feathers.forEach(function (name) {
                 let props = catalog[name].properties || {};

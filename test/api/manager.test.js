@@ -104,22 +104,32 @@ describe("the manager", function () {
                 async function () {
             // Tenant and TenantService are declared in
             // scripts/feathers-manager.json, which an instance does not
-            // install. This copy came from a combined database, so it
-            // has them -- what matters is that they are ordinary
-            // feathers, not that they are everywhere.
-            let feather = await admin.get("/feather/tenant-service");
+            // install, so ask the manager database (a copy of the source
+            // brought current by `install.js --manager`).
+            let resp = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    "SELECT id FROM \"$feather\" " +
+                    "WHERE id IN ('tenant', 'tenant_service') ORDER BY id"
+                )
+            );
 
-            assert.equal(feather.name, "TenantService");
-            assert.deepEqual(feather.authorizations, []);
+            assert.deepEqual(
+                resp.rows.map((r) => r.id),
+                ["tenant", "tenant_service"]
+            );
         });
 
         it("does not grant anyone the service credentials",
                 async function () {
-            let resp = await db.query(
-                "SELECT auth.role FROM \"$auth\" AS auth, " +
-                "  \"$feather\" AS feather " +
-                "WHERE feather.id IN ('tenant', 'tenant_service') " +
-                "  AND feather._pk = auth.object_pk"
+            let resp = await db.withClient(
+                settings.managerDb,
+                (client) => client.query(
+                    "SELECT auth.role FROM \"$auth\" AS auth, " +
+                    "  \"$feather\" AS feather " +
+                    "WHERE feather.id IN ('tenant', 'tenant_service') " +
+                    "  AND feather._pk = auth.object_pk"
+                )
             );
 
             assert.deepEqual(resp.rows, []);

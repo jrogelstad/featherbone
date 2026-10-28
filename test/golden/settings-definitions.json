@@ -18,6 +18,15 @@
       "standardInvoice"
     ]
   },
+  "brandingSettings": {
+    "encrypted": [],
+    "module": "Core",
+    "properties": [
+      "dashboardImage",
+      "icon",
+      "title"
+    ]
+  },
   "buySettings": {
     "encrypted": [],
     "module": "Buy",
@@ -77,13 +86,6 @@
       "state",
       "street",
       "unit"
-    ]
-  },
-  "jobShopSettings": {
-    "encrypted": [],
-    "module": "JobShop",
-    "properties": [
-      "edition"
     ]
   },
   "makeSettings": {

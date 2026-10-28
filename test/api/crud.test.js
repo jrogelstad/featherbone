@@ -233,11 +233,14 @@ describe("data API record lifecycle", function () {
             );
         });
 
-        it("runs module trigger validation (Terms deposit)", async function () {
+        it("enforces a required money property (Terms deposit)",
+                async function () {
             expectError(
                 await admin.raw("POST", "/data/terms", {code: uniq("NET")}),
                 500,
-                "Deposit money object is required on terms."
+                // The feather's own check; the module's trigger is only
+                // loaded in the module phase
+                "\"depositAmount\" is required on Terms."
             );
             let terms = await admin.create("Terms", {
                 code: uniq("NET"),
