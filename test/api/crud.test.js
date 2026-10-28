@@ -5,11 +5,10 @@
     changes, GET by id, PATCH with JSON patch, soft DELETE, validation
     errors, read-only properties, relations, child arrays and natural keys.
 
-    Uses Kind, a core feather that needs no setup, and Category
-    (which comes from SupplyChain's common module, so the tests touching
-    it are skipped on an install without it). Category
-    inherits Kind and its natural key), Location, Contact with its child
-    arrays, and Terms (validated by a SupplyChain trigger).
+    Uses Kind, a core feather that needs no setup, Contact with its child
+    arrays, and the FbtModel fixture package's feathers, shaped like a
+    module's: FbtCategory (inherits Kind and its natural key), FbtLocation
+    (defaults) and FbtTerms (a required money property).
 */
 /*jslint node*/
 "use strict";
@@ -94,9 +93,9 @@ describe("data API record lifecycle", function () {
             let locName = uniq("LOC");
             let loc;
             try {
-                loc = await admin.create("Location", {name: locName});
+                loc = await admin.create("FbtLocation", {name: locName});
             } catch (err) {
-                loc = await admin.create("Location", {
+                loc = await admin.create("FbtLocation", {
                     name: uniq("LOC"),
                     description: ""
                 });
@@ -140,7 +139,7 @@ describe("data API record lifecycle", function () {
                 createdBy: "somebody",
                 updatedBy: "somebody",
                 isDeleted: true,
-                objectType: "Category"
+                objectType: "FbtCategory"
             });
             assert.equal(resp.status, 200);
 
@@ -205,12 +204,12 @@ describe("data API record lifecycle", function () {
 
         it("rejects a required property sent as null", async function () {
             expectError(
-                await admin.raw("POST", "/data/location", {
+                await admin.raw("POST", "/data/fbt-location", {
                     name: uniq("LOC"),
                     description: null
                 }),
                 500,
-                "\"description\" is required on Location."
+                "\"description\" is required on FbtLocation."
             );
         });
 
@@ -233,16 +232,16 @@ describe("data API record lifecycle", function () {
             );
         });
 
-        it("enforces a required money property (Terms deposit)",
+        it("enforces a required money property (FbtTerms deposit)",
                 async function () {
             expectError(
-                await admin.raw("POST", "/data/terms", {code: uniq("NET")}),
+                await admin.raw("POST", "/data/fbt-terms", {
+                    code: uniq("NET")
+                }),
                 500,
-                // The feather's own check; the module's trigger is only
-                // loaded in the module phase
-                "\"depositAmount\" is required on Terms."
+                "\"depositAmount\" is required on FbtTerms."
             );
-            let terms = await admin.create("Terms", {
+            let terms = await admin.create("FbtTerms", {
                 code: uniq("NET"),
                 policy: "N",
                 net: 30,
@@ -256,7 +255,7 @@ describe("data API record lifecycle", function () {
         it("rejects a relation to an id that does not exist",
                 async function () {
             expectError(
-                await admin.raw("POST", "/data/category", {
+                await admin.raw("POST", "/data/fbt-category", {
                     code: uniq("CAT"),
                     parent: {id: "nosuchid"}
                 }),
@@ -271,11 +270,11 @@ describe("data API record lifecycle", function () {
                 code: uniq("KND"),
                 description: "Parent kind"
             });
-            let cat = await admin.create("Category", {
+            let cat = await admin.create("FbtCategory", {
                 code: uniq("CAT"),
                 parent: {id: kind.id}
             });
-            let read = await admin.read("Category", cat.id);
+            let read = await admin.read("FbtCategory", cat.id);
             // Relation comes back with the feather's relation properties
             assert.deepEqual(read.parent, {
                 id: kind.id,
@@ -691,10 +690,12 @@ describe("data API record lifecycle", function () {
         it("checks uniqueness across the inheritance tree", async function () {
             // Category inherits Kind's natural key
             expectError(
-                await admin.raw("POST", "/data/category", {code: kind.code}),
+                await admin.raw("POST", "/data/fbt-category", {
+                    code: kind.code
+                }),
                 500,
-                "Value '" + kind.code + "' assigned to Code on Category is " +
-                "not unique to data type Kind."
+                "Value '" + kind.code + "' assigned to Code on " +
+                "Fbt Category is not unique to data type Kind."
             );
         });
 

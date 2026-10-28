@@ -1,5 +1,17 @@
 {
-    "modules": {
-        "SupplyChain": "2.2.42"
+    "seeds": {
+        "core": {
+            "database": "featherbone_test_core",
+            "modules": {
+                "FbtModel": "1.0.0"
+            },
+            "modulesDir": "test/fixtures/modules"
+        },
+        "supplychain": {
+            "database": "featherbone_test_supplychain",
+            "modules": {
+                "SupplyChain": "2.2.43"
+            }
+        }
     }
 }
