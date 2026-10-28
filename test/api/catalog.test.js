@@ -648,19 +648,12 @@ describe("catalog endpoints", function () {
             assert.equal(after.length, listed.length - 1);
         });
 
-        it("refuses callers without a session", {
-            todo: "defect: /sessions is not in server.js check list " +
-                    "(server.js:76) - anyone can list session ids and users"
-        }, async function () {
+        it("refuses callers without a session", async function () {
             let resp = await new Session().raw("GET", "/sessions");
             assert.equal(resp.status, 401);
         });
 
-        it("refuses currency requests without a session", {
-            todo: "defect: /currency is not in the check list; without a " +
-                    "session doGetBaseCurrency throws (server.js:577) and " +
-                    "express answers a 500 HTML stack trace"
-        }, async function () {
+        it("refuses currency requests without a session", async function () {
             let resp = await new Session().raw("GET", "/currency/base");
             assert.equal(resp.status, 401);
         });
