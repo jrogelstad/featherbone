@@ -1,0 +1,95 @@
+{
+    "module": "Buy",
+    "version": "2.1.19",
+    "dependencies": [
+        "Plan",
+        "Project"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "execute",
+            "path": "receipt-line-amounts.js"
+        },
+        {
+            "type": "execute",
+            "path": "bi-schema.js"
+        },
+        {
+            "type": "service",
+            "name": "doConvertPlannedPurchase",
+            "path": "do-convert-planned-purchase.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetItemSupplier",
+            "path": "do-get-item-supplier.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetPurchaseKpis",
+            "path": "do-get-purchase-kpis.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetPurchaseOrderReceiptData",
+            "path": "do-get-purchase-order-receipt-data.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetPurchaseSchedule",
+            "path": "do-get-purchase-schedule.js"
+        },
+        {
+            "type": "service",
+            "name": "doPostPurchaseOrderReceipt",
+            "path": "do-post-purchase-order-receipt.js"
+        },
+        {
+            "type": "service",
+            "name": "doRefreshPurchaseBi",
+            "path": "do-refresh-purchase-bi.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersPlannedPurchase",
+            "path": "triggers-planned-purchase.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersPurchaseOrder",
+            "path": "triggers-purchase-order.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersPurchaseOrderReceipt",
+            "path": "triggers-purchase-order-receipt.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersSupplier",
+            "path": "triggers-supplier.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "buySettings",
+            "path": "buy-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}

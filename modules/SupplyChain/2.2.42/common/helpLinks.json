@@ -1,0 +1,16 @@
+[
+    {
+        "name": "HelpLink",
+        "method": "POST",
+        "module": "Common",
+        "id": "q4yszkf5ydjl",
+        "data": {
+            "module": "Common",
+            "icon": "open_in_new",
+            "displayValue": "Getting Started",
+            "label": "Getting Started",
+            "resource": "https://featherbone.com/?knowledgebase_cat=getting-started",
+            "notes": ""
+        }
+    }
+]

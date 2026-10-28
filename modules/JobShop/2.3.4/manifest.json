@@ -1,0 +1,39 @@
+{
+    "module": "JobShop",
+    "version": "2.3.4",
+    "title": "Job Shop",
+    "dependencies": [],
+    "files": [
+        {
+            "type": "service",
+            "name": "doConfigureJobShopEdition",
+            "path": "do-configure-job-shop-edition.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "jobShopSettings",
+            "path": "job-shop-settings.json"
+        },
+        {
+            "type": "navigationCategory",
+            "path": "navigation-categories.json"
+        },
+        {
+            "type": "workbook",
+            "path": "workbooks.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}

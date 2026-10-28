@@ -1,0 +1,35 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Bill",
+        "id": "kybcwhn3sabk",
+        "data": {
+            "module": "Bill",
+            "path": "/do-apply-invoice-payment",
+            "function": "doApplyInvoicePayment"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Bill",
+        "id": "bzria0rdoi19",
+        "data": {
+            "module": "Bill",
+            "path": "/do-create-shipment-invoice",
+            "function": "doCreateShipmentInvoice"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Bill",
+        "id": "eg3nxxrexc7i",
+        "data": {
+            "module": "Bill",
+            "path": "/sales-order-history",
+            "function": "doSalesOrderHistory"
+        }
+    }
+]

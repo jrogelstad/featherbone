@@ -1,0 +1,764 @@
+[
+    {
+        "name": "Alert",
+        "description": "Alerts",
+        "plural": "Alerts",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": true,
+        "properties": {
+            "category": {
+                "description": "Category",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "Miscellaneous",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "message": {
+                "description": "Message",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "severity": {
+                "description": "Severity",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "Information",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "Low",
+                        "label": "Low"
+                    },
+                    {
+                        "value": "Warning",
+                        "label": "Warning"
+                    },
+                    {
+                        "value": "Critical",
+                        "label": "Critical"
+                    },
+                    {
+                        "value": "Information",
+                        "label": "Information"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "relation": {
+                "description": "Information about object that triggered the alert",
+                "alias": "",
+                "type": "object",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "Carrier",
+        "description": "Transportation carrier",
+        "plural": "Carriers",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isActive": {
+                "description": "Is active",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "scac": {
+                "description": "Standard carrier alpha code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Category",
+        "description": "Category",
+        "plural": "Categories",
+        "module": "Common",
+        "inherits": "Kind",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "parent": {
+                "description": "Parent category",
+                "alias": "",
+                "type": {
+                    "relation": "Kind",
+                    "properties": [
+                        "code",
+                        "description"
+                    ]
+                },
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Employee",
+        "description": "Company employee",
+        "plural": "Employees",
+        "module": "Common",
+        "inherits": "Contact",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": true,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Employee number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "userAccount": {
+                "description": "User account",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isBuyer": {
+                "description": "Contact is a purchase agent",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isSalesRep": {
+                "description": "Contact is a sales representative",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isActive": {
+                "description": "Employee is actively employed",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "FreightCode",
+        "description": "National Motor Freight Code",
+        "plural": "FreightCodes",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "NMFC Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Freight class description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "class": {
+                "description": "Freight class",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "50",
+                        "label": "Class 50"
+                    },
+                    {
+                        "value": "55",
+                        "label": "Class 55"
+                    },
+                    {
+                        "value": "60",
+                        "label": "Class 60"
+                    },
+                    {
+                        "value": "65",
+                        "label": "Class 65"
+                    },
+                    {
+                        "value": "70",
+                        "label": "Class 70"
+                    },
+                    {
+                        "value": "77.5",
+                        "label": "Class 77.5"
+                    },
+                    {
+                        "value": "85",
+                        "label": "Class 85"
+                    },
+                    {
+                        "value": "92.5",
+                        "label": "Class 92.5"
+                    },
+                    {
+                        "value": "100",
+                        "label": "Class 100"
+                    },
+                    {
+                        "value": "110",
+                        "label": "Class 110"
+                    },
+                    {
+                        "value": "125",
+                        "label": "Class 125"
+                    },
+                    {
+                        "value": "150",
+                        "label": "Class 150"
+                    },
+                    {
+                        "value": "175",
+                        "label": "Class 175"
+                    },
+                    {
+                        "value": "200",
+                        "label": "Class 200"
+                    },
+                    {
+                        "value": "250",
+                        "label": "Class 250"
+                    },
+                    {
+                        "value": "300",
+                        "label": "Class 300"
+                    },
+                    {
+                        "value": "400",
+                        "label": "Class 400"
+                    },
+                    {
+                        "value": "500",
+                        "label": "Class 500"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "IncoTerms",
+        "description": "Specifies who is responsible for paying for and managing the shipment, insurance, documentation, customs clearance, and other logistical activities",
+        "plural": "IncoTermsList",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "PackageType",
+        "description": "Package types for shipping",
+        "plural": "PackageTypes",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ShipMethod",
+        "description": "Ship method",
+        "plural": "ShipMethods",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "international": {
+                "description": "international",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "packageType": {
+                "description": "Default package type",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "PackageType"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "TaxType",
+        "description": "Tax type",
+        "plural": "TaxTypes",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": true,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Unique code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reportingCode": {
+                "description": "Reporting code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Terms",
+        "description": "Payment terms",
+        "plural": "TermsList",
+        "module": "Common",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "policy": {
+                "description": "Policy",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Prepay"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Immediate"
+                    },
+                    {
+                        "value": "N",
+                        "label": "Net"
+                    },
+                    {
+                        "value": "D",
+                        "label": "Day of month"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "net": {
+                "description": "Net",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "0",
+                        "label": "Immediate"
+                    },
+                    {
+                        "value": "10",
+                        "label": "10 Days"
+                    },
+                    {
+                        "value": "15",
+                        "label": "15 Days"
+                    },
+                    {
+                        "value": "30",
+                        "label": "30 Days"
+                    },
+                    {
+                        "value": "60",
+                        "label": "60 Days"
+                    },
+                    {
+                        "value": "90",
+                        "label": "90 Days"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "day": {
+                "description": "Day of the month",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "min": 1,
+                "max": 31,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "discountDays": {
+                "description": "Early payment discount days",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "discount": {
+                "description": "Discount percent",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "depositRequired": {
+                "description": "Deposit required",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "depositPercent": {
+                "description": "Deposit percent",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 100,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "depositAmount": {
+                "description": "Deposit amount",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    }
+]

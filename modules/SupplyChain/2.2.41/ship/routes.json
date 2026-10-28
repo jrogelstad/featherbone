@@ -1,0 +1,101 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "ypw2p7pkmtsc",
+        "data": {
+            "module": "Ship",
+            "path": "/confirm-picklist-batch",
+            "function": "doConfirmPicklistBatch"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "xuvcuhcubmij",
+        "data": {
+            "module": "Ship",
+            "path": "/create-bill-of-lading",
+            "function": "doCreateBillOfLading"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "55z1xiepq6o4",
+        "data": {
+            "module": "Ship",
+            "path": "/create-sales-order-shipment-containers",
+            "function": "doCreateSalesOrderShipmentContainers"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "72v6mr544gxq",
+        "data": {
+            "module": "Ship",
+            "path": "/get-purchase-order-ship-data",
+            "function": "doGetPurchaseOrderShipData"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "i95cfv7yv160",
+        "data": {
+            "module": "Ship",
+            "path": "/get-sales-order-ship-data",
+            "function": "doGetSalesOrderShipData"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "tujrfu2pxy1k",
+        "data": {
+            "module": "Ship",
+            "path": "/print-bill-of-lading",
+            "function": "doPrintBillOfLading"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "e7i24tqxlphv",
+        "data": {
+            "module": "Ship",
+            "path": "/print-shipment-labels",
+            "function": "doPrintShipmentLabels"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "jqc46o86pfha",
+        "data": {
+            "module": "Ship",
+            "path": "/ship-outside-process-shipments",
+            "function": "doShipOutsideProcessShipments"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Ship",
+        "id": "yjxirkfxqn0n",
+        "data": {
+            "module": "Ship",
+            "path": "/ship-sales-order-shipments",
+            "function": "doShipSalesOrderShipment"
+        }
+    }
+]

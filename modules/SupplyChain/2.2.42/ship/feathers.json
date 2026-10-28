@@ -1,0 +1,1181 @@
+[
+    {
+        "name": "BillOfLading",
+        "description": "Consolidation of shipments for freight forward documentation",
+        "plural": "BillOfLadings",
+        "module": "Ship",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Bill of lading number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "",
+                    "sequence": "bol_seq",
+                    "length": 5,
+                    "suffix": "",
+                    "objectType": ""
+                },
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "carrier": {
+                "description": "Carrier",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "scac"
+                    ],
+                    "relation": "Carrier"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipTo": {
+                "description": "Ship to address",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "country",
+                        "type",
+                        "postalCode"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "billTo": {
+                "description": "3rd Party bill to",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "specialInstructions": {
+                "description": "Special instructions",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "freightChargeTerms": {
+                "description": "Freight charge terms",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "Prepaid",
+                        "label": "Prepaid"
+                    },
+                    {
+                        "value": "Collect",
+                        "label": "Collect"
+                    },
+                    {
+                        "value": "3rd Party",
+                        "label": "3rd Party"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "proNumber": {
+                "description": "Pro number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "purchaseOrders": {
+                "description": "Purchase orders text",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "salesOrders": {
+                "description": "Sales orders text",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "attachment": {
+                "description": "Attached document",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "displayValue",
+                        "resource",
+                        "icon",
+                        "label"
+                    ],
+                    "relation": "ResourceLink"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "codAmount": {
+                "description": "Collect on delivery amount",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "feeTerms": {
+                "description": "Fee terms",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "Collect",
+                        "label": "Collect"
+                    },
+                    {
+                        "value": "Prepaid",
+                        "label": "Prepaid"
+                    },
+                    {
+                        "value": "Check",
+                        "label": "Customer check acceptable"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "declaredValueLimit": {
+                "description": "Declared value limit",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "declaredValueUnit": {
+                "description": "Declared value unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trailerLoaded": {
+                "description": "Trailer loaded by selection",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "Shipper",
+                        "label": "By Shipper"
+                    },
+                    {
+                        "value": "Driver",
+                        "label": "By Driver"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "freightCounted": {
+                "description": "Freight counted by selection",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "Shipper",
+                        "label": "By shipper"
+                    },
+                    {
+                        "value": "Driver Pallets",
+                        "label": "By driver/pallets said to contain"
+                    },
+                    {
+                        "value": "Driver Pieces",
+                        "label": "By driver/pieces"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipFrom": {
+                "description": "Ship from",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "type"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trailerNumber": {
+                "description": "Trailer number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serialNumbers": {
+                "description": "Serial numbers",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "sidNumber": {
+                "description": "Shipper ID number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "cidNumber": {
+                "description": "Receiver/Consignee number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "scac": {
+                "description": "Standard carrier alpha code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "date": {
+                "description": "Date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipFromInfo": {
+                "description": "Additional ship from info. Prints to left of address",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipToInfo": {
+                "description": "Additional ship to info. Prints to left of address",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "BillOfLadingInformation",
+        "description": "Commodity information on a bill of lading",
+        "plural": "BillOfLadingInformations",
+        "module": "Ship",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "billOfLading": {
+                "description": "Parent bill of lading",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "BillOfLading",
+                    "childOf": "information"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "handlingQuantity": {
+                "description": "Handling quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "handlingType": {
+                "description": "Handling type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "packageQuantity": {
+                "description": "Package quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "packageType": {
+                "description": "Package Type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "weight": {
+                "description": "Weight",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isHazardousMaterial": {
+                "description": "Hazardous material flag",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "commodityDescription": {
+                "description": "Commodity description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "nmfcNumber": {
+                "description": "National motor freight carrier number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "class": {
+                "description": "Freight class",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "BillOfLadingOrder",
+        "description": "Bill of lading order information",
+        "plural": "BillOfLadingOrders",
+        "module": "Ship",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "billOfLading": {
+                "description": "Parent bill of lading",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "BillOfLading",
+                    "childOf": "orders"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "orderNumber": {
+                "description": "Order number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "numberOfPackages": {
+                "description": "Number of packages",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "weight": {
+                "description": "Weight",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isPallet": {
+                "description": "Is pallete",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "additionalInformation": {
+                "description": "Additional shipper information",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Container",
+        "description": "Containers",
+        "plural": "Containers",
+        "module": "Ship",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "",
+                    "sequence": "container_seq",
+                    "length": 6,
+                    "suffix": "",
+                    "objectType": ""
+                },
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "container": {
+                "description": "Container product being used to package products",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "length",
+                        "width",
+                        "height",
+                        "isContainer",
+                        "status"
+                    ],
+                    "relation": "Product"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "weight": {
+                "description": "Weight",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ContainerQuantity",
+        "description": "Items in a container",
+        "plural": "ContainerQuantities",
+        "module": "Ship",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "container": {
+                "description": "Parent container",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "Container",
+                    "childOf": "quantities"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "Product",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "weight"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "weight": {
+                "description": "Weight",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "OutsideProcessShipment",
+        "description": "Shipment of purchase order to outside process supplier",
+        "plural": "OutsideProcessShipments",
+        "module": "Ship",
+        "inherits": "Shipment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "purchaseOrder": {
+                "description": "Related purchase order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "reference",
+                        "status"
+                    ],
+                    "relation": "PurchaseOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reference": {
+                "description": "Supplier reference",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "OutsideProcessShipmentLine",
+        "description": "Outside process shipment lines",
+        "plural": "OutsideProcessShipmentLines",
+        "module": "Ship",
+        "inherits": "ShipmentLine",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "outsideProcessShipment": {
+                "description": "Parent shipment header",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "purchaseOrder",
+                        "shipDate",
+                        "site",
+                        "status",
+                        "shipTo",
+                        "shipMethod",
+                        "incoTerms",
+                        "created"
+                    ],
+                    "relation": "OutsideProcessShipment",
+                    "childOf": "lines"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "purchaseOrderLine": {
+                "description": "Purchase order line",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "line",
+                        "quantity",
+                        "number",
+                        "dueDate",
+                        "ordered",
+                        "shipped"
+                    ],
+                    "relation": "PurchaseOrderLine"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesOrderShipment",
+        "description": "Sales order shipment",
+        "plural": "SalesOrderShipments",
+        "module": "Ship",
+        "inherits": "Shipment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesOrder": {
+                "description": "Sales order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "customer",
+                        "status",
+                        "onHold",
+                        "requestedDate"
+                    ],
+                    "relation": "SalesOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "purchaseOrder": {
+                "description": "purchaseOrder",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isInvoiced": {
+                "description": "Invoice has been created",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "BillOfLadingShipment",
+        "description": "Shipments on bill of lading",
+        "plural": "BillOfLadingShipments",
+        "module": "Ship",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "billOfLading": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "BillOfLading",
+                    "childOf": "shipments"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipment": {
+                "description": "Shipment",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "salesOrder"
+                    ],
+                    "relation": "SalesOrderShipment"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesOrderShipmentLine",
+        "description": "Sales order shipment line",
+        "plural": "SalesOrderShipmentLines",
+        "module": "Ship",
+        "inherits": "ShipmentLine",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesOrderShipment": {
+                "description": "Parent shipment",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "salesOrder",
+                        "shipDate",
+                        "site",
+                        "status",
+                        "shipTo",
+                        "shipMethod",
+                        "incoTerms",
+                        "created"
+                    ],
+                    "relation": "SalesOrderShipment",
+                    "childOf": "lines"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "salesOrderLine": {
+                "description": "Sales order line",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "line",
+                        "quantityDue",
+                        "backOrdered",
+                        "shipped",
+                        "number",
+                        "dueDate",
+                        "ordered"
+                    ],
+                    "relation": "SalesOrderLine"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "item": {
+                "alias": "Product",
+                "type": {
+                    "type": "relation",
+                    "relation": "Product",
+                    "properties": []
+                }
+            }
+        }
+    },
+    {
+        "name": "ShipmentContainer",
+        "description": "Shipment containers",
+        "plural": "ShipmentContainers",
+        "module": "Ship",
+        "inherits": "Container",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "shipment": {
+                "description": "Parent shipment",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "Shipment",
+                    "childOf": "containers"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

@@ -1,0 +1,1559 @@
+[
+    {
+        "name": "BillOfMaterialItem",
+        "description": "Bill of material item",
+        "plural": "BillOfMaterialItems",
+        "module": "Design",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "sequence": {
+                "description": "Sequence",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "status",
+                        "unit",
+                        "cost",
+                        "isFractional",
+                        "source",
+                        "materialCost",
+                        "laborCost",
+                        "serviceCost",
+                        "overheadCost",
+                        "trace",
+                        "type",
+                        "drawingLink"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "operation": {
+                "description": "Operation sequence",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "fixedQuantity": {
+                "description": "Fixed quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantityPer": {
+                "description": "Quantity per",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "comments": {
+                "description": "Comments",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "unit": {
+                "description": "Unit of mesaure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "ratio": {
+                "description": "Unit of measure conversion ration",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "reference": {
+                "description": "Component reference",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "item": {
+                "type": {
+                    "type": "relation",
+                    "relation": "Product",
+                    "properties": []
+                }
+            }
+        }
+    },
+    {
+        "name": "BillOfMaterialSubstitution",
+        "description": "Bill of material substitution item",
+        "plural": "BillOfMaterialSubstitutions",
+        "module": "Design",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "billOfMaterialItem": {
+                "description": "Parent bill of material item",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "BillOfMaterialItem",
+                    "childOf": "substitutions"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Substitutable item",
+                "alias": "Product",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Product",
+        "description": "Manufactured item",
+        "plural": "Products",
+        "module": "Design",
+        "inherits": "Item",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "revision": {
+                "description": "Informational reference copied to work order. Revision is not tracked in inventory transactions.",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isContainer": {
+                "description": "Product that can be used as a container in shipping",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "length": {
+                "description": "Container length",
+                "alias": "Length (in.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "width": {
+                "description": "Container width",
+                "alias": "Width (in.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "height": {
+                "description": "Container Height",
+                "alias": "Height (in.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "type": {
+                "default": "I",
+                "dataList": [
+                    {
+                        "value": "I",
+                        "label": "Inventory",
+                        "id": "u4chxhim752o"
+                    },
+                    {
+                        "value": "E",
+                        "label": "Expense",
+                        "id": "xbsi78gv1ur"
+                    },
+                    {
+                        "value": "K",
+                        "label": "Kit",
+                        "id": "s6j1yegxfsb8"
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "name": "ProductBillOfMaterialItem",
+        "description": "Bill of material item on product master",
+        "plural": "ProductBillOfMaterialItems",
+        "module": "Design",
+        "inherits": "BillOfMaterialItem",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "product": {
+                "description": "Parent product",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Product",
+                    "childOf": "billOfMaterialItems"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "item": {
+                "alias": "Product"
+            }
+        }
+    },
+    {
+        "name": "ProposedCost",
+        "description": "Proposed cost updates",
+        "plural": "ProposedCosts",
+        "module": "Design",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "eoq",
+                        "materialCost",
+                        "laborCost",
+                        "serviceCost",
+                        "overheadCost",
+                        "cost",
+                        "status",
+                        "source"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Approved"
+                    },
+                    {
+                        "value": "U",
+                        "label": "Updated"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "materialCost": {
+                "description": "Material cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "laborCost": {
+                "description": "Labor cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "serviceCost": {
+                "description": "Service cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "overheadCost": {
+                "description": "Overhead cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "totalCost": {
+                "description": "Total cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "ResourceGroup",
+        "description": "Resource group",
+        "plural": "ResourceGroups",
+        "module": "Design",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "LaborResource",
+        "description": "Labor resource group",
+        "plural": "LaborResources",
+        "module": "Design",
+        "inherits": "ResourceGroup",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "laborCost": {
+                "description": "Labor cost per hour",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "MachineResource",
+        "description": "Machine resource group",
+        "plural": "MachineResources",
+        "module": "Design",
+        "inherits": "ResourceGroup",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "overheadCost": {
+                "description": "Overhead cost per hour",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Operation",
+        "description": "Manufacturing operation",
+        "plural": "Operations",
+        "module": "Design",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "sequence": {
+                "description": "Sequence number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "machineResource": {
+                "description": "Machine resource",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "overheadCost"
+                    ],
+                    "relation": "MachineResource"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborResource": {
+                "description": "Labor resource",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "laborCost"
+                    ],
+                    "relation": "LaborResource"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "queueTime": {
+                "description": "Time in hours that work must typically wait for a good slot in a production schedule",
+                "alias": "Queue Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "setupTime": {
+                "description": "Setup time in hours",
+                "alias": "Setup (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "runRate": {
+                "description": "Run rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "runUnit": {
+                "description": "Run unit",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "HU",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "HU",
+                        "label": "Hours per unit"
+                    },
+                    {
+                        "value": "MU",
+                        "label": "Mins. per unit"
+                    },
+                    {
+                        "value": "UH",
+                        "label": "Units per hr."
+                    },
+                    {
+                        "value": "UM",
+                        "label": "Units per min."
+                    },
+                    {
+                        "value": "HB",
+                        "label": "Hrs. per batch"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "runTime": {
+                "description": "Run time in hours",
+                "alias": "Run (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "waitTime": {
+                "description": "Wait time, such as drying, cooling or curing, in hours",
+                "alias": "Wait Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "moveTime": {
+                "description": "The time to transport goods from one resource to the next, in hours",
+                "alias": "Move Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "yield": {
+                "description": "Yield percentage",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "min": 1,
+                "max": 100,
+                "default": 100,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "instructions": {
+                "description": "Work instructions",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "machineCapacity": {
+                "description": "Machine capacity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborCapacity": {
+                "description": "Labor capacity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "transferBatchPolicy": {
+                "description": "Transfer batch policy",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "C",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "C",
+                        "label": "On completion"
+                    },
+                    {
+                        "value": "Q",
+                        "label": "By quantity complete"
+                    },
+                    {
+                        "value": "P",
+                        "label": "By percent complete"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "transferBatchValue": {
+                "description": "Transfer batch value",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "overheadCost": {
+                "description": "Overhead cost per hour",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborCost": {
+                "description": "Labor cost per hour",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceCost": {
+                "description": "Service cost per unit",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedOverheadCost": {
+                "description": "Estimated overhead cost",
+                "alias": "Est. Overhead",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedMachineHours": {
+                "description": "Estimated machine hours",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedLaborHours": {
+                "description": "Estimated labor hours",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedServiceCost": {
+                "description": "Estimated service cost",
+                "alias": "Est. Service",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedLaborCost": {
+                "description": "Estimated labor cost",
+                "alias": "Est. Labor",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "plannedStartTime": {
+                "description": "Scheduled start time",
+                "alias": "",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "plannedEndTime": {
+                "description": "Scheduled end time",
+                "alias": "",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "batchSize": {
+                "description": "Batch size",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "capacityTime": {
+                "description": "Setup plus run hours",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "leadTime": {
+                "description": "Total of capacity, pre-processing and post processing hours",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "I",
+                        "label": "In process"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Complete"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "number": {
+                "description": "Natural key",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "planned": {
+                "description": "Quantity planned",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "completed": {
+                "description": "Quantity completed",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "rejected": {
+                "description": "Quantity rejected",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "remaining": {
+                "description": "Quantity remaining",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Service",
+        "description": "Outside process and sales services",
+        "plural": "Services",
+        "module": "Design",
+        "inherits": "Item",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "overloads": {
+            "type": {
+                "default": "E"
+            }
+        }
+    },
+    {
+        "name": "ProductOperation",
+        "description": "Product operations",
+        "plural": "ProductOperations",
+        "module": "Design",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "product": {
+                "description": "Parent product",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "status"
+                    ],
+                    "relation": "Product",
+                    "childOf": "operations"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "sequence": {
+                "description": "Sequence number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "machineResource": {
+                "description": "Machine resource",
+                "alias": "Mach. Resource",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "overheadCost"
+                    ],
+                    "relation": "MachineResource"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborResource": {
+                "description": "Labor resource",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "laborCost"
+                    ],
+                    "relation": "LaborResource"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "queueTime": {
+                "description": "queueTime",
+                "alias": "Queue Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "setupTime": {
+                "description": "Setup time",
+                "alias": "Setup Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "runRate": {
+                "description": "Run rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "runUnit": {
+                "description": "Run unit",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "HU",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "HU",
+                        "label": "Hours per unit",
+                        "id": "74122udhd9e5"
+                    },
+                    {
+                        "value": "MU",
+                        "label": "Minutes per unit",
+                        "id": "d5kx22yax839"
+                    },
+                    {
+                        "value": "UH",
+                        "label": "Units per hour",
+                        "id": "m9ayqnzeg7rp"
+                    },
+                    {
+                        "value": "UM",
+                        "label": "Units per minute",
+                        "id": "ut0fkn9ube70"
+                    },
+                    {
+                        "value": "HB",
+                        "label": "Hrs. per batch",
+                        "id": "83rg8kxr2j5g"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "waitTime": {
+                "description": "Wait time",
+                "alias": "Wait Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "moveTime": {
+                "description": "Move time",
+                "alias": "Move Time (Hrs.)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "yield": {
+                "description": "Yield percentage",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 100,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "instructions": {
+                "description": "Instructions",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "machineCapacity": {
+                "description": "Machine capacity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "min": 1,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborCapacity": {
+                "description": "Labor capacity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "min": 1,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "transferBatchPolicy": {
+                "description": "Transfer batch policy",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "C",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "C",
+                        "label": "On completion",
+                        "id": "fn152jx5uzxd"
+                    },
+                    {
+                        "value": "Q",
+                        "label": "By quantity complete",
+                        "id": "9ktor0cj5631"
+                    },
+                    {
+                        "value": "P",
+                        "label": "By percent complete",
+                        "id": "gwpz5ciotpi2"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "transferBatchValue": {
+                "description": "Transfer batch value",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "isSubcontract": {
+                "description": "Subcontracted operation",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "batchSize": {
+                "description": "Batch size",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "service": {
+                "description": "Service item for outside process service item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "serviceCost"
+                    ],
+                    "relation": "Service"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

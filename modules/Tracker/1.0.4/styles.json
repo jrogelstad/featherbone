@@ -1,0 +1,53 @@
+[
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Tracker",
+        "id": "qmenyos5z1zi",
+        "data": {
+            "name": "BUG-HIGH",
+            "description": "High priority",
+            "module": "Tracker",
+            "hasColor": true,
+            "color": "#ff0000",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Tracker",
+        "id": "4xn7mdcuwfze",
+        "data": {
+            "name": "BUG-LOW",
+            "description": "Low priority bug",
+            "module": "Tracker",
+            "hasColor": true,
+            "color": "#7e7c7c",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Tracker",
+        "id": "t72w7dr5x2w9",
+        "data": {
+            "name": "BUG-SHOWSTOPPER",
+            "description": "Very high priority bug",
+            "module": "Tracker",
+            "hasColor": true,
+            "color": "#ff0000",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "bold",
+            "underline": "none"
+        }
+    }
+]

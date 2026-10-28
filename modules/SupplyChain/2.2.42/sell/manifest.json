@@ -1,0 +1,144 @@
+{
+    "module": "Sell",
+    "version": "2.1.18",
+    "dependencies": [
+        "Design",
+        "Project"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "execute",
+            "path": "bi-schema.js"
+        },
+        {
+            "type": "service",
+            "name": "doCloseSalesOrder",
+            "path": "do-close-sales-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetAddressTaxRates",
+            "path": "do-get-address-tax-rates.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetCustomerData",
+            "path": "do-get-customer-data.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetSalesKpis",
+            "path": "do-get-sales-kpis.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetSalesSchedule",
+            "path": "do-get-sales-schedule.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetSalesTileData",
+            "path": "do-get-sales-tile-data.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetSalesOrderLinePlan",
+            "path": "do-get-sales-order-line-plan.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetSalesOrderPlan",
+            "path": "do-get-sales-order-plan.js"
+        },
+        {
+            "type": "service",
+            "name": "doPlanSalesOrderSupply",
+            "path": "do-plan-sales-order-supply.js"
+        },
+        {
+            "type": "service",
+            "name": "doRefreshSalesBi",
+            "path": "do-refresh-sales-bi.js"
+        },
+        {
+            "type": "service",
+            "name": "doReleaseSalesOrder",
+            "path": "do-release-sales-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doSalesOrderHold",
+            "path": "do-sales-order-hold.js"
+        },
+        {
+            "type": "service",
+            "name": "doStartSalesOrders",
+            "path": "do-start-sales-orders.js"
+        },
+        {
+            "type": "service",
+            "name": "doUpdateSalesOrderPlanStatus",
+            "path": "do-update-sales-order-plan-status.js"
+        },
+        {
+            "type": "service",
+            "name": "doZip2TaxImport",
+            "path": "do-zip2tax-import.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersCustomer",
+            "path": "triggers-customer.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersSalesOrder",
+            "path": "triggers-sales-order.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "batch",
+            "path": "sales-regions.json"
+        },
+        {
+            "type": "settings",
+            "name": "sellSettings",
+            "path": "sell-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": [
+        {
+            "package": "qs",
+            "version": "",
+            "property": "",
+            "export": ""
+        },
+        {
+            "package": "fs",
+            "version": "",
+            "property": "",
+            "export": ""
+        },
+        {
+            "package": "xlsx",
+            "version": "",
+            "property": "",
+            "export": ""
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "name": "stockSettings",
+    "module": "Stock",
+    "description": "Stock settings",
+    "properties": {
+        "weightUnit": {
+            "description": "Weight unit of measure for items used for shipping weight calculations",
+            "type": "string",
+            "dataList": [
+                {
+                    "value": "lb",
+                    "label": "Pound"
+                },
+                {
+                    "value": "oz",
+                    "label": "Ounce"
+                },
+                {
+                    "value": "g",
+                    "label": "Grams"
+                },
+                {
+                    "value": "kg",
+                    "label": "Kilogram"
+                }
+            ]
+        }
+    }
+}

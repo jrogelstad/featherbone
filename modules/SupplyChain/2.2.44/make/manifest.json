@@ -1,0 +1,151 @@
+{
+    "module": "Make",
+    "version": "2.1.15",
+    "dependencies": [
+        "Plan",
+        "Project"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "execute",
+            "path": "bi-schema.js"
+        },
+        {
+            "type": "service",
+            "name": "doChangePurchaseOrderStatus",
+            "path": "do-change-purchase-order-status.js"
+        },
+        {
+            "type": "service",
+            "name": "doCloseWorkOrder",
+            "path": "do-close-work-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doCompleteWorkOrder",
+            "path": "do-complete-work-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doConvertPlannedWorkOrder",
+            "path": "do-convert-planned-work-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doExplodeWorkOrder",
+            "path": "do-explode-work-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetProductDocuments",
+            "path": "do-get-product-documents.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetProductionKpis",
+            "path": "do-get-production-kpis.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetProductionSchedule",
+            "path": "do-get-production-schedule.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetWorkOrderIssueData",
+            "path": "do-get-work-order-issue-data.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetWorkOrderPlan",
+            "path": "do-get-work-order-plan.js"
+        },
+        {
+            "type": "service",
+            "name": "doIndentedWorkOrder",
+            "path": "do-indented-work-order.js"
+        },
+        {
+            "type": "service",
+            "name": "doPlanWorkOrderSupply",
+            "path": "do-plan-work-order-supply.js"
+        },
+        {
+            "type": "service",
+            "name": "doPostWorkOrderIssue",
+            "path": "do-post-work-order-issue.js"
+        },
+        {
+            "type": "service",
+            "name": "doPostWorkOrderReceipts",
+            "path": "do-post-work-order-receipts.js"
+        },
+        {
+            "type": "service",
+            "name": "doPrintTraveller",
+            "path": "do-print-traveller.js"
+        },
+        {
+            "type": "service",
+            "name": "doPropagateWorkOrderHold",
+            "path": "do-propagate-work-order-hold.js"
+        },
+        {
+            "type": "service",
+            "name": "doRefreshProductionBi",
+            "path": "do-refresh-production-bi.js"
+        },
+        {
+            "type": "service",
+            "name": "doUpdateWorkOrderPlanStatus",
+            "path": "do-update-work-order-plan-status.js"
+        },
+        {
+            "type": "service",
+            "name": "postOperationCompletion",
+            "path": "post-operation-completion.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersOperationCompletion",
+            "path": "triggers-operation-completion.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersWorkOrder",
+            "path": "triggers-work-order.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersWorkOrderIssue",
+            "path": "triggers-work-order-issue.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersWorkOrderReceipt",
+            "path": "triggers-work-order-receipt.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "makeSettings",
+            "path": "make-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}

@@ -1,0 +1,1002 @@
+[
+    {
+        "name": "Package",
+        "description": "Module package",
+        "plural": "Packages",
+        "module": "Tracker",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Task",
+        "description": "Task",
+        "plural": "Tasks",
+        "module": "Tracker",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "",
+                    "sequence": "task_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Short description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "priority": {
+                "description": "Priority",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "3",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "1",
+                        "label": "Showstopper"
+                    },
+                    {
+                        "value": "2",
+                        "label": "High"
+                    },
+                    {
+                        "value": "3",
+                        "label": "Normal"
+                    },
+                    {
+                        "value": "4",
+                        "label": "Low"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "comments": {
+                "description": "Comments",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "assignedTo": {
+                "description": "assignedTo",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isClosed": {
+                "description": "Issue is closed",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "plannedEndDate": {
+                "description": "Planned end date",
+                "alias": "End",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Project",
+        "description": "Project",
+        "plural": "Projects",
+        "module": "Tracker",
+        "inherits": "Task",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "plannedStartDate": {
+                "description": "Planned start date",
+                "alias": "Start",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "gantt": {
+                "description": "Gantt chart",
+                "alias": "",
+                "type": "object",
+                "format": "gantt",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "percentComplete": {
+                "description": "Percent complete",
+                "alias": "% Complete",
+                "type": "integer",
+                "format": "",
+                "max": 100,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Issue",
+        "description": "Issue report",
+        "plural": "Issues",
+        "module": "Tracker",
+        "inherits": "Task",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "reproduction": {
+                "description": "Detailed reproduction",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reporter": {
+                "description": "Reporter",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "phone",
+                        "address"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "N",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "N",
+                        "label": "New"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Confirmed"
+                    },
+                    {
+                        "value": "I",
+                        "label": "In process"
+                    },
+                    {
+                        "value": "T",
+                        "label": "To be tested"
+                    },
+                    {
+                        "value": "R",
+                        "label": "Resolved"
+                    },
+                    {
+                        "value": "W",
+                        "label": "Withdrawn"
+                    },
+                    {
+                        "value": "E",
+                        "label": "Enhancement"
+                    },
+                    {
+                        "value": "F",
+                        "label": "Feedback"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "resolution": {
+                "description": "Description of resolution",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "fixedIn": {
+                "description": "Package version fixed in",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "package": {
+                "description": "Package",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Package"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "foundIn": {
+                "description": "Package version found in",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "project": {
+                "description": "Project",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Project"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estHours": {
+                "description": "Estimated hours",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actHours": {
+                "description": "Actual hours",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Bug",
+        "description": "Bug tracker",
+        "plural": "Bugs",
+        "module": "Tracker",
+        "inherits": "Issue",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false
+    },
+    {
+        "name": "Feature",
+        "description": "Enhancement suggestion",
+        "plural": "Features",
+        "module": "Tracker",
+        "inherits": "Issue",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "scope": {
+                "description": "Scope",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "effort": {
+                "description": "Effort",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "Medium",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "High",
+                        "label": "High"
+                    },
+                    {
+                        "value": "Medium",
+                        "label": "Medium"
+                    },
+                    {
+                        "value": "Low",
+                        "label": "Low"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ProjectTask",
+        "description": "Project task",
+        "plural": "ProjectTasks",
+        "module": "Tracker",
+        "inherits": "Task",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "project": {
+                "description": "Parent project",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Project",
+                    "childOf": "tasks"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "plannedStartDate": {
+                "description": "Planned start date",
+                "alias": "Start",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "percentComplete": {
+                "description": "Percent complete",
+                "alias": "% Complete",
+                "type": "integer",
+                "format": "",
+                "max": 100,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "wbs": {
+                "description": "Work breakdown structure",
+                "alias": "WBS",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "linkId": {
+                "description": "Id that will stay persistent, even if project tasks moved up and down in list",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "createId()",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Task type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "normal",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "normal",
+                        "label": "Normal"
+                    },
+                    {
+                        "value": "group",
+                        "label": "Group"
+                    },
+                    {
+                        "value": "milestone",
+                        "label": "Milestone"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "parent": {
+                "description": "Parent task",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ProjectTaskLink",
+        "description": "Links between dependent tasks",
+        "plural": "ProjectTaskLinks",
+        "module": "Tracker",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "projectTask": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "ProjectTask",
+                    "childOf": "links"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "task": {
+                "description": "Successor task",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Link type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "FS",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "FS",
+                        "label": "Finish to Start"
+                    },
+                    {
+                        "value": "FF",
+                        "label": "Finish to Finish"
+                    },
+                    {
+                        "value": "SS",
+                        "label": "Start to Start"
+                    },
+                    {
+                        "value": "SF",
+                        "label": "Start to Finish"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ProjectTeam",
+        "description": "Project team members",
+        "plural": "ProjectTeams",
+        "module": "Tracker",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "project": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "Project",
+                    "childOf": "team"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "member": {
+                "description": "Member contact",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "phone",
+                        "address"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isLead": {
+                "description": "Is project manager lead",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "TaskHistory",
+        "description": "Task comment history",
+        "plural": "TaskHistories",
+        "module": "Tracker",
+        "inherits": "Comment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "task": {
+                "description": "Parent task",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Task",
+                    "childOf": "history"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "TestSet",
+        "description": "Test case set",
+        "plural": "TestSets",
+        "module": "Tracker",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "project": {
+                "description": "Project",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Project"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "TestCase",
+        "description": "Test case examples",
+        "plural": "TestCases",
+        "module": "Tracker",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "testSet": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "TestSet",
+                    "childOf": "cases"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "title": {
+                "description": "Title of test",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "category": {
+                "description": "Category",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Test type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "startSituation": {
+                "description": "Pre-requisite state to perform test",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "scenario": {
+                "description": "Detailed description of steps to perform test",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "endSituation": {
+                "description": "State after performing test. List all information that should be checked",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "comments": {
+                "description": "Addition comments",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isCore": {
+                "description": "Is core test case",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isRegression": {
+                "description": "Is regression test case",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

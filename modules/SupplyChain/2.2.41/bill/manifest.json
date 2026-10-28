@@ -1,0 +1,65 @@
+{
+    "module": "Bill",
+    "version": "2.1.13",
+    "dependencies": [
+        "Ship"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "execute",
+            "path": "invoice-base-amounts.js"
+        },
+        {
+            "type": "service",
+            "name": "doApplyInvoicePayment",
+            "path": "do-apply-invoice-payment.js"
+        },
+        {
+            "type": "service",
+            "name": "doCreateShipmentInvoice",
+            "path": "do-create-shipment-invoice.js"
+        },
+        {
+            "type": "service",
+            "name": "doSalesOrderHistory",
+            "path": "do-sales-order-history.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersInvoice",
+            "path": "triggers-invoice.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersPrepaidInvoice",
+            "path": "triggers-prepaid-invoice.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersShipmentInvoice",
+            "path": "triggers-shipment-invoice.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "billSettings",
+            "path": "bill-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}

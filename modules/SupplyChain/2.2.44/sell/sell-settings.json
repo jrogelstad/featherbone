@@ -1,0 +1,51 @@
+{
+    "name": "sellSettings",
+    "module": "Sell",
+    "description": "Sell settings",
+    "properties": {
+        "confirmation": {
+            "description": "Sales order confirmation print form",
+            "type": {
+                "relation": "PrintForm",
+                "properties": [
+                    "name",
+                    "description",
+                    "title",
+                    "feather"
+                ]
+            }
+        },
+        "onRelease": {
+            "description": "Select what to do on sales order release",
+            "default": "N",
+            "type": "string",
+            "dataList": [
+                {
+                    "value": "N",
+                    "label": "Do nothing"
+                },
+                {
+                    "value": "E",
+                    "label": "Email"
+                },
+                {
+                    "value": "D",
+                    "label": "Download"
+                },
+                {
+                    "value": "O",
+                    "label": "Open PDF"
+                },
+                {
+                    "value": "P",
+                    "label": "Print"
+                }
+            ]
+        },
+        "mailText": {
+            "description": "Default message text for email confirmations",
+            "type": "string",
+            "format": "richText"
+        }
+    }
+}

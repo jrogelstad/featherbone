@@ -1,0 +1,48 @@
+{
+    "module": "ShipEngine",
+    "version": "2.1.9",
+    "dependencies": [
+        "Ship"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "service",
+            "name": "doImportShipEngineCarriers",
+            "path": "do-import-ship-engine-carriers.js"
+        },
+        {
+            "type": "service",
+            "name": "initializeShipEngine",
+            "path": "initialize-ship-engine.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "shipEngineSettings",
+            "path": "ship-engine-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": [
+        {
+            "package": "shipengine",
+            "version": "",
+            "property": "",
+            "export": ""
+        }
+    ]
+}

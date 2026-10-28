@@ -1,0 +1,327 @@
+[
+    {
+        "name": "Form",
+        "method": "POST",
+        "module": "ShipEngine",
+        "id": "g40st2jgqw",
+        "data": {
+            "name": "Ship Engine Carrier",
+            "description": "Ship engine carrier form",
+            "module": "ShipEngine",
+            "feather": "ShipEngineCarrier",
+            "isActive": true,
+            "isDefault": true,
+            "title": "",
+            "paperSize": "Letter",
+            "font": "Helvetica",
+            "showLabelKey": false,
+            "orientation": "H",
+            "hideTitle": false,
+            "hideLogo": false,
+            "helpLink": null,
+            "tabs": [
+                {
+                    "name": "Services"
+                },
+                {
+                    "name": "Packages"
+                }
+            ],
+            "actions": [],
+            "attrs": [
+                {
+                    "attr": "code",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "description",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "carrierCode",
+                    "grid": 0,
+                    "unit": 1,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "services",
+                    "grid": 1,
+                    "unit": 0,
+                    "showLabel": false,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": [
+                        {
+                            "attr": "code",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 300,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "serviceCode",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 200,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "packageType",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 0,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "international",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 100,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "domestic",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 100,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "isMultiPackageSupported",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 0,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        }
+                    ]
+                },
+                {
+                    "attr": "packages",
+                    "grid": 2,
+                    "unit": 0,
+                    "showLabel": false,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": [
+                        {
+                            "attr": "name",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 300,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 200,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        },
+                        {
+                            "attr": "packageCode",
+                            "label": "",
+                            "dataList": "",
+                            "filter": {},
+                            "showCurrency": false,
+                            "width": 200,
+                            "font": "",
+                            "fontSize": 0,
+                            "printBlank": false
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "name": "Form",
+        "method": "POST",
+        "module": "ShipEngine",
+        "id": "qm4auej4wqw3",
+        "data": {
+            "name": "ShipEngine Service Code",
+            "description": "ShipEngine service code form",
+            "module": "ShipEngine",
+            "feather": "ShipEngineService",
+            "isActive": true,
+            "isDefault": true,
+            "title": "",
+            "paperSize": "Letter",
+            "font": "Helvetica",
+            "showLabelKey": false,
+            "orientation": "H",
+            "hideTitle": false,
+            "hideLogo": false,
+            "helpLink": null,
+            "tabs": [],
+            "actions": [],
+            "attrs": [
+                {
+                    "attr": "code",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "description",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "serviceCode",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "packageType",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "international",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                },
+                {
+                    "attr": "domestic",
+                    "grid": 0,
+                    "unit": 0,
+                    "showLabel": true,
+                    "label": "",
+                    "dataList": "",
+                    "filter": {},
+                    "disableCurrency": false,
+                    "relationWidget": null,
+                    "font": "",
+                    "fontSize": 0,
+                    "actions": [],
+                    "columns": []
+                }
+            ]
+        }
+    }
+]

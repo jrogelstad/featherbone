@@ -1,0 +1,116 @@
+{
+    "module": "Design",
+    "version": "2.1.13",
+    "dependencies": [
+        "Stock"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "batch",
+            "path": "relationWidgets.json"
+        },
+        {
+            "type": "service",
+            "name": "doApproveProposedCosts",
+            "path": "do-approve-proposed-costs.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetItemBom",
+            "path": "do-get-item-bom.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetItemConversions",
+            "path": "do-get-item-conversions.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetItemSites",
+            "path": "do-get-item-sites.js"
+        },
+        {
+            "type": "service",
+            "name": "doIndentedBillOfMaterial",
+            "path": "do-indented-bill-of-material.js"
+        },
+        {
+            "type": "service",
+            "name": "doIndentedWhereUsed",
+            "path": "do-indented-where-used.js"
+        },
+        {
+            "type": "service",
+            "name": "doPrintIndentedBom",
+            "path": "do-print-indented-bom.js"
+        },
+        {
+            "type": "service",
+            "name": "doPrintProductLabel",
+            "path": "do-print-product-label.js"
+        },
+        {
+            "type": "service",
+            "name": "doRollUpCosts",
+            "path": "do-roll-up-costs.js"
+        },
+        {
+            "type": "service",
+            "name": "doUpdateProposedCosts",
+            "path": "do-update-proposed-costs.js"
+        },
+        {
+            "type": "service",
+            "name": "proposedCostTriggers",
+            "path": "proposed-cost-triggers.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersBillOfMaterial",
+            "path": "triggers-bill-of-material.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersProduct",
+            "path": "triggers-product.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersService",
+            "path": "triggers-service.js"
+        },
+        {
+            "type": "batch",
+            "path": "helpLinks.json"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "designSettings",
+            "path": "design-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": [
+        {
+            "package": "node-fetch",
+            "version": "",
+            "property": "NodeFetch",
+            "export": ""
+        }
+    ]
+}

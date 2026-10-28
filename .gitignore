@@ -44,7 +44,7 @@ Temporary Items
 
 files/downloads
 files/import
-files/upload
+#files/upload
 node/node_modules
 node/npm-debug.log
 node_modules
@@ -63,6 +63,6 @@ claude-branches/
 
 # Ignore the packages installed on this server (ADR-002), at the root
 # only: the fixture packages under test/fixtures are the project's own
-/modules
-scripts/dev/demo-data
+#/modules
+#scripts/dev/demo-data
 client/clientmin.js.map

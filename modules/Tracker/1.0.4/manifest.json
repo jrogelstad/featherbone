@@ -1,0 +1,52 @@
+{
+    "module": "Tracker",
+    "version": "1.0.4",
+    "dependencies": [],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "service",
+            "name": "triggersIssues",
+            "path": "triggers-issues.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersTask",
+            "path": "triggers-task.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersTrackerUserAccount",
+            "path": "triggers-tracker-user-account.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "styles.json"
+        },
+        {
+            "type": "settings",
+            "name": "projectSettings",
+            "path": "project-settings.json"
+        },
+        {
+            "type": "navigationCategory",
+            "path": "navigation-categories.json"
+        },
+        {
+            "type": "workbook",
+            "path": "workbooks.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}

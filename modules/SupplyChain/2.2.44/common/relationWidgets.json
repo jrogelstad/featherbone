@@ -1,0 +1,78 @@
+[
+    {
+        "name": "RelationWidget",
+        "method": "POST",
+        "module": "Common",
+        "id": "829cse81b238",
+        "data": {
+            "name": "Employee Relation",
+            "description": "Employee relation widget",
+            "module": "Common",
+            "feather": "Employee",
+            "isActive": true,
+            "form": null,
+            "valueProperty": "number",
+            "labelProperty": "fullName",
+            "searchColumns": [
+                {
+                    "attr": "number",
+                    "label": "",
+                    "width": 0
+                },
+                {
+                    "attr": "fullName",
+                    "label": "",
+                    "width": 0
+                },
+                {
+                    "attr": "email",
+                    "label": "",
+                    "width": 0
+                },
+                {
+                    "attr": "phone",
+                    "label": "",
+                    "width": 0
+                }
+            ]
+        }
+    },
+    {
+        "name": "RelationWidget",
+        "method": "POST",
+        "module": "Common",
+        "id": "fabcvfpul5g3",
+        "data": {
+            "name": "User Account Employee Relation",
+            "description": "User Account Employee relation widget",
+            "module": "Common",
+            "feather": "Employee",
+            "isActive": true,
+            "form": null,
+            "valueProperty": "fullName",
+            "labelProperty": "email",
+            "searchColumns": [
+                {
+                    "attr": "number",
+                    "label": "",
+                    "width": 0
+                },
+                {
+                    "attr": "fullName",
+                    "label": "",
+                    "width": 0
+                },
+                {
+                    "attr": "email",
+                    "label": "",
+                    "width": 0
+                },
+                {
+                    "attr": "phone",
+                    "label": "",
+                    "width": 0
+                }
+            ]
+        }
+    }
+]

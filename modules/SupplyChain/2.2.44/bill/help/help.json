@@ -1,0 +1,16 @@
+{
+    "title": "Bill",
+    "default": "invoicing.md",
+    "pages": [
+        {
+            "path": "invoicing.md",
+            "title": "Invoicing and payments"
+        },
+        {
+            "path": "revenue.md",
+            "title": "Prepaid revenue and cost of goods sold"
+        }
+    ],
+    "forms": {},
+    "feathers": {}
+}

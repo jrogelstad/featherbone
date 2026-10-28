@@ -1,0 +1,51 @@
+{
+    "module": "Count",
+    "version": "2.1.10",
+    "dependencies": [
+        "Stock"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "service",
+            "name": "doCreatePhysicalCount",
+            "path": "do-create-physical-count.js"
+        },
+        {
+            "type": "service",
+            "name": "doPostPhysicalCount",
+            "path": "do-post-physical-count.js"
+        },
+        {
+            "type": "service",
+            "name": "doPrintRecount",
+            "path": "do-print-recount.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersPhysicalCount",
+            "path": "triggers-physical-count.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "countSettings",
+            "path": "count-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}
