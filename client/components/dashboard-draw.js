@@ -514,6 +514,8 @@ function dashAlert(opts) {
     @param {Function} [opts.format] Axis labels.
     @param {Function} [opts.titleFormat] Hover values.
     @param {String} [opts.asOfLabel] Said beside the line.
+    @param {Function} [opts.barAttrs] (bucket, seriesIndex) -> attributes
+    to add to that bar (a class, an onclick), or nothing.
     @return {Object} Mithril vnode
 */
 function dashColumns(opts) {
@@ -576,11 +578,22 @@ function dashColumns(opts) {
             if (h <= 0) {
                 return;
             }
-            parts.push(m("rect", {
+            let extra = (
+                o.barAttrs
+                ? o.barAttrs(one, which)
+                : null
+            ) || {};
+            let kind = (
+                one.late
+                ? "fb-dash-hist-late fb-dash-hist-s" + which
+                : "fb-dash-hist-bar fb-dash-hist-s" + which
+            );
+
+            parts.push(m("rect", Object.assign({}, extra, {
                 class: (
-                    one.late
-                    ? "fb-dash-hist-late fb-dash-hist-s" + which
-                    : "fb-dash-hist-bar fb-dash-hist-s" + which
+                    extra.class
+                    ? kind + " " + extra.class
+                    : kind
                 ),
                 x: x + which * barW,
                 y: top + plotH - h,
@@ -590,7 +603,7 @@ function dashColumns(opts) {
                     : 0
                 )),
                 height: h
-            }, m("title", (
+            }), m("title", (
                 (
                     names[which]
                     ? names[which] + ", "

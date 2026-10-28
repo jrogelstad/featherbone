@@ -4404,6 +4404,12 @@ span.fb-dash-hist-late.fb-dash-hist-s2 { opacity: 0.38; }
     background: var(--fb-surface-alt);
 }
 
+/* A histogram bar that drills: SVG has no background to tint, so the bar
+   itself lightens under the pointer. */
+rect.fb-dash-row-drill:hover {
+    opacity: 0.75;
+}
+
 /* The list is given its own height (60vh, in the view model) and the
    dialog sizes to it, so Close sits under the list rather than below
    the bottom of the window. */
