@@ -3106,6 +3106,23 @@
         );
     }
 
+    function doSaveMeta(req, res) {
+        let payload = {
+            method: "POST",
+            name: "saveMeta",
+            user: req.user.name,
+            data: req.body,
+            tenant: req.tenant
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     function doStopProcess(req, res) {
         let payload = {
             method: "POST",
@@ -3418,7 +3435,8 @@
                 message.payload.data = resp;
             } else if (
                 change === "update" ||
-                change === "create"
+                change === "create" ||
+                change === "meta"
             ) {
                 return; // Record deleted
             }
@@ -3433,7 +3451,11 @@
             }
 
             // If record change, fetch new record
-            if (change === "create" || change === "update") {
+            if (
+                change === "create" ||
+                change === "update" ||
+                change === "meta"
+            ) {
                 pending.push({
                     payload: {
                         name: message.payload.data.table.toCamelCase(true),
@@ -3568,6 +3590,8 @@
         "/node_modules/print-js/dist",
         "/node_modules/tinymce",
         "/node_modules/tinymce/models/dom",
+        "/node_modules/tinymce/plugins/autolink",
+        "/node_modules/tinymce/plugins/lists",
         "/node_modules/tinymce/icons/default",
         "/node_modules/tinymce/skins/ui/oxide",
         "/node_modules/tinymce/skins/ui/oxide/fonts",
@@ -4600,6 +4624,7 @@
         dbRouter.post("/:db/do/change-role-password/", doChangeRolePassword);
         dbRouter.post("/:db/do/change-user-info/", doChangeUserInfo);
         dbRouter.post("/:db/do/save-authorization", doSaveAuthorization);
+        dbRouter.post("/:db/do/meta", doSaveMeta);
         dbRouter.post("/:db/do/stop-process", doStopProcess);
         dbRouter.post("/:db/do/export/:format/:feather", doExport);
         dbRouter.post("/:db/do/import/:format/:feather/:query", doImport);

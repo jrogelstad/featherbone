@@ -35,6 +35,10 @@ function resolveProperties(feather, properties, ary, prefix) {
         let isObject = typeof prop.type === "object";
         let path = prefix + key;
 
+        if (key === "meta") {
+            return;
+        }
+
         if (isObject && prop.type.properties) {
             rfeather = f.catalog().getFeather(prop.type.relation);
             resolveProperties(
