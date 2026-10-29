@@ -32,7 +32,10 @@ const f = require("../common/core");
                 return new Promise(function (resolve, reject) {
                     obj.client.query(
                         (
-                            "INSERT INTO \"role_membership\" VALUES " +
+                            "INSERT INTO \"role_membership\" (" +
+                            "_pk, id, created, created_by, updated, " +
+                            "updated_by, is_deleted, lock, " +
+                            "_parent_role_pk, role) VALUES " +
                             "(nextval('object__pk_seq'), '48jc3ewrtmp', " +
                             "now(), $1, " +
                             "now(), $1, false, null, $2, 'everyone');"
@@ -70,7 +73,10 @@ const f = require("../common/core");
                     }
 
                     obj.client.query(
-                        "INSERT INTO \"role\" VALUES " +
+                        "INSERT INTO \"role\" (" +
+                        "_pk, id, created, created_by, updated, " +
+                        "updated_by, is_deleted, lock, owner, etag, " +
+                        "name) VALUES " +
                         "(nextval('object__pk_seq'), " +
                         "'z6obwieygb0', now(), $1, now(), " +
                         "$1, false, null, $1, $2, 'everyone');",
