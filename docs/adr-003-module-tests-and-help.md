@@ -328,6 +328,16 @@ mechanical. The 22 unwritten articles are still unwritten.
       any time somebody deleted a record a package ships, which is
       John's "umpteenth time". `deploy-failure.test.js` deletes a
       record the fixture package carries and deploys it again.
+  - **Still to do**: the pictures. The help reads as text with an
+    italic line where a screenshot belonged, 147 of them across 61
+    articles. The knowledge base those articles came from still holds
+    the images, in the same order as the captions -- verified against
+    `?knowledgebase=searching-and-filtering`, twelve for twelve -- so
+    placing them is mechanical. They go in the module's
+    `help/images/`, named `<article-id>-<n>.<ext>` so that a
+    regenerated screenshot later overwrites the file and leaves the
+    Markdown alone. The ones on the site are of the old UI; John is
+    content to ship them and replace them with scripted captures.
   - **Still to do**: Job Shop's own help folder (navigation and
     getting-started), which is where the manual's remaining front
     matter belongs. The generated `job-shop-help.html` on the
