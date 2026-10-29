@@ -53,6 +53,15 @@ a `help` folder beside its manifest, holding Markdown pages and a
 `pages` is the module's contents list, in the order it should be read.
 `forms` and `feathers` are what the Help button looks up.
 
+Every module's `pages` together make the Contents the help window opens
+on, which is how help that is about no particular worksheet -- how
+workbooks, filters and settings work -- is read: Help on the account
+menu, or the Contents button in the window.
+
+A page may use pictures. Put them in the module's `help` folder beside
+the page and name them relatively (`![A worksheet](images/worksheet.png)`);
+they are served from the deployed version like the page itself.
+
 The button looks for the form first and the feather second, because the
 form is where a record's actions are and one feather can have several
 forms: a sales order opened from the order desk and the same order opened

@@ -100,6 +100,7 @@
         "do",
         "feather",
         "help",
+        "help-contents",
         "help-topic",
         "module",
         "modules",
@@ -1890,6 +1891,21 @@
             res.write(resp);
             res.end();
         });
+    }
+
+    // Everything this database has help for, for the window's contents
+    function doGetHelpContents(req, res) {
+        let payload = {
+            method: "GET",
+            name: "getHelpContents",
+            tenant: req.tenant,
+            user: req.user.name
+        };
+
+        logger.verbose(loggable(payload));
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
     }
 
     // Which page answers for a form or a feather, and the customer's own
@@ -4570,6 +4586,7 @@
         dbRouter.post("/:db/module/install/:query", doInstall);
         dbRouter.post("/:db/do/upgrade/:query", doUpgrade);
         dbRouter.get("/:db/help", doGetHelpPage);
+        dbRouter.get("/:db/help-contents", doGetHelpContents);
         dbRouter.get("/:db/help-topic", doGetHelpTopic);
         dbRouter.get("/:db/help/:module/*", doGetHelpFile);
         dbRouter.get("/:db/profile", doGetProfile);
