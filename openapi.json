@@ -3146,6 +3146,57 @@
                 }
             }
         },
+        "/help-contents": {
+            "get": {
+                "tags": [
+                    "Help"
+                ],
+                "operationId": "getHelpContents",
+                "summary": "Everything this instance has help for",
+                "description": "Each deployed module that carries help, with its contents list, Core's generic pages first. What the help window opens on, so help about no particular worksheet \u2014 how workbooks, filters and settings work \u2014 can be read without being on the page it is about.",
+                "responses": {
+                    "200": {
+                        "description": "Contents",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "module": {
+                                                "type": "string"
+                                            },
+                                            "title": {
+                                                "type": "string"
+                                            },
+                                            "pages": {
+                                                "type": "array",
+                                                "description": "The module's pages, in reading order",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "path": {
+                                                            "type": "string"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    }
+                }
+            }
+        },
         "/help-topic": {
             "get": {
                 "tags": [

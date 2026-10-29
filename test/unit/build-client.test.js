@@ -8,7 +8,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const {describe, it} = require("node:test");
+const {after, before, describe, it} = require("node:test");
 const assert = require("node:assert/strict");
 const build = require("../../scripts/build-client");
 
@@ -89,6 +89,72 @@ describe("production page from the debug page", function () {
         assert.equal(
             fs.readFileSync(path.join(ROOT, "index.html"), "utf8"),
             build.productionHtml(DEBUG)
+        );
+    });
+});
+
+/*
+    The bundle is built when the server starts rather than committed
+    (server.js), so what `ensure` does when it cannot build, or cannot
+    write, decides whether the server comes up at all.
+*/
+describe("ensuring the bundle", function () {
+    const fsp = fs.promises;
+    const scratch = path.join(ROOT, "test", ".artifacts", "bundle-test.js");
+
+    function clean() {
+        return fsp.rm(scratch, {force: true});
+    }
+
+    before(async function () {
+        await fsp.mkdir(path.dirname(scratch), {recursive: true});
+        await clean();
+    });
+
+    after(clean);
+
+    it("writes one that is not there", async function () {
+        let out = await build.ensure({file: scratch, quiet: true});
+        let held = await fsp.readFile(scratch, "utf8");
+
+        assert.equal(out.built, true);
+        assert.ok(held.length > 100000, held.length + " bytes");
+    });
+
+    it("leaves one that is already current alone", async function () {
+        let was = await fsp.stat(scratch);
+        let out = await build.ensure({file: scratch, quiet: true});
+        let now = await fsp.stat(scratch);
+
+        assert.equal(out.built, false);
+        assert.equal(out.reason, "current");
+        assert.equal(now.mtimeMs, was.mtimeMs);
+    });
+
+    it("rewrites one that does not match the sources", async function () {
+        await fsp.writeFile(scratch, "// stale");
+
+        let out = await build.ensure({file: scratch, quiet: true});
+        let held = await fsp.readFile(scratch, "utf8");
+
+        assert.equal(out.built, true);
+        assert.ok(held.length > 100000, held.length + " bytes");
+    });
+
+    /*
+        A server with no bundle cannot serve a client, so it says so as
+        it starts rather than coming up and failing at the first page.
+        (Where one is already on disk it warns and serves that instead,
+        which needs a checkout it cannot write to.)
+    */
+    it("refuses when there is none and it cannot write one",
+            async function () {
+        await assert.rejects(
+            () => build.ensure({
+                file: path.join(scratch, "no", "such", "place.js"),
+                quiet: true
+            }),
+            /client bundle is missing/
         );
     });
 });
