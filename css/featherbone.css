@@ -3260,6 +3260,111 @@ button:disabled .fb-ipicon,
     color: var(--rb-hue, var(--fb-accent));
 }
 
+/* About: same permanent icon-button shape as the bell */
+.fb-ribbon-about {
+    align-self: center;
+    margin-bottom: 4px;
+    margin-right: 4px;
+    padding: 2px;
+    color: var(--fb-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fb-ribbon-about:hover {
+    color: var(--fb-text);
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-ribbon-about .material-icons-outlined {
+    display: block;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+}
+
+.fb-about-name {
+    margin: 0 0 4px;
+}
+
+.fb-about-description {
+    margin: 0 0 12px;
+    color: var(--fb-text-muted);
+}
+
+.fb-about-table {
+    width: 100%;
+    margin-bottom: 12px;
+    border-collapse: collapse;
+}
+
+.fb-about-table caption {
+    padding: 0 0 2px;
+    text-align: left;
+    font-size: 0.8em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fb-text-muted);
+}
+
+.fb-about-table td {
+    padding: 2px 0;
+    border-bottom: 1px solid var(--fb-border);
+}
+
+.fb-about-table .fb-about-version {
+    padding-left: 12px;
+    text-align: right;
+}
+
+.fb-about-child td:first-child {
+    padding-left: 20px;
+}
+
+.fb-about-parent {
+    cursor: pointer;
+}
+
+.fb-about-parent:hover {
+    background: var(--fb-hover-neutral-tint);
+}
+
+.fb-about-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.fb-about-toggle .material-icons-outlined {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+}
+
+.fb-about-count {
+    margin-left: 6px;
+    padding: 0 6px;
+    font-size: 0.8em;
+    color: var(--fb-text-muted);
+    border: 1px solid var(--fb-border);
+    border-radius: 8px;
+}
+
+.fb-about-error {
+    color: var(--fb-danger);
+}
+
 /* The ribbon proper. The label band along the bottom is painted by the body
    itself, so it runs the full width even past the last group.
    100 = 1 border + 74 buttons + 24 label band + 1 border. */
