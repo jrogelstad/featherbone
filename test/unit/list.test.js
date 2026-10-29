@@ -170,7 +170,7 @@ describe("client list statechart (models/list.js)", function () {
         ary.properties(["name"]);
         await ary.fetch();
         assert.deepEqual(env.requests()[0].body.properties, [
-            "name", "id", "isDeleted", "lock", "objectType"
+            "name", "id", "isDeleted", "lock", "objectType", "meta"
         ]);
     });
 
@@ -183,10 +183,12 @@ describe("client list statechart (models/list.js)", function () {
         ary.properties(["name", "category.code"]);
         await ary.fetch();
         assert.deepEqual(env.requests()[0].body.properties, [
-            "name", "category", "id", "isDeleted", "lock", "objectType"
+            "name", "category", "id", "isDeleted", "lock", "objectType",
+            "meta"
         ]);
         assert.deepEqual(Object.keys(ary[0].data).sort(), [
-            "category", "id", "isDeleted", "lock", "name", "objectType"
+            "category", "id", "isDeleted", "lock", "meta", "name",
+            "objectType"
         ]);
         assert.equal(current(ary[0]), "/Ready/Fetched/Clean");
     });
