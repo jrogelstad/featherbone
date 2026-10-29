@@ -751,19 +751,19 @@ describe("client components", function () {
                 globalThis.document.getElementById = saved.getElementById;
             });
 
-            it("ends inside the window at the default 1.13 zoom", function () {
-                let height = sizedBox("1.13");
+            it("ends inside the window at the default 1.00 zoom", function () {
+                let height = sizedBox("1");
 
                 assert.ok(
-                    TOP + height * 1.13 <= WINDOW_HEIGHT,
-                    "drawn bottom " + (TOP + height * 1.13) +
+                    TOP + height <= WINDOW_HEIGHT,
+                    "drawn bottom " + (TOP + height) +
                     " is past the window's " + WINDOW_HEIGHT
                 );
                 assert.ok(height > 400, "and still uses the room: " + height);
             });
 
             it("ends inside the window at any zoom", function () {
-                ["1", "1.25", "1.5"].forEach(function (zoom) {
+                ["1.13", "1.25", "1.5"].forEach(function (zoom) {
                     let height = sizedBox(zoom);
 
                     assert.ok(
