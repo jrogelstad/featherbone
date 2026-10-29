@@ -20,13 +20,17 @@ $ npm install
 
 Every installation is one **manager** database plus one or more **instance** databases holding application data -- there is no single-database mode. "The manager and instances" just below has the build commands, and "Starting a new installation" has the full walkthrough: building the manager, building an instance, and the first sign-in. An installation from before 3.0 is not moved to it by copying files over; see "Moving an existing installation".
 
-The browser client is served as one minified bundle, `client/clientmin.js`, unless `"debug": true` is set in `config.json`, which serves the unbundled source that `index_debug.html` lists instead. The bundle and `index.html` are generated from `index_debug.html` -- every module script it names goes into the bundle, in order -- so after changing anything under `client/`, or adding a script to the debug page, rebuild them and commit the result:
+The browser client is served as one minified bundle, `client/clientmin.js`, unless `"debug": true` is set in `config.json`, which serves the unbundled source that `index_debug.html` lists instead. `index_debug.html` is the one list of what the client is: every module script it names goes into the bundle, in order.
+
+**The bundle is built, not committed.** The server builds it as it starts, so `npm start` is all a deployment needs and there is nothing to remember after changing a client file. It takes about a third of a second and writes only when the sources say something different. It is in `.gitignore`: every merge that touched client code used to conflict on 400 KB of minified output.
+
+`index.html` is still committed, since it is small, readable, and changes only when the script list does. Rebuild it after adding or removing a script in `index_debug.html`:
 
 ```text
 $ npm run build:client
 ```
 
-Add `-- --check` to change nothing and fail if either file is out of date (for a release), or `-- --sourcemap` to write `client/clientmin.js.map` for debugging the bundle. Edit `index_debug.html`, never `index.html` or `clientmin.js`.
+Add `-- --check` to change nothing and fail if either file is out of date, or `-- --sourcemap` to write `client/clientmin.js.map` for debugging the bundle. Edit `index_debug.html`, never `index.html` or `clientmin.js`.
 
 A documentation server may be installed from [here](https://github.com/jrogelstad/featherbone-docs)
 

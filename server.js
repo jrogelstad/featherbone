@@ -20,6 +20,7 @@
     "use strict";
     require("./common/string.js");
 
+    const buildClient = require("./scripts/build-client");
     const datasource = require("./server/datasource");
     const express = require("express");
     const session = require("express-session");
@@ -4692,6 +4693,15 @@
         // Last of all: the generic data fallback, strictly after every
         // specific route so none is shadowed
         registerDataFallback();
+
+        /*
+            The production client is built here rather than committed:
+            `npm start` is all a deployment needs, and nobody resolves a
+            merge conflict in 400 KB of minified output again (John, Oct
+            2026). It takes about a third of a second and writes only
+            when the sources say something different.
+        */
+        await buildClient.ensure();
 
         // START THE SERVER
         // ====================================================================
