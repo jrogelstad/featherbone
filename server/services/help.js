@@ -149,6 +149,54 @@
         }
 
         /**
+            Everything this database has help for: each module that
+            carries any, with its contents list.
+
+            Help has to be readable without being on the page it is
+            about (John, Oct 2026) -- how workbooks, filters and
+            settings work is not about any one worksheet -- so the
+            window offers this as its contents, and the framework's own
+            pages are first because they are the generic ones.
+
+            @method getContents
+            @param {Object} payload
+            @param {Client} payload.client Database client
+            @return {Promise} [{module, title, pages}]
+        */
+        that.getContents = async function (obj) {
+            let versions = await deployed(obj.client);
+            let names = Object.keys(versions).sort();
+            let found = [];
+            let n = 0;
+
+            scan();
+
+            while (n < names.length) {
+                let name = names[n];
+                let help = await helpOf(name, versions[name]);
+                let pages = [];
+
+                n += 1;
+
+                if (help) {
+                    pages = help.manifest.pages || [];
+                }
+                if (pages.length) {
+                    found.push({
+                        module: name,
+                        pages,
+                        title: help.manifest.title || name
+                    });
+                }
+            }
+
+            // The framework's generic pages lead
+            return found.filter(
+                (one) => one.module === "Core"
+            ).concat(found.filter((one) => one.module !== "Core"));
+        };
+
+        /**
             The customer's own help for a form: a help link record that
             belongs to no module. A deploy writes only records that
             belong to one, so a deploy cannot touch it, and it is read
