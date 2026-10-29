@@ -661,6 +661,28 @@ function createTableHeader(options, col) {
                 "column",
                 config.columns
             ),
+            // Click (or shift-click, to sort by several columns) is a
+            // quicker alternative to the sort dialog; a plain click
+            // and a drag both start from the same mousedown, but the
+            // browser only fires one or the other, never both, so
+            // this never fights with the handlers above.
+            onclick: function (ev) {
+                vm.toggleSort(key, ev.shiftKey);
+            },
+            oncontextmenu: function (ev) {
+                ev.preventDefault();
+                vm.contextCell(undefined);
+                vm.contextHeader(true);
+                vm.noteCard().hide();
+                contextMenuOwner = vm;
+                // Page coordinates are zoomed (see pageScale); CSS
+                // ones are not
+                contextMenuStyle({
+                    display: "block",
+                    left: ev.pageX / pageScale() + "px",
+                    top: ev.pageY / pageScale() + "px"
+                });
+            },
             class: "fb-column-header",
             style: {
                 width: columnWidth + "px",
@@ -929,6 +951,7 @@ function createTableRow(options, pModel) {
         // Each right-click opens the menu where it was made, for the
         // cell it was made on (see handleMeta)
         theVm.contextCell(e.fbCell);
+        theVm.contextHeader(undefined);
         theVm.noteCard().hide();
         contextMenuOwner = theVm;
         // Page coordinates are zoomed (see pageScale); CSS ones are not
@@ -2236,6 +2259,17 @@ tableWidget.viewModel = function (options) {
     */
     vm.contextCell = f.prop();
     /**
+        Whether the context menu now open was opened by right-clicking
+        a column header rather than a row. Then it shows `headerActions`
+        ("Clear sort") instead of the row's `cellActions`/`actions` --
+        see the table's `view` function.
+
+        @method contextHeader
+        @param {Boolean} flag
+        @return {Boolean}
+    */
+    vm.contextHeader = f.prop();
+    /**
         Dialog for a cell's or row's format.
 
         @method formatDialog
@@ -2317,6 +2351,109 @@ tableWidget.viewModel = function (options) {
                 f.icon(item.icon, "fb-menu-list-icon")
             ], item.label);
         });
+    };
+    /**
+        Sort the list by a column: the quick alternative to the sort
+        dialog for the common case (click a header). A plain click
+        sorts by just that column ascending, or flips it if it is
+        already the only column sorted; a plain click while several
+        columns are sorted starts over with just this one. Holding
+        shift adds the column as a further key instead of starting
+        over, or flips that key in place if it is already one of them.
+        Right-click a header for "Clear sort" (see `headerActions`).
+        Does not otherwise change how sorting works -- it edits the
+        same `filter().sort` the sort dialog does.
+
+        @method toggleSort
+        @param {String} attr
+        @param {Boolean} isAdditional Add to the sort instead of
+        replacing it (shift-click)
+        @return {Array} The new sort
+    */
+    vm.toggleSort = function (attr, isAdditional) {
+        let filter = f.copy(vm.filter());
+        let sort = filter.sort || [];
+        let idx = sort.findIndex((item) => item.property === attr);
+
+        if (isAdditional) {
+            sort = sort.slice();
+            if (idx === -1) {
+                sort.push({property: attr, order: "ASC"});
+            } else {
+                sort[idx] = {
+                    property: attr,
+                    order: (
+                        sort[idx].order === "DESC"
+                        ? "ASC"
+                        : "DESC"
+                    )
+                };
+            }
+        } else if (sort.length === 1 && idx === 0) {
+            sort = [{
+                property: attr,
+                order: (
+                    sort[0].order === "DESC"
+                    ? "ASC"
+                    : "DESC"
+                )
+            }];
+        } else {
+            sort = [{property: attr, order: "ASC"}];
+        }
+
+        filter.sort = sort;
+        vm.filter(filter);
+        return sort;
+    };
+    /**
+        Drop every sort key -- the action on a header's right-click
+        menu (see `headerActions`). The list falls back to its own
+        default order.
+
+        @method clearSort
+        @return {Array} The new (empty) sort
+    */
+    vm.clearSort = function () {
+        let filter = f.copy(vm.filter());
+
+        filter.sort = [];
+        vm.filter(filter);
+        return filter.sort;
+    };
+    /**
+        "Clear sort" for the menu opened by right-clicking a column
+        header, as `<li>` vnodes. The list's own actions don't apply
+        to a header, so the table's `view` function shows this instead
+        of `cellActions`/`actions` rather than joining them.
+
+        @method headerActions
+        @return {Array}
+    */
+    vm.headerActions = function () {
+        let sort = vm.filter().sort || [];
+        let disabled = !sort.length;
+
+        return [m("li", {
+            id: "context-sort-clear",
+            class: "pure-menu-link fb-menu-list-item" + (
+                disabled
+                ? " pure-menu-disabled"
+                : ""
+            ),
+            title: (
+                disabled
+                ? "No column sorting is applied"
+                : "Remove all column sorting"
+            ),
+            onclick: (
+                disabled
+                ? undefined
+                : vm.clearSort
+            )
+        }, [
+            f.icon("clear", "fb-menu-list-icon")
+        ], "Clear sort")];
     };
     /**
         @method feather
@@ -3279,7 +3416,11 @@ tableWidget.component = {
                         "pure-menu-list fb-menu-list " +
                         "fb-menu-list-show"
                     )
-                }, theVm.cellActions().concat(theVm.actions()))
+                }, (
+                    theVm.contextHeader()
+                    ? theVm.headerActions()
+                    : theVm.cellActions().concat(theVm.actions())
+                ))
             ]),
             // One table inside one scrolling box: the header and footer
             // stick to the top/bottom of the box (position: sticky, see

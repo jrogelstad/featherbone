@@ -2019,6 +2019,14 @@ button:disabled .fb-ipicon,
   cursor: move;
 }
 
+/* A header is also a click-to-sort target (table-widget.js's
+   createTableHeader/toggleSort) alongside its drag-to-reorder role, so
+   it gets a hover tint too -- same affordance already used for list
+   rows and other clickable surfaces. */
+.fb-column-header:hover {
+  background-color: var(--fb-hover-neutral-tint);
+}
+
 .fb-cell-view {
   cursor: default;
 }
