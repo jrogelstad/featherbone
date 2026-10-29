@@ -691,6 +691,195 @@ describe("client components", function () {
         });
 
         /*
+            Formats and notes users put on rows and cells (list-meta.js).
+            The user's row format replaces only what it sets, a cell's
+            format goes over the row's, a selected row keeps its colors
+            (the selection is a tint over them, in CSS), and a cell with
+            notes is marked and its tooltip moves into the note card.
+        */
+        it("draws formats and marks notes", function () {
+            let model = list[0];
+            let vm = tableVm();
+            let saved = globalThis.getComputedStyle;
+            let out;
+            let row;
+            let cells;
+            let lead;
+
+            // Icon tinting resolves var() colors through the browser
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            after(function () {
+                globalThis.getComputedStyle = saved;
+                model.setMeta(null);
+                vm.unselect(model);
+            });
+
+            model.setMeta({
+                format: {
+                    cells: {qty: {bold: true, color: "#00ff00"}},
+                    row: {background: "#ff0000", color: "yellow"}
+                },
+                notes: {
+                    name: [{
+                        at: "2026-10-29T12:00:00.000Z",
+                        by: "someone",
+                        html: "<p>Hi</p>",
+                        id: "n1"
+                    }]
+                }
+            });
+            assert.equal(model.state().current()[0], "/Ready/Fetched/Clean");
+
+            vm.select(model);
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            row = R.findAll(
+                R.find(out.tree, R.byTag("tbody")),
+                R.byTag("tr")
+            )[0];
+            assert.equal(row.attrs.style.backgroundColor, "#ff0000");
+            assert.equal(row.attrs.style.color, "var(--fb-swatch-yellow-fg)");
+
+            cells = R.findAll(row, R.byClass("fb-cell-view"));
+            assert.ok(R.classOf(cells[0]).includes("fb-cell-has-note"));
+            assert.equal(cells[0].attrs.title, undefined);
+            assert.equal(typeof cells[0].attrs.onmouseenter, "function");
+            assert.equal(cells[0].attrs.style.color,
+                    "var(--fb-swatch-yellow-fg)");
+            assert.equal(cells[1].attrs.style.color, "#00ff00");
+            assert.equal(cells[1].attrs.style.fontWeight, "bold");
+            assert.ok(!R.classOf(cells[1]).includes("fb-cell-has-note"));
+
+            lead = R.find(row, R.byClass("fb-table-lead"));
+            assert.ok(R.find(lead, R.byTag("img")), "lead column has an icon");
+
+            model.setMeta(null);
+            vm.unselect(model);
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            row = R.findAll(
+                R.find(out.tree, R.byTag("tbody")),
+                R.byTag("tr")
+            )[0];
+            assert.equal(row.attrs.style.backgroundColor, undefined);
+            assert.equal(
+                R.findAll(row, R.byClass("fb-cell-has-note")).length,
+                0
+            );
+        });
+
+        /*
+            Clicking a column header is a quicker alternative to the sort
+            dialog (vm.toggleSort/clearSort), not a second way sorting
+            works: it edits the same filter().sort the dialog does.
+        */
+        it("sorts by clicking a header, more with shift, clears " +
+                "with right-click", function () {
+            let vm = vms.tableWidget({
+                config: {
+                    aggregates: [],
+                    columns: [{attr: "name"}, {attr: "qty"}]
+                },
+                feather: "TestItem",
+                height: "200px",
+                models: list
+            });
+            let saved = globalThis.getComputedStyle;
+
+            // Icon tinting resolves var() colors through the browser
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            after(function () {
+                globalThis.getComputedStyle = saved;
+            });
+
+            function headers(out) {
+                return R.findAll(
+                    R.find(out.tree, R.byTag("thead")),
+                    R.byClass("fb-column-header")
+                );
+            }
+
+            let out = R.render(comps.tableWidget, {viewModel: vm});
+            assert.deepEqual(vm.filter().sort || [], []);
+
+            // A plain click sorts ascending by that column
+            headers(out)[0].attrs.onclick({shiftKey: false});
+            assert.deepEqual(vm.filter().sort, [
+                {order: "ASC", property: "name"}
+            ]);
+
+            // Clicking the same lone sorted column again flips it
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            headers(out)[0].attrs.onclick({shiftKey: false});
+            assert.deepEqual(vm.filter().sort, [
+                {order: "DESC", property: "name"}
+            ]);
+
+            // Shift-click a second column adds it, applied after the
+            // first; the header shows its order as well as an arrow
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            headers(out)[1].attrs.onclick({shiftKey: true});
+            assert.deepEqual(vm.filter().sort, [
+                {order: "DESC", property: "name"},
+                {order: "ASC", property: "qty"}
+            ]);
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            assert.ok(
+                R.find(headers(out)[1], R.byClass("fb-column-sort-number"))
+            );
+
+            // Shift-click one of the sorted columns again flips just
+            // that key, in place
+            headers(out)[1].attrs.onclick({shiftKey: true});
+            assert.deepEqual(vm.filter().sort, [
+                {order: "DESC", property: "name"},
+                {order: "DESC", property: "qty"}
+            ]);
+
+            // A plain click while several columns are sorted starts
+            // over with just the clicked column
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            headers(out)[1].attrs.onclick({shiftKey: false});
+            assert.deepEqual(vm.filter().sort, [
+                {order: "ASC", property: "qty"}
+            ]);
+
+            // Right-click any header for a small menu with only
+            // "Clear sort" -- the list's other actions don't belong
+            // there, so they are not joined in (contrast with a row's
+            // right-click, covered elsewhere in this file)
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            headers(out)[0].attrs.oncontextmenu({
+                pageX: 40,
+                pageY: 60,
+                preventDefault: () => undefined
+            });
+            assert.ok(vm.contextHeader());
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            let menu = R.findAll(
+                R.find(out.tree, R.byId("context-actions-list")),
+                R.byTag("li")
+            );
+            assert.equal(menu.length, 1);
+            assert.ok(R.text(menu[0]).includes("Clear sort"));
+
+            menu[0].attrs.onclick();
+            assert.deepEqual(vm.filter().sort, []);
+
+            // A row's own right-click still shows the list's actions,
+            // not leftover header-menu state
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            let row = R.findAll(
+                R.find(out.tree, R.byTag("tbody")),
+                R.byTag("tr")
+            )[0];
+            row.attrs.oncontextmenu({
+                pageX: 10,
+                pageY: 10,
+                preventDefault: () => undefined
+            });
+            assert.equal(vm.contextHeader(), undefined);
+        });
+
+        /*
             The page is drawn at html's zoom (--fb-ui-scale), so a height
             set on the list's scroll box is stretched by it, while
             innerHeight and the box's top are in real viewport pixels.
@@ -1273,6 +1462,11 @@ describe("client components", function () {
             ), [
                 ["Info", "edit", "Edit my contact information"],
                 ["Password", "key", "Change password"],
+                [
+                    "Help", "help",
+                    "How workbooks, worksheets, filters and settings " +
+                    "work, and every module's own help"
+                ],
                 ["Sign Out", "logout", "Sign out of application"]
             ]);
         });

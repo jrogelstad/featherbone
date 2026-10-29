@@ -344,6 +344,14 @@ accountMenu.viewModel = function () {
                 cdlg.show();
             }
         }, {
+            label: "Help",
+            icon: "help",
+            title: (
+                "How workbooks, worksheets, filters and settings work, " +
+                "and every module's own help"
+            ),
+            onclick: () => f.openHelp({contents: true})
+        }, {
             label: "Sign Out",
             icon: "logout",
             title: "Sign out of application",
