@@ -194,23 +194,23 @@
    exactly what started cutting column headers off with ellipses. Controls
    that need a fixed outer size (buttons, inputs) opt in individually below.
    ========================================================================= */
-/* The whole interface is drawn 25% larger than its CSS sizes say.
+/* The whole interface is drawn at its CSS sizes: a scale of 1.
 
    Everything here is in px -- some 500 values of it -- so there is no
    root font size to raise and no rem to scale: the only lever that moves
    type, controls, borders and spacing together, in proportion, is zoom.
-   That is exactly what a browser's own zoom does, and the app at a
-   browser's 125% is what this reproduces at 100%, so nobody has to set
-   it per machine to get something that sits properly beside the rest of
-   the desktop. Settled at 1.125 rather than 1.25 by looking at it: the
-   quarter was a shade large (John, Oct 2026).
+   It started out drawn larger (1.25, then 1.125) so the app sat beside
+   the rest of the desktop; John put it back to 1.00 (Oct 2026), the
+   size it was designed at.
 
    A variable rather than a literal so it is one place to change, and so
-   a future preference has something to write to. Browser zoom still
-   works on top of it and compounds, which is the behaviour anybody
-   pressing ctrl-plus expects. */
+   a preference can write to it: the zoom control in the ribbon does
+   (client/main.js, which keeps its own copy of this number as the "100%"
+   of its display -- change both together). Browser zoom still works on
+   top of it and compounds, which is the behaviour anybody pressing
+   ctrl-plus expects. */
 :root {
-    --fb-ui-scale: 1.13;
+    --fb-ui-scale: 1;
 }
 
 html {
