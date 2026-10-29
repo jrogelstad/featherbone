@@ -1555,6 +1555,8 @@
                                                               "attrs": {
                                                                 "class": "fb-column-header",
                                                                 "draggable": true,
+                                                                "onclick": "<fn>",
+                                                                "oncontextmenu": "<fn>",
                                                                 "ondragover": "<fn>",
                                                                 "ondragstart": "<fn>",
                                                                 "ondrop": "<fn>",
@@ -1594,6 +1596,8 @@
                                                               "attrs": {
                                                                 "class": "fb-column-header",
                                                                 "draggable": true,
+                                                                "onclick": "<fn>",
+                                                                "oncontextmenu": "<fn>",
                                                                 "ondragover": "<fn>",
                                                                 "ondragstart": "<fn>",
                                                                 "ondrop": "<fn>",
@@ -1633,6 +1637,8 @@
                                                               "attrs": {
                                                                 "class": "fb-column-header",
                                                                 "draggable": true,
+                                                                "onclick": "<fn>",
+                                                                "oncontextmenu": "<fn>",
                                                                 "ondragover": "<fn>",
                                                                 "ondragstart": "<fn>",
                                                                 "ondrop": "<fn>",
