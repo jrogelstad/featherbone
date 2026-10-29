@@ -283,9 +283,9 @@ describe("specialized model statecharts", function () {
         it("getFeather merges inherited properties first", function () {
             let feather = catalog.getFeather("Currency");
             let keys = Object.keys(feather.properties);
-            assert.deepEqual(keys.slice(0, 8), [
+            assert.deepEqual(keys.slice(0, 9), [
                 "id", "created", "createdBy", "updated", "updatedBy",
-                "isDeleted", "lock", "objectType"
+                "isDeleted", "lock", "objectType", "meta"
             ]);
             assert.ok(keys.indexOf("owner") < keys.indexOf("code"));
             assert.ok(keys.indexOf("code") < keys.indexOf("symbol"));

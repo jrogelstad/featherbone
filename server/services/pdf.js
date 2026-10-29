@@ -176,7 +176,8 @@
         "updatedBy",
         "objectType",
         "etag",
-        "owner"
+        "owner",
+        "meta"
     ];
     const sizes = {
         "Letter": {

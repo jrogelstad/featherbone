@@ -20,6 +20,8 @@
 (function (exports) {
     "use strict";
 
+    const crypto = require("crypto");
+
     const createTriggerFuncSql = (
         "CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$" +
         "DECLARE " +
@@ -65,6 +67,12 @@
         "    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL THEN " +
         "      change := 'unlock'; " +
         "      data := '\"' || OLD.id || '\"'; " +
+        "    ELSEIF to_jsonb(NEW)->'meta' IS DISTINCT FROM " +
+        "      to_jsonb(OLD)->'meta' AND " +
+        "      to_jsonb(NEW) - 'meta' = to_jsonb(OLD) - 'meta' THEN " +
+        "      change := 'meta'; " +
+        "      data := '{\"id\":\"' || NEW.id || '\",\"table\": \"' || " +
+        "      TG_TABLE_NAME || '\"}'; " +
         "    ELSE" +
         "      data := '{\"id\":\"' || NEW.id || '\",\"table\": \"' || " +
         "      TG_TABLE_NAME || '\"}'; " +
@@ -143,7 +151,8 @@
         "updated timestamp with time zone," +
         "updated_by text," +
         "is_deleted boolean, " +
-        "lock lock); " +
+        "lock lock, " +
+        "meta jsonb); " +
         "COMMENT ON TABLE object IS " +
         "'Abstract object class from which all other classes will inherit';" +
         "COMMENT ON COLUMN object._pk IS 'Internal primary key';" +
@@ -158,6 +167,8 @@
         "COMMENT ON COLUMN object.is_deleted IS " +
         "'Indicates the record is no longer active';" +
         "COMMENT ON COLUMN object.lock IS 'Record lock';" +
+        "COMMENT ON COLUMN object.meta IS " +
+        "'User formats and notes shown in lists';" +
         "CREATE OR REPLACE VIEW _object AS SELECT *," +
         "to_camel_case(tableoid::regclass::text) AS object_type FROM object;"
     );
@@ -454,6 +465,32 @@
         "'Profile data';"
     );
 
+    // Formats and notes users put on a row in a list. Written only by
+    // the meta service, never by an ordinary save.
+    const META_PROPERTY = {
+        description: "User formats and notes shown in lists",
+        type: "object",
+        isReadOnly: true,
+        isAlwaysLoad: true
+    };
+
+    const alterObjectSql = (
+        "ALTER TABLE object ADD COLUMN IF NOT EXISTS meta jsonb;" +
+        "COMMENT ON COLUMN object.meta IS " +
+        "'User formats and notes shown in lists';"
+    );
+
+    // An existing catalog gets the property the views are built from
+    const alterCatalogSql = (
+        "UPDATE \"$settings\" SET " +
+        "  data = jsonb_set(" +
+        "    data::jsonb, '{Object,properties,meta}', $1::jsonb" +
+        "  )::json, " +
+        "  etag = $2 " +
+        "WHERE name = 'catalog' " +
+        "  AND data->'Object'->'properties'->'meta' IS NULL;"
+    );
+
     const objectDef = {
         Object: {
             description: (
@@ -516,7 +553,8 @@
                     type: "string",
                     isReadOnly: true,
                     isAlwaysLoad: true
-                }
+                },
+                meta: META_PROPERTY
             }
         }
     };
@@ -670,7 +708,13 @@
                         obj.client.query(createObjectSql, createAuth);
                         return;
                     }
-                    createAuth();
+                    obj.client.query(alterObjectSql, function (err) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        createAuth();
+                    });
                 });
             };
 
@@ -829,11 +873,14 @@
                             }
 
                             sql = (
-                                "INSERT INTO \"$settings\" " +
-                                "VALUES (" +
+                                "INSERT INTO \"$settings\" (" +
+                                "  _pk, id, created, created_by, " +
+                                "  updated, updated_by, is_deleted, " +
+                                "  name, data" +
+                                ") VALUES (" +
                                 "  nextval('object__pk_seq'), $1, now(), " +
                                 "  CURRENT_USER, now(), CURRENT_USER, " +
-                                "  false, NULL, $2, NULL, $3);"
+                                "  false, $2, $3);"
                             );
                             params = [
                                 "catalog",
@@ -844,7 +891,16 @@
                         });
                         return;
                     }
-                    createDb();
+                    obj.client.query(alterCatalogSql, [
+                        JSON.stringify(META_PROPERTY),
+                        crypto.randomUUID()
+                    ], function (err) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        createDb();
+                    });
                 });
             };
 

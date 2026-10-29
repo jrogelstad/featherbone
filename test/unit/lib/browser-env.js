@@ -7,8 +7,8 @@
          (mithril), Qs, jsonpatch, f (common/core.js), location, a tiny
          document shim, requestAnimationFrame.
       2. Loads common/string.js, common/date.js, common/number.mjs.
-      3. Dynamically imports client ES modules (catalog, model, models/*,
-         and optionally components/*) through an ESM loader hook
+      3. Dynamically imports client ES modules (catalog, model, models/...,
+         and optionally components/...) through an ESM loader hook
          (esm-hooks.mjs) so .js files under client/ load as ES modules.
 
     Network: m.request is replaced by a recorder. Every request the client
@@ -48,7 +48,8 @@ const COMPONENT_FILES = [
     "data-list", "data-type", "dialog", "filter-dialog",
     "resource-link-relation", "aggregate-dialog", "form-dialog",
     "form-widget", "money-relation", "search-input", "search-page",
-    "sort-dialog", "settings-page", "table-dialog", "table-widget",
+    "sort-dialog", "settings-page", "table-dialog", "list-meta",
+    "table-widget",
     "url-widget", "image-upload-widget", "gantt", "sign-in-page",
     "form-page", "workbook-page", "about-dialog",
     "account-menu", "navigator-menu", "send-mail-page", "ribbon"
@@ -114,6 +115,12 @@ const OBJECT_FEATHER = {
             type: "string",
             isReadOnly: true,
             isAlwaysLoad: true
+        },
+        meta: {
+            description: "User formats and notes shown in lists",
+            isAlwaysLoad: true,
+            isReadOnly: true,
+            type: "object"
         }
     }
 };
