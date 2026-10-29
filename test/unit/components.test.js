@@ -691,6 +691,82 @@ describe("client components", function () {
         });
 
         /*
+            Formats and notes users put on rows and cells (list-meta.js).
+            The user's row format replaces only what it sets, a cell's
+            format goes over the row's, a selected row keeps its colors
+            (the selection is a tint over them, in CSS), and a cell with
+            notes is marked and its tooltip moves into the note card.
+        */
+        it("draws formats and marks notes", function () {
+            let model = list[0];
+            let vm = tableVm();
+            let saved = globalThis.getComputedStyle;
+            let out;
+            let row;
+            let cells;
+            let lead;
+
+            // Icon tinting resolves var() colors through the browser
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            after(function () {
+                globalThis.getComputedStyle = saved;
+                model.setMeta(null);
+                vm.unselect(model);
+            });
+
+            model.setMeta({
+                format: {
+                    cells: {qty: {bold: true, color: "#00ff00"}},
+                    row: {background: "#ff0000", color: "yellow"}
+                },
+                notes: {
+                    name: [{
+                        at: "2026-10-29T12:00:00.000Z",
+                        by: "someone",
+                        html: "<p>Hi</p>",
+                        id: "n1"
+                    }]
+                }
+            });
+            assert.equal(model.state().current()[0], "/Ready/Fetched/Clean");
+
+            vm.select(model);
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            row = R.findAll(
+                R.find(out.tree, R.byTag("tbody")),
+                R.byTag("tr")
+            )[0];
+            assert.equal(row.attrs.style.backgroundColor, "#ff0000");
+            assert.equal(row.attrs.style.color, "var(--fb-swatch-yellow-fg)");
+
+            cells = R.findAll(row, R.byClass("fb-cell-view"));
+            assert.ok(R.classOf(cells[0]).includes("fb-cell-has-note"));
+            assert.equal(cells[0].attrs.title, undefined);
+            assert.equal(typeof cells[0].attrs.onmouseenter, "function");
+            assert.equal(cells[0].attrs.style.color,
+                    "var(--fb-swatch-yellow-fg)");
+            assert.equal(cells[1].attrs.style.color, "#00ff00");
+            assert.equal(cells[1].attrs.style.fontWeight, "bold");
+            assert.ok(!R.classOf(cells[1]).includes("fb-cell-has-note"));
+
+            lead = R.find(row, R.byClass("fb-table-lead"));
+            assert.ok(R.find(lead, R.byTag("img")), "lead column has an icon");
+
+            model.setMeta(null);
+            vm.unselect(model);
+            out = R.render(comps.tableWidget, {viewModel: vm});
+            row = R.findAll(
+                R.find(out.tree, R.byTag("tbody")),
+                R.byTag("tr")
+            )[0];
+            assert.equal(row.attrs.style.backgroundColor, undefined);
+            assert.equal(
+                R.findAll(row, R.byClass("fb-cell-has-note")).length,
+                0
+            );
+        });
+
+        /*
             The page is drawn at html's zoom (--fb-ui-scale), so a height
             set on the list's scroll box is stretched by it, while
             innerHeight and the box's top are in real viewport pixels.
