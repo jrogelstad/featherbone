@@ -767,12 +767,193 @@ describe("client components", function () {
         });
 
         /*
-            Clicking a column header is a quicker alternative to the sort
-            dialog (vm.toggleSort/clearSort), not a second way sorting
-            works: it edits the same filter().sort the dialog does.
+            A cell's menu opens one dialog or the other and offers
+            nothing else: every way of clearing moved into the dialog
+            it belongs to, because five items on a menu is too many on
+            a screen already busy with its own actions (John, Oct
+            2026). So one "Note…" rather than "Add note…" beside
+            "Clear note", and the clearing is a button in the dialog.
         */
-        it("sorts by clicking a header, more with shift, clears " +
-                "with right-click", function () {
+        it("offers Format and Note, each dialog clearing its own",
+                async function () {
+            let model = list[0];
+            let vm = tableVm();
+            let saved = globalThis.getComputedStyle;
+            let items;
+            let clear;
+
+            // Icon tinting resolves var() colors through the browser
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            after(function () {
+                globalThis.getComputedStyle = saved;
+                model.setMeta(null);
+            });
+
+            function menu() {
+                return R.findAll(
+                    R.render(comps.tableWidget, {viewModel: vm}).tree,
+                    (n) => Boolean(n.attrs) && String(
+                        n.attrs.id
+                    ).startsWith("context-meta-")
+                );
+            }
+
+            function dialogButtons(dlg) {
+                return buttons(
+                    R.render(comps.dialog, {viewModel: dlg}).tree
+                );
+            }
+
+            /*
+                The menu is open on a cell, the way a right-click
+                leaves it. Opening it asks whether this row may be
+                updated, and both items wait on the answer, so settle
+                that before reading them.
+            */
+            vm.contextCell({attr: "name", label: "Name", model});
+            menu();
+            await env.flush();
+            items = menu();
+
+            assert.deepEqual(items.map((li) => li.attrs.id), [
+                "context-meta-format",
+                "context-meta-note"
+            ]);
+            assert.deepEqual(
+                items.map((li) => R.text(li)),
+                ["Format…", "Note…"]
+            );
+
+            // Format… opens the format dialog, which clears a format
+            items[0].attrs.onclick();
+            assert.equal(vm.formatDialog().title(), "Format");
+            assert.ok(
+                dialogButtons(vm.formatDialog()).some(
+                    (b) => b.text === "Clear"
+                ),
+                "the format dialog carries a Clear"
+            );
+
+            /*
+                Note… opens the note dialog, whose Clear waits on there
+                being a note of one's own to remove -- which is what
+                the menu used to say by disabling "Clear note".
+            */
+            items[1].attrs.onclick();
+            assert.ok(vm.noteDialog().title().startsWith("Add note to"));
+            clear = dialogButtons(vm.noteDialog()).find(
+                (b) => b.text === "Clear"
+            );
+            assert.ok(clear, "the note dialog carries a Clear");
+            assert.equal(clear.disabled, true);
+            assert.equal(clear.title, "You have no note on this cell");
+
+            model.setMeta({
+                notes: {
+                    name: [{
+                        at: "2026-10-29T12:00:00.000Z",
+                        by: "tester",
+                        html: "<p>Mine</p>",
+                        id: "n1"
+                    }]
+                }
+            });
+            menu()[1].attrs.onclick();
+            assert.ok(vm.noteDialog().title().startsWith("Edit note on"));
+            clear = dialogButtons(vm.noteDialog()).find(
+                (b) => b.text === "Clear"
+            );
+            assert.equal(clear.disabled, false);
+            assert.equal(clear.title, "Remove your note on this cell");
+        });
+
+        /*
+            The hover card's own "Edit" opens the note dialog on the
+            note the card is showing. It used to read which note that
+            was after hiding the card, which is the act that forgets
+            it, so Edit threw and did nothing while Clear -- written
+            the other way round -- worked (John, Oct 2026).
+        */
+        it("edits a note from the card the cell shows", async function () {
+            let model = list[0];
+            let vm = tableVm();
+            let saved = globalThis.getComputedStyle;
+            let savedParser = globalThis.window.DOMParser;
+            let edit;
+
+            // Icon tinting and the page zoom both read computed style
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            /*
+                Drawing a note runs its html through DOMParser, which
+                this environment has no DOM for. What it keeps and
+                drops is server-side ground the meta suites cover; here
+                it only has to hand the card something to draw.
+            */
+            globalThis.window.DOMParser = function () {
+                return {
+                    parseFromString: function (html) {
+                        return {
+                            body: {
+                                firstChild: {
+                                    childNodes: [],
+                                    innerHTML: html
+                                }
+                            }
+                        };
+                    }
+                };
+            };
+            after(function () {
+                globalThis.getComputedStyle = saved;
+                globalThis.window.DOMParser = savedParser;
+                model.setMeta(null);
+            });
+
+            model.setMeta({
+                notes: {
+                    name: [{
+                        at: "2026-10-29T12:00:00.000Z",
+                        by: "tester",
+                        html: "<p>Mine</p>",
+                        id: "n1"
+                    }]
+                }
+            });
+
+            // Hovering a cell with notes shows the card, after a pause
+            vm.noteCard().enter({
+                currentTarget: {
+                    getBoundingClientRect: () => ({
+                        bottom: 40,
+                        left: 10,
+                        top: 20
+                    })
+                }
+            }, model, "name", "Name");
+            await new Promise(function (resolve) {
+                setTimeout(resolve, 400);
+            });
+
+            edit = R.findAll(
+                R.render(comps.tableWidget, {viewModel: vm}).tree,
+                R.byTag("a")
+            ).find((a) => R.text(a) === "Edit");
+
+            assert.ok(edit, "the card offers Edit on one's own note");
+            edit.attrs.onclick({preventDefault: () => undefined});
+
+            // On that cell's note, not on nothing
+            assert.ok(vm.noteDialog().title().startsWith("Edit note on"));
+            assert.ok(vm.noteDialog().title().includes("Name"));
+        });
+
+        /*
+            Clicking a column header is a quicker alternative to the sort
+            dialog (vm.toggleSort), not a second way sorting works: it
+            edits the same filter().sort the dialog does. Dropping every
+            key is the sort dialog's own "Clear" button.
+        */
+        it("sorts by clicking a header, more with shift", function () {
             let vm = vms.tableWidget({
                 config: {
                     aggregates: [],
@@ -842,41 +1023,11 @@ describe("client components", function () {
                 {order: "ASC", property: "qty"}
             ]);
 
-            // Right-click any header for a small menu with only
-            // "Clear sort" -- the list's other actions don't belong
-            // there, so they are not joined in (contrast with a row's
-            // right-click, covered elsewhere in this file)
-            out = R.render(comps.tableWidget, {viewModel: vm});
-            headers(out)[0].attrs.oncontextmenu({
-                pageX: 40,
-                pageY: 60,
-                preventDefault: () => undefined
-            });
-            assert.ok(vm.contextHeader());
-            out = R.render(comps.tableWidget, {viewModel: vm});
-            let menu = R.findAll(
-                R.find(out.tree, R.byId("context-actions-list")),
-                R.byTag("li")
-            );
-            assert.equal(menu.length, 1);
-            assert.ok(R.text(menu[0]).includes("Clear sort"));
-
-            menu[0].attrs.onclick();
-            assert.deepEqual(vm.filter().sort, []);
-
-            // A row's own right-click still shows the list's actions,
-            // not leftover header-menu state
-            out = R.render(comps.tableWidget, {viewModel: vm});
-            let row = R.findAll(
-                R.find(out.tree, R.byTag("tbody")),
-                R.byTag("tr")
-            )[0];
-            row.attrs.oncontextmenu({
-                pageX: 10,
-                pageY: 10,
-                preventDefault: () => undefined
-            });
-            assert.equal(vm.contextHeader(), undefined);
+            // A header has no context menu of its own -- clearing the
+            // sort lives in the sort dialog's own "Clear" button
+            // (sort-dialog.js) instead, so there is no header-only
+            // menu for a row's right-click to avoid leaving state in
+            assert.equal(headers(out)[0].attrs.oncontextmenu, undefined);
         });
 
         /*
@@ -1026,6 +1177,50 @@ describe("client components", function () {
             assert.ok(R.text(out.tree).includes("Sort"));
             assert.ok(R.text(out.tree).includes("Column"));
             assert.ok(R.text(out.tree).includes("Order"));
+        });
+
+        /*
+            Dropping every sort key is this dialog's own button, rather
+            than an item on a menu of its own hung off a column header.
+            It writes straight to the filter the grid holds and closes
+            without running onOk, so the keys go whatever the dialog's
+            own rows were in the middle of saying -- the same way a
+            cancelled edit never reaches the grid.
+        */
+        it("sort-dialog.js clears every key on the grid's filter",
+                function () {
+            let filter = f.prop({
+                criteria: [{property: "name", value: "x"}],
+                sort: [
+                    {order: "DESC", property: "name"},
+                    {order: "ASC", property: "qty"}
+                ]
+            });
+            let okRan = 0;
+            let vm = dialogVm("sortDialog", {
+                filter,
+                onOk: function () {
+                    okRan += 1;
+                }
+            });
+            let clear;
+
+            vm.show();
+            clear = R.findAll(
+                R.render(comps.sortDialog, {viewModel: vm}).tree,
+                R.byTag("button")
+            ).find((b) => R.text(b) === "Clear");
+
+            assert.ok(clear, "the sort dialog carries a Clear");
+            clear.attrs.onclick();
+
+            assert.deepEqual(filter().sort, []);
+            // Whatever else the filter carries is left alone
+            assert.deepEqual(filter().criteria, [
+                {property: "name", value: "x"}
+            ]);
+            assert.equal(okRan, 0, "closes without applying its rows");
+            assert.deepEqual(vm.state().current(), ["/Display/Closed"]);
         });
 
         it("filter-dialog.js lists criteria rows", function () {
