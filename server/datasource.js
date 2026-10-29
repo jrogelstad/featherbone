@@ -4509,6 +4509,7 @@
     that.registerFunction("GET", "convertCurrency", currency.convertCurrency);
     that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
+    that.registerFunction("GET", "getHelpContents", help.getContents);
     that.registerFunction("GET", "getHelpFile", help.getFile);
     that.registerFunction("GET", "getHelpTopic", help.getTopic);
     that.registerFunction("GET", "getAbout", about.getAbout);

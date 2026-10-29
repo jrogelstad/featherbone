@@ -1462,6 +1462,11 @@ describe("client components", function () {
             ), [
                 ["Info", "edit", "Edit my contact information"],
                 ["Password", "key", "Change password"],
+                [
+                    "Help", "help",
+                    "How workbooks, worksheets, filters and settings " +
+                    "work, and every module's own help"
+                ],
                 ["Sign Out", "logout", "Sign out of application"]
             ]);
         });
