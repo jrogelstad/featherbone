@@ -519,6 +519,7 @@ function noteDialog(options) {
     let html = "";
     let model;
     let attr;
+    let clear;
 
     dlg.style({width: "560px"});
     dlg.isTitleLiteral(true);
@@ -573,6 +574,22 @@ function noteDialog(options) {
         ));
     };
 
+    // Enabled by `open`, for a cell this user has a note on
+    clear = f.createViewModel("Button", {
+        onclick: function () {
+            save(model, {
+                action: "clearNote",
+                attr
+            }, options.onError);
+            dlg.cancel();
+        },
+        label: "Clear",
+        title: "You have no note on this cell",
+        class: "fb-dialog-button"
+    });
+    clear.disable();
+    dlg.buttons().unshift(f.prop(clear));
+
     dlg.onOk(function () {
         let editor = tinymce.get(editorId);
         let text = (
@@ -606,6 +623,15 @@ function noteDialog(options) {
             ? mine.html
             : ""
         );
+        // Nothing to clear until there is a note of one's own, which
+        // the menu used to say by disabling its own "Clear note"
+        if (mine) {
+            clear.enable();
+            clear.title("Remove your note on this cell");
+        } else {
+            clear.disable();
+            clear.title("You have no note on this cell");
+        }
         dlg.title(
             (
                 mine
@@ -713,9 +739,19 @@ function noteCard(options) {
                     m("a", {
                         href: "#",
                         onclick: function (e) {
+                            /*
+                                Which note this is, before hiding the
+                                card: hiding is what forgets it, so
+                                reading `current` afterwards threw and
+                                Edit did nothing at all, while Clear --
+                                written this way from the start --
+                                worked (John, Oct 2026).
+                            */
+                            let target = current;
+
                             e.preventDefault();
                             card.hide();
-                            options.onEdit(current.model, current.attr);
+                            options.onEdit(target.model, target.attr);
                         }
                     }, "Edit"),
                     m("a", {
@@ -788,8 +824,6 @@ function cellActions(options) {
     let attr = options.attr;
     let reason = why(model, options.feather);
     let mine = !reason && myNote(model, attr);
-    let cellFmt = !reason && cellFormat(model, attr);
-    let rowFmt = !reason && rowFormat(model);
 
     function act(run) {
         return function () {
@@ -797,6 +831,9 @@ function cellActions(options) {
         };
     }
 
+    // Each dialog carries its own "Clear" button (formatDialog,
+    // noteDialog), so the menu only needs to open one or the other --
+    // it doesn't also offer the clearing actions themselves.
     return [{
         key: "format",
         icon: "platte",
@@ -807,61 +844,14 @@ function cellActions(options) {
     }, {
         key: "note",
         icon: "comment",
-        label: (
-            mine
-            ? "Edit note…"
-            : "Add note…"
-        ),
+        label: "Note…",
         title: reason || (
             mine
-            ? "Change your note on this cell"
+            ? "View or change your note on this cell"
             : "Add a note to this cell"
         ),
         disabled: Boolean(reason),
         run: act(() => options.noteDialog.open(model, attr, options.label))
-    }, {
-        key: "clearNote",
-        icon: "delete",
-        label: "Clear note",
-        title: reason || (
-            mine
-            ? "Remove your note on this cell"
-            : "You have no note on this cell"
-        ),
-        disabled: Boolean(reason || !mine),
-        run: act(() => save(model, {
-            action: "clearNote",
-            attr
-        }, options.onError))
-    }, {
-        key: "clearCell",
-        icon: "erase",
-        label: "Clear cell format",
-        title: reason || (
-            cellFmt
-            ? "Remove this cell's format"
-            : "This cell has no format of its own"
-        ),
-        disabled: Boolean(reason || !cellFmt),
-        run: act(() => save(model, {
-            action: "clearFormat",
-            target: "cell",
-            attr
-        }, options.onError))
-    }, {
-        key: "clearRow",
-        icon: "erase",
-        label: "Clear row format",
-        title: reason || (
-            rowFmt
-            ? "Remove this row's format"
-            : "This row has no format"
-        ),
-        disabled: Boolean(reason || !rowFmt),
-        run: act(() => save(model, {
-            action: "clearFormat",
-            target: "row"
-        }, options.onError))
     }];
 }
 

@@ -916,6 +916,68 @@
             };
         }
 
+        function isNumeric(field) {
+            return typeof field === "string" && (/^\d+$/).test(field);
+        }
+
+        /*
+            Two prereleases, the way semver orders them: field by
+            field, and a pair of numeric fields as numbers rather than
+            as text. Comparing the whole prerelease as one string put
+            alpha.9 after alpha.12, so a database left on an earlier
+            alpha counted as ahead of the server this checkout is and
+            was never offered the upgrade that would bring it current
+            (John asked why one had not upgraded itself, Oct 2026).
+
+            A numeric field sorts before a named one, and where one
+            prerelease runs out of fields first it is the older
+            (alpha before alpha.1).
+        */
+        function comparePre(a, b) {
+            let one = a.split(".");
+            let two = b.split(".");
+            let len = Math.max(one.length, two.length);
+            let i = 0;
+            let ret = 0;
+
+            while (i < len && ret === 0) {
+                let x = one[i];
+                let y = two[i];
+
+                if (x === undefined || y === undefined) {
+                    ret = (
+                        x === undefined
+                        ? -1
+                        : 1
+                    );
+                } else if (isNumeric(x) && isNumeric(y)) {
+                    if (Number(x) !== Number(y)) {
+                        ret = (
+                            Number(x) > Number(y)
+                            ? 1
+                            : -1
+                        );
+                    }
+                } else if (isNumeric(x) !== isNumeric(y)) {
+                    ret = (
+                        isNumeric(x)
+                        ? -1
+                        : 1
+                    );
+                } else if (x !== y) {
+                    ret = (
+                        x > y
+                        ? 1
+                        : -1
+                    );
+                }
+
+                i += 1;
+            }
+
+            return ret;
+        }
+
         /**
             Compare two versions: -1, 0 or 1.
 
@@ -1005,11 +1067,7 @@
             if (!two.pre) {
                 return -1;
             }
-            return (
-                one.pre > two.pre
-                ? 1
-                : -1
-            );
+            return comparePre(one.pre, two.pre);
         };
 
         /**
