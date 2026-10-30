@@ -1609,6 +1609,13 @@ describe("client components", function () {
             });
             assert.ok(R.find(out.tree, R.byTag("table")));
             assert.ok(R.text(out.tree).includes("Orders"));
+            // Help is last in the sheet's own toolbar, as on a form
+            let bar = R.find(out.tree, R.byId("toolbar"));
+            let last = bar.children.filter(
+                (n) => n && typeof n.tag === "string"
+            ).pop();
+            assert.equal(last.attrs.id, "toolbar-right-group");
+            assert.deepEqual(iconNames(last), ["help"]);
         });
 
         it("workbook-page.js goes home for an unknown workbook", function () {
@@ -1657,11 +1664,6 @@ describe("client components", function () {
             ), [
                 ["Info", "edit", "Edit my contact information"],
                 ["Password", "key", "Change password"],
-                [
-                    "Help", "help",
-                    "How workbooks, worksheets, filters and settings " +
-                    "work, and every module's own help"
-                ],
                 ["Sign Out", "logout", "Sign out of application"]
             ]);
         });

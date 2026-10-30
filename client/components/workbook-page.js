@@ -1444,11 +1444,13 @@ function positionToolbarCenter() {
     let toolbar = document.getElementById("toolbar");
     let left = document.getElementById("toolbar-record-group");
     let center = document.getElementById("toolbar-center-group");
+    let right = document.getElementById("toolbar-right-group");
     let toolbarRect;
     let leftRect;
     let centerRect;
     let trueCenter;
     let minLeft;
+    let maxLeft;
     let gap = 6;
 
     if (!toolbar || !left || !center) {
@@ -1460,7 +1462,13 @@ function positionToolbarCenter() {
     centerRect = center.getBoundingClientRect();
     trueCenter = (toolbarRect.width - centerRect.width) / 2;
     minLeft = leftRect.right - toolbarRect.left + gap;
-    center.style.left = Math.max(trueCenter, minLeft) + "px";
+    // Short of Help on the right, unless that would cross the left
+    maxLeft = trueCenter;
+    if (right) {
+        maxLeft = right.getBoundingClientRect().left - toolbarRect.left;
+        maxLeft -= gap + centerRect.width;
+    }
+    center.style.left = Math.max(Math.min(trueCenter, maxLeft), minLeft) + "px";
 }
 
 /**
@@ -1576,7 +1584,6 @@ workbookPage.component = {
         let workbookManage;
         let workbookSettings;
         let workbookName;
-        let ribbonTopRight;
         let vm = this.viewModel;
         let activeSheet = vm.sheet();
         let config = vm.config();
@@ -1805,12 +1812,6 @@ workbookPage.component = {
         };
         workbookName = vm.workbook().data.label() || vm.workbook().data.name();
 
-        ribbonTopRight = [
-            m(btn, {
-                viewModel: vm.buttonHelp()
-            })
-        ];
-
         // Finally assemble the whole view
         filterMenuClass = "pure-menu-link";
         if (!vm.tableWidget().models().canFilter()) {
@@ -1864,8 +1865,7 @@ workbookPage.component = {
                     worksheetActions: vm.actionButtons(),
                     workbookActions: workbookManage,
                     workbookSettings,
-                    workbookName,
-                    topRight: ribbonTopRight
+                    workbookName
                 }),
                 m("div", {
                     class: "fb-ribbon-page"
@@ -1917,7 +1917,15 @@ workbookPage.component = {
                                 })
                             ]),
                             listButtons
-                        ])
+                        ]),
+                        // Help last, as on a form: help for this list
+                        m("div", {class: "fb-toolbar-fill"}),
+                        m("div", {
+                            id: "toolbar-right-group",
+                            class: "fb-toolbar-right-group"
+                        }, m(btn, {
+                            viewModel: vm.buttonHelp()
+                        }))
                     ]),
                     m(tw, {
                         viewModel: vm.tableWidget()

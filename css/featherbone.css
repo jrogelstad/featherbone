@@ -2571,7 +2571,8 @@ button:disabled .fb-ipicon,
    left-side content (title + these buttons), without having to know
    how many buttons there are. Same 6px spacing they had as direct
    flex children of .fb-toolbar before being wrapped. */
-.fb-toolbar-record-group {
+.fb-toolbar-record-group,
+.fb-toolbar-right-group {
   display: flex;
   align-items: center;
   gap: 6px;

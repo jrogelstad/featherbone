@@ -1256,6 +1256,16 @@ function homeRibbonGroups() {
                     m("span", {class: "fb-rb-field-label"}, "%")
                 ]);
             }
+        }, {
+            // Help sits last in the toolbar of whatever it is about;
+            // on Home that is the whole app, so the Contents.
+            label: "Help",
+            icon: "help",
+            title: (
+                "How workbooks, worksheets, filters and settings work, " +
+                "and every module's own help"
+            ),
+            onclick: () => f.openHelp({contents: true})
         }]
     }];
 }
