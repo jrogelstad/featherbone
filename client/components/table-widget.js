@@ -36,6 +36,54 @@ const ROW_COUNT = 2;
 const FETCH_MAX = 3;
 const contextMenuStyle = f.prop({display: "none"});
 
+// The grid whose rows were right-clicked: only its menu shows
+let contextMenuOwner;
+
+function listMeta() {
+    return f.catalog().store().global().listMeta;
+}
+
+/*
+    A user's formats over the business styles: row, then cell, each
+    replacing only what the user set (see list-meta.js).
+*/
+function applyMeta(model, attr, tdOpts) {
+    let meta = listMeta();
+
+    Object.assign(
+        tdOpts.style,
+        meta.css(meta.rowFormat(model)),
+        meta.css(meta.cellFormat(model, attr))
+    );
+}
+
+/*
+    Mark a cell that has notes, move its tooltip into the note card, and
+    tell the row's context menu which cell it was opened on.
+*/
+function handleMeta(vm, model, attr, label, tdOpts) {
+    let notes = listMeta().notesOf(model, attr);
+    let title;
+
+    if (notes.length) {
+        title = tdOpts.title;
+        delete tdOpts.title;
+        tdOpts.class += " fb-cell-has-note";
+        tdOpts.onmouseenter = function (e) {
+            e.redraw = false;
+            vm.noteCard().enter(e, model, attr, title);
+        };
+        tdOpts.onmouseleave = function (e) {
+            e.redraw = false;
+            vm.noteCard().leave();
+        };
+    }
+
+    tdOpts.oncontextmenu = function (e) {
+        e.fbCell = {model, attr, label};
+    };
+}
+
 document.onclick = function () {
     contextMenuStyle({display: "none"});
 };
@@ -232,6 +280,14 @@ function createTableDataEditor(options, col) {
     tdOpts.style.fontSize = zoom;
 
     handleStyle(style, tdOpts);
+    applyMeta(theModel, col, tdOpts);
+    handleMeta(
+        theVm,
+        theModel,
+        col,
+        item.label || theVm.alias(col),
+        tdOpts
+    );
 
     columnSpacerClass = (
         "fb-column-spacer " + tdOpts.class
@@ -418,6 +474,9 @@ function createTableDataView(options, col) {
         title: otitle
     });
 
+    applyMeta(model, col, tdOpts);
+    handleMeta(theVm, model, col, item.label || theVm.alias(col), tdOpts);
+
     if (indentOn && options.idx === 0) {
         iconStyle = {
             fontSize: "18px",
@@ -454,7 +513,10 @@ function createTableDataView(options, col) {
     cell.push(m("td", {
         key: id + "-spcr",
         class: "fb-column-spacer",
-        style: {fontSize: zoom}
+        style: {
+            fontSize: zoom,
+            backgroundColor: tdOpts.style.backgroundColor
+        }
     }));
 
     options.idx += 1;
@@ -599,6 +661,16 @@ function createTableHeader(options, col) {
                 "column",
                 config.columns
             ),
+            // Click (or shift-click, to sort by several columns) is a
+            // quicker alternative to the sort dialog; a plain click
+            // and a drag both start from the same mousedown, but the
+            // browser only fires one or the other, never both, so
+            // this never fights with the handlers above. Clearing the
+            // sort is a button in the sort dialog itself (reached the
+            // usual way), not a header right-click menu.
+            onclick: function (ev) {
+                vm.toggleSort(key, ev.shiftKey);
+            },
             class: "fb-column-header",
             style: {
                 width: columnWidth + "px",
@@ -689,14 +761,19 @@ function createTableRow(options, pModel) {
                 textDecoration: style.textDecoration
             };
 
-            rowTint = f.iconFilter(style.color);
-            if (rowTint) {
-                rowOpts.style["--fb-icon-filter"] = rowTint;
-            }
+            // Selection tints over the background (featherbone.css), so
+            // a selected row keeps its colors
+            rowOpts.style.backgroundColor = style.backgroundColor;
+        }
 
-            if (!isSelected) {
-                rowOpts.style.backgroundColor = style.backgroundColor;
-            }
+        // The user's row format over the business style
+        rowOpts.style = Object.assign(
+            rowOpts.style || {},
+            listMeta().css(listMeta().rowFormat(pModel))
+        );
+        rowTint = f.iconFilter(rowOpts.style.color);
+        if (rowTint) {
+            rowOpts.style["--fb-icon-filter"] = rowTint;
         }
 
         // Build editable row
@@ -811,6 +888,15 @@ function createTableRow(options, pModel) {
             onclick: onClick,
             style: iconStyle
         });
+    } else if (
+        listMeta().hasNotes(pModel) &&
+        !(currentMode === "/Mode/Edit" && isSelected)
+    ) {
+        thContent = f.icon("comment", "fb-table-icon fb-table-note-icon", {
+            onclick: onClick,
+            title: "Notes on this row: point at a marked cell to read them",
+            style: iconStyle
+        });
     } else {
         cellOpts = {
             onclick: onClick,
@@ -850,15 +936,17 @@ function createTableRow(options, pModel) {
     rowOpts.oncontextmenu = function (e) {
         e.preventDefault();
 
-        if (contextMenuStyle().display === "block") {
-            contextMenuStyle({display: "none"});
-        } else {
-            contextMenuStyle({
-                display: "block",
-                left: e.pageX + "px",
-                top: e.pageY + "px"
-            });
-        }
+        // Each right-click opens the menu where it was made, for the
+        // cell it was made on (see handleMeta)
+        theVm.contextCell(e.fbCell);
+        theVm.noteCard().hide();
+        contextMenuOwner = theVm;
+        // Page coordinates are zoomed (see pageScale); CSS ones are not
+        contextMenuStyle({
+            display: "block",
+            left: e.pageX / pageScale() + "px",
+            top: e.pageY / pageScale() + "px"
+        });
     };
 
     // Hide rows indented under collapsed parent
@@ -2142,6 +2230,158 @@ tableWidget.viewModel = function (options) {
         title: "Error"
     }));
     vm.errorDialog().buttonCancel().hide();
+
+    function metaError(err) {
+        vm.errorDialog().message(err.message || String(err));
+        vm.errorDialog().show();
+    }
+
+    /**
+        Cell the context menu was opened on: `{model, attr, label}`, or
+        undefined for the row's lead or filler cell.
+
+        @method contextCell
+        @param {Object} cell
+        @return {Object}
+    */
+    vm.contextCell = f.prop();
+    /**
+        Dialog for a cell's or row's format.
+
+        @method formatDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.formatDialog = f.prop(listMeta().formatDialog({onError: metaError}));
+    /**
+        Dialog for the current user's note on a cell.
+
+        @method noteDialog
+        @return {ViewModels.Dialog}
+    */
+    vm.noteDialog = f.prop(listMeta().noteDialog({onError: metaError}));
+    /**
+        Hover card listing a cell's notes.
+
+        @method noteCard
+        @return {Object}
+    */
+    vm.noteCard = f.prop(listMeta().noteCard({
+        onEdit: function (model, attr) {
+            let col = vm.config().columns.find((c) => c.attr === attr);
+
+            vm.noteDialog().open(
+                model,
+                attr,
+                (col && col.label) || vm.alias(attr)
+            );
+            m.redraw();
+        },
+        onClear: function (model, attr) {
+            listMeta().save(model, {
+                action: "clearNote",
+                attr
+            }, metaError);
+        }
+    }));
+    /**
+        Format and note actions for the cell the context menu is open on,
+        as `<li>` vnodes, then a separator before the list's own actions.
+
+        @method cellActions
+        @return {Array}
+    */
+    vm.cellActions = function () {
+        let cell = vm.contextCell();
+
+        if (!cell) {
+            return [];
+        }
+
+        return listMeta().cellActions({
+            model: cell.model,
+            attr: cell.attr,
+            label: cell.label,
+            feather: vm.feather(),
+            formatDialog: vm.formatDialog(),
+            noteDialog: vm.noteDialog(),
+            onError: metaError
+        }).map(function (item, idx, ary) {
+            return m("li", {
+                id: "context-meta-" + item.key,
+                class: "pure-menu-link fb-menu-list-item" + (
+                    item.disabled
+                    ? " pure-menu-disabled"
+                    : ""
+                ) + (
+                    idx === ary.length - 1
+                    ? " fb-menu-list-separator-after"
+                    : ""
+                ),
+                title: item.title,
+                onclick: (
+                    item.disabled
+                    ? undefined
+                    : item.run
+                )
+            }, [
+                f.icon(item.icon, "fb-menu-list-icon")
+            ], item.label);
+        });
+    };
+    /**
+        Sort the list by a column: the quick alternative to the sort
+        dialog for the common case (click a header). A plain click
+        sorts by just that column ascending, or flips it if it is
+        already the only column sorted; a plain click while several
+        columns are sorted starts over with just this one. Holding
+        shift adds the column as a further key instead of starting
+        over, or flips that key in place if it is already one of them.
+        The sort dialog has its own "Clear" button for dropping every
+        key. Does not otherwise change how sorting works -- it edits
+        the same `filter().sort` the sort dialog does.
+
+        @method toggleSort
+        @param {String} attr
+        @param {Boolean} isAdditional Add to the sort instead of
+        replacing it (shift-click)
+        @return {Array} The new sort
+    */
+    vm.toggleSort = function (attr, isAdditional) {
+        let filter = f.copy(vm.filter());
+        let sort = filter.sort || [];
+        let idx = sort.findIndex((item) => item.property === attr);
+
+        if (isAdditional) {
+            sort = sort.slice();
+            if (idx === -1) {
+                sort.push({property: attr, order: "ASC"});
+            } else {
+                sort[idx] = {
+                    property: attr,
+                    order: (
+                        sort[idx].order === "DESC"
+                        ? "ASC"
+                        : "DESC"
+                    )
+                };
+            }
+        } else if (sort.length === 1 && idx === 0) {
+            sort = [{
+                property: attr,
+                order: (
+                    sort[0].order === "DESC"
+                    ? "ASC"
+                    : "DESC"
+                )
+            }];
+        } else {
+            sort = [{property: attr, order: "ASC"}];
+        }
+
+        filter.sort = sort;
+        vm.filter(filter);
+        return sort;
+    };
     /**
         @method feather
         @param {Object} feather
@@ -3082,9 +3322,20 @@ tableWidget.component = {
             m(dlg, {
                 viewModel: theVm.errorDialog()
             }),
+            m(dlg, {
+                viewModel: theVm.formatDialog()
+            }),
+            m(dlg, {
+                viewModel: theVm.noteDialog()
+            }),
+            theVm.noteCard().view(),
             m("div", {
                 class: "fb-context-menu",
-                style: contextMenuStyle()
+                style: (
+                    contextMenuOwner === theVm
+                    ? contextMenuStyle()
+                    : {display: "none"}
+                )
             }, [
                 m("ul", {
                     id: "context-actions-list",
@@ -3092,7 +3343,7 @@ tableWidget.component = {
                         "pure-menu-list fb-menu-list " +
                         "fb-menu-list-show"
                     )
-                }, theVm.actions())
+                }, theVm.cellActions().concat(theVm.actions()))
             ]),
             // One table inside one scrolling box: the header and footer
             // stick to the top/bottom of the box (position: sticky, see

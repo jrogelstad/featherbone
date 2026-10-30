@@ -463,11 +463,31 @@
                     });
                 }
 
+                /*
+                    Read the catalog as the database holds it, not as
+                    this process last cached it. Rebuilding views is
+                    exactly the moment the two can differ: an install
+                    script that alters the catalog in SQL -- the `meta`
+                    property the base object table gained for list
+                    formats and notes (3.0.0-alpha.11) is one -- writes
+                    the row behind the cache's back, and the cache was
+                    filled before the script ran. Views rebuilt from the
+                    stale copy came out without the new column while
+                    every table and the stored catalog had it, so the
+                    client was told each feather carries `meta` and
+                    every read of one answered `column "meta" does not
+                    exist` (John, Oct 2026).
+
+                    A forced read refills the cached object in place, so
+                    the `getFeathers` calls behind each view below pick
+                    up the same refreshed definitions.
+                */
                 function getCatalog() {
                     return new Promise(function (resolve, reject) {
                         settings.getSettings({
                             client: obj.client,
                             data: {
+                                force: true,
                                 name: "catalog"
                             }
                         }).then(resolve).catch(reject);

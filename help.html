@@ -79,6 +79,17 @@ blockquote p:last-child{margin:0}
 .supplement p{margin:0}
 .note{color:var(--faint);font-size:13.5px}
 
+/* contents: every module that has help, the generic pages first */
+.shelf{margin:0 0 26px}
+.shelf h2{margin:0 0 8px}
+.shelf ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.shelf a{display:block;text-decoration:none;color:var(--fg);
+  border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+  font-size:14px}
+.shelf a:hover{border-color:var(--accent);background:var(--accent-bg);
+  color:var(--accent)}
+
 @media (max-width:620px){
   main{padding:16px 14px 60px}
   h1{font-size:21px}
@@ -96,7 +107,10 @@ blockquote p:last-child{margin:0}
 <div class="bar">
     <button id="fb-help-back" title="Back" disabled>&#8592;</button>
     <button id="fb-help-forward" title="Forward" disabled>&#8594;</button>
-    <select id="fb-help-pages" title="Contents"></select>
+    <button id="fb-help-contents" title="Everything there is help for">
+        Contents
+    </button>
+    <select id="fb-help-pages" title="Pages in this section"></select>
     <span class="where" id="fb-help-where"></span>
     <button id="fb-help-print" title="Print this page">Print</button>
 </div>

@@ -44,7 +44,8 @@
         "updatedBy",
         "objectType",
         "owner",
-        "etag"
+        "etag",
+        "meta"
     ];
     const propTypes = [
         "description",

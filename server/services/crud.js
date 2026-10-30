@@ -1216,6 +1216,9 @@
                 let payload;
                 let data = f.copy(obj.data);
                 let name = obj.name || "";
+
+                // A copy starts without the original's formats and notes
+                delete data.meta;
                 let args = [name.toSnakeCase()];
                 let tokens = [];
                 let params = [];
@@ -1945,7 +1948,11 @@
             }
 
             keys.forEach(function (key) {
-                if (fp[key].isEncrypted) {
+                // A feather over a view has no object columns of its own
+                if (key === "meta" && feather.isView) {
+                    tokens.push("%s");
+                    cols.push("NULL::jsonb");
+                } else if (fp[key].isEncrypted) {
                     tokens.push("%s");
                     // Key is bound as a parameter once the other parameters
                     // are known (see KEY_PARAM below)
@@ -2122,6 +2129,10 @@
             if (obj.oldRec && obj.oldRec.etag) {
                 keys.push("etag");
             }
+            // Formats and notes belong to the meta service, not a save
+            patches = patches.filter(
+                (patch) => patch.path.split("/")[1] !== "meta"
+            );
             //console.log("PATCHES", obj.data);
 
             if (!patches.length) {

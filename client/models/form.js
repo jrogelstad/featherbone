@@ -35,7 +35,9 @@ function form(data, feather) {
                 return result;
             }
             formFeather = f.catalog().getFeather(formFeather);
-            keys = Object.keys(formFeather.properties || []).sort();
+            keys = Object.keys(formFeather.properties || []).filter(
+                (key) => key !== "meta"
+            ).sort();
             keys.unshift("");
             props = keys.map(function (key) {
                 return {
@@ -253,7 +255,9 @@ function formAttr(data, feather) {
             return result;
         }
         formFeather = f.catalog().getFeather(formFeather);
-        keys = Object.keys(formFeather.properties || []).sort();
+        keys = Object.keys(formFeather.properties || []).filter(
+            (key) => key !== "meta"
+        ).sort();
         result = keys.map(function (key) {
             return {
                 value: key,
@@ -484,7 +488,9 @@ function formAttrColumn(data, feather) {
             return result;
         }
 
-        keys = Object.keys(childFeather.properties || []).sort();
+        keys = Object.keys(childFeather.properties || []).filter(
+            (key) => key !== "meta"
+        ).sort();
         keys = resolveProperties(childFeather, keys).sort();
         return keys.map(function (key) {
             return {
@@ -559,7 +565,9 @@ function printOverlay(data, feather) {
                 return result;
             }
             formFeather = f.catalog().getFeather(formFeather);
-            keys = Object.keys(formFeather.properties || []).sort();
+            keys = Object.keys(formFeather.properties || []).filter(
+                (key) => key !== "meta"
+            ).sort();
             keys.unshift("");
             props = keys.map(function (key) {
                 return {
@@ -695,7 +703,9 @@ function printOverlayAttr(data, feather) {
             return result;
         }
         formFeather = f.catalog().getFeather(formFeather);
-        keys = Object.keys(formFeather.properties || []).sort();
+        keys = Object.keys(formFeather.properties || []).filter(
+            (key) => key !== "meta"
+        ).sort();
         result = keys.map(function (key) {
             return {
                 value: key,
@@ -825,7 +835,9 @@ function printOverlayAttrColumn(data, feather) {
             return result;
         }
 
-        keys = Object.keys(childFeather.properties || []).sort();
+        keys = Object.keys(childFeather.properties || []).filter(
+            (key) => key !== "meta"
+        ).sort();
         keys = resolveProperties(childFeather, keys).sort();
         return keys.map(function (key) {
             return {

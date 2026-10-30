@@ -1,6 +1,6 @@
 {
   "name": "featherbone",
-  "version": "3.0.0-alpha.10",
+  "version": "3.0.0-alpha.14",
   "private": true,
   "description": "Framework for building object relational database apps",
   "keywords": [],
@@ -54,6 +54,7 @@
     "purecss": "^2.1.0",
     "qs": "^6.16.2",
     "redoc": "3.0.1",
+    "sanitize-html": "^2.18.1",
     "shipengine": "^1.0.1",
     "table-layout": "^3.0.0",
     "tinymce": "^8.9.3",

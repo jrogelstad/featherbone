@@ -86,6 +86,40 @@ describe("installed packages", function () {
         );
     });
 
+    /*
+        A numbered prerelease counts up, so the tenth of a series is
+        newer than the ninth. Compared as text it was not, and a
+        database left on an earlier alpha of a series counted as ahead
+        of the server and so was never upgraded.
+    */
+    it("counts a numbered prerelease, not its spelling", function () {
+        assert.equal(
+            packages.compareVersions("3.0.0-alpha.9", "3.0.0-alpha.12"),
+            -1
+        );
+        assert.equal(
+            packages.compareVersions("3.0.0-alpha.12", "3.0.0-alpha.9"),
+            1
+        );
+        assert.equal(
+            packages.compareVersions("3.0.0-alpha.12", "3.0.0-alpha.12"),
+            0
+        );
+        assert.equal(
+            packages.compareVersions("1.0.0-alpha.2", "1.0.0-beta.1"),
+            -1
+        );
+        // A numbered field before a named one, and the shorter first
+        assert.equal(
+            packages.compareVersions("1.0.0-1", "1.0.0-alpha"),
+            -1
+        );
+        assert.equal(
+            packages.compareVersions("1.0.0-alpha", "1.0.0-alpha.1"),
+            -1
+        );
+    });
+
     it("knows the newest version it holds", function () {
         packages.scan(root);
 

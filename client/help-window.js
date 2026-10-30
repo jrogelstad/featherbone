@@ -39,6 +39,7 @@
     const pages = document.getElementById("fb-help-pages");
     const where = document.getElementById("fb-help-where");
     const back = document.getElementById("fb-help-back");
+    const contentsButton = document.getElementById("fb-help-contents");
     const forward = document.getElementById("fb-help-forward");
     // "/<database>/help" -- the window is served by the instance it is for
     const db = window.location.pathname.split("/")[1];
@@ -163,6 +164,63 @@
         main.insertBefore(box, main.firstChild);
     }
 
+    /*
+        Everything there is help for. How workbooks, filters and
+        settings work is not about any one worksheet, so it has to be
+        readable without being on the page it is about: this is that
+        way in, and the app opens the window here from its own Help
+        (client/help.js).
+    */
+    async function renderContents() {
+        let resp = await window.fetch(
+            "/" + encodeURIComponent(db) + "/help-contents"
+        );
+
+        if (!resp.ok) {
+            say("Help could not be loaded.");
+            return;
+        }
+
+        let shelves = await resp.json();
+
+        main.innerHTML = "";
+        pages.style.display = "none";
+        where.textContent = "Contents";
+        document.title = "Help - Contents";
+
+        let head = document.createElement("h1");
+
+        head.textContent = "Help";
+        main.appendChild(head);
+
+        shelves.forEach(function (shelf) {
+            let box = document.createElement("div");
+            let title = document.createElement("h2");
+            let list = document.createElement("ul");
+
+            box.className = "shelf";
+            title.textContent = shelf.title;
+            box.appendChild(title);
+
+            shelf.pages.forEach(function (page) {
+                let item = document.createElement("li");
+                let link = document.createElement("a");
+
+                link.href = "#";
+                link.textContent = page.title || page.path;
+                link.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    go({module: shelf.module, path: page.path}, true);
+                });
+                item.appendChild(link);
+                list.appendChild(item);
+            });
+            box.appendChild(list);
+            main.appendChild(box);
+        });
+        window.scrollTo(0, 0);
+    }
+
     async function render(topic) {
         let resp = await window.fetch(urlOf(topic.module, topic.path));
 
@@ -204,7 +262,9 @@
         arrows();
 
         try {
-            if (topic.module && topic.path) {
+            if (topic.contents) {
+                await renderContents();
+            } else if (topic.module && topic.path) {
                 await render(topic);
             } else {
                 await lookup(topic, asked);
@@ -252,6 +312,10 @@
         let params = new window.URLSearchParams(window.location.search);
         let ret = {};
 
+        if (params.get("contents")) {
+            return {contents: true};
+        }
+
         ["feather", "form", "module", "path"].forEach(function (key) {
             if (params.get(key)) {
                 ret[key] = params.get(key);
@@ -285,6 +349,10 @@
     pages.addEventListener("change", function () {
         go({module: current.module, path: pages.value}, true);
     });
+    contentsButton.addEventListener(
+        "click",
+        () => go({contents: true}, true)
+    );
     back.addEventListener("click", () => window.history.back());
     forward.addEventListener("click", () => window.history.forward());
     document.getElementById("fb-help-print").addEventListener(
@@ -301,7 +369,14 @@
         depth = state.depth;
         arrows();
         current = state.topic;
-        render(state.topic).catch(function (err) {
+
+        let shown = (
+            state.topic.contents
+            ? renderContents()
+            : render(state.topic)
+        );
+
+        shown.catch(function (err) {
             say(err.message || "Help could not be loaded.");
         });
     });

@@ -42,6 +42,7 @@
         NavigationCategories
     } = require("./services/navigation-categories");
     const {Manager} = require("./services/manager");
+    const {Meta} = require("./services/meta");
     const {Profile} = require("./services/profile");
     const {Packager} = require("./services/packager");
     const {Routes} = require("./services/routes");
@@ -76,6 +77,7 @@
     const navigationCategories = new NavigationCategories();
     const packager = new Packager();
     const profile = new Profile();
+    const meta = new Meta();
     const routes = new Routes();
     const services = new Services();
     const settings = new Settings();
@@ -4507,6 +4509,7 @@
     that.registerFunction("GET", "convertCurrency", currency.convertCurrency);
     that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
+    that.registerFunction("GET", "getHelpContents", help.getContents);
     that.registerFunction("GET", "getHelpFile", help.getFile);
     that.registerFunction("GET", "getHelpTopic", help.getTopic);
     that.registerFunction("GET", "getAbout", about.getAbout);
@@ -4565,6 +4568,7 @@
         "saveAuthorization",
         feathers.saveAuthorization
     );
+    that.registerFunction("POST", "saveMeta", meta.saveMeta);
     that.registerFunction("POST", "savePoint", crud.savePoint);
     that.registerFunction("POST", "stopProcess", stopProcess);
     that.registerFunction("POST", "subscribe", subscribe);

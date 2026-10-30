@@ -118,6 +118,7 @@
                 }
 
                 async function callback(resp) {
+                    stripMeta(resp);
                     try {
                         let process = f.datasource.createProcess({
                             client: pClient,
@@ -151,6 +152,21 @@
                     false,
                     true
                 ).then(callback).catch(reject);
+            });
+        }
+
+        // Formats and notes stay with the list they were made in
+        function stripMeta(rows) {
+            rows.forEach(function (row) {
+                if (!row || typeof row !== "object") {
+                    return;
+                }
+                delete row.meta;
+                Object.keys(row).forEach(function (key) {
+                    if (Array.isArray(row[key])) {
+                        stripMeta(row[key]);
+                    }
+                });
             });
         }
 

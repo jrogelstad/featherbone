@@ -294,7 +294,99 @@ async function main(argv) {
     return 0;
 }
 
-module.exports = {bundle, bundled, productionHtml, scripts};
+/**
+    Build the bundle if what is on disk is not what the sources say, and
+    say what happened. The server calls this as it starts (server.js), so
+    `npm start` is all a deployment needs: client/clientmin.js is built
+    rather than committed.
+
+    It used to be committed, and every merge that touched client code
+    conflicted on 400 KB of minified output -- four times in two days,
+    each one resolved by rebuilding it anyway (John, Oct 2026).
+
+    A build that fails is only fatal when there is no bundle to fall back
+    on: a server that cannot write to its own checkout should still come
+    up and serve the bundle that is already there.
+
+    @method ensure
+    @param {Object} [options] quiet, file (where to write; the bundle)
+    @return {Promise} {built, reason}
+*/
+async function ensure(options) {
+    let quiet = Boolean(options && options.quiet);
+    let where = (options && options.file) || BUNDLE;
+    let held = read(where);
+    let built = await bundle(read(DEBUG_HTML)).then(
+        (out) => out,
+        (err) => ({failed: err})
+    );
+    let fatal;
+    let wrote;
+
+    function say(message) {
+        if (!quiet) {
+            console.log(message);
+        }
+    }
+
+    /*
+        A server that cannot write to its own checkout still comes up on
+        the bundle that is already there; only an absent one is fatal.
+    */
+    function fallBack(what, err) {
+        if (!held) {
+            return new Error(
+                "The client bundle is missing and " + what + ": " +
+                err.message
+            );
+        }
+        console.warn(
+            "Client bundle " + what + " (" + err.message +
+            "); serving the one on disk."
+        );
+        return undefined;
+    }
+
+    if (built.failed) {
+        fatal = fallBack("cannot be built", built.failed);
+
+        if (fatal) {
+            throw fatal;
+        }
+        return {built: false, reason: built.failed.message};
+    }
+
+    if (held === built.code) {
+        say("Client bundle is current.");
+        return {built: false, reason: "current"};
+    }
+
+    wrote = (function () {
+        try {
+            fs.writeFileSync(where, built.code);
+        } catch (err) {
+            return err;
+        }
+    }());
+
+    if (wrote) {
+        fatal = fallBack("could not be written", wrote);
+
+        if (fatal) {
+            throw fatal;
+        }
+        return {built: false, reason: wrote.message};
+    }
+
+    say(
+        "Client bundle built: " + built.files.length + " scripts, " +
+        built.inputs.length + " files, " + kb(built.code.length) + "."
+    );
+
+    return {built: true, reason: "written"};
+}
+
+module.exports = {bundle, bundled, ensure, productionHtml, scripts};
 
 if (require.main === module) {
     main(process.argv.slice(2)).then(function (code) {

@@ -110,6 +110,44 @@ describe("help", function () {
         });
     });
 
+    /*
+        How workbooks, filters and settings work is not about any one
+        worksheet, so it has to be readable without being on the page
+        it is about (John, Oct 2026). The window's contents is that way
+        in, and the app's own Help opens it there.
+    */
+    describe("the contents of everything", function () {
+        it("lists each module with help, framework first", async function () {
+            let shelves = await admin.get("/help-contents");
+
+            assert.ok(shelves.length > 0);
+            assert.equal(shelves[0].module, "Core");
+            assert.ok(
+                shelves[0].pages.some((page) => page.path === "workbooks.md"),
+                "the generic pages are there to be found"
+            );
+        });
+
+        it("names only deployed modules", async function () {
+            let shelves = await admin.get("/help-contents");
+            let rows = await db.query(
+                "SELECT name FROM module WHERE NOT is_deleted"
+            );
+            let held = new Set(rows.rows.map((row) => row.name));
+
+            shelves.forEach(function (shelf) {
+                assert.ok(held.has(shelf.module), shelf.module);
+                assert.ok(shelf.pages.length, shelf.module + " has pages");
+            });
+        });
+
+        it("is not reachable without a session", async function () {
+            let out = new Session();
+
+            assert.equal((await out.raw("GET", "/help-contents")).status, 401);
+        });
+    });
+
     describe("the files", function () {
         it("serves a page of the deployed version", async function () {
             let resp = await admin.raw("GET", "/help/Core/worksheets.md");

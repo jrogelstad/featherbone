@@ -255,11 +255,12 @@ function profileSave(key, value) {
     Both belong in the user's profile, and go there together.
 */
 const APP_ZOOM_KEY = "fb-app-zoom";
-const APP_ZOOM_DEFAULT = 113;
+const APP_ZOOM_DEFAULT = 100;
 const APP_ZOOM_MIN = 50;
 const APP_ZOOM_MAX = 200;
 // The control shows zoom relative to the default, so the default reads
-// 100%; steps and limits are in those shown units.
+// 100%; steps and limits are in those shown units. The default is the
+// stylesheet's --fb-ui-scale (1 = 100); keep the two together.
 const ZOOM_SHOWN_STEP = 5;
 const ZOOM_SHOWN_MIN = 50;
 const ZOOM_SHOWN_MAX = 175;
@@ -1255,6 +1256,16 @@ function homeRibbonGroups() {
                     m("span", {class: "fb-rb-field-label"}, "%")
                 ]);
             }
+        }, {
+            // Help sits last in the toolbar of whatever it is about;
+            // on Home that is the whole app, so the Contents.
+            label: "Help",
+            icon: "help",
+            title: (
+                "How workbooks, worksheets, filters and settings work, " +
+                "and every module's own help"
+            ),
+            onclick: () => f.openHelp({contents: true})
         }]
     }];
 }

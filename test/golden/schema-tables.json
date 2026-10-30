@@ -795,6 +795,7 @@
       "id": "text",
       "is_deleted": "boolean",
       "lock": "lock",
+      "meta": "jsonb",
       "updated": "timestamp with time zone",
       "updated_by": "text"
     },

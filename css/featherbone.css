@@ -77,6 +77,33 @@
     --fb-selected-bg: #e8f0fe;
     --fb-selected-hover-bg: #dbe7fd;
 
+    /* Grid rows tint over their own colors rather than replacing them,
+       so a formatted row stays readable when hovered or selected */
+    --fb-row-hover-overlay: rgba(26, 115, 232, 0.07);
+    --fb-row-selected-overlay: rgba(26, 115, 232, 0.12);
+    --fb-row-selected-hover-overlay: rgba(26, 115, 232, 0.18);
+
+    /* Format swatches (list-meta.js): bg for backgrounds, fg for text */
+    --fb-swatch-red-bg: #fde2e1;
+    --fb-swatch-red-fg: #c62828;
+    --fb-swatch-orange-bg: #ffe7cc;
+    --fb-swatch-orange-fg: #b45309;
+    --fb-swatch-yellow-bg: #fff4b8;
+    --fb-swatch-yellow-fg: #8a6d00;
+    --fb-swatch-green-bg: #dcf5df;
+    --fb-swatch-green-fg: #1e7b34;
+    --fb-swatch-teal-bg: #d3f2ef;
+    --fb-swatch-teal-fg: #0e7a70;
+    --fb-swatch-blue-bg: #dbe8fd;
+    --fb-swatch-blue-fg: #1558b0;
+    --fb-swatch-purple-bg: #ebe3fb;
+    --fb-swatch-purple-fg: #6b3fc4;
+    --fb-swatch-gray-bg: #e6e8eb;
+    --fb-swatch-gray-fg: #52575d;
+
+    /* Corner marker on a cell with notes */
+    --fb-note-marker: #e37400;
+
     /* Tab strips (worksheet tabs and form tabs) */
     --fb-tab-bg: #e9ebee;
     --fb-tab-hover-bg: #f4f6f9;
@@ -121,6 +148,29 @@
         --fb-selected-bg: #1d3a5c;
         --fb-selected-hover-bg: #234873;
 
+        --fb-row-hover-overlay: rgba(107, 168, 245, 0.12);
+        --fb-row-selected-overlay: rgba(107, 168, 245, 0.22);
+        --fb-row-selected-hover-overlay: rgba(107, 168, 245, 0.30);
+
+        --fb-swatch-red-bg: #5c2424;
+        --fb-swatch-red-fg: #ff8a80;
+        --fb-swatch-orange-bg: #5a3812;
+        --fb-swatch-orange-fg: #ffb74d;
+        --fb-swatch-yellow-bg: #4d4210;
+        --fb-swatch-yellow-fg: #ffe066;
+        --fb-swatch-green-bg: #1f4a2a;
+        --fb-swatch-green-fg: #81c995;
+        --fb-swatch-teal-bg: #134843;
+        --fb-swatch-teal-fg: #6fd6cb;
+        --fb-swatch-blue-bg: #1d3a5c;
+        --fb-swatch-blue-fg: #8ab4f8;
+        --fb-swatch-purple-bg: #3d2e63;
+        --fb-swatch-purple-fg: #c5a8ff;
+        --fb-swatch-gray-bg: #3a3e45;
+        --fb-swatch-gray-fg: #bdc1c6;
+
+        --fb-note-marker: #fbbc04;
+
         --fb-tab-bg: #2a2e35;
         --fb-tab-hover-bg: #32363d;
 
@@ -144,23 +194,23 @@
    exactly what started cutting column headers off with ellipses. Controls
    that need a fixed outer size (buttons, inputs) opt in individually below.
    ========================================================================= */
-/* The whole interface is drawn 25% larger than its CSS sizes say.
+/* The whole interface is drawn at its CSS sizes: a scale of 1.
 
    Everything here is in px -- some 500 values of it -- so there is no
    root font size to raise and no rem to scale: the only lever that moves
    type, controls, borders and spacing together, in proportion, is zoom.
-   That is exactly what a browser's own zoom does, and the app at a
-   browser's 125% is what this reproduces at 100%, so nobody has to set
-   it per machine to get something that sits properly beside the rest of
-   the desktop. Settled at 1.125 rather than 1.25 by looking at it: the
-   quarter was a shade large (John, Oct 2026).
+   It started out drawn larger (1.25, then 1.125) so the app sat beside
+   the rest of the desktop; John put it back to 1.00 (Oct 2026), the
+   size it was designed at.
 
    A variable rather than a literal so it is one place to change, and so
-   a future preference has something to write to. Browser zoom still
-   works on top of it and compounds, which is the behaviour anybody
-   pressing ctrl-plus expects. */
+   a preference can write to it: the zoom control in the ribbon does
+   (client/main.js, which keeps its own copy of this number as the "100%"
+   of its display -- change both together). Browser zoom still works on
+   top of it and compounds, which is the behaviour anybody pressing
+   ctrl-plus expects. */
 :root {
-    --fb-ui-scale: 1.13;
+    --fb-ui-scale: 1;
 }
 
 html {
@@ -1906,8 +1956,15 @@ button:disabled .fb-ipicon,
   border-width: 1px 0 0 0;
 }
 
-.fb-table tbody tr:hover {
-  background-color: var(--fb-hover-accent-tint);
+/* Hover and selection are tints laid over each cell (background-image
+   paints above background-color), so a row or cell format -- the user's
+   or a business style -- still shows through. */
+.fb-table tbody tr:hover > td,
+.fb-table tbody tr:hover > th {
+  background-image: linear-gradient(
+    var(--fb-row-hover-overlay),
+    var(--fb-row-hover-overlay)
+  );
 }
 
 /* Leading status column (selection / lock / new / deleted icon). */
@@ -1962,6 +2019,14 @@ button:disabled .fb-ipicon,
   cursor: move;
 }
 
+/* A header is also a click-to-sort target (table-widget.js's
+   createTableHeader/toggleSort) alongside its drag-to-reorder role, so
+   it gets a hover tint too -- same affordance already used for list
+   rows and other clickable surfaces. */
+.fb-column-header:hover {
+  background-color: var(--fb-hover-neutral-tint);
+}
+
 .fb-cell-view {
   cursor: default;
 }
@@ -1989,15 +2054,216 @@ button:disabled .fb-ipicon,
   font-size: 14px !important;
 }
 
-/* Selected row: ddom's plain tint, no lines. */
-.fb-table tbody tr.fb-table-row-selected,
-.fb-table tbody tr.fb-table-row-editor {
-  background-color: var(--fb-selected-bg);
+/* Selected row: a tint over its own colors, plus an accent bar in the
+   lead column that shows on any background. */
+.fb-table tbody tr.fb-table-row-selected > td,
+.fb-table tbody tr.fb-table-row-selected > th,
+.fb-table tbody tr.fb-table-row-editor > td,
+.fb-table tbody tr.fb-table-row-editor > th {
+  background-image: linear-gradient(
+    var(--fb-row-selected-overlay),
+    var(--fb-row-selected-overlay)
+  );
 }
 
-.fb-table tbody tr.fb-table-row-selected:hover,
-.fb-table tbody tr.fb-table-row-editor:hover {
-  background-color: var(--fb-selected-hover-bg);
+.fb-table tbody tr.fb-table-row-selected:hover > td,
+.fb-table tbody tr.fb-table-row-selected:hover > th,
+.fb-table tbody tr.fb-table-row-editor:hover > td,
+.fb-table tbody tr.fb-table-row-editor:hover > th {
+  background-image: linear-gradient(
+    var(--fb-row-selected-hover-overlay),
+    var(--fb-row-selected-hover-overlay)
+  );
+}
+
+.fb-table tbody tr.fb-table-row-selected > th.fb-table-lead,
+.fb-table tbody tr.fb-table-row-editor > th.fb-table-lead {
+  box-shadow: inset 3px 0 0 var(--fb-accent);
+}
+
+/* A cell with notes: a corner marker, since a cell has no room for an
+   icon. The row's lead column carries the icon. */
+.fb-table td.fb-cell-has-note {
+  position: relative;
+}
+
+.fb-table td.fb-cell-has-note::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 9px 9px 0;
+  border-color: transparent var(--fb-note-marker) transparent transparent;
+  filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+
+.fb-table .fb-table-lead .fb-table-note-icon {
+  opacity: 0.8;
+}
+
+.fb-note-card {
+  position: fixed;
+  z-index: 50;
+  max-width: 360px;
+  min-width: 220px;
+  padding: 8px 10px;
+  background-color: var(--fb-surface);
+  color: var(--fb-text);
+  border: 1px solid var(--fb-border);
+  border-left: 3px solid var(--fb-note-marker);
+  border-radius: 4px;
+  box-shadow: var(--fb-shadow-md);
+  font-size: 13px;
+  text-align: left;
+  white-space: normal;
+}
+
+.fb-note-card-title {
+  color: var(--fb-text-secondary);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--fb-border-subtle);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fb-note-card-note + .fb-note-card-note {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fb-border-subtle);
+}
+
+.fb-note-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--fb-text-muted);
+}
+
+.fb-note-card-user {
+  font-weight: 600;
+  color: var(--fb-text-secondary);
+}
+
+.fb-note-card-links {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.fb-note-card-links a {
+  color: var(--fb-accent-text);
+}
+
+.fb-note-card-body {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.fb-note-card-body p {
+  margin: 0 0 4px 0;
+}
+
+.fb-note-card-body ul,
+.fb-note-card-body ol {
+  margin: 0 0 4px 0;
+  padding-left: 20px;
+}
+
+.fb-menu-list-separator-after {
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--fb-border);
+}
+
+/* Format dialog (list-meta.js) */
+.fb-format-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.fb-format-label {
+  width: 80px;
+  flex: none;
+  color: var(--fb-label-text);
+}
+
+.fb-format-target {
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.fb-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fb-swatch-row .fb-swatch {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
+  background-color: var(--fb-surface);
+  color: var(--fb-text);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.fb-swatch-on {
+  outline: 2px solid var(--fb-accent);
+  outline-offset: 1px;
+}
+
+.fb-swatch-none {
+  color: var(--fb-text-muted);
+}
+
+.fb-swatch-custom {
+  position: relative;
+  overflow: hidden;
+  background-image: conic-gradient(
+    red, yellow, lime, aqua, blue, magenta, red
+  );
+}
+
+.fb-swatch-custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.fb-format-toggle {
+  min-width: 32px;
+  padding: 0 8px;
+}
+
+.fb-format-toggle-on {
+  background-color: var(--fb-selected-bg);
+  border-color: var(--fb-accent);
+}
+
+.fb-format-preview {
+  padding: 4px 8px;
+  border: 1px solid var(--fb-border);
+  border-radius: 3px;
+}
+
+.fb-note-dialog {
+  min-height: 260px;
 }
 
 .fb-table-row-deleted td {
@@ -2305,7 +2571,8 @@ button:disabled .fb-ipicon,
    left-side content (title + these buttons), without having to know
    how many buttons there are. Same 6px spacing they had as direct
    flex children of .fb-toolbar before being wrapped. */
-.fb-toolbar-record-group {
+.fb-toolbar-record-group,
+.fb-toolbar-right-group {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3722,10 +3989,12 @@ button:disabled .fb-ipicon,
    row was indistinguishable from the rest. */
 .fb-admin-table tbody tr.fb-table-row-selected td {
   background-color: var(--fb-selected-bg);
+  background-image: none;
 }
 
 .fb-admin-table tbody tr.fb-table-row-selected:hover td {
   background-color: var(--fb-selected-hover-bg);
+  background-image: none;
 }
 
 .fb-admin-status {

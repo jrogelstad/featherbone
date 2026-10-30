@@ -38,8 +38,19 @@ const noCopy = [
     "createdBy",
     "updated",
     "updatedBy",
-    "lock"
+    "lock",
+    "meta"
 ];
+
+// Formats and notes are saved through /do/meta, never with the record
+function isMetaPatch(op) {
+    let path = op.path.split("/");
+
+    return (
+        path[1] === "meta" ||
+        (/^\d+$/.test(path[2]) && path[3] === "meta")
+    );
+}
 
 function purgeNoCopy(obj) {
     obj.id = f.createId();
@@ -1274,6 +1285,34 @@ function createModel(data, feather) {
     };
 
     /**
+        Replace the record's formats and notes. They are never part of an
+        edit, so the model stays as clean or as dirty as it was.
+
+        @method setMeta
+        @param {Object} value
+        @chainable
+        @return {Object}
+    */
+    model.setMeta = function (value) {
+        let pState;
+        let was;
+
+        if (typeof d.meta !== "function") {
+            return this;
+        }
+
+        // Set quietly, frozen or not, so nothing counts it as a change
+        pState = d.meta.state();
+        was = pState.current()[0];
+        pState.current("/Silent");
+        d.meta(value);
+        pState.current(was);
+        lastFetched.meta = f.copy(value);
+
+        return this;
+    };
+
+    /**
         Model statechart.
 
         @method state
@@ -1657,7 +1696,10 @@ function createModel(data, feather) {
 
         if (model.isValid()) {
             doPreProcess(context.viewModel).then(function () {
-                patch = jsonpatch.compare(lastFetched, model.toJSON());
+                patch = jsonpatch.compare(
+                    lastFetched,
+                    model.toJSON()
+                ).filter((op) => !isMetaPatch(op));
                 if (!patch.length) {
                     doUnlock();
                     return Promise.resolve([]);
@@ -1698,6 +1740,8 @@ function createModel(data, feather) {
             state.send("fetched");
             context.resolve(d);
         }
+
+        delete bdata.meta;
 
         // Trim extraneous relation data
         Object.keys(bdata).forEach(function (key) {

@@ -46,7 +46,8 @@ const exclusions = [
     "updatedBy",
     "objectType",
     "etag",
-    "owner"
+    "owner",
+    "meta"
 ];
 const formats = {};
 const disabledFthrs = [];
@@ -2591,6 +2592,14 @@ f.processEvent = function (obj) {
         if (instance) {
             instance.unlock();
             m.redraw();
+        }
+        break;
+    case "meta":
+        // Only the formats and notes changed: leave any edit alone
+        instance = ary.find((model) => model.id() === data.id);
+
+        if (instance && instance.setMeta) {
+            instance.setMeta(data.meta);
         }
         break;
     }

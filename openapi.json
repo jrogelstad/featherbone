@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "Featherbone",
-        "version": "3.0.0-alpha.10",
+        "version": "3.0.0-alpha.14",
         "description": "Featherbone is a Node.js and PostgreSQL framework for building object-relational business applications from feathers: data classes whose definitions generate the database tables, the REST routes and the client. One server hosts many instances (databases), each served under its own path and carrying its own modules. Every path here is relative to the instance; data routes are generated per feather, and modules add routes of their own.",
         "license": {
             "name": "GNU Affero General Public License v3",
@@ -1153,6 +1153,147 @@
                                         "properties": {
                                             "id": {
                                                 "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/do/meta": {
+            "post": {
+                "tags": [
+                    "Data"
+                ],
+                "operationId": "saveMeta",
+                "summary": "Format a row or cell, or write a note on a cell",
+                "description": "Changes one format, or the caller's own note, in a record's `meta`. Needs update authorization on the record (401 otherwise). Not an edit: the record's `updated` stamp, feather triggers and any lock are left alone, and subscribers get a `meta` change rather than `update`. Note HTML is sanitized. A user writes and clears only their own note on a cell; a note with no text left is cleared. Ordinary saves ignore `meta`.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Record id"
+                                    },
+                                    "action": {
+                                        "type": "string",
+                                        "enum": [
+                                            "format",
+                                            "clearFormat",
+                                            "note",
+                                            "clearNote"
+                                        ]
+                                    },
+                                    "target": {
+                                        "type": "string",
+                                        "enum": [
+                                            "cell",
+                                            "row"
+                                        ],
+                                        "description": "For formats; default cell"
+                                    },
+                                    "attr": {
+                                        "type": "string",
+                                        "description": "Column the cell is in (a property, or a relation path)"
+                                    },
+                                    "format": {
+                                        "type": "object",
+                                        "description": "Only what is set is kept",
+                                        "properties": {
+                                            "background": {
+                                                "type": "string",
+                                                "description": "`#rrggbb`, or a swatch: red, orange, yellow, green, teal, blue, purple, gray"
+                                            },
+                                            "color": {
+                                                "type": "string",
+                                                "description": "Text color, as for background"
+                                            },
+                                            "bold": {
+                                                "type": "boolean"
+                                            },
+                                            "italic": {
+                                                "type": "boolean"
+                                            },
+                                            "underline": {
+                                                "type": "boolean"
+                                            }
+                                        }
+                                    },
+                                    "html": {
+                                        "type": "string",
+                                        "description": "Note text, for `note`"
+                                    }
+                                },
+                                "required": [
+                                    "id",
+                                    "action"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The record's meta afterwards, or null when nothing is left",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                        "format": {
+                                            "type": "object",
+                                            "properties": {
+                                                "row": {
+                                                    "type": "object"
+                                                },
+                                                "cells": {
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "notes": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string"
+                                                        },
+                                                        "html": {
+                                                            "type": "string"
+                                                        },
+                                                        "by": {
+                                                            "type": "string"
+                                                        },
+                                                        "at": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        },
+                                                        "updated": {
+                                                            "type": "string",
+                                                            "format": "date-time"
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -3001,6 +3142,57 @@
                     },
                     "default": {
                         "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/help-contents": {
+            "get": {
+                "tags": [
+                    "Help"
+                ],
+                "operationId": "getHelpContents",
+                "summary": "Everything this instance has help for",
+                "description": "Each deployed module that carries help, with its contents list, Core's generic pages first. What the help window opens on, so help about no particular worksheet \u2014 how workbooks, filters and settings work \u2014 can be read without being on the page it is about.",
+                "responses": {
+                    "200": {
+                        "description": "Contents",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "module": {
+                                                "type": "string"
+                                            },
+                                            "title": {
+                                                "type": "string"
+                                            },
+                                            "pages": {
+                                                "type": "array",
+                                                "description": "The module's pages, in reading order",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "path": {
+                                                            "type": "string"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
                     }
                 }
             }

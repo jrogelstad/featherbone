@@ -94,6 +94,8 @@ function address(topic) {
     @param {Object} [topic]
     @param {String} [topic.form] Form name
     @param {String} [topic.feather] Feather name
+    @param {Boolean} [topic.contents] Open the contents of everything
+        there is help for, rather than one topic
     @return {Void}
 */
 function openHelp(topic) {

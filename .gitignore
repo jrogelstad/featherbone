@@ -64,4 +64,8 @@ claude-branches/
 # only: the fixture packages under test/fixtures are the project's own
 #/modules
 #scripts/dev/demo-data
+# The production client bundle, built by server.js as it starts
+# (scripts/build-client.js) rather than committed: every merge that
+# touched client code used to conflict on 400 KB of minified output.
+client/clientmin.js
 client/clientmin.js.map
