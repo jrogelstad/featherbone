@@ -4728,5 +4728,16 @@
         subscribeToFeathers
     ).then(
         subscribeToCatalog
-    ).then(start).catch(process.exit);
+    ).then(start).catch(function (err) {
+        /*
+            Say why before going. This was `.catch(process.exit)`,
+            which handed the rejection itself to a function that wants
+            an exit code: the handler then threw its own TypeError
+            about the "code" argument, that became an unhandled
+            rejection in its turn, and the reason the server would not
+            start was never printed at all (John, Oct 2026).
+        */
+        console.error((err && err.stack) || err);
+        process.exit(1);
+    });
 }());
