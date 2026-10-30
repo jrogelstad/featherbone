@@ -1,0 +1,35 @@
+{
+    "title": "Stock",
+    "default": "inventory.md",
+    "pages": [
+        {
+            "path": "inventory.md",
+            "title": "Inventory"
+        },
+        {
+            "path": "sites.md",
+            "title": "Sites and locations"
+        },
+        {
+            "path": "inventory-value.md",
+            "title": "Inventory value"
+        }
+    ],
+    "forms": {
+        "Inventory": "inventory.md",
+        "Inventory Adjustment": "inventory.md",
+        "Item Site Child Form": "inventory.md",
+        "Item Site Form": "inventory.md",
+        "Move Inventory Form": "inventory.md",
+        "Site Form": "sites.md"
+    },
+    "feathers": {
+        "Inventory": "inventory.md",
+        "InventoryAdjustment": "inventory.md",
+        "InventoryTransaction": "inventory.md",
+        "ItemSite": "inventory.md",
+        "Location": "sites.md",
+        "MoveInventory": "inventory.md",
+        "Site": "sites.md"
+    }
+}

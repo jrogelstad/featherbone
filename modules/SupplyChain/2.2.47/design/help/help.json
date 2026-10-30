@@ -1,0 +1,33 @@
+{
+    "title": "Design",
+    "default": "products.md",
+    "pages": [
+        {
+            "path": "products.md",
+            "title": "Products"
+        },
+        {
+            "path": "services.md",
+            "title": "Services"
+        },
+        {
+            "path": "costing.md",
+            "title": "Costing and settings"
+        }
+    ],
+    "forms": {
+        "Product": "products.md",
+        "Product Bill of Material Item": "products.md",
+        "Product Indented BOM": "products.md",
+        "Product Operation Child Form": "products.md",
+        "Proposed Cost": "costing.md",
+        "Service": "services.md"
+    },
+    "feathers": {
+        "Product": "products.md",
+        "ProductBillOfMaterialItem": "products.md",
+        "ProductOperation": "products.md",
+        "ProposedCost": "costing.md",
+        "Service": "services.md"
+    }
+}

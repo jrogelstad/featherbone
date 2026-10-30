@@ -1,0 +1,189 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "d6lufspdqylw",
+        "data": {
+            "module": "Make",
+            "path": "/close-work-order",
+            "function": "doCloseWorkOrder"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "90ka8326xx6x",
+        "data": {
+            "module": "Make",
+            "path": "/complete-work-order",
+            "function": "doCompleteWorkOrder"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "ojga0hq9i01m",
+        "data": {
+            "module": "Make",
+            "path": "/convert-planned-work-orders",
+            "function": "doConvertPlannedWorkOrders"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "7sqo7to0qjo1",
+        "data": {
+            "module": "Make",
+            "path": "/explode-work-order",
+            "function": "doExplodeWorkOrder"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "5cgv8tmrwkzo",
+        "data": {
+            "module": "Make",
+            "path": "/get-product-documents",
+            "function": "doGetProductDocuments"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "gbpeksjp2ky6",
+        "data": {
+            "module": "Make",
+            "path": "/get-work-order-issue-data",
+            "function": "doGetWorkOrderIssueData"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "15zl56d095dc",
+        "data": {
+            "module": "Make",
+            "path": "/get-work-order-plan",
+            "function": "doGetWorkOrderPlan"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "w07suirhkb4s",
+        "data": {
+            "module": "Make",
+            "path": "/hold",
+            "function": "doPropagateWorkOrderHold"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "g4ilkpa22bxb",
+        "data": {
+            "module": "Make",
+            "path": "/plan-work-order-supply",
+            "function": "doPlanWorkOrderSupply"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "1ja3nkgovxld",
+        "data": {
+            "module": "Make",
+            "path": "/post-operation-completion",
+            "function": "doPostOperationCompletion"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "lyixqs9w5m6x",
+        "data": {
+            "module": "Make",
+            "path": "/post-work-order-issues",
+            "function": "doPostWorkOrderIssues"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "ufrkjwf1k3l9",
+        "data": {
+            "module": "Make",
+            "path": "/post-work-order-receipts",
+            "function": "doPostWorkOrderReceipts"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "m9gp62m33x0",
+        "data": {
+            "module": "Make",
+            "path": "/print-indented-work-order",
+            "function": "doIndentedWorkOrder"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "knw80yl5n2v",
+        "data": {
+            "module": "Make",
+            "path": "/print-traveller",
+            "function": "doPrintTraveller"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "zdesb3rqkmtq",
+        "data": {
+            "module": "Make",
+            "path": "/get-production-kpis",
+            "function": "doGetProductionKpis"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "loohms0zww9u",
+        "data": {
+            "module": "Make",
+            "path": "/get-production-schedule",
+            "function": "doGetProductionSchedule"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Make",
+        "id": "zy412x1z89oq",
+        "data": {
+            "module": "Make",
+            "path": "/refresh-production-bi",
+            "function": "doRefreshProductionBi"
+        }
+    }
+]

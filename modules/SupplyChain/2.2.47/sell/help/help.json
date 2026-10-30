@@ -1,0 +1,24 @@
+{
+    "title": "Sell",
+    "default": "sales-orders.md",
+    "pages": [
+        {
+            "path": "sales-orders.md",
+            "title": "Sales orders"
+        },
+        {
+            "path": "customers.md",
+            "title": "Customers, taxes and settings"
+        },
+        {
+            "path": "revenue.md",
+            "title": "Sales and tax revenue"
+        }
+    ],
+    "forms": {
+        "Customer": "customers.md"
+    },
+    "feathers": {
+        "Customer": "customers.md"
+    }
+}

@@ -1,0 +1,1185 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Sell",
+        "version": "2.1.19",
+        "description": "Sales orders and customers: order status actions, supply planning and plan views, sales tax lookup and Zip2Tax import, and the sales dashboard figures."
+    },
+    "tags": [
+        {
+            "name": "Sales order actions",
+            "description": "Change the status, hold state or shipping labels of sales orders."
+        },
+        {
+            "name": "Sales order planning",
+            "description": "Plan supply for sales orders and read the resulting plan as Gantt rows."
+        },
+        {
+            "name": "Sales analytics",
+            "description": "Sales dashboard figures: KPIs, grouped tiles, the open order schedule, and the rollup that feeds them."
+        },
+        {
+            "name": "Customer and tax lookups",
+            "description": "Customer defaults for order entry, sales tax rates by address, and the Zip2Tax rate import."
+        }
+    ],
+    "paths": {
+        "/close-sales-order": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doCloseSalesOrder",
+                "summary": "Close sales orders",
+                "description": "Locks every order in ids, then sets each order's status to C (Closed); the update releases the lock. Runs in one transaction, so a refusal closes none. Refuses with \"No sork orders found\" when no id matches, \"Sales order <number> is already closed\" when one is closed, or a lock error when another user holds the order. Ids that match no order are otherwise ignored.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Sales order ids."
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Single sales order id. Read by the lookup only; always send ids."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Orders closed."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/create-sales-order-shipment-label": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doCreateSalesOrderShipmentLabel",
+                "summary": "Create a shipment label (not implemented)",
+                "deprecated": true,
+                "description": "Routed, but no server function named doCreateSalesOrderShipmentLabel is registered, so every call fails with status 500 and \"Function POST doCreateSalesOrderShipmentLabel is not registered.\"",
+                "responses": {
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/explode-sales-order": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doExplodeSalesOrder",
+                "summary": "Explode a sales order (not implemented)",
+                "deprecated": true,
+                "description": "Routed, but no server function named doExplodeSalesOrder is registered, so every call fails with status 500 and \"Function POST doExplodeSalesOrder is not registered.\"",
+                "responses": {
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-address-tax-rates": {
+            "post": {
+                "tags": [
+                    "Customer and tax lookups"
+                ],
+                "operationId": "doGetAddressTaxRates",
+                "summary": "Sales tax rates for an address",
+                "description": "Finds the TaxRate row (Zip2Tax data) for an address: same postal code and state, and a tax city containing the address city, compared case- and whitespace-insensitively; the exact city match wins, then the shortest. Returns one entry per non-zero rate among state, county, city and special district. A TaxType is looked up by its generated code (\"State: TX\", \"County: <zip>-<county>\", \"City: <zip>-<county>-<city>\", \"Special District: <zip>-<county>-<city>\") and created when missing. Returns an empty array when no row matches.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "description": "Either id, or postalCode with city and state.",
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Address id. When given, the other fields are ignored."
+                                    },
+                                    "postalCode": {
+                                        "type": "string",
+                                        "description": "Postal (zip) code."
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "description": "City name."
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "description": "State code, e.g. TX."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Applicable tax rates; empty when none match.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "taxType": {
+                                                "type": "object",
+                                                "description": "The TaxType for this rate.",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "code": {
+                                                        "type": "string"
+                                                    },
+                                                    "description": {
+                                                        "type": "string"
+                                                    },
+                                                    "reportingCode": {
+                                                        "type": "string",
+                                                        "description": "Present only when the TaxType was created by this call."
+                                                    }
+                                                }
+                                            },
+                                            "percent": {
+                                                "type": "number",
+                                                "description": "Rate in percent, as imported from Zip2Tax (e.g. 6.25)."
+                                            },
+                                            "shippingTaxable": {
+                                                "type": "boolean",
+                                                "description": "Whether freight is taxed at this location."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-customer-data": {
+            "post": {
+                "tags": [
+                    "Customer and tax lookups"
+                ],
+                "operationId": "doGetCustomerData",
+                "summary": "Customer defaults for order entry",
+                "description": "Returns one customer with only the properties order entry needs: billTo, billToIsShipto, contact, creditStatus, currency, discount, id, incoTerms, isActive, name, number, site, shipTo, shipMethod, terms, taxable. Read with elevated rights.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Customer id."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The customer, limited to the properties listed above.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Customer"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No customer has that id."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-sales-tile-data": {
+            "post": {
+                "tags": [
+                    "Sales analytics"
+                ],
+                "operationId": "doGetSalesTileData",
+                "summary": "Grouped sales tile",
+                "description": "Grouped measure tile for sales: the same engine as Common's /get-bi-tile-data with fact forced to \"sales\", reading the bi.sales_daily rollup built by /refresh-sales-bi. Amounts are in base currency. Refuses an unknown dimension, window, measure or comparison.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "dimension",
+                                    "window"
+                                ],
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date (YYYY-MM-DD). Omitted means the server's current date."
+                                    },
+                                    "measure": {
+                                        "type": "string",
+                                        "enum": [
+                                            "bookings",
+                                            "cogs",
+                                            "profit",
+                                            "revenue"
+                                        ],
+                                        "default": "bookings",
+                                        "description": "Measure to sum. profit is revenue less cogs."
+                                    },
+                                    "dimension": {
+                                        "type": "string",
+                                        "enum": [
+                                            "customer",
+                                            "customerCategory",
+                                            "region",
+                                            "item",
+                                            "itemCategory",
+                                            "itemGroup",
+                                            "site"
+                                        ],
+                                        "description": "What to group by."
+                                    },
+                                    "window": {
+                                        "type": "string",
+                                        "enum": [
+                                            "WTD",
+                                            "MTD",
+                                            "QTD",
+                                            "YTD"
+                                        ],
+                                        "description": "To-date period ending at asOf."
+                                    },
+                                    "comparison": {
+                                        "type": "string",
+                                        "enum": [
+                                            "priorYear",
+                                            "priorPeriod",
+                                            "none"
+                                        ],
+                                        "default": "priorYear",
+                                        "description": "Comparison window: the same window a year earlier, one window unit earlier, or none."
+                                    },
+                                    "sparkline": {
+                                        "type": "integer",
+                                        "default": 12,
+                                        "description": "Months of history per row; 0 for none."
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "default": 0,
+                                        "description": "Keep only the first N rows by amount; 0 for all."
+                                    },
+                                    "sort": {
+                                        "type": "string",
+                                        "enum": [
+                                            "amount",
+                                            "name"
+                                        ],
+                                        "default": "amount",
+                                        "description": "Row order. name sorts by label after the limit is applied."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tile rows and totals.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SellTileData"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-sales-kpis": {
+            "post": {
+                "tags": [
+                    "Sales analytics"
+                ],
+                "operationId": "doGetSalesKpis",
+                "summary": "Sales KPIs",
+                "description": "The single-number sales metrics for the dashboard's Key Metrics tile, each with the figure a year earlier and twelve months of history. All money is in base currency. avgOrderSize, newCustomers and onTimeDelivery (year to date) come from sales orders and shipments; backlog and overdueBacklog come from /get-sales-schedule. revenueYtd, bookingsYtd, revenueMtd, revenueQtd and profitYtd come from the bi.sales_daily rollup and are left out entirely until /refresh-sales-bi has run (needsRefresh is then true). Read-only.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date (YYYY-MM-DD). Omitted means the server's current date."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "KPIs keyed by name.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "asOf": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Date the figures were computed at (YYYY-MM-DD)."
+                                        },
+                                        "kpis": {
+                                            "type": "object",
+                                            "properties": {
+                                                "revenueYtd": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "bookingsYtd": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "revenueMtd": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "revenueQtd": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "profitYtd": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "avgOrderSize": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "newCustomers": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "onTimeDelivery": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "backlog": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                },
+                                                "overdueBacklog": {
+                                                    "$ref": "#/components/schemas/SellKpi"
+                                                }
+                                            },
+                                            "description": "revenueYtd, bookingsYtd, revenueMtd, revenueQtd (with pending: open order value due by quarter end and not yet invoiced) and profitYtd only when the rollup is built. avgOrderSize: mean order total year to date. newCustomers: customers whose first order falls in the year to date. onTimeDelivery: percent (0-100) of shipped shipments sent by the order's promise (else requested) date, null when none shipped. backlog / overdueBacklog: open order value at asOf, and the part of it already past due; their spark is the value at each of the last eleven month ends plus asOf."
+                                        },
+                                        "needsRefresh": {
+                                            "type": "boolean",
+                                            "description": "True when the sales rollup has never been built."
+                                        },
+                                        "refreshedAt": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true,
+                                            "description": "When any rollup was last rebuilt (latest bi.refresh_log entry); null when never."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-sales-order-line-plan": {
+            "post": {
+                "tags": [
+                    "Sales order planning"
+                ],
+                "operationId": "doGetSalesOrderLinePlan",
+                "summary": "Supply plan for a sales order line",
+                "description": "Gantt rows for the allocations supplying one sales order line. For a kit line, rows are grouped under one group row per kit material. A work order supply is a group row whose detail is the Make module's /get-work-order-plan without operations or stock items; inventory is a task row from yesterday to today at 100%; any other supply (purchase order, planned order, ...) is a task row with its own dates. Read-only. The id must exist.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Sales order line id."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plan rows, in supply order.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SellPlanRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-sales-order-plan": {
+            "post": {
+                "tags": [
+                    "Sales order planning"
+                ],
+                "operationId": "doGetSalesOrderPlan",
+                "summary": "Supply plan for a sales order",
+                "description": "One group row per open line (status not C, quantity due above zero), with that line's /get-sales-order-line-plan rows as detail, one level deeper. percent is shipped / ordered. Read-only.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Sales order id."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plan rows; empty when the order is not found or has no lines.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SellPlanRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/hold": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doSalesOrderHold",
+                "summary": "Put a sales order on or off hold",
+                "description": "Locks the order and sets its onHold flag; the update releases the lock. With recursive, also propagates the hold to every work order allocated to the order's open lines (Make's doPropagateWorkOrderHold). Refuses when the order is not found, when its status is not A (Active) or B (Back Order), or when another user holds the lock.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "salesOrderId",
+                                    "hold"
+                                ],
+                                "properties": {
+                                    "salesOrderId": {
+                                        "type": "string",
+                                        "description": "Sales order id."
+                                    },
+                                    "hold": {
+                                        "type": "boolean",
+                                        "description": "true to put on hold, false to take off hold."
+                                    },
+                                    "recursive": {
+                                        "type": "boolean",
+                                        "default": false,
+                                        "description": "Also hold or release the work orders supplying the order."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Confirmation message: \"Sales order put on hold\" or \"Sales order taken off hold\".",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/import-zip2tax": {
+            "post": {
+                "tags": [
+                    "Customer and tax lookups"
+                ],
+                "operationId": "doZip2TaxImport",
+                "summary": "Import Zip2Tax tax rates",
+                "description": "Replaces all TaxRate rows with the first sheet of a Zip2Tax spreadsheet already uploaded with POST /{db}/do/upload, then deletes the file. Columns read: z2t_ID, ZipCode, SalesTaxRate, RateState, RateCounty, RateCity, RateSpecialDistrict, City, PostOffice, State, County, ShippingTaxable, PrimaryRecord, ReportingCodeCity, ReportingCodeState, ReportingCodeCounty, ReportingCodeSpecialDistrict. Runs as a server process (progress via subscription) in one transaction, and posts Import alerts when it starts, finishes or fails.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "filename"
+                                ],
+                                "properties": {
+                                    "filename": {
+                                        "type": "string",
+                                        "description": "Name of the uploaded file in the server's files/upload folder."
+                                    },
+                                    "subscription": {
+                                        "$ref": "#/components/schemas/SellProgressSubscription"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Import done. The body is null (the result of deleting the uploaded file).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "nullable": true
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/plan-sales-order-supply": {
+            "post": {
+                "tags": [
+                    "Sales order planning"
+                ],
+                "operationId": "doPlanSalesOrderSupply",
+                "summary": "Plan supply for a sales order",
+                "description": "Runs the Plan module's doPlanSupply for every open line (status not C, quantity due above allocated, inventory item) and every such kit material, using the shippingBuffer from planSettings as the time buffer; then updates the order's plan status and its updated time. Locks the order first unless lock is false. Runs as a server process named \"Plan Sales Order #<number>\". Refuses when another user holds the lock; the id must exist.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Sales order id."
+                                    },
+                                    "lock": {
+                                        "type": "boolean",
+                                        "default": true,
+                                        "description": "false skips locking the order (for callers that already hold it)."
+                                    },
+                                    "subscription": {
+                                        "$ref": "#/components/schemas/SellProgressSubscription"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Supply planned."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/refresh-sales-bi": {
+            "post": {
+                "tags": [
+                    "Sales analytics"
+                ],
+                "operationId": "doRefreshSalesBi",
+                "summary": "Rebuild the sales rollup",
+                "description": "Truncates and rebuilds bi.sales_daily from invoices (revenue, at line subtotal, no tax or freight), sales orders (bookings) and shipment inventory transactions (cogs, dated by invoice), in base currency, one row per measure, day, item, customer, site and region; then writes a bi.refresh_log entry for job \"sales\". Safe to repeat. Refuses when the bi tables are missing (SupplyChain not deployed to the instance).",
+                "responses": {
+                    "200": {
+                        "description": "Rebuild summary.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "buckets": {
+                                            "type": "integer",
+                                            "description": "Rows written to bi.sales_daily."
+                                        },
+                                        "refreshed": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "description": "Time recorded in the refresh log."
+                                        },
+                                        "unmappedStates": {
+                                            "type": "integer",
+                                            "description": "Rows whose ship-to state matched no sales region."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/release-sales-orders": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doReleaseSalesOrders",
+                "summary": "Release sales orders",
+                "description": "Locks every order, then sets each one's status to A (Active); the update releases the lock. Allowed from Incomplete, Pending and Shipping; from any other status the order is left unchanged without an error. Becoming Active requires a customer, a ship-to address and at least one line; with back orders enabled, an order with shipped lines becomes B (Back Order) instead. One transaction: a refusal releases none.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SellSalesOrderIds"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Orders released."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/start-sales-orders": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doStartSalesOrders",
+                "summary": "Move sales orders to Pending",
+                "description": "Locks every order, then sets each one's status to P (Pending); the update releases the lock. Allowed from Incomplete and Active; from any other status the order is left unchanged without an error. Refuses when kit materials have been issued; an order whose lines have all shipped becomes C (Closed), and one with some shipped becomes A or B instead. One transaction: a refusal changes none.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SellSalesOrderIds"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Orders moved to Pending."
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/void-sales-order-shipment-label": {
+            "post": {
+                "tags": [
+                    "Sales order actions"
+                ],
+                "operationId": "doVoidSalesOrderShipmentLabel",
+                "summary": "Void a sales order shipment's label",
+                "description": "Implemented by the Ship module. Locks the shipment, voids its label in ShipEngine (ShipEngine's /void-label) and sets labelVoid to true; the update releases the lock. Refuses when shipmentId is missing, the shipment is not found, it has no label, or the label is already void.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "shipmentId"
+                                ],
+                                "properties": {
+                                    "shipmentId": {
+                                        "type": "string",
+                                        "description": "SalesOrderShipment id."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "JSON Patch operations describing what the update changed on the shipment.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "op": {
+                                                "type": "string"
+                                            },
+                                            "path": {
+                                                "type": "string"
+                                            },
+                                            "value": {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-sales-schedule": {
+            "post": {
+                "tags": [
+                    "Sales analytics"
+                ],
+                "operationId": "doGetSalesSchedule",
+                "summary": "Open sales order schedule",
+                "description": "Open sales order value at a reporting date, bucketed by due date (line promise date, else order promise date, else line due date) for the due-date histogram. Open means ordered by the date less shipped by it; closed orders count only what they shipped; incomplete orders are left out. Read-only.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date (YYYY-MM-DD). Omitted means the server's current date."
+                                    },
+                                    "bucket": {
+                                        "type": "string",
+                                        "enum": [
+                                            "day",
+                                            "week",
+                                            "month"
+                                        ],
+                                        "default": "week",
+                                        "description": "Bucket size. Weeks start on Monday."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Schedule rows.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "asOf": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Date the schedule was computed at (YYYY-MM-DD)."
+                                        },
+                                        "rows": {
+                                            "type": "array",
+                                            "description": "One row per bucket and late flag, ordered by period; a bucket containing asOf can appear twice.",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "period": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "description": "First day of the bucket (YYYY-MM-DD)."
+                                                    },
+                                                    "late": {
+                                                        "type": "boolean",
+                                                        "description": "Due before asOf."
+                                                    },
+                                                    "amount": {
+                                                        "type": "number",
+                                                        "description": "Open value in base currency."
+                                                    },
+                                                    "units": {
+                                                        "type": "number",
+                                                        "description": "Open quantity."
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "SellSalesOrderIds": {
+                "type": "object",
+                "required": [
+                    "ids"
+                ],
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Sales order ids."
+                    }
+                }
+            },
+            "SellProgressSubscription": {
+                "type": "object",
+                "description": "Optional. Subscription that receives server process progress events.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Subscription id."
+                    },
+                    "eventKey": {
+                        "type": "string",
+                        "description": "The client's event key."
+                    }
+                }
+            },
+            "SellKpi": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Figure at asOf. Money in base currency."
+                    },
+                    "comparison": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "The same figure a year before asOf."
+                    },
+                    "comparisonLabel": {
+                        "type": "string",
+                        "description": "Always \"a year ago\"."
+                    },
+                    "spark": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        },
+                        "description": "Monthly history, oldest first, ending with the month of asOf (up to 12 points). For order and rollup KPIs, months with no data are absent."
+                    },
+                    "pending": {
+                        "type": "number",
+                        "description": "revenueQtd only: open order value promised by quarter end and not invoiced by asOf."
+                    },
+                    "pendingLabel": {
+                        "type": "string",
+                        "description": "revenueQtd only: \"open orders due this quarter\"."
+                    }
+                }
+            },
+            "SellTileData": {
+                "type": "object",
+                "properties": {
+                    "asOf": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Reporting date the figures were computed at (YYYY-MM-DD); the request's asOf, or the server's current date when omitted."
+                    },
+                    "comparison": {
+                        "type": "string",
+                        "enum": [
+                            "priorYear",
+                            "priorPeriod",
+                            "none"
+                        ],
+                        "description": "Comparison basis actually used. A priorYear request falls back to priorPeriod when the rollup has no data a year back but has data one period back."
+                    },
+                    "measure": {
+                        "type": "string",
+                        "description": "Measure used (the request's, or the fact's default)."
+                    },
+                    "needsRefresh": {
+                        "type": "boolean",
+                        "description": "True when the rollup for this fact has never been built; rows is then empty and total is 0."
+                    },
+                    "refreshedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "When the rollup was last rebuilt; null when never."
+                    },
+                    "rows": {
+                        "type": "array",
+                        "description": "One row per dimension value, ordered by amount descending (or by label when sort is \"name\"), cut to limit.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "Id (or code) of the dimension value."
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "Display label of the dimension value."
+                                },
+                                "amount": {
+                                    "type": "number",
+                                    "description": "Measure in base currency over the window (for inventory: the balance at asOf)."
+                                },
+                                "units": {
+                                    "type": "number",
+                                    "description": "Quantity in inventory units over the same window."
+                                },
+                                "comparison": {
+                                    "type": "number",
+                                    "nullable": true,
+                                    "description": "Amount over the comparison window; null when comparison is none or there is no data."
+                                },
+                                "unitsComparison": {
+                                    "type": "number",
+                                    "nullable": true,
+                                    "description": "Units over the comparison window; null as for comparison."
+                                },
+                                "pctOfTotal": {
+                                    "type": "number",
+                                    "description": "Amount as a percentage (0-100) of total; 0 when total is 0."
+                                },
+                                "spark": {
+                                    "type": "array",
+                                    "description": "Monthly history ending at asOf, oldest first. Months with no data are absent.",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "month": {
+                                                "type": "string",
+                                                "description": "First day of the month. A database date that the pg driver returns as a JavaScript Date, so it arrives as an ISO date-time string (server-local midnight)."
+                                            },
+                                            "amount": {
+                                                "type": "number",
+                                                "description": "Measure for that month (for inventory: the balance at month end)."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "total": {
+                        "type": "number",
+                        "description": "Sum of amount over all rows before limit is applied."
+                    },
+                    "window": {
+                        "type": "string",
+                        "description": "The request's window, echoed."
+                    }
+                }
+            },
+            "SellPlanRow": {
+                "type": "object",
+                "description": "Gantt row.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Id of the record the row shows."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Label such as \"(<number>) <item> [Qty: n]\", indented with leading spaces by depth."
+                    },
+                    "level": {
+                        "type": "integer",
+                        "description": "Nesting depth, 0 at the top."
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "group",
+                            "task"
+                        ]
+                    },
+                    "objectType": {
+                        "type": "string",
+                        "description": "Feather of the record, e.g. SalesOrderLine, WorkOrder, PurchaseOrder, Inventory."
+                    },
+                    "number": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "number": {
+                                "type": "string"
+                            },
+                            "objectType": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "YYYY-MM-DD."
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "YYYY-MM-DD."
+                    },
+                    "percent": {
+                        "type": "number",
+                        "description": "Fraction complete, 0 to 1."
+                    },
+                    "quantity": {
+                        "type": "number",
+                        "description": "Sales order plan only: quantity due on the line."
+                    },
+                    "allocated": {
+                        "type": "number",
+                        "description": "Quantity allocated, where the row has one."
+                    },
+                    "sequence": {
+                        "type": "integer"
+                    },
+                    "parent": {
+                        "type": "string",
+                        "description": "Id of the parent row, on nested rows."
+                    },
+                    "links": {
+                        "type": "array",
+                        "description": "Dependencies drawn on the chart.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "target": {
+                                    "type": "string",
+                                    "description": "Row id."
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "FS",
+                                        "FF"
+                                    ],
+                                    "description": "Finish-to-start or finish-to-finish."
+                                }
+                            }
+                        }
+                    },
+                    "detail": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SellPlanRow"
+                        },
+                        "description": "Child rows."
+                    }
+                }
+            }
+        }
+    }
+}
