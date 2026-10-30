@@ -48,6 +48,23 @@ sortDialog.viewModel = function (options) {
     //
 
     vm = f.createViewModel("FilterDialog", options);
+
+    // Drops every sort key straight on the outer filter, bypassing
+    // the dialog's own in-progress edits (the same way a cancelled
+    // edit never reaches it), then closes without running onOk.
+    vm.buttons().unshift(f.prop(f.createViewModel("Button", {
+        label: "Clear",
+        title: "Remove all column sorting",
+        onclick: function () {
+            let filter = f.copy(options.filter());
+
+            filter.sort = [];
+            options.filter(filter);
+            vm.cancel();
+        },
+        class: "fb-dialog-button"
+    })));
+
     vm.addAttr = function (attr) {
         if (!this.some(vm.hasAttr.bind(attr))) {
             this.push({
