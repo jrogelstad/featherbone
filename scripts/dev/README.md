@@ -9,7 +9,9 @@ database they are willing to lose.
 | --- | --- |
 | `clear-instance-data.sql` | Empties the application master-data and transaction tables of one instance, leaving the Featherbone control tables (`$workbook`, `$settings`, `$feather`, forms, routes, scripts, roles, users) intact, so the packages still work. |
 | `load.js` | Runs a data script against one instance, optionally clearing it first. Warns, asks, and refuses to run a file that is not marked as a data script. |
+| `help-shots.js` | Retakes the help's screenshots from a running server, as each help folder's `shots.json` says. Changes no data except the signed-in user's own workbook layouts, which shots that set a filter or sort revert afterwards: run it as a user whose layouts you don't mind losing. Needs Playwright, which is not a dependency (`npm install --no-save playwright && npx playwright install chromium`). |
 | `demo-data/teardrop-campers.sql` | Seventeen months of Road Runner Campers trading history plus the forward order book, built out from the ddom "Teardrop Campers" demo dataset. 271,054 rows, 17 complete months, as-of 2027-06-01. |
+| `demo-data/demo-settings.sql` | Runs by itself after every data script (`--no-settings` skips it). Reads each setting's definition and points every relation (default site, print forms) at a record that exists: refreshes its copy of the name, repoints a missing one by feather and name, code or name, else the only record; fills in a missing default site; says what it could not fix. Safe to repeat. |
 
 ## Running them
 
@@ -201,6 +203,10 @@ Two consequences worth knowing before the first run:
   their own, name them: `--keep Terms,ShipMethod,Site,SalesRegion,SalesRegionState`.
   Regions are the four US census regions over all fifty states and DC; if a
   database has the demo data but lost them, `sales-regions.sql` puts them back.
+* Settings are not cleared, but the rows the load creates get new ids every time, so a
+  setting that names one goes stale: Design settings' default site did, and New Product then
+  failed to save with `Relation not found in "Site"`. `load.js` therefore finishes every data
+  script by running `demo-settings.sql`, which points each setting at a record that exists.
 * A table that holds rows but belongs to no installed feather stops the run
   rather than being silently left behind. `--clear-orphans` clears those too.
 
@@ -208,3 +214,15 @@ Core reference data that is *not* cleared — countries, states, honorifics,
 currencies — is also what `teardrop-campers.sql` will not duplicate: it inserts
 those rows only where they are missing, so clear-then-load and a load onto a
 database that still has them both come out right.
+
+## Screenshots for the help
+
+```
+node scripts/dev/help-shots.js --base http://localhost:3003/demo --user jtaylor --password secret
+node scripts/dev/help-shots.js --package ~/Documents/SupplyChain sales-order   # a package's, by name
+node scripts/dev/help-shots.js --dry-run                                     # what would be taken
+```
+
+Each picture is named for the help, not the screen, so retaking one
+overwrites the same file and no page changes. Pictures a `shots.json` cannot
+take yet are listed under its `notTaken`, with the reason.
