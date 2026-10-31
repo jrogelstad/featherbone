@@ -1118,6 +1118,23 @@ instance.*
       connection list (host, port, user), because registering an instance
       needs them. Whether that is theirs to see is a decision, not a bug.
 
+- [x] **G.8 A grant from outside the organization is enough to enter.**
+  (S) *Done 2026-10-31 on `fix/cross-org-first-sign-in`.* `provisionProfile`
+  in `server/database.js` made the local profile only for an identity whose
+  home organization owned the instance. Sign-in lets in anyone with an
+  active grant (`platform.instancesFor` lists such instances across
+  organizations, which is what a reseller's grants rely on), so a person
+  granted an instance from outside was admitted and then refused with
+  "User account <name> not found" on the first visit. The organization
+  match is gone; the identity must still be active with an active grant.
+  The profile joins "everyone" and nothing else, as before. Granting from
+  the Users screen made the profile itself, so only grants made another
+  way (the platform console, a migration, SQL) hit it. Found while
+  building G.6.
+    - Done when: `test/api/cross-org-first-sign-in.test.js` (4 claims)
+      passes; the first fails without the fix, the other three pin that
+      no grant, a revoked grant and a disabled identity are still refused.
+
 ## 7. What the improvement plan loses to this plan
 
 Update `featherbone-improvement-plan.md` to mark these. Nothing is dropped;
