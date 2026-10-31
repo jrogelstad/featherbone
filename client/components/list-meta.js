@@ -57,6 +57,63 @@ const authorized = new WeakMap();
 // A format that applies wherever the record appears, not in one place
 const EVERYWHERE = "*";
 
+// Where the format dialog keeps what it was last saved with
+const CHOICES = "fb-format-choices";
+
+/*
+    What the user last saved a format with: which target, for whom,
+    and in what scope. The dialog opens there next time, because a
+    user who dislikes the defaults will tend to want the same
+    alternative every time and should not have to click to it each
+    time (John, Oct 2026). Kept per user and per browser -- it is a
+    habit, not data, so it earns no server round trip. Anything
+    unreadable or unrecognized is no habit at all.
+*/
+function recall() {
+    let kept;
+    let scopes = ["here", "everywhere"];
+    let targets = ["cell", "row"];
+    let whos = ["mine", "all"];
+
+    try {
+        kept = JSON.parse(window.localStorage.getItem(
+            CHOICES + ":" + f.currentUser().name
+        ));
+    } catch (ignore) {
+        return {};
+    }
+    kept = kept || {};
+
+    return {
+        scope: (
+            scopes.includes(kept.scope)
+            ? kept.scope
+            : undefined
+        ),
+        target: (
+            targets.includes(kept.target)
+            ? kept.target
+            : undefined
+        ),
+        who: (
+            whos.includes(kept.who)
+            ? kept.who
+            : undefined
+        )
+    };
+}
+
+function remember(choices) {
+    try {
+        window.localStorage.setItem(
+            CHOICES + ":" + f.currentUser().name,
+            JSON.stringify(choices)
+        );
+    } catch (ignore) {
+        return;
+    }
+}
+
 function metaOf(model) {
     return (
         model.data.meta
@@ -289,9 +346,17 @@ function isDark() {
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+// Whether the user may update the record, once the server has said
+function canShare(model) {
+    return authorized.get(model) === true;
+}
+
 /*
-    Whether formats and notes can be written for the record, and if not
-    why. Asks the server once per model, then redraws.
+    Whether formats and notes can be written for the record at all, and
+    if not why. Asks the server once per model, then redraws. Update
+    permission is not asked of here: a format of one's own needs only
+    to be able to read the record, so what update permission buys is
+    settled by canShare -- the notes, and a format for everyone.
 */
 function why(model, feather) {
     let state = model.state().current()[0];
@@ -322,9 +387,6 @@ function why(model, feather) {
     }
     if (ok === null) {
         return CHECKING;
-    }
-    if (!ok) {
-        return NO_RIGHTS;
     }
     return "";
 }
@@ -428,8 +490,8 @@ function formatDialog(options) {
         icon: "platte",
         title: "Format"
     });
-    let target = f.prop("cell");
-    let who = f.prop("mine");
+    let target = f.prop("row");
+    let who = f.prop("all");
     let scope = f.prop("everywhere");
     let background = f.prop();
     let textColor = f.prop();
@@ -585,12 +647,20 @@ function formatDialog(options) {
                     value: "mine"
                 }),
                 choice({
+                    disabled: !canShare(model),
                     group: "who",
                     prop: who,
                     text: "Everyone",
                     title: (
-                        "Everyone who can see this record sees this " +
-                        "format"
+                        canShare(model)
+                        ? (
+                            "Everyone who can see this record sees " +
+                            "this format"
+                        )
+                        : (
+                            "You need update permission on this " +
+                            "record to format it for everyone"
+                        )
                     ),
                     value: "all"
                 }),
@@ -685,6 +755,17 @@ function formatDialog(options) {
     dlg.buttons().unshift(f.prop(clear));
 
     dlg.onOk(function () {
+        // Next time opens where this one was left
+        remember({
+            // A list with no place made no choice about one
+            scope: (
+                place
+                ? scope()
+                : recall().scope
+            ),
+            target: target(),
+            who: who()
+        });
         save(model, {
             action: "format",
             target: target(),
@@ -704,28 +785,48 @@ function formatDialog(options) {
         format that is to apply here and nowhere else
     */
     dlg.open = function (pModel, pAttr, pLabel, pPlace) {
+        let habit = recall();
         let showing;
 
         model = pModel;
         attr = pAttr;
         label = pLabel;
         place = pPlace;
-        who("mine");
-        scope("everywhere");
-        target(
-            (!cellFormat(model, attr, place) && rowFormat(model, place))
-            ? "row"
-            : "cell"
+        /*
+            With nothing showing, the dialog opens on what the user
+            last saved with, and on the most intuitive choice of all
+            where there is no such habit: the whole row, for everyone,
+            everywhere. A habit only counts for what is possible here:
+            no format for everyone without update permission, none
+            "just here" in a list with no place of its own.
+        */
+        who(
+            (canShare(model) && habit.who !== "mine")
+            ? "all"
+            : "mine"
         );
+        scope(
+            (place && habit.scope === "here")
+            ? "here"
+            : "everywhere"
+        );
+        if (cellFormat(model, attr, place)) {
+            target("cell");
+        } else if (rowFormat(model, place)) {
+            target("row");
+        } else {
+            target(habit.target || "row");
+        }
         /*
             A format already showing is the one to edit, so the dialog
-            opens on its who and where rather than on the defaults --
+            opens on its who and where rather than on the habit --
             otherwise changing a shared format would mean noticing that
-            the radios had quietly aimed somewhere else. With nothing
-            showing, the defaults stand: one's own, everywhere.
+            the radios had quietly aimed somewhere else. Someone who
+            cannot update the record is shown only a format of their
+            own: a shared one is not theirs to edit.
         */
         showing = winner(entriesOf(heldOn(model, on())), place);
-        if (showing) {
+        if (showing && (canShare(model) || showing.who === "mine")) {
             who(showing.who);
             scope(
                 showing.where === EVERYWHERE
@@ -1063,7 +1164,13 @@ function cellActions(options) {
     let model = options.model;
     let attr = options.attr;
     let reason = why(model, options.feather);
-    let mine = !reason && myNote(model, attr);
+    // A note is shared by nature, so it takes update permission
+    let noteReason = reason || (
+        canShare(model)
+        ? ""
+        : NO_RIGHTS
+    );
+    let mine = !noteReason && myNote(model, attr);
 
     function act(run) {
         return function () {
@@ -1090,12 +1197,12 @@ function cellActions(options) {
         key: "note",
         icon: "comment",
         label: "Note…",
-        title: reason || (
+        title: noteReason || (
             mine
             ? "View or change your note on this cell"
             : "Add a note to this cell"
         ),
-        disabled: Boolean(reason),
+        disabled: Boolean(noteReason),
         run: act(() => options.noteDialog.open(model, attr, options.label))
     }];
 }
