@@ -5,6 +5,13 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Resource links take a file again.** Dropping a file on a resource
+  link field, or the new Upload button beside it (and in the cell
+  menu), uploads it to the instance and links it, as it did before
+  upload was switched off for want of storage that survives a deploy.
+  A name the instance already holds, or a file over `fileUploadMaxMB`,
+  is reported rather than failing silently. Core 3.0.0-alpha.22, no
+  install.
 * **The list format dialog remembers its choices.** Saving a format
   remembers its target (cell or row), who it is for and where it
   applies, per user and per browser, and the next dialog opens there;

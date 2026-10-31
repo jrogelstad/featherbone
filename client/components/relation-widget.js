@@ -775,7 +775,31 @@ relationWidget.component = {
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + id,
                             class: "material-icons fb-menu-list-icon"
-                        }, "add_circle")], " New")
+                        }, "add_circle")], " New"),
+                        (
+                            vm.upload
+                            ? m("li", {
+                                id: "nav-relation-upload-" + id,
+                                class: (
+                                    readOnly
+                                    ? "pure-menu-link pure-menu-disabled"
+                                    : "pure-menu-link"
+                                ),
+                                onclick: (
+                                    readOnly
+                                    ? undefined
+                                    : function () {
+                                        vm.showMenu(false);
+                                        vm.upload();
+                                        return false;
+                                    }
+                                )
+                            }, [m("i", {
+                                id: "nav-relation-upload-icon-" + id,
+                                class: "material-icons fb-menu-list-icon"
+                            }, "upload_file")], " Upload")
+                            : undefined
+                        )
                     ])
                 ])
             ]);
@@ -835,6 +859,13 @@ relationWidget.component = {
                 autocomplete: "off"
             }),
             menu,
+            (
+                (vm.upload && !vm.isCell() && !readOnly)
+                ? m(f.getComponent("Button"), {
+                    viewModel: vm.uploadButton()
+                })
+                : undefined
+            ),
             m("div", {
                 class: labelClass
             }, vm.labels()),

@@ -128,8 +128,17 @@ function linkFiles(vm, files) {
                         }
                     });
                 } else {
-                    console.error("Something went boo-boo");
+                    f.notify(
+                        "A file named " + file.name + " already exists",
+                        {icon: "warning", iconColor: "orange"}
+                    );
                 }
+            }).catch(function (err) {
+                console.error(err);
+                f.notify("Upload failed: " + (err.message || err), {
+                    icon: "warning",
+                    iconColor: "orange"
+                });
             });
         } else {
             /// Handle overwrite case
@@ -141,28 +150,44 @@ function linkFiles(vm, files) {
 resourceLinkRelation.viewModel = function (options) {
     let vm = f.createViewModel("RelationWidget", options);
     vm.labelClass = "fb-relation-label truncate";
-    // Disable upload until we create a way to direct files to a
-    // persistent file server
-    /*
     vm.placeholder = "Search or → drop file ←";
-    /// only set dragleave to remove any effect
     vm.onDragLeave = function (evt) {
-        //evt.dataTransfer.dropEffect = "none";
         evt.preventDefault();
     };
     vm.onDragEnter = function (evt) {
-        //evt.dataTransfer.dropEffect = "copy";
         evt.preventDefault();
     };
     vm.onDragOver = function (evt) {
-        //evt.dataTransfer.dropEffect = "copy";
         evt.preventDefault();
     };
     vm.onDrop = function (evt) {
         evt.preventDefault();
-        linkFiles(vm, evt.dataTransfer.files);
+        if (!vm.isReadOnly()) {
+            linkFiles(vm, evt.dataTransfer.files);
+        }
     };
+
+    /*
+        Open the file browser, for the Upload button beside the field
+        and the table cell's menu; the relation widget shows them only
+        when the view model has this.
     */
+    vm.upload = function () {
+        let input = document.createElement("input");
+
+        input.setAttribute("type", "file");
+        input.onchange = function () {
+            linkFiles(vm, input.files);
+        };
+        input.click();
+    };
+
+    vm.uploadButton = f.prop(f.createViewModel("Button", {
+        onclick: vm.upload,
+        title: "Upload a file and link to it",
+        icon: "upload_file",
+        class: "fb-data-type-edit-button"
+    }));
 
     vm.labels = function () {
         let resource;
