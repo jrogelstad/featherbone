@@ -1074,6 +1074,12 @@ workbookPage.viewModel = function (options) {
         subscribe: true,
         footerId: vm.footerId(),
         loadAllProperties: hasDrawer(),
+        /*
+            What a format made "Just here" is pinned to. The sheet's id
+            rather than its name, so renaming a worksheet does not
+            orphan the formats made on it.
+        */
+        place: "sheet:" + vm.sheet().id,
         printTitle: vm.sheet().name.toName()
     }));
     /**
