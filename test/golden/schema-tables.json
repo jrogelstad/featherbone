@@ -60,6 +60,18 @@
     ],
     "triggers": []
   },
+  "$file": {
+    "columns": {
+      "created": "timestamp with time zone not null default now()",
+      "created_by": "text",
+      "data": "bytea not null",
+      "name": "text not null",
+      "sha256": "text not null",
+      "size": "integer not null"
+    },
+    "inherits": [],
+    "triggers": []
+  },
   "$navigation_category": {
     "columns": {
       "icon": "text",

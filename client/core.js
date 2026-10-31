@@ -1338,11 +1338,7 @@ formats.image.editor = function (options) {
 };
 formats.image.tableData = function (obj) {
     let value = String(obj.value || "");
-    let src = (
-        value.startsWith("http")
-        ? value
-        : "/files/upload/" + value
-    );
+    let src = f.uploadUrl(value);
 
     return (
         value
@@ -1408,6 +1404,26 @@ f.createViewModel = function (name, options) {
 */
 f.datasource = function () {
     return datasource;
+};
+
+/**
+    Where an uploaded file is served from: this instance's own address,
+    since each instance keeps its own files. A web address is left as it
+    is.
+
+    @method uploadUrl
+    @for f
+    @param {String} value File name or web address
+    @return {String}
+*/
+f.uploadUrl = function (value) {
+    value = String(value || "");
+
+    if (!value || value.startsWith("http")) {
+        return value;
+    }
+
+    return datasource.baseUrl() + "/files/upload/" + encodeURIComponent(value);
 };
 
 /**

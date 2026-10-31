@@ -53,11 +53,7 @@ function resolvedSrc(value, fallback) {
         return String(fallback || "");
     }
 
-    return (
-        value.startsWith("http")
-        ? value
-        : "/files/upload/" + value
-    );
+    return f.uploadUrl(value);
 }
 
 /**
@@ -114,9 +110,13 @@ imageUploadWidget.viewModel = function (options) {
             } else {
                 console.error("Image upload failed", resp);
             }
-        }).catch(
-            console.error
-        ).finally(function () {
+        }).catch(function (err) {
+            console.error(err);
+            f.notify("Upload failed: " + (err.message || err), {
+                icon: "warning",
+                iconColor: "orange"
+            });
+        }).finally(function () {
             vm.busy(false);
             m.redraw();
         });

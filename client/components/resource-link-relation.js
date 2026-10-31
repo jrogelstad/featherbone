@@ -112,14 +112,7 @@ function linkFiles(vm, files) {
             };
             m.request(payload).then(function (v) {
                 if (v.status === "success") {
-                    let url = location.protocol + "//" + location.hostname
-                    + (
-                        (location.port.length)
-                        ? ":" + location.port
-                        : ""
-                    )
-                    + "/files/upload/"
-                    + file.name;
+                    let url = f.uploadUrl(file.name);
                     let fid = f.createId();
                     createLink(fid, file.name, url).then(function (o) {
                         if (o === null) {

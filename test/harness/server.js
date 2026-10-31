@@ -63,6 +63,8 @@ async function start(opts) {
             modulesDir: (opts && opts.modulesDir) || settings.modulesDir,
             PORT: String(settings.port),
             clientPort: String(settings.port),
+            fileUpload: "true",
+            fileUploadMaxMB: "1",
             logSilent: "true",
             twoFactorAuth: "false"
         }),

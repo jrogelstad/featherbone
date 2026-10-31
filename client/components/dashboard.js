@@ -3472,11 +3472,7 @@ function wallpaperStyle() {
         return {};
     }
 
-    src = (
-        value.startsWith("http")
-        ? value
-        : "/files/upload/" + value
-    );
+    src = f.uploadUrl(value);
 
     return {
         "background-image": "url(\"" + src + "\")",
