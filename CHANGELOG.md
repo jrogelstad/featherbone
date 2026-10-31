@@ -10,8 +10,19 @@ Notable changes to Featherbone. Dates are the day the work landed on
   menu), uploads it to the instance and links it, as it did before
   upload was switched off for want of storage that survives a deploy.
   A name the instance already holds, or a file over `fileUploadMaxMB`,
-  is reported rather than failing silently. Core 3.0.0-alpha.21, no
+  is reported rather than failing silently. Core 3.0.0-alpha.22, no
   install.
+* **The list format dialog remembers its choices.** Saving a format
+  remembers its target (cell or row), who it is for and where it
+  applies, per user and per browser, and the next dialog opens there;
+  with nothing remembered it opens on the whole row, for everyone,
+  everywhere. A format already showing on the cell still opens on its
+  own settings. A choice only counts where it can: no "just here" in a
+  list with no place of its own, no "everyone" without update
+  permission. Also fixes the cell menu demanding update permission for
+  `Format…`, which kept read-only users from the private formats they
+  are allowed: `Format…` needs only a readable record, `Note…` still
+  needs update. Client only, no install. Core 3.0.0-alpha.21.
 * **Uploaded files are kept in the instance's database.** `/do/upload`
   used to write to `files/upload`, which a redeploy wipes on a host that
   rebuilds its file system, and which every instance on the server

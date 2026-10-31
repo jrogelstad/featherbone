@@ -5,7 +5,7 @@ currently have one setting and one audience: whoever sets a format sets
 it for everyone, wherever the record appears. This adds two axes to
 that, decided with John on 2026-10-31.
 
-- **Who**: `Just me` (default) or `Everyone`. `Everyone` is what the
+- **Who**: `Just me` or `Everyone` (default). `Everyone` is what the
   feature does today.
 - **Where**: `Just here` or `Everywhere` (default). `Everywhere` is what
   it does today.
@@ -137,19 +137,41 @@ Where the host gives no key, `Just here` is disabled with a tooltip
 saying the list has no place of its own, and `Where` stays on
 `Everywhere`. Better than inventing keys that outlive nothing.
 
-## Defaults
+## Defaults, and the dialog remembering
 
-`Who` defaults to `Just me`, as John asked: a format should not reach
-other people unless it is meant to.
+With nothing remembered the dialog opens on **Whole row, Everyone,
+Everywhere** -- what the feature did before it had options, and so the
+most intuitive start. (The first cut defaulted `Who` to `Just me` and
+the target to the cell; John reversed both on 2026-10-31 once he had
+used it, preferring the original behaviour as the baseline.)
 
-`Where` defaults to `Everywhere`, which is *not* symmetric with that on
-purpose. The two axes are about different things. `Who` is blast radius
-to other people, so the conservative default earns its keep. `Where` is
-about your own experience of the same record, and a format usually means
-something about the record itself -- this customer is trouble -- which
-is worth having wherever the record turns up. It also leaves the `Where`
-axis behaving as it does today. One line to change if that proves wrong
-in use.
+The dialog is also **sticky**. A user who dislikes the defaults will
+tend to want the same alternative every time, and three radios to
+re-click on every format is a lot of clicking. Saving a format
+remembers its target, who and scope, and the next dialog opens there.
+
+- Kept in `localStorage`, keyed by user name, so it is per person per
+  browser. It is a habit, not data, so it has no server round trip and
+  no schema; if it is missing or unreadable there simply is no habit.
+- Remembered on **Save** only. Cancelling, and Clear, change nothing.
+- A format already showing on the cell or row beats the habit: the
+  dialog opens on that entry's own who and where, so editing a shared
+  format does not mean noticing the radios have aimed elsewhere. The
+  habit is what a *new* format starts from.
+- A habit only counts where it is possible. `Just here` in a list with
+  no place of its own falls back to `Everywhere` -- and saving there
+  does not unlearn the habit, since no choice was made about it.
+  `Everyone` without update permission falls back to `Just me`.
+
+## Readers
+
+A user who can read a record but not update it can format it for
+themselves: the cell menu's `Format…` needs only that the record can
+be read, `Note…` still needs update permission, and in the dialog
+`Everyone` is disabled with a tooltip saying why. (The server always
+allowed this; the first client cut still gated the whole menu on
+update permission, so the feature was unreachable for exactly the
+users it was meant for.)
 
 ## Writing
 
@@ -159,12 +181,10 @@ in use.
 - `who`: `"all"` or `"mine"`, defaulting to `"all"`
 - `where`: a context key or `"*"`, defaulting to `"*"`
 
-The wire default is `"all"` even though the dialog's default is
-`Just me`, which looks inconsistent and is not. An omitted parameter
-should keep meaning what it meant before this change, and it should
-land on the stricter authorization rather than the looser one. The
-dialog sends `who` on every save, so the default is only ever reached
-by a caller written against the older endpoint -- which meant `all`.
+The wire default is `"all"`, which an omitted parameter should keep
+meaning because that is what it meant before this change. The dialog
+sends `who` on every save, so the default is only ever reached by a
+caller written against the older endpoint.
 
 Authorization splits:
 
