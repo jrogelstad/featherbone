@@ -9,9 +9,32 @@ database they are willing to lose.
 | --- | --- |
 | `clear-instance-data.sql` | Empties the application master-data and transaction tables of one instance, leaving the Featherbone control tables (`$workbook`, `$settings`, `$feather`, forms, routes, scripts, roles, users) intact, so the packages still work. |
 | `load.js` | Runs a data script against one instance, optionally clearing it first. Warns, asks, and refuses to run a file that is not marked as a data script. |
-| `help-shots.js` | Retakes the help's screenshots from a running server, as each help folder's `shots.json` says. Changes no data except the signed-in user's own workbook layouts, which shots that set a filter or sort revert afterwards: run it as a user whose layouts you don't mind losing. Needs Playwright, which is not a dependency (`npm install --no-save playwright && npx playwright install chromium`). |
+| `help-shots.js` | Retakes the help's screenshots from a running server, as each help folder's `shots.json` says. Besides the screen it can draw callouts on a picture, drag, type and take a printed form (a PDF) as a picture, and a shot names the `setup` of the demo data it needs. Changes no data except the signed-in user's own workbook layouts, which shots that set a filter or sort revert afterwards: run it as a user whose layouts you don't mind losing. Needs Playwright, which is not a dependency (`npm install --no-save playwright && npx playwright install chromium`), and poppler's `pdftoppm` for the printed forms. |
+| `help-shots-stage.js` | Puts the demo in the state those pictures need: the Enterprise edition, work orders released and completed, a taxed, a part-paid and a prepaid invoice, a location controlled site. It posts shipments, invoices and payments, so run it on a throwaway copy of the demo, never one that is kept. |
 | `demo-data/teardrop-campers.sql` | Seventeen months of Road Runner Campers trading history plus the forward order book, built out from the ddom "Teardrop Campers" demo dataset. 271,054 rows, 17 complete months, as-of 2027-06-01. |
 | `demo-data/demo-settings.sql` | Run after every load of the demo data. Points Design settings' default site at the warehouse the load just created, and lists any other setting that names a record that is missing or deleted. |
+
+## Retaking the help's pictures
+
+Restore a fresh copy of the demo (Standard edition), then stage a setup and take
+its pictures, in this order. The pictures with no `setup` come first, from the
+Standard demo with the records the `standard` setup adds:
+
+```
+node scripts/dev/help-shots-stage.js standard
+node scripts/dev/help-shots.js                       # Core
+node scripts/dev/help-shots.js --package ../supplychain
+node scripts/dev/help-shots-stage.js enterprise
+node scripts/dev/help-shots.js --package ../supplychain --setup enterprise
+node scripts/dev/help-shots-stage.js billing
+node scripts/dev/help-shots.js --package ../supplychain --setup billing
+node scripts/dev/help-shots-stage.js locations
+node scripts/dev/help-shots.js --package ../supplychain --setup locations
+```
+
+Name a picture after the options to retake only the ones whose file names contain
+it. The printed forms print the company logo from `files/upload`, so the instance
+needs the demo's logo there.
 
 ## Running them
 

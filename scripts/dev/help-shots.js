@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, unordered*/
-/*global window*/
+/*global document, window*/
 /**
     Retakes the help's screenshots from a running server.
 
@@ -32,6 +32,9 @@
         --user <name>      Sign in as (default pgUser in config.json)
         --password <pw>    (default pgPassword in config.json)
         --package <dir>    Shoot a package's modules instead of Core's
+        --setup <name>     Shoot the pictures that need that setup of the
+                           demo data (default: the ones that need none);
+                           help-shots-stage.js makes the setups
         --dry-run          Take nothing; list what would be taken
 
     A name narrows the run to the pictures whose file name contains it.
@@ -55,27 +58,53 @@
             }
         }
 
+    "callouts" draws labelled boxes over the picture before it is taken:
+    [{"text": "...", "at": [x, y], "width": 150, "to": "<selector>" or
+    [x, y], "dx": 0, "dy": 0, "color": "#e8742a"}], the line running from
+    the box to the target. Points are as seen in the picture itself, from
+    its top left corner; a selector is the element's middle.
+
+    "setup" names the state the demo data must be in for the picture:
+    "enterprise", "billing" or "locations", as help-shots-stage.js makes
+    them; the run does not change the instance, it only chooses which
+    pictures suit how it is set up.
+
+    "pdf" takes the picture from a printed form instead of the screen:
+    {"click": "<the button that downloads it>", "page": 1, "width": 1024}
+    (needs poppler's pdftoppm; the form prints the company logo from
+    files/upload, so the instance needs that file).
+
     "after" lists steps run once the picture is taken, to undo what
     the shot left behind: a filter or sort is remembered for the user,
     so a shot that sets one should revert the workbook.
 
     Steps, one key each, run in order: `go` route; `record`
     [feather, {property: value}] opens its form; `click`, `dblclick`,
-    `rightclick`, `hover` selector; `fill` [selector, text]; `select`
-    [selector, value]; `press` key; `wait` ms or selector; `eval` script
-    run in the page. Selectors are Playwright's.
+    `rightclick`, `hover` selector; `clickif` selector clicks it only if
+    it is there; `fill` [selector, text]; `select` [selector, value];
+    `type` [selector, text] keys it in one press at a time, for the
+    cells that ignore `fill`; `press` key; `drag` [from, over, dx]
+    drops the element dx pixels to its right over another (widening a
+    column is its grabber dropped over the next header); `wait` ms or
+    selector;
+    `eval` script run in the page. Selectors are Playwright's.
 */
 "use strict";
 
 const fsp = require("fs").promises;
+const os = require("os");
 const path = require("path");
+const {execFile} = require("child_process");
+const {promisify} = require("util");
+
+const run = promisify(execFile);
 
 const ROOT = path.join(__dirname, "..", "..");
 
 function options() {
     let args = process.argv.slice(2);
     let opts = {names: []};
-    let flags = ["base", "user", "password", "package"];
+    let flags = ["base", "user", "password", "package", "setup"];
 
     while (args.length) {
         let arg = args.shift();
@@ -171,6 +200,30 @@ async function settle(page) {
     await page.waitForTimeout(300);
 }
 
+// Keys one at a time, for the cells that only hear key presses (`fill`
+// sets the value without them)
+async function typeInto(page, selector, text) {
+    let field = page.locator(selector).first();
+
+    await field.click();
+    await field.press("Control+a");
+    await field.pressSequentially(text, {delay: 60});
+}
+
+// Drag one element and drop it `dx` pixels to the right, over another
+async function drag(page, from, over, dx) {
+    let source = page.locator(from).first();
+    let target = page.locator(over).first();
+    let a = await source.boundingBox();
+    let b = await target.boundingBox();
+    let startX = a.x + a.width / 2;
+
+    await source.dragTo(target, {
+        sourcePosition: {x: a.width / 2, y: a.height / 2},
+        targetPosition: {x: startX + dx - b.x, y: b.height / 2}
+    });
+}
+
 async function step(page, base, s) {
     let kind = Object.keys(s)[0];
     let arg = s[kind];
@@ -187,11 +240,24 @@ async function step(page, base, s) {
     case "hover":
         await page.locator(arg).first()[kind]();
         break;
+    case "clickif":
+        // Only when it is there: for a setting that is remembered, so
+        // it may or may not be on already
+        if (await page.locator(arg).count()) {
+            await page.locator(arg).first().click();
+        }
+        break;
     case "rightclick":
         await page.locator(arg).first().click({button: "right"});
         break;
+    case "drag":
+        await drag(page, arg[0], arg[1], arg[2]);
+        break;
     case "fill":
         await page.locator(arg[0]).first().fill(arg[1]);
+        break;
+    case "type":
+        await typeInto(page, arg[0], arg[1]);
         break;
     case "select":
         await page.locator(arg[0]).first().selectOption(arg[1]);
@@ -219,8 +285,21 @@ async function step(page, base, s) {
 function runSteps(page, base, steps) {
     let list = steps || [];
 
-    return list.reduce(function (prev, s) {
-        return prev.then(() => step(page, base, s));
+    return list.reduce(function (prev, s, i) {
+        return prev.then(
+            () => step(page, base, s)
+        ).catch(function (e) {
+            // Say which step, so a long recipe is not guesswork; the
+            // steps after it each see the same failure, and leave it be
+            if (!e.step) {
+                e.step = i + 1;
+                e.message = (
+                    "step " + e.step + " " + JSON.stringify(s) + ": " +
+                    e.message
+                );
+            }
+            return Promise.reject(e);
+        });
     }, Promise.resolve());
 }
 
@@ -268,8 +347,92 @@ async function signInOrStop(browser, opts) {
     }
 }
 
+// Callouts drawn over the page before the picture is taken: a labelled
+// box at `at` [x, y], width `width`, joined by a line to `to`, which is
+// an element's selector or a point [x, y]
+async function callouts(page, list, origin) {
+    let marks = [];
+    let i = 0;
+    let c;
+    let box;
+    let to;
+
+    while (i < list.length) {
+        c = list[i];
+        i += 1;
+        if (typeof c.to === "string") {
+            box = await page.locator(c.to).first().boundingBox();
+            to = [
+                box.x + box.width / 2 + (c.dx || 0),
+                box.y + box.height / 2 + (c.dy || 0)
+            ];
+        } else {
+            to = [c.to[0] + origin[0], c.to[1] + origin[1]];
+        }
+        marks.push({
+            at: [c.at[0] + origin[0], c.at[1] + origin[1]],
+            color: c.color || "#e8742a",
+            text: c.text,
+            to,
+            width: c.width || 150
+        });
+    }
+
+    await page.evaluate(function (items) {
+        let svgNs = "http://www.w3.org/2000/svg";
+        let layer = document.createElement("div");
+        let svg = document.createElementNS(svgNs, "svg");
+
+        layer.style.cssText = (
+            "position:fixed;left:0;top:0;width:100%;height:100%;" +
+            "z-index:2147483647;pointer-events:none;"
+        );
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", "100%");
+        svg.style.cssText = "position:absolute;left:0;top:0;";
+        layer.appendChild(svg);
+        // In the page first, or the boxes have no measure to draw from
+        document.body.appendChild(layer);
+        items.forEach(function (m) {
+            let div = document.createElement("div");
+            let line = document.createElementNS(svgNs, "line");
+            let rect;
+            let sx;
+            let sy;
+
+            div.textContent = m.text;
+            div.style.cssText = (
+                "position:absolute;left:" + m.at[0] + "px;top:" +
+                m.at[1] + "px;width:" + m.width + "px;padding:8px 10px;" +
+                "box-sizing:border-box;border-radius:3px;color:#fff;" +
+                "font:600 15px/1.25 Arial,Helvetica,sans-serif;" +
+                "text-align:center;background:" + m.color + ";"
+            );
+            layer.appendChild(div);
+            rect = div.getBoundingClientRect();
+            // Leave from the middle of the side nearest the target
+            sx = Math.min(Math.max(m.to[0], rect.left), rect.right);
+            sy = Math.min(Math.max(m.to[1], rect.top), rect.bottom);
+            if (m.to[0] > rect.left && m.to[0] < rect.right) {
+                sx = rect.left + rect.width / 2;
+            }
+            if (m.to[1] > rect.top && m.to[1] < rect.bottom) {
+                sy = rect.top + rect.height / 2;
+            }
+            line.setAttribute("x1", sx);
+            line.setAttribute("y1", sy);
+            line.setAttribute("x2", m.to[0]);
+            line.setAttribute("y2", m.to[1]);
+            line.setAttribute("stroke", "#7b3a1c");
+            line.setAttribute("stroke-width", "1.5");
+            svg.appendChild(line);
+        });
+    }, marks);
+}
+
 async function capture(page, shot, viewport, file) {
     let opts = {animations: "disabled", caret: "hide", path: file};
+    let origin;
 
     if (shot.element) {
         opts.clip = await around(
@@ -289,7 +452,40 @@ async function capture(page, shot, viewport, file) {
     } else if (shot.clip) {
         opts.clip = shot.clip;
     }
+    if (shot.callouts) {
+        // Positions are as seen in the picture, so shift by its origin
+        origin = opts.clip || {};
+        await callouts(
+            page,
+            shot.callouts,
+            [origin.x || 0, origin.y || 0]
+        );
+    }
     await page.screenshot(opts);
+}
+
+/*
+    A printed form is a PDF the app hands over as a download, so the
+    picture is its page, rasterised with pdftoppm (poppler): the shot's
+    "pdf" is {"click": "<the Download button>", "page": 1, "width": 1024}
+*/
+async function printed(page, pdf, file) {
+    let dir = await fsp.mkdtemp(path.join(os.tmpdir(), "help-shot-"));
+    let src = path.join(dir, "form.pdf");
+    let [download] = await Promise.all([
+        page.waitForEvent("download", {timeout: 30000}),
+        page.click(pdf.click)
+    ]);
+
+    await download.saveAs(src);
+    await run("pdftoppm", [
+        "-png", "-singlefile",
+        "-f", String(pdf.page || 1), "-l", String(pdf.page || 1),
+        "-scale-to-x", String(pdf.width || 1024), "-scale-to-y", "-1",
+        src, path.join(dir, "page")
+    ]);
+    await fsp.copyFile(path.join(dir, "page.png"), file);
+    await fsp.rm(dir, {recursive: true});
 }
 
 async function shoot(browser, opts, list, name, file) {
@@ -298,7 +494,10 @@ async function shoot(browser, opts, list, name, file) {
         width: 1024,
         height: 640
     };
-    let context = await browser.newContext({viewport});
+    let context = await browser.newContext({
+        acceptDownloads: true,
+        viewport
+    });
     let page = await context.newPage();
     let failure;
 
@@ -309,11 +508,20 @@ async function shoot(browser, opts, list, name, file) {
         await page.goto(opts.base + "/");
         await settle(page);
         await runSteps(page, opts.base, shot.steps);
-        await capture(page, shot, viewport, file);
-        // Undo what the shot left behind, such as a remembered filter
-        await runSteps(page, opts.base, shot.after);
+        if (shot.pdf) {
+            await printed(page, shot.pdf, file);
+        } else {
+            await capture(page, shot, viewport, file);
+        }
     } catch (e) {
         failure = e;
+    }
+    // Undo what the shot left behind, such as a remembered filter, even
+    // when the shot itself failed, or the next try starts from a mess
+    try {
+        await runSteps(page, opts.base, shot.after);
+    } catch (e) {
+        failure = failure || e;
     }
     await context.close();
     if (failure) {
@@ -340,6 +548,10 @@ async function jobsFor(opts) {
         let list = JSON.parse(lists[i]);
 
         Object.keys(list.shots).filter(
+            (name) => (list.shots[name].setup || "") === (
+                opts.setup || ""
+            )
+        ).filter(
             (name) => !opts.names.length || opts.names.some(
                 (n) => name.includes(n)
             )

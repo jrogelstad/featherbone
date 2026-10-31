@@ -122,6 +122,24 @@
             ],
             "element": "dialog[open]"
         },
+        "worksheet-inline-editing-4.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "#isEditModeEnabled"},
+                {"click": "dialog[open] button:has-text('Ok'):visible"},
+                {"click": "button[title*='Edit mode']:visible"},
+                {"click": "tbody tr:has-text('2-ELECTRICAL-KIT') td >> nth=6"},
+                {"type": ["tr.fb-table-row-editor #inputDescription", "My new description"]},
+                {"press": "Tab"},
+                {"click": "tr.fb-table-row-editor #nav-relation-span-inputUnit"}
+            ],
+            "callouts": [{"text": "Click to switch to edit mode", "at": [250, 76], "width": 150, "to": "button[title*='Edit mode']:visible", "dy": 6}, {"text": "Click a row and edit cells directly", "at": [600, 150], "width": 190, "to": [560, 237]}, {"text": "Status icon changes to editing symbol when changes are made", "at": [60, 290], "width": 230, "to": [14, 237]}, {"text": "Relations have the same navigational options here as in the form", "at": [560, 360], "width": 250, "to": [700, 270]}],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768},
+            "after": [{"click": "button[title^='Revert workbook']"}]
+        },
         "altering-columns-1.png": {
             "steps": [
                 {"go": "/workbook/items/products"},
@@ -353,6 +371,15 @@
             ],
             "clip": {"x": 0, "y": 0, "width": 1024, "height": 440}
         },
+        "worksheet-navigation-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"}
+            ],
+            "callouts": [{"text": "Hover over header for column description", "at": [430, 100], "width": 200, "to": [440, 66]}, {"text": "Status indicator. Double click to open record", "at": [24, 190], "width": 190, "to": [14, 150]}, {"text": "Hover over icon to see its meaning", "at": [330, 300], "width": 170, "to": [302, 297]}, {"text": "Hover over truncated text to see full content", "at": [640, 264], "width": 190, "to": [560, 239]}, {"text": "Right click for context menu", "at": [1000, 120], "width": 150, "to": [860, 150]}, {"text": "Click hyperlink to open the relation", "at": [700, 332], "width": 170, "to": [614, 356]}],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
         "searching-and-filtering-11.png": {
             "steps": [
                 {"go": "/workbook/items/products"},
@@ -363,19 +390,130 @@
                 {"click": "dialog[open] >> text=Show Deleted"}
             ],
             "element": "dialog[open]"
+        },
+        "searching-and-filtering-9.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "dialog[open] >> text=Columns"},
+                {"click": "dialog[open] tbody tr >> text='Cost'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Category'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Drawing Link'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Type'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Group'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Price'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Source'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible", "updated"]},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible", "updatedBy"]},
+                {"click": "dialog[open] button:has-text('Ok'):visible"},
+                {"drag": ["th.fb-column-header:text-is('Updated') + th.fb-column-header-grabber", "th.fb-column-header:text-is('Updated By')", 70]},
+                {"click": "button[title^='Filter results']"},
+                {"select": ["dialog[open] tbody tr >> nth=0 >> .fb-filter-dialog-property", "category.code"]},
+                {"fill": ["dialog[open] tbody tr >> nth=0 >> input >> nth=0", "Electrical"]},
+                {"press": "Tab"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> .fb-filter-dialog-property", "updated"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "is"}]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=2", {"label": "This Week"}]}
+            ],
+            "element": "dialog[open]",
+            "after": [{"press": "Escape"}, {"click": "button[title^='Revert workbook']"}],
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "searching-and-filtering-10.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "dialog[open] >> text=Columns"},
+                {"click": "dialog[open] tbody tr >> text='Cost'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Category'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Drawing Link'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Type'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Group'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Price'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Source'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible", "updated"]},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible", "updatedBy"]},
+                {"click": "dialog[open] button:has-text('Ok'):visible"},
+                {"drag": ["th.fb-column-header:text-is('Updated') + th.fb-column-header-grabber", "th.fb-column-header:text-is('Updated By')", 70]},
+                {"click": "button[title^='Filter results']"},
+                {"select": ["dialog[open] tbody tr >> nth=0 >> .fb-filter-dialog-property", "category.code"]},
+                {"fill": ["dialog[open] tbody tr >> nth=0 >> input >> nth=0", "Electrical"]},
+                {"press": "Tab"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> .fb-filter-dialog-property", "updated"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "is"}]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=2", {"label": "This Week"}]},
+                {"click": "dialog[open] button:has-text('Ok'):visible"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 260,
+            "after": [{"click": "button[title^='Revert workbook']"}],
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "searching-and-filtering-12.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "dialog[open] >> text=Columns"},
+                {"click": "dialog[open] tbody tr >> text='Cost'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Category'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Drawing Link'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Type'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Group'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Price'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] tbody tr >> text='Source'"},
+                {"click": "dialog[open] button:has-text('Remove'):visible"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible", "updated"]},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible", "updatedBy"]},
+                {"click": "dialog[open] button:has-text('Ok'):visible"},
+                {"drag": ["th.fb-column-header:text-is('Updated') + th.fb-column-header-grabber", "th.fb-column-header:text-is('Updated By')", 70]},
+                {"click": "button[title^='Filter results']"},
+                {"select": ["dialog[open] .fb-filter-dialog-property >> nth=0", "description"]},
+                {"select": ["dialog[open] tbody tr >> nth=0 >> select >> nth=1", {"label": "matches"}]},
+                {"fill": ["dialog[open] tbody tr >> nth=0 >> input >> nth=0", "wire"]},
+                {"press": "Tab"},
+                {"click": "dialog[open] >> text=Show Deleted"},
+                {"click": "dialog[open] button:has-text('Ok'):visible"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 260,
+            "after": [{"click": "button[title^='Revert workbook']"}],
+            "viewport": {"width": 1366, "height": 768}
         }
     },
     "notTaken": {
-        "worksheet-navigation-1.png": "Callouts drawn over the worksheet; needs an overlay step",
-        "worksheet-inline-editing-4.png": "Callouts, and a row being edited",
-        "altering-columns-2.png": "An open native select; a screenshot cannot show one",
-        "searching-and-filtering-8.png": "A hover tooltip; a screenshot cannot show one",
-        "searching-and-filtering-9.png": "Needs products updated this week in the data",
-        "searching-and-filtering-10.png": "Needs products updated this week in the data",
-        "searching-and-filtering-12.png": "Needs deleted products in the data",
-        "adding-and-removing-worksheets-4.png": "A worksheet button mid-drag",
-        "list-actions-2.png": "The browser's print preview",
+        "searching-and-filtering-8.png": "A hover tooltip. It is drawn by the browser outside the page, so a screenshot cannot show it",
+        "adding-and-removing-worksheets-4.png": "A worksheet button mid-drag. The ghost under the pointer is the browser's drag image, which a screenshot cannot show; the arrows are drawn on the picture by hand",
+        "list-actions-2.png": "The browser's own print preview, outside the page",
         "list-actions-4.png": "Excel, not the app: kept",
-        "list-actions-5.png": "Excel, not the app: kept"
+        "list-actions-5.png": "Excel, not the app: kept",
+        "altering-columns-2.png": "An open native select. Headless Chromium draws a dropdown's list outside the page, so a screenshot cannot show it, and listing the options in place does not fit the dialog's table row"
     }
 }
