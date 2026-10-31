@@ -20,7 +20,7 @@ Notable changes to Featherbone. Dates are the day the work landed on
   line, when the instance does not hold it. **Run `node install.js
   --instance <name>` on each instance** (self upgrade does it) to create
   the table. Adds a regression suite, `test/api/file-uploads.test.js`.
-  Core 3.0.0-alpha.17.
+  Core 3.0.0-alpha.20.
 * **About, and a REST API reference.** An Info button beside the bell
   on every screen opens an About dialog: what Featherbone is, the
   framework version, each module the instance deployed (sub-modules
