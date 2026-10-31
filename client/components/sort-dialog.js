@@ -105,8 +105,29 @@ sortDialog.viewModel = function (options) {
             }, "Order")
         ];
     };
+    /*
+        What the list of columns calls a sort key. Clicking a money
+        column's header sorts by the money itself (`item.cost`), where
+        the list offers its amount (`item.cost.amount`): with nothing
+        in the list to match, the select showed nothing, and an
+        untouched row read as a column that was not there (John, Oct
+        2026). Both sort the same, so the row says the one listed. What
+        is saved is left as it was.
+    */
+    function listed(property, attrs) {
+        if (
+            attrs.indexOf(property) === -1 &&
+            attrs.indexOf(property + ".amount") !== -1
+        ) {
+            return property + ".amount";
+        }
+
+        return property;
+    }
+
     vm.viewRows = function () {
         let view;
+        let attrs = vm.attrs();
 
         view = vm.items().map(function (item) {
             let row;
@@ -127,14 +148,14 @@ sortDialog.viewModel = function (options) {
                         minWidth: "175px",
                         maxWidth: "175px"
                     },
-                    value: item.property,
+                    value: listed(item.property, attrs),
                     onchange: (e) =>
                     vm.itemChanged.bind(
                         this,
                         item.index,
                         "property"
                     )(e.target.value)
-                }, vm.attrs().map(function (attr) {
+                }, attrs.map(function (attr) {
                     return m("option", {
                         value: attr
                     }, attr.toName());

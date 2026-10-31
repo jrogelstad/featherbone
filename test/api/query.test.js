@@ -436,6 +436,124 @@ describe("data API queries", function () {
             );
         });
 
+        /*
+            The amount of a related record's money (an inventory row's
+            item cost). The criterion used to name a column the table
+            listed has no such column of, and was found only through the
+            view the list is selected from: it was then tested against the
+            row being returned instead of choosing which to return. With
+            a limit and a sort -- every list on screen -- "item cost > 10"
+            asked whether a row was among the cheapest twenty AND dearer
+            than 10, which is none (John, Oct 2026). Sorting by the same
+            path failed outright.
+        */
+        describe("money on a related record", function () {
+            // T1 300, T2 100, T3 500, T4 400, T5 200 -> D1..D5
+            let deposit = {};
+
+            before(async function () {
+                let keys = Object.keys(terms);
+                let i = 0;
+
+                while (i < keys.length) {
+                    deposit[keys[i]] = await admin.create("FbtDeposit", {
+                        code: pre + "-D" + keys[i].slice(1),
+                        description: "Deposit on " + keys[i],
+                        terms: {id: terms[keys[i]].id}
+                    });
+                    i += 1;
+                }
+            });
+
+            async function held(criteria, filter) {
+                let rows = await admin.list("FbtDeposits", {
+                    filter: Object.assign({
+                        criteria: [mine].concat(criteria)
+                    }, filter)
+                });
+
+                return rows.map((r) => r.code.slice(pre.length + 1));
+            }
+
+            it("filters on the amount", async function () {
+                assert.deepEqual(
+                    (await held([{
+                        operator: ">",
+                        property: "terms.depositAmount.amount",
+                        value: 250
+                    }])).sort(),
+                    ["D1", "D3", "D4"]
+                );
+            });
+
+            it("filters on the amount under a sort and a limit",
+                    async function () {
+                // The cheapest two cost less than 250: what the list
+                // chooses from is the rows over 250, not the rows that
+                // happen to come first.
+                assert.deepEqual(
+                    await held([{
+                        operator: ">",
+                        property: "terms.depositAmount.amount",
+                        value: 250
+                    }], {
+                        limit: 2,
+                        sort: [{
+                            order: "ASC",
+                            property: "terms.depositAmount"
+                        }]
+                    }),
+                    ["D1", "D4"]
+                );
+                assert.deepEqual(
+                    await held([{
+                        operator: "<=",
+                        property: "terms.depositAmount.amount",
+                        value: 200
+                    }], {
+                        limit: 1,
+                        sort: [{
+                            order: "DESC",
+                            property: "terms.depositAmount.amount"
+                        }]
+                    }),
+                    ["D5"]
+                );
+            });
+
+            it("filters on a list of amounts", async function () {
+                assert.deepEqual(
+                    (await held([{
+                        operator: "IN",
+                        property: "terms.depositAmount.amount",
+                        value: [100, 500]
+                    }], {limit: 5})).sort(),
+                    ["D2", "D3"]
+                );
+            });
+
+            it("sorts by the amount", async function () {
+                assert.deepEqual(
+                    await held([], {sort: [{
+                        order: "DESC",
+                        property: "terms.depositAmount.amount"
+                    }]}),
+                    ["D3", "D4", "D1", "D5", "D2"]
+                );
+            });
+
+            // What clicking the column's header sorts by.
+            it("sorts by the money itself", async function () {
+                assert.deepEqual(
+                    await held([], {sort: [{
+                        order: "ASC",
+                        property: "terms.depositAmount"
+                    }]}),
+                    ["D2", "D5", "D1", "D4", "D3"]
+                );
+            });
+        });
+
         it("rejects an unknown sort order", async function () {
             expectError(
                 await admin.raw("POST", "/data/fbt-terms-list", {filter: {
