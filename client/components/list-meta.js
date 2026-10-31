@@ -54,6 +54,9 @@ const NOTE_TAGS = [
 
 const authorized = new WeakMap();
 
+// A format that applies wherever the record appears, not in one place
+const EVERYWHERE = "*";
+
 function metaOf(model) {
     return (
         model.data.meta
@@ -101,16 +104,104 @@ function css(format) {
     return ret;
 }
 
-function rowFormat(model) {
-    let fmt = metaOf(model).format;
-
-    return fmt && fmt.row;
+/*
+    The format entries on one target. A record written before formats
+    had a who and a where holds a single object where this wants a
+    list, and that object meant everyone, everywhere -- so that is what
+    it is read as, which saves migrating anything.
+*/
+function entriesOf(held) {
+    if (Array.isArray(held)) {
+        return held;
+    }
+    if (held && typeof held === "object") {
+        return [Object.assign({}, held, {
+            where: EVERYWHERE,
+            who: "all"
+        })];
+    }
+    return [];
 }
 
-function cellFormat(model, attr) {
+function heldOn(model, attr) {
     let fmt = metaOf(model).format;
 
-    return fmt && fmt.cells && fmt.cells[attr];
+    if (!fmt) {
+        return undefined;
+    }
+    return (
+        attr
+        ? fmt.cells && fmt.cells[attr]
+        : fmt.row
+    );
+}
+
+// Whether an entry is the one a given who and place addresses
+function isSlot(entry, who, where) {
+    return (
+        entry.who === who &&
+        entry.where === where &&
+        (who === "all" || entry.by === f.currentUser().name)
+    );
+}
+
+/*
+    Which of a target's formats shows, by how specific it is: one of
+    mine before everyone's, and one made here before one made
+    everywhere. The winner is used whole rather than layered over the
+    others, so a format of your own that sets only bold shows no part
+    of the shared red beneath it (John, Oct 2026). Formats still layer
+    across targets -- business style, then row, then cell -- which is
+    where `css` leaving unset properties alone still matters.
+
+    `place` is undefined wherever a list has no place of its own, and
+    that drops the two rungs that name one.
+*/
+function winner(entries, place) {
+    let rungs = [];
+
+    if (place) {
+        rungs.push({where: place, who: "mine"});
+    }
+    rungs.push({where: EVERYWHERE, who: "mine"});
+    if (place) {
+        rungs.push({where: place, who: "all"});
+    }
+    rungs.push({where: EVERYWHERE, who: "all"});
+
+    return rungs.reduce(function (found, rung) {
+        if (found) {
+            return found;
+        }
+        return entries.find((e) => isSlot(e, rung.who, rung.where));
+    }, undefined);
+}
+
+function rowFormat(model, place) {
+    return winner(entriesOf(heldOn(model)), place);
+}
+
+function cellFormat(model, attr, place) {
+    return winner(entriesOf(heldOn(model, attr)), place);
+}
+
+/*
+    The format everyone is getting on this target, whether or not one
+    of the user's own is hiding it. The dialog says so when it is.
+*/
+function sharedFormat(model, attr, place) {
+    let entries = entriesOf(heldOn(model, attr)).filter(
+        (e) => e.who === "all"
+    );
+
+    return winner(entries, place);
+}
+
+// The stored entry a given who and place addresses, for the dialog
+function formatEntry(model, attr, who, where) {
+    return entriesOf(heldOn(model, attr)).find(
+        (e) => isSlot(e, who, where)
+    );
 }
 
 function notesOf(model, attr) {
@@ -338,6 +429,8 @@ function formatDialog(options) {
         title: "Format"
     });
     let target = f.prop("cell");
+    let who = f.prop("mine");
+    let scope = f.prop("everywhere");
     let background = f.prop();
     let textColor = f.prop();
     let bold = f.prop(false);
@@ -346,20 +439,63 @@ function formatDialog(options) {
     let model;
     let attr;
     let label;
+    let place;
     let clear;
 
-    function load() {
-        let fmt = (
+    // The column a cell format is on, or nothing for a row format
+    function on() {
+        return (
             target() === "row"
-            ? rowFormat(model)
-            : cellFormat(model, attr)
-        ) || {};
+            ? undefined
+            : attr
+        );
+    }
+
+    // What the radios add up to, as the service names it
+    function where() {
+        return (
+            scope() === "here"
+            ? place
+            : EVERYWHERE
+        );
+    }
+
+    /*
+        The dialog edits one entry at a time, so changing any of the
+        three radios loads that entry: pick "Everyone" where a shared
+        format is hiding behind yours and the editor fills with what
+        everyone is getting, which is how you see it.
+    */
+    function load() {
+        let fmt = formatEntry(model, on(), who(), where()) || {};
 
         background(fmt.background);
         textColor(fmt.color);
         bold(Boolean(fmt.bold));
         italic(Boolean(fmt.italic));
         underline(Boolean(fmt.underline));
+    }
+
+    /*
+        The format everyone is getting on this target while one of the
+        user's own hides it. Worth saying, because nothing else on
+        screen gives it away.
+    */
+    function hidden() {
+        let shared;
+
+        if (who() !== "mine") {
+            return undefined;
+        }
+        shared = sharedFormat(model, on(), place);
+        if (!shared) {
+            return undefined;
+        }
+        return (
+            formatEntry(model, on(), "mine", where())
+            ? shared
+            : undefined
+        );
     }
 
     function current() {
@@ -389,18 +525,25 @@ function formatDialog(options) {
         }, text);
     }
 
-    function choice(value, text) {
-        return m("label", {class: "fb-format-target"}, [
+    function choice(options) {
+        let prop = options.prop;
+        let value = options.value;
+
+        return m("label", {
+            class: "fb-format-target",
+            title: options.title
+        }, [
             m("input", {
                 type: "radio",
-                name: dlg.ids().dialog + "-target",
-                checked: target() === value,
+                name: dlg.ids().dialog + "-" + options.group,
+                checked: prop() === value,
+                disabled: Boolean(options.disabled),
                 onchange: function () {
-                    target(value);
+                    prop(value);
                     load();
                 }
             }),
-            " " + text
+            " " + options.text
         ]);
     }
 
@@ -417,8 +560,77 @@ function formatDialog(options) {
         }, [
             m("div", {class: "fb-format-line"}, [
                 m("span", {class: "fb-format-label"}, "Apply to"),
-                choice("cell", "Cell “" + label + "”"),
-                choice("row", "Whole row")
+                choice({
+                    group: "target",
+                    prop: target,
+                    text: "Cell “" + label + "”",
+                    title: "Format this one cell",
+                    value: "cell"
+                }),
+                choice({
+                    group: "target",
+                    prop: target,
+                    text: "Whole row",
+                    title: "Format every cell in this row",
+                    value: "row"
+                })
+            ]),
+            m("div", {class: "fb-format-line"}, [
+                m("span", {class: "fb-format-label"}, "Who"),
+                choice({
+                    group: "who",
+                    prop: who,
+                    text: "Just me",
+                    title: "Only you see this format",
+                    value: "mine"
+                }),
+                choice({
+                    group: "who",
+                    prop: who,
+                    text: "Everyone",
+                    title: (
+                        "Everyone who can see this record sees this " +
+                        "format"
+                    ),
+                    value: "all"
+                }),
+                (
+                    hidden()
+                    ? m("span", {
+                        class: "fb-format-hidden-note",
+                        title: (
+                            "Choose Everyone to see the format they " +
+                            "are getting"
+                        )
+                    }, "Everyone also has a format here")
+                    : undefined
+                )
+            ]),
+            m("div", {class: "fb-format-line"}, [
+                m("span", {class: "fb-format-label"}, "Where"),
+                choice({
+                    disabled: !place,
+                    group: "scope",
+                    prop: scope,
+                    text: "Just here",
+                    title: (
+                        place
+                        ? "Applies only in this list"
+                        : (
+                            "This list has no place of its own, so a " +
+                            "format here applies wherever the record " +
+                            "appears"
+                        )
+                    ),
+                    value: "here"
+                }),
+                choice({
+                    group: "scope",
+                    prop: scope,
+                    text: "Everywhere",
+                    title: "Applies wherever this record appears",
+                    value: "everywhere"
+                })
             ]),
             m("div", {class: "fb-format-line"}, [
                 m("span", {class: "fb-format-label"}, "Background"),
@@ -454,12 +666,15 @@ function formatDialog(options) {
         ]);
     };
 
+    // Clears the one entry the three radios address, nobody else's
     clear = f.createViewModel("Button", {
         onclick: function () {
             save(model, {
                 action: "clearFormat",
                 target: target(),
-                attr
+                attr,
+                who: who(),
+                where: where()
             }, options.onError);
             dlg.cancel();
         },
@@ -474,7 +689,9 @@ function formatDialog(options) {
             action: "format",
             target: target(),
             attr,
-            format: current()
+            format: current(),
+            who: who(),
+            where: where()
         }, options.onError);
     });
 
@@ -483,16 +700,39 @@ function formatDialog(options) {
         @param {Object} pModel Row model
         @param {String} pAttr Column
         @param {String} pLabel Column label
+        @param {String} [pPlace] What the host calls this list, for a
+        format that is to apply here and nowhere else
     */
-    dlg.open = function (pModel, pAttr, pLabel) {
+    dlg.open = function (pModel, pAttr, pLabel, pPlace) {
+        let showing;
+
         model = pModel;
         attr = pAttr;
         label = pLabel;
+        place = pPlace;
+        who("mine");
+        scope("everywhere");
         target(
-            (!cellFormat(model, attr) && rowFormat(model))
+            (!cellFormat(model, attr, place) && rowFormat(model, place))
             ? "row"
             : "cell"
         );
+        /*
+            A format already showing is the one to edit, so the dialog
+            opens on its who and where rather than on the defaults --
+            otherwise changing a shared format would mean noticing that
+            the radios had quietly aimed somewhere else. With nothing
+            showing, the defaults stand: one's own, everywhere.
+        */
+        showing = winner(entriesOf(heldOn(model, on())), place);
+        if (showing) {
+            who(showing.who);
+            scope(
+                showing.where === EVERYWHERE
+                ? "everywhere"
+                : "here"
+            );
+        }
         load();
         dlg.title("Format");
         dlg.show();
@@ -840,7 +1080,12 @@ function cellActions(options) {
         label: "Format…",
         title: reason || "Colors and text style for this cell or row",
         disabled: Boolean(reason),
-        run: act(() => options.formatDialog.open(model, attr, options.label))
+        run: act(() => options.formatDialog.open(
+            model,
+            attr,
+            options.label,
+            options.place
+        ))
     }, {
         key: "note",
         icon: "comment",
