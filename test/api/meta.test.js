@@ -1,10 +1,13 @@
 /*
     Formats and notes on list rows: POST /do/meta (server/services/
     meta.js), the `meta` column every object carries, and the rules
-    around it. Writing needs update authorization; a user writes and
-    clears only their own note; note HTML is sanitized; ordinary saves
-    never touch meta; and a meta-only change is announced as "meta",
-    not "update", so a list does not overwrite a row someone is editing.
+    around it. A note, and a format for everyone, need update
+    authorization; a format for oneself needs only to be able to read
+    the record, since it changes nothing anyone else sees. A user
+    writes and clears only their own note, and only their own private
+    format. Note HTML is sanitized; ordinary saves never touch meta;
+    and a meta-only change is announced as "meta", not "update", so a
+    list does not overwrite a row someone is editing.
 */
 /*jslint node, unordered*/
 "use strict";
@@ -129,11 +132,18 @@ describe("list formats and notes (meta)", function () {
             let now;
 
             assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.equal(resp.body.format.cells.code.length, 1);
             assert.deepEqual(
-                Object.keys(resp.body.format.cells.code).sort(),
-                ["at", "background", "bold", "by", "color"]
+                Object.keys(resp.body.format.cells.code[0]).sort(),
+                [
+                    "at", "background", "bold", "by", "color", "where",
+                    "who"
+                ]
             );
-            assert.equal(resp.body.format.cells.code.by, editor.name);
+            assert.equal(resp.body.format.cells.code[0].by, editor.name);
+            // An omitted who means what it meant before there was one
+            assert.equal(resp.body.format.cells.code[0].who, "all");
+            assert.equal(resp.body.format.cells.code[0].where, "*");
 
             now = await stored(rec.id);
             assert.deepEqual(now.meta, resp.body);
@@ -154,8 +164,8 @@ describe("list formats and notes (meta)", function () {
             });
 
             assert.equal(resp.status, 200);
-            assert.equal(resp.body.format.row.underline, true);
-            assert.equal(resp.body.format.row.by, editor2.name);
+            assert.equal(resp.body.format.row[0].underline, true);
+            assert.equal(resp.body.format.row[0].by, editor2.name);
             assert.ok(resp.body.format.cells.code, "cell format kept");
 
             resp = await meta(editorS, {
@@ -191,6 +201,204 @@ describe("list formats and notes (meta)", function () {
 
             assert.equal(resp.status, 400);
             assert.match(String(resp.body), /Invalid color/);
+        });
+    });
+
+    /*
+        Who a format is for and where it applies (the spec in
+        docs/list-format-scopes-spec.md). One entry per who and place,
+        and per author for a private one, so nobody's colour sits on
+        top of anyone else's.
+    */
+    describe("who and where a format applies", function () {
+        let rec;
+        const HERE = "sheet:fbtsheet1";
+        const THERE = "sheet:fbtsheet2";
+
+        before(async function () {
+            rec = await newRec();
+        });
+
+        function fmt(session, body) {
+            return meta(session, Object.assign({
+                id: rec.id,
+                action: "format",
+                target: "cell",
+                attr: "code"
+            }, body));
+        }
+
+        function slots(body) {
+            return body.format.cells.code.map(
+                (one) => [one.who, one.where, one.by]
+            ).sort();
+        }
+
+        it("keeps an entry per who, place and author", async function () {
+            let expected;
+            let resp = await fmt(editorS, {
+                format: {background: "red"},
+                who: "all"
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+
+            resp = await fmt(editor2S, {
+                format: {bold: true},
+                who: "mine",
+                where: HERE
+            });
+            assert.equal(resp.status, 200);
+
+            resp = await fmt(editorS, {
+                format: {italic: true},
+                who: "mine",
+                where: HERE
+            });
+            assert.equal(resp.status, 200);
+
+            resp = await fmt(editorS, {
+                format: {underline: true},
+                who: "mine",
+                where: "*"
+            });
+            assert.equal(resp.status, 200);
+
+            expected = [
+                ["all", "*", editor.name],
+                ["mine", "*", editor.name],
+                ["mine", HERE, editor.name],
+                ["mine", HERE, editor2.name]
+            ];
+            assert.deepEqual(slots(resp.body), expected.sort());
+        });
+
+        it("replaces only its own entry", async function () {
+            let resp = await fmt(editorS, {
+                format: {background: "blue"},
+                who: "mine",
+                where: HERE
+            });
+            let mine;
+
+            assert.equal(resp.status, 200);
+            assert.equal(resp.body.format.cells.code.length, 4);
+
+            mine = resp.body.format.cells.code.find(
+                (one) => one.who === "mine" && one.where === HERE &&
+                one.by === editor.name
+            );
+            assert.equal(mine.background, "blue");
+            assert.equal(mine.italic, undefined, "replaced, not merged");
+
+            // And the other author's entry for the same place is intact
+            assert.equal(
+                resp.body.format.cells.code.find(
+                    (one) => one.by === editor2.name
+                ).bold,
+                true
+            );
+        });
+
+        it("clears only its own entry", async function () {
+            let expected;
+            let resp = await meta(editorS, {
+                id: rec.id,
+                action: "clearFormat",
+                target: "cell",
+                attr: "code",
+                who: "mine",
+                where: HERE
+            });
+
+            assert.equal(resp.status, 200);
+            expected = [
+                ["all", "*", editor.name],
+                ["mine", "*", editor.name],
+                ["mine", HERE, editor2.name]
+            ];
+            assert.deepEqual(slots(resp.body), expected.sort());
+        });
+
+        it("tells one place from another", async function () {
+            let resp = await fmt(editorS, {
+                format: {bold: true},
+                who: "all",
+                where: THERE
+            });
+
+            assert.equal(resp.status, 200);
+            assert.equal(resp.body.format.cells.code.length, 4);
+            assert.ok(resp.body.format.cells.code.some(
+                (one) => one.who === "all" && one.where === THERE
+            ));
+        });
+
+        it("refuses an unknown who or a bad place", async function () {
+            let resp = await fmt(editorS, {
+                format: {bold: true},
+                who: "everybody"
+            });
+
+            assert.equal(resp.status, 400);
+            assert.match(String(resp.body), /Unknown who/);
+
+            resp = await fmt(editorS, {
+                format: {bold: true},
+                who: "all",
+                where: "sheet:'; drop table object; --"
+            });
+            assert.equal(resp.status, 400);
+            assert.match(String(resp.body), /Invalid place/);
+        });
+
+        /*
+            A record formatted before formats had a who and a where
+            carries one object, which meant everyone, everywhere. It is
+            read as that entry rather than migrated.
+        */
+        it("takes an entry beside an old format", async function () {
+            let old = await newRec();
+            let expected;
+            let resp;
+
+            await db.query(
+                "UPDATE object SET meta = $2 WHERE id = $1",
+                [old.id, JSON.stringify({
+                    format: {
+                        row: {
+                            at: "2026-10-01T00:00:00.000Z",
+                            background: "yellow",
+                            by: editor2.name
+                        }
+                    }
+                })]
+            );
+
+            resp = await meta(editorS, {
+                id: old.id,
+                action: "format",
+                target: "row",
+                format: {bold: true},
+                who: "mine",
+                where: HERE
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            expected = [
+                ["all", "*", editor2.name],
+                ["mine", HERE, editor.name]
+            ];
+            assert.deepEqual(resp.body.format.row.map(
+                (one) => [one.who, one.where, one.by]
+            ).sort(), expected.sort());
+            assert.equal(
+                resp.body.format.row.find(
+                    (one) => one.who === "all"
+                ).background,
+                "yellow",
+                "the old format keeps its colour"
+            );
         });
     });
 
@@ -327,14 +535,47 @@ describe("list formats and notes (meta)", function () {
             assert.equal(resp.status, 401);
             assert.match(String(resp.body), /Not authorized to update/);
 
+            // A format for everyone changes what everyone reads
             resp = await meta(readerS, {
                 id: rec.id,
                 action: "format",
                 target: "row",
-                format: {bold: true}
+                format: {bold: true},
+                who: "all"
             });
             assert.equal(resp.status, 401);
+            assert.match(String(resp.body), /Not authorized to update/);
             assert.equal((await stored(rec.id)).meta, null);
+        });
+
+        /*
+            A format for oneself is a view preference, so seeing the
+            record is enough for one: a reader who could not mark up
+            their own view of a list would be the worse answer (John,
+            Oct 2026).
+        */
+        it("lets that user format for themselves", async function () {
+            let resp = await meta(readerS, {
+                id: rec.id,
+                action: "format",
+                target: "row",
+                format: {bold: true},
+                who: "mine"
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.deepEqual(resp.body.format.row.map(
+                (one) => [one.who, one.by, one.bold]
+            ), [["mine", reader.name, true]]);
+
+            resp = await meta(readerS, {
+                id: rec.id,
+                action: "clearFormat",
+                target: "row",
+                who: "mine"
+            });
+            assert.equal(resp.status, 200);
+            assert.equal(resp.body, null);
         });
 
         it("refuses unknown actions, columns and records", async function () {
