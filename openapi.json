@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "Featherbone",
-        "version": "3.0.0-alpha.14",
+        "version": "3.0.0-alpha.16",
         "description": "Featherbone is a Node.js and PostgreSQL framework for building object-relational business applications from feathers: data classes whose definitions generate the database tables, the REST routes and the client. One server hosts many instances (databases), each served under its own path and carrying its own modules. Every path here is relative to the instance; data routes are generated per feather, and modules add routes of their own.",
         "license": {
             "name": "GNU Affero General Public License v3",
