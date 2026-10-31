@@ -397,6 +397,19 @@
       "CREATE TRIGGER fbt_category_update_trigger AFTER UPDATE ON public.fbt_category FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
+  "fbt_deposit": {
+    "columns": {
+      "_terms_fbt_terms_pk": "bigint"
+    },
+    "inherits": [
+      "kind"
+    ],
+    "triggers": [
+      "CREATE TRIGGER fbt_deposit_delete_trigger AFTER DELETE ON public.fbt_deposit FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER fbt_deposit_insert_trigger AFTER INSERT ON public.fbt_deposit FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER fbt_deposit_update_trigger AFTER UPDATE ON public.fbt_deposit FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
   "fbt_location": {
     "columns": {
       "description": "text",

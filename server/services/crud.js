@@ -410,10 +410,17 @@
                         f.formats[fp.format] &&
                         f.formats[fp.format].isMoney
                     ) {
+                        // Down to the money attribute itself, wherever it
+                        // is: `cost.amount` is `cost`, and so is the
+                        // `item.cost.amount` of a related record's, not
+                        // `item` (an attribute of its own table that the
+                        // table sorted does not have).
                         item.isMoney = true;
-                        item.property = item.property.slice(
-                            0,
-                            item.property.indexOf(".")
+                        item.property = (
+                            item.property.slice(
+                                0,
+                                item.property.length - prop.length
+                            ) + attr
                         );
                         idx = -1;
                     } else {
@@ -447,6 +454,32 @@
                 return;
             }
             appendDotProp(item.property);
+        }
+
+        /*
+            Where a money value is, for a criterion on one of its parts
+            (`cost.amount`). Through the table it was joined to when it
+            belongs to a related record (`item.cost.amount`): the path as
+            typed names a column of the table being selected from, which
+            has none called `item` (it has `_item_item_pk`). That
+            resolved only because the lookup sits inside a query of the
+            view, whose `item` it then found instead -- the outer row's,
+            so the criterion was tested against each row of the outer
+            list rather than choosing which to list. Under a limit and a
+            sort, "item cost > 10" listed nothing when the cheapest
+            twenty cost less (John, Oct 2026).
+        */
+        function moneyPath(path, tokens, alias, attr, rest) {
+            let dot = rest.indexOf(".");
+
+            if (!alias || dot === -1) {
+                return tools.resolvePath(path, tokens);
+            }
+            tokens.push(alias);
+            tokens.push(attr.toSnakeCase());
+            tokens.push(rest.slice(dot + 1).toSnakeCase());
+
+            return "(%I.%I).%I";
         }
 
         async function buildJoin(prop) {
@@ -491,9 +524,12 @@
                                     part.push("$" + p);
                                     p += 1;
                                 });
-                                part = tools.resolvePath(
+                                part = moneyPath(
                                     where.property,
-                                    ptokens
+                                    ptokens,
+                                    theAlias,
+                                    attr,
+                                    prop
                                 ) + " IN (" + part.join(",") + ")";
                             // If no values in array, then no result
                             } else {
@@ -510,9 +546,12 @@
                                 where.value = where.value.id;
                             }
                             params.push(where.value);
-                            part = tools.resolvePath(
+                            part = moneyPath(
                                 where.property,
-                                ptokens
+                                ptokens,
+                                theAlias,
+                                attr,
+                                prop
                             ) + " " + where.operator + " $" + p;
                             p += 1;
                         }
