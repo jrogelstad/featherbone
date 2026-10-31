@@ -938,20 +938,34 @@
             @method systemAudit
             @param {Client} client Manager client
             @param {Number} [limit] Default 50, capped at 500
+            @param {Number} [organizationPk] Only this organization's
+                rows. Left out, every row: the cluster's own
+                database.* rows belong to nobody, so an organization
+                never sees them.
             @return {Promise} Array of rows
         */
-        that.systemAudit = async function (client, limit) {
+        that.systemAudit = async function (client, limit, organizationPk) {
             let max = Math.min(Math.max(limit || 50, 1), 500);
+            let scoped = organizationPk !== undefined;
             let resp = await client.query(
                 (
                     "SELECT id, action, occurred, detail, " +
                     "  updated_by AS author " +
                     "FROM admin_audit " +
-                    "WHERE action LIKE 'database.%' " +
-                    "   OR action LIKE 'instance.%' " +
+                    "WHERE (action LIKE 'database.%' " +
+                    "   OR action LIKE 'instance.%') " +
+                    (
+                        scoped
+                        ? "  AND _on_behalf_of_organization_pk = $2 "
+                        : ""
+                    ) +
                     "ORDER BY occurred DESC LIMIT $1"
                 ),
-                [max]
+                (
+                    scoped
+                    ? [max, organizationPk]
+                    : [max]
+                )
             );
 
             return resp.rows;

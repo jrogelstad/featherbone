@@ -2183,7 +2183,12 @@
 
                     let trail = await manager.systemAudit(
                         mclient,
-                        obj.limit
+                        obj.limit,
+                        (
+                            ctx.tier === "platform"
+                            ? undefined
+                            : ctx.organizationPk
+                        )
                     );
                     let unattached = await manager.orphanInstances(mclient);
                     let connections = await manager.services(mclient);
