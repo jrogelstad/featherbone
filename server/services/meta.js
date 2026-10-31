@@ -44,6 +44,16 @@
     const TABLE = /^[a-z][a-z0-9_]*$/;
     const MAX_NOTE = 20000;
     const MAX_META = 200000;
+    // Who a format is for: everyone who can read the record, or its author
+    const WHOS = ["all", "mine"];
+    // Where it applies: one place, or wherever the record appears
+    const EVERYWHERE = "*";
+    /*
+        A place is the host's own name for where a list appears -- a
+        worksheet id, a form id and its child property. Opaque here, so
+        only its shape is checked.
+    */
+    const PLACE = /^[A-Za-z][\w.:\/\-]{0,199}$/;
 
     // What a note may contain once saved
     const NOTE_HTML = {
@@ -109,8 +119,53 @@
         return ret;
     }
 
+    /*
+        The format entries on one target. A record written before
+        formats had a who and a where holds a single object where this
+        wants a list, and that object meant everyone, everywhere -- so
+        that is what it is read as, which saves migrating anything.
+    */
+    function entriesOf(held) {
+        if (Array.isArray(held)) {
+            return held.slice();
+        }
+        if (held && typeof held === "object") {
+            return [Object.assign({}, held, {
+                where: EVERYWHERE,
+                who: "all"
+            })];
+        }
+        return [];
+    }
+
+    /*
+        Whether an entry is the one a write addresses. A shared format
+        is the target's single `all` entry for that place; a private one
+        belongs to the caller, so nobody writes over anyone else's.
+    */
+    function isSlot(entry, who, where, user) {
+        return (
+            entry.who === who &&
+            entry.where === where &&
+            (who === "all" || entry.by === user)
+        );
+    }
+
     function prune(meta) {
         let format = meta.format || {};
+
+        if (Array.isArray(format.row) && !format.row.length) {
+            delete format.row;
+        }
+        if (format.cells) {
+            Object.keys(format.cells).forEach(function (key) {
+                let held = format.cells[key];
+
+                if (Array.isArray(held) && !held.length) {
+                    delete format.cells[key];
+                }
+            });
+        }
 
         if (format.cells && !Object.keys(format.cells).length) {
             delete format.cells;
@@ -159,6 +214,13 @@
             @param {String} [payload.data.attr] Column the cell is in
             @param {Object} [payload.data.format] background, color, bold,
             italic, underline
+            @param {String} [payload.data.who] `all` for everyone who can
+            read the record, or `mine` for the caller alone. Default
+            `all`, which is what an omitted who meant before formats had
+            one.
+            @param {String} [payload.data.where] The place a format
+            applies in, as the client names it, or `*` for wherever the
+            record appears. Default `*`.
             @param {String} [payload.data.html] Note text
             @param {Boolean} [isChild]
             @param {Boolean} [isSuperUser]
@@ -173,6 +235,12 @@
             let attr = data.attr;
             let isRow = data.target === "row";
             let isFormat = action === "format" || action === "clearFormat";
+            let who = data.who || "all";
+            let where = data.where || EVERYWHERE;
+            let needs;
+            let entries;
+            let held;
+            let idx;
             let resp;
             let table;
             let feather;
@@ -200,6 +268,15 @@
                 )
             ) {
                 throw bad("Invalid column \"" + attr + "\"");
+            }
+
+            if (isFormat) {
+                if (!WHOS.includes(who)) {
+                    throw bad("Unknown who \"" + who + "\"");
+                }
+                if (where !== EVERYWHERE && !PLACE.test(String(where))) {
+                    throw bad("Invalid place \"" + where + "\"");
+                }
             }
 
             resp = await client.query((
@@ -234,18 +311,36 @@
                 );
             }
 
+            /*
+                A format for everyone changes what everyone reads, so it
+                needs update rights, as a note does. A format for
+                oneself is a view preference, and being able to see the
+                record is enough for one: otherwise a user with
+                read-only access to a list could not mark it up for
+                their own eyes (John, Oct 2026).
+            */
+            needs = (
+                (isFormat && who === "mine")
+                ? "canRead"
+                : "canUpdate"
+            );
+
             if (
                 isSuperUser !== true &&
                 !await feathers.isAuthorized({
                     client,
                     data: {
                         id: data.id,
-                        action: "canUpdate"
+                        action: needs
                     }
                 })
             ) {
                 err = new Error(
-                    "Not authorized to update \"" + data.id + "\""
+                    "Not authorized to " + (
+                        needs === "canRead"
+                        ? "read"
+                        : "update"
+                    ) + " \"" + data.id + "\""
                 );
                 err.statusCode = 401;
                 throw err;
@@ -263,24 +358,45 @@
                     ? cleanFormat(data.format)
                     : undefined
                 );
-                if (format) {
-                    format.by = user;
-                    format.at = now;
-                }
                 meta.format = meta.format || {};
                 if (isRow) {
-                    if (format) {
-                        meta.format.row = format;
+                    held = meta.format.row;
+                } else {
+                    meta.format.cells = meta.format.cells || {};
+                    held = meta.format.cells[attr];
+                }
+
+                /*
+                    One entry per who and place, and per author for a
+                    private one. The write replaces its own entry and
+                    leaves every other alone, so clearing your own
+                    colour cannot take a colleague's with it.
+                */
+                entries = entriesOf(held);
+                idx = entries.findIndex(
+                    (entry) => isSlot(entry, who, where, user)
+                );
+                if (idx !== -1) {
+                    entries.splice(idx, 1);
+                }
+                if (format) {
+                    format.who = who;
+                    format.where = where;
+                    format.by = user;
+                    format.at = now;
+                    entries.push(format);
+                }
+
+                if (isRow) {
+                    if (entries.length) {
+                        meta.format.row = entries;
                     } else {
                         delete meta.format.row;
                     }
+                } else if (entries.length) {
+                    meta.format.cells[attr] = entries;
                 } else {
-                    meta.format.cells = meta.format.cells || {};
-                    if (format) {
-                        meta.format.cells[attr] = format;
-                    } else {
-                        delete meta.format.cells[attr];
-                    }
+                    delete meta.format.cells[attr];
                 }
                 break;
             default:
@@ -329,7 +445,7 @@
 
             meta = prune(meta);
             if (meta && JSON.stringify(meta).length > MAX_META) {
-                throw bad("Too many notes on this record");
+                throw bad("Too many notes and formats on this record");
             }
 
             sql = "UPDATE %I SET meta = $2 WHERE id = $1;";

@@ -1081,6 +1081,27 @@ instance.*
       administrator named by hand. Recording the cause needs a
       `$`-prefixed framework table; no feather change either way.
 
+- [x] **G.6 Move an instance to another organization.** (S) *Done
+  2026-10-31 on `feat/move-instance`.* Move on the platform console's
+  Instances list (`POST /platform/instance/move`, platform administrators
+  only) re-points `tenant._organization_organization_pk`; the database is
+  not touched. John's answers: revoke every grant held by someone the new
+  organization does not answer for (platform administrators and anyone
+  appointed over it keep theirs), lower their `is_super` in the instance,
+  warn on sign-in policy differences rather than block, copy no
+  settings, record a `instance.moved_out` / `instance.moved_in` entry in
+  each trail (earlier history is not copied: `admin_audit` has no
+  instance column, so most of it cannot be told apart), close an
+  organization left with no instance, and appoint nobody -- the platform
+  administrator does that afterwards. Revoked people's sessions in the
+  instance are deleted too.
+    - An organization that is home to an active platform administrator
+      is not closed even when emptied: closing it would lock them out.
+    - `dryRun` returns the same plan and changes nothing; the console
+      shows it before the Move button enables.
+    - Refused while held for maintenance or while a build is unfinished.
+    - Done when: `test/api/move-instance.test.js` (6 claims) passes.
+
 ## 7. What the improvement plan loses to this plan
 
 Update `featherbone-improvement-plan.md` to mark these. Nothing is dropped;
