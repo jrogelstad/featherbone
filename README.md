@@ -370,20 +370,40 @@ worth knowing before changing the SMTP account from a test database.
 Other nodes pick the change up as their own caches turn over.
 
 **The logo** is a pointer rather than a record: a URL, or the name of a
-file uploaded to this server, which printing reads from `files/upload/`.
-It used to relate to a `ResourceLink`, whose row lived in one instance
-and nowhere else; as a pointer it travels with the rest of the
-letterhead. An installation that already has the old shape keeps
-printing — the old value is still read — and a local file name only
-reaches a server that holds the file, so a multi-node installation wants
-a URL.
+file uploaded to the instance, which printing reads from the instance's
+`"$file"` table. It used to relate to a `ResourceLink`, whose row lived in
+one instance and nowhere else; as a pointer it travels with the rest of
+the letterhead. An installation that already has the old shape keeps
+printing — the old value is still read. The organization's other
+instances share the name but not the file, which belongs to the instance
+it was uploaded in: they print without a logo (and say so in the log)
+until it is uploaded there too, or a URL is used.
 
 Settings still takes a pasted URL in the box, but there is also an
-**Upload** button beside it: choosing a file sends it through the same
-upload the rest of the server already serves files from, and points the
-setting at whatever name it was given. That upload is behind
-`fileUpload`, off by default like the rest of the server's uploads, so
-turn it on for the button to do anything.
+**Upload** button beside it: choosing a file sends it through the
+server's upload and points the setting at whatever name it was given.
+That upload is behind `fileUpload`, off by default, so turn it on for the
+button to do anything.
+
+### Uploaded files
+
+Uploads are kept in each instance's own database, in a `"$file"` table,
+so they survive a redeploy (a host that rebuilds the file system loses
+anything written to disk), go with the instance's backups, and are never
+visible to another instance. `fileUpload` turns the feature on, and
+`fileUploadMaxMB` (25 by default, the size most mail servers accept)
+refuses anything larger with a 413. Both can be set in `config.json` or
+in the environment. Files are served at `/<db>/files/upload/<name>` to
+any signed-in user of that instance, with an ETag so a repeat view costs
+a lookup, not a transfer. Images and PDFs show in the browser; anything
+else is downloaded.
+
+The whole file is held in memory while it moves, a little over three
+times its size on the way out, so keep the limit modest on a small host.
+The table is created by `node install.js --instance <name>` (and by
+self upgrade), so an instance that has not been upgraded yet serves
+nothing from it. Files uploaded to the old `files/upload` folder are
+still served from there when the instance holds nothing by that name.
 
 ### Administering identities
 

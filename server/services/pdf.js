@@ -38,6 +38,7 @@
     const {Tools} = require("./tools");
     const {Feathers} = require("./feathers");
     const {Settings} = require("./settings");
+    const {Files} = require("./files");
     const fetch = require("node-fetch");
     const pdfmake = require("pdfmake");
     //const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
@@ -45,6 +46,7 @@
     //const defTextLabel = "Confidential";
     const formats = new Tools().formats;
     const settings = new Settings();
+    const fileStore = new Files();
 
     // Points per centimeter
     const CM = 72 / 2.54;
@@ -693,14 +695,24 @@
                     src = await res.buffer();
                 } else {
                     /*
-                        A name, not a path: the uploaded file is
-                        taken from the upload directory and nowhere
-                        else, so a setting cannot read its way across
-                        the file system.
+                        A name, not a path: the instance's own stored
+                        file, or failing that the old upload directory
+                        and nowhere else, so a setting cannot read its
+                        way across the file system.
                     */
-                    src = fs[readFileSync](
-                        "./files/upload/" + path_.basename(where)
-                    );
+                    src = await fileStore.data(vClient, where);
+                    if (!src) {
+                        try {
+                            src = fs[readFileSync](
+                                "./files/upload/" + path_.basename(where)
+                            );
+                        } catch (ignore) {
+                            console.error(
+                                "Logo \"" + where + "\" is not held by " +
+                                "this instance; printing without it"
+                            );
+                        }
+                    }
                 }
             } else {
                 src = fs[readFileSync]("./files/logo.jpg");
@@ -711,9 +723,11 @@
                     src.toString("base64")
                 );
             } else {
-                console.error(
-                    "Logo is not a JPEG or PNG image; printing without it"
-                );
+                if (src) {
+                    console.error(
+                        "Logo is not a JPEG or PNG image; printing without it"
+                    );
+                }
             }
             let n = 0;
             let file = (filename || f.createId()) + ".pdf";

@@ -104,6 +104,7 @@
                 debug: true,
                 demoGraceDays: 30,
                 fileUpload: false,
+                fileUploadMaxMB: 25,
                 googleEmailClientFile: "",
                 googleEmailUserAccount: "",
                 googleOauth2CallbackUrl: "",

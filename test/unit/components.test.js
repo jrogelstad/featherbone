@@ -524,8 +524,8 @@ describe("client components", function () {
                 fallbackSrc: "/files/logo.jpg",
                 prop: model.data.logo
             });
-            assert.equal(R.find(tree, R.byTag("img")).attrs.src,
-                    "/files/upload/letterhead.png");
+            assert.ok(R.find(tree, R.byTag("img")).attrs.src.endsWith(
+                    "/files/upload/letterhead.png"));
             assert.equal(R.find(tree, R.byClass("fb-input")).attrs.value,
                     "");
             // ddom's dropzone keeps a real file input visible inside the

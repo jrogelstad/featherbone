@@ -81,11 +81,7 @@ function brandIcon() {
         return "";
     }
 
-    return (
-        value.startsWith("http")
-        ? value
-        : "/files/upload/" + value
-    );
+    return f.uploadUrl(value);
 }
 
 /*

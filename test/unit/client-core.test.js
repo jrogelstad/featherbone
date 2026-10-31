@@ -287,6 +287,25 @@ describe("client/core.js helpers", function () {
             assert.equal(f.hashCode("Featherbone"), 2016468537);
         });
 
+        it("uploadUrl points at this instance's own files", function () {
+            let base = f.datasource().baseUrl();
+
+            assert.equal(
+                f.uploadUrl("ab12-logo.png"),
+                base + "/files/upload/ab12-logo.png"
+            );
+            assert.equal(
+                f.uploadUrl("a b#1.png"),
+                base + "/files/upload/a%20b%231.png"
+            );
+            assert.equal(
+                f.uploadUrl("https://example.com/x.png"),
+                "https://example.com/x.png"
+            );
+            assert.equal(f.uploadUrl(""), "");
+            assert.equal(f.uploadUrl(undefined), "");
+        });
+
         it("resolveAlias follows dot paths and overloads", function () {
             let feather = catalog.getFeather("TestItem");
             assert.equal(f.resolveAlias(feather, "category.code"), "Code");
