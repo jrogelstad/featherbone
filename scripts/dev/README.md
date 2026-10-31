@@ -12,7 +12,7 @@ database they are willing to lose.
 | `help-shots.js` | Retakes the help's screenshots from a running server, as each help folder's `shots.json` says. Besides the screen it can draw callouts on a picture, drag, type and take a printed form (a PDF) as a picture, and a shot names the `setup` of the demo data it needs. Changes no data except the signed-in user's own workbook layouts, which shots that set a filter or sort revert afterwards: run it as a user whose layouts you don't mind losing. Needs Playwright, which is not a dependency (`npm install --no-save playwright && npx playwright install chromium`), and poppler's `pdftoppm` for the printed forms. |
 | `help-shots-stage.js` | Puts the demo in the state those pictures need: the Enterprise edition, work orders released and completed, a taxed, a part-paid and a prepaid invoice, a location controlled site. It posts shipments, invoices and payments, so run it on a throwaway copy of the demo, never one that is kept. |
 | `demo-data/teardrop-campers.sql` | Seventeen months of Road Runner Campers trading history plus the forward order book, built out from the ddom "Teardrop Campers" demo dataset. 271,054 rows, 17 complete months, as-of 2027-06-01. |
-| `demo-data/demo-settings.sql` | Run after every load of the demo data. Points Design settings' default site at the warehouse the load just created, and lists any other setting that names a record that is missing or deleted. |
+| `demo-data/demo-settings.sql` | Runs by itself after every data script (`--no-settings` skips it). Reads each setting's definition and points every relation (default site, print forms) at a record that exists: refreshes its copy of the name, repoints a missing one by feather and name, code or name, else the only record; fills in a missing default site; says what it could not fix. Safe to repeat. |
 
 ## Retaking the help's pictures
 
@@ -41,7 +41,6 @@ needs the demo's logo there.
 ```
 npm run dev:load -- --list
 npm run dev:load -- --clear --script scripts/dev/demo-data/teardrop-campers.sql --db demo
-npm run dev:load -- --script scripts/dev/demo-data/demo-settings.sql --db demo
 ```
 
 Stop the server first: the clear step refuses to run while other connections are
@@ -229,8 +228,8 @@ Two consequences worth knowing before the first run:
   database has the demo data but lost them, `sales-regions.sql` puts them back.
 * Settings are not cleared, but the rows the load creates get new ids every time, so a
   setting that names one goes stale: Design settings' default site did, and New Product then
-  failed to save with `Relation not found in "Site"`. `demo-settings.sql` repoints it; run
-  it after each load, with the server stopped.
+  failed to save with `Relation not found in "Site"`. `load.js` therefore finishes every data
+  script by running `demo-settings.sql`, which points each setting at a record that exists.
 * A table that holds rows but belongs to no installed feather stops the run
   rather than being silently left behind. `--clear-orphans` clears those too.
 

@@ -868,6 +868,244 @@ describe("client components", function () {
         });
 
         /*
+            Who and where a format applies (list-meta.js). The most
+            specific entry wins whole rather than layering, so a format
+            of one's own shows no part of the shared one beneath it --
+            John's call, Oct 2026. Formats still layer across targets,
+            row then cell, which is tested above.
+        */
+        it("resolves a format by who, then by where", function () {
+            let model = list[0];
+            let meta = catalog.store().global().listMeta;
+            let here = "sheet:fbsheet1";
+            let elsewhere = "sheet:fbsheet2";
+
+            after(function () {
+                model.setMeta(null);
+            });
+
+            function cell(place) {
+                return meta.css(meta.cellFormat(model, "name", place));
+            }
+
+            function entry(who, where, style) {
+                return Object.assign({
+                    by: (
+                        who === "mine"
+                        ? "tester"
+                        : "someone"
+                    ),
+                    where,
+                    who
+                }, style);
+            }
+
+            model.setMeta({
+                format: {
+                    cells: {
+                        name: [
+                            entry("all", "*", {background: "red"}),
+                            entry("all", here, {italic: true}),
+                            entry("mine", "*", {bold: true}),
+                            entry("mine", here, {color: "green"})
+                        ]
+                    }
+                }
+            });
+
+            // Mine and here wins, and wins whole: no shared red under it
+            assert.deepEqual(cell(here), {
+                color: "var(--fb-swatch-green-fg)"
+            });
+
+            // In a list with no place of its own, the next rung down
+            assert.deepEqual(cell(undefined), {fontWeight: "bold"});
+
+            // A place nobody formatted falls to the same rung
+            assert.deepEqual(cell(elsewhere), {fontWeight: "bold"});
+
+            // With nothing of the user's own, the shared one shows --
+            // here before everywhere
+            model.setMeta({
+                format: {
+                    cells: {
+                        name: [
+                            entry("all", "*", {background: "red"}),
+                            entry("all", here, {italic: true})
+                        ]
+                    }
+                }
+            });
+            assert.deepEqual(cell(here), {fontStyle: "italic"});
+            assert.deepEqual(cell(undefined), {
+                backgroundColor: "var(--fb-swatch-red-bg)"
+            });
+
+            // Someone else's private format is never anyone else's
+            model.setMeta({
+                format: {
+                    cells: {
+                        name: [{
+                            background: "blue",
+                            by: "someone",
+                            where: "*",
+                            who: "mine"
+                        }]
+                    }
+                }
+            });
+            assert.deepEqual(cell(here), {});
+
+            /*
+                A record written before formats had a who and a where
+                holds one object, which meant everyone, everywhere
+            */
+            model.setMeta({
+                format: {
+                    cells: {name: {bold: true, by: "someone"}},
+                    row: {background: "yellow", by: "someone"}
+                }
+            });
+            assert.deepEqual(cell(here), {fontWeight: "bold"});
+            assert.deepEqual(
+                meta.css(meta.rowFormat(model, here)),
+                {backgroundColor: "var(--fb-swatch-yellow-bg)"}
+            );
+        });
+
+        /*
+            The format dialog edits one entry at a time, so its radios
+            double as a way of looking at the others: pick "Everyone"
+            where a shared format is hidden behind your own and the
+            preview fills with what everyone else is getting.
+        */
+        it("format dialog scopes a format, and shows the hidden one",
+                function () {
+            let model = list[0];
+            let vm = tableVm();
+            let saved = globalThis.getComputedStyle;
+            let here = "sheet:fbsheet1";
+            let dlg = vm.formatDialog();
+
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            after(function () {
+                globalThis.getComputedStyle = saved;
+                model.setMeta(null);
+            });
+
+            function render() {
+                return R.render(comps.dialog, {viewModel: dlg}).tree;
+            }
+
+            function radios() {
+                return R.findAll(
+                    render(),
+                    R.byClass("fb-format-target")
+                ).map(function (one) {
+                    let input = R.find(one, R.byTag("input"));
+
+                    return {
+                        checked: Boolean(input.attrs.checked),
+                        disabled: Boolean(input.attrs.disabled),
+                        text: R.text(one),
+                        title: one.attrs.title
+                    };
+                });
+            }
+
+            function preview() {
+                return R.find(
+                    render(),
+                    R.byClass("fb-format-preview")
+                ).attrs.style;
+            }
+
+            function hiddenNote() {
+                return R.find(render(), R.byClass("fb-format-hidden-note"));
+            }
+
+            // Nothing stored: one's own, everywhere
+            dlg.open(model, "name", "Name", here);
+            assert.deepEqual(radios().map((r) => [r.text, r.checked]), [
+                ["Cell “Name”", true],
+                ["Whole row", false],
+                ["Just me", true],
+                ["Everyone", false],
+                ["Just here", false],
+                ["Everywhere", true]
+            ]);
+
+            // Every option says what it will do
+            radios().forEach(function (one) {
+                assert.ok(one.title, one.text + " has a tooltip");
+            });
+            assert.equal(
+                radios()[2].title,
+                "Only you see this format"
+            );
+            assert.equal(hiddenNote(), undefined, "nothing hidden yet");
+
+            // A shared format, and one of the user's own over it
+            model.setMeta({
+                format: {
+                    cells: {
+                        name: [{
+                            background: "red",
+                            by: "someone",
+                            where: "*",
+                            who: "all"
+                        }, {
+                            bold: true,
+                            by: "tester",
+                            where: "*",
+                            who: "mine"
+                        }]
+                    }
+                }
+            });
+
+            // Opens on what is showing, which is the user's own
+            dlg.open(model, "name", "Name", here);
+            assert.deepEqual(
+                radios().filter((r) => r.checked).map((r) => r.text),
+                ["Cell “Name”", "Just me", "Everywhere"]
+            );
+            assert.deepEqual(preview(), {fontWeight: "bold"});
+            assert.ok(
+                R.text(hiddenNote()).includes("Everyone also has a format"),
+                "says a shared format is behind this one"
+            );
+
+            // Switching to Everyone shows what everyone is getting
+            R.find(
+                R.findAll(render(), R.byClass("fb-format-target")).find(
+                    (one) => R.text(one) === "Everyone"
+                ),
+                R.byTag("input")
+            ).attrs.onchange();
+            assert.deepEqual(preview(), {
+                backgroundColor: "var(--fb-swatch-red-bg)"
+            });
+            assert.equal(
+                hiddenNote(),
+                undefined,
+                "nothing is hidden while looking at the shared one"
+            );
+
+            // A list with no place of its own cannot scope to itself
+            dlg.open(model, "name", "Name", undefined);
+            assert.deepEqual(radios()[4], {
+                checked: false,
+                disabled: true,
+                text: "Just here",
+                title: (
+                    "This list has no place of its own, so a format " +
+                    "here applies wherever the record appears"
+                )
+            });
+        });
+
+        /*
             The hover card's own "Edit" opens the note dialog on the
             note the card is showing. It used to read which note that
             was after hiding the card, which is the act that forgets

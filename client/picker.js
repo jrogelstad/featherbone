@@ -42,7 +42,7 @@
     const HELP = "/help/platform-help.html";
 
     // Forms that act on the selected instance rather than an organization
-    const INSTANCE_FORMS = ["drop", "template"];
+    const INSTANCE_FORMS = ["drop", "move", "template"];
 
     // How often to poll for Upgrade/Deploy progress (sendTracked).
     const PROGRESS_POLL_MS = 750;
@@ -1584,6 +1584,33 @@
                     )
                 )
             ),
+            move: entry(
+                "move",
+                "Move",
+                (
+                    none
+                    ? "Select an instance"
+                    : (
+                        pending
+                        ? "A build that stopped cannot be moved. Resume " +
+                            "or drop it first."
+                        : (
+                            one.isMaintenance
+                            ? "Held for maintenance. End that before " +
+                                "moving " + one.name + "."
+                            : "Move " + one.name + " to another " +
+                                "organization. Its database is not " +
+                                "touched; people that organization does " +
+                                "not answer for lose access."
+                        )
+                    )
+                ),
+                none || pending || one.isMaintenance,
+                function () {
+                    delete vm.menu;
+                    vm.form = {id: one.id, kind: "move"};
+                }
+            ),
             resume: entry(
                 "resume",
                 "Resume",
@@ -1996,9 +2023,172 @@
         above the list it belongs to says what is about to happen
         without taking the list off the screen.
     */
+    /*
+        A move is asked of the server as a dry run first, so who loses
+        access and what changes are read before anything is done.
+    */
+    function moveForm(one) {
+        let form = vm.form;
+        let choices = vm.organizations.filter(
+            (org) => org.id !== one.organizationId
+        );
+        let plan = form.plan;
+        let ready = plan !== undefined && !vm.isBusy;
+
+        function check(to) {
+            form.to = to;
+            delete form.plan;
+            vm.error = "";
+            if (!to) {
+                return;
+            }
+            request("POST", "/platform/instance/move", {
+                dryRun: true,
+                id: one.id,
+                organization: one.organizationId,
+                to
+            }).then(function (answer) {
+                if (vm.form === form && form.to === to) {
+                    form.plan = answer;
+                }
+            }).catch(function (err) {
+                vm.error = reason(err);
+            }).then(m.redraw);
+        }
+
+        // The selection moved under the form: start again
+        if (form.id !== one.id) {
+            vm.form = {id: one.id, kind: "move"};
+            return moveForm(one);
+        }
+
+        return m("form", {
+            class: "pure-form pure-form-aligned",
+            id: "fb-platform-move-form",
+            style: {
+                background: "var(--fb-surface)",
+                borderBottom: "1px solid var(--fb-border)",
+                padding: "0.5em 0 1em 0"
+            }
+        }, [
+            m("div", {class: "fb-sign-in fb-sign-in-header"}, (
+                "Move " + one.name + " from " + (
+                    one.organization || "no organization"
+                )
+            )),
+            m("div", {class: "fb-admin-note"}, (
+                "The database is not touched. Anyone the new " +
+                "organization does not answer for loses access, is no " +
+                "longer a super user in it, and is signed out of it. " +
+                "Platform administrators keep theirs."
+            )),
+            m("div", {class: "pure-control-group fb-sign-in"}, [
+                m("label", {class: "fb-sign-in-label", for: "move-to"}, (
+                    "To"
+                )),
+                m("select", {
+                    id: "move-to",
+                    onchange: function (e) {
+                        check(e.target.value);
+                    }
+                }, [
+                    m("option", {value: ""}, "Choose an organization")
+                ].concat(choices.map(function (org) {
+                    return m("option", {value: org.id}, org.name);
+                })))
+            ]),
+            (
+                plan
+                ? m("div", {
+                    class: "fb-admin-note",
+                    id: "fb-platform-move-revoked"
+                }, (
+                    plan.revoked.length
+                    ? [
+                        m("div", (
+                            plan.revoked.length + (
+                                plan.revoked.length === 1
+                                ? " person loses"
+                                : " people lose"
+                            ) + " access:"
+                        )),
+                        m("ul", {style: {margin: "0.25em 0"}}, (
+                            plan.revoked.map(function (who) {
+                                return m("li", (
+                                    who.username + " \u2014 " +
+                                    who.fullName + " (" + (
+                                        who.homeOrganization ||
+                                        "no organization"
+                                    ) + ")"
+                                ));
+                            })
+                        ))
+                    ]
+                    : "Nobody loses access."
+                ))
+                : undefined
+            ),
+            (
+                plan
+                ? plan.warnings.map(function (text) {
+                    return m("div", {
+                        class: "fb-admin-note fb-platform-move-warning",
+                        style: {color: "var(--fb-danger)"}
+                    }, text);
+                })
+                : undefined
+            ),
+            m("div", {class: "pure-control-group fb-sign-in"}, [
+                m("label", {class: "fb-sign-in-label"}, ""),
+                m("button", {
+                    class: (
+                        "pure-button pure-button-primary" + (
+                            ready
+                            ? ""
+                            : " fb-button-disabled"
+                        )
+                    ),
+                    disabled: !ready,
+                    id: "fb-platform-move-submit",
+                    onclick: function () {
+                        send("/platform/instance/move", {
+                            id: one.id,
+                            organization: one.organizationId,
+                            to: form.to
+                        }, one.name + " moved to " + plan.to.name);
+                        return false;
+                    },
+                    style: {width: "110px"},
+                    title: (
+                        ready
+                        ? "Move " + one.name + " to " + plan.to.name
+                        : (
+                            form.to
+                            ? "Checking what the move would do"
+                            : "Choose the organization to move it to"
+                        )
+                    )
+                }, "Move"),
+                m("button", {
+                    class: "pure-button",
+                    onclick: function () {
+                        delete vm.form;
+                        vm.error = "";
+                        return false;
+                    },
+                    style: {marginLeft: "6px", width: "110px"}
+                }, "Cancel")
+            ])
+        ]);
+    }
+
     function instanceForm() {
         let one = selectedInstance();
         let kind = vm.form.kind;
+
+        if (one && kind === "move") {
+            return moveForm(one);
+        }
 
         function cancel() {
             vm.form = undefined;
@@ -2178,6 +2368,7 @@
                         rows.status,
                         rows.maintenance,
                         rows.resume,
+                        rows.move,
                         rows.template,
                         rows.drop
                     ]
@@ -2326,6 +2517,7 @@
                     toolbarButton(rows.status),
                     toolbarButton(rows.maintenance),
                     toolbarButton(rows.resume),
+                    toolbarButton(rows.move),
                     toolbarButton(rows.template),
                     toolbarButton(rows.drop),
                     m("div", {class: "fb-toolbar-fill"}),
