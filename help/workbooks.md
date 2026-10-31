@@ -2,39 +2,41 @@
 
 ## Navigation
 
-Click on a menu item on the list to open the respective workbook.
+Workbooks are opened from the ribbon across the top of every page. Each tab after Home is a category, such as Engineering or Inventory, and holds that category's workbooks as buttons: click a tab to see them, and a button to open one. Clicking a tab only changes which buttons show; nothing opens until you click a button. Hover over a button to see the workbook's description.
 
-*Design workbook menu selected*
+![The ribbon with the Engineering category open](images/workbooks-navigation-1.png)
 
-Clicking on the arrow on the top of the menu will collapse it, as shown below, to enable more space for worksheets on the screen. Click on the arrow again to expand the menu. Hover over a menu item to show the descriptive title of the workbook.
+The Home tab holds what does not belong to any one workbook: the dashboard, your account, adding workbooks, global settings, and the view controls with the zoom and the help contents.
 
-![Workbook menu collapsed](images/workbooks-navigation-2.png)
+The arrow at the top right collapses the ribbon to its row of tabs, leaving more room for the worksheet; double-clicking a tab does the same. While it is collapsed, clicking a tab drops its buttons down over the page until you pick one, click away or press Esc. Click the arrow again to keep the ribbon open.
+
+![The ribbon collapsed to its tabs](images/workbooks-navigation-2.png)
 
 Note that the web address at the top of the workbook can be copied and sent to other people in your organization to take them directly to the same page if they have access to the workbook.
 
 ## User settings
 
-![User account menu](images/user-settings-1.png)
+Your account is on the Home tab, in the Accounts group.
 
-The user account menu is the third button from the right at the top of every page. From this menu, you have three menu items that work as follows:
+![The Accounts group on the Home tab](images/user-settings-1.png)
 
-This item lets you view and change contact information linked to your account.
+**Info** lets you view and change the contact information linked to your account.
 
 ![Dialog to change user account contact information](images/user-settings-2.png)
 
-Use this item to change your password.
+**Password** changes your password.
 
 ![Dialog to change your password](images/user-settings-3.png)
 
-Choose this item to log out of the application. Featherbone keeps track of how many users are logged into your database. This will free up a concurrent user license.
+**Sign Out** logs you out of the application. Featherbone keeps track of how many users are signed in to your database, so signing out frees a concurrent user license.
 
 ## Managing workbooks
 
 Adding a workbook is a global function that requires administrator privileges. To learn how to do this, please go to managing workbook templates.
 
-You can navigate to workbook settings on the second button from the right where you will be presented with the workbook settings dialog which has two tabs.
+With a workbook open, click Workbook in the ribbon's Manage group to open the workbook settings dialog, which has two tabs.
 
-![Edit workbook action in workbook manager menu](images/managing-workbooks-1.png)
+![Workbook in the ribbon's Manage group](images/managing-workbooks-1.png)
 
 ![Edit workbook dialog – definition tab](images/managing-workbooks-2.png)
 
@@ -52,28 +54,28 @@ Note: If a user has a role to read or update a workbook but does not have a role
 
 ## Sharing changes
 
-If you have update privileges for a workbook and you make changes to one or more worksheets including adding new pages, changed columns, filters etc., you can share your changes with the rest of the organization by selecting Share on the workbook management menu.
+If you have update privileges for a workbook and you make changes to one or more worksheets including adding new pages, changed columns, filters etc., you can share your changes with the rest of the organization by clicking Share in the ribbon's Manage group.
 
-![Share action in workbook configuration menu](images/workbooks-sharing-changes-1.png)
+![Share in the ribbon's Manage group](images/workbooks-sharing-changes-1.png)
 
-When sharing you are prompted to select one of four options:
+When sharing you are prompted to choose one of four ways to share the layout:
 
-![Share dialog prompt](images/workbooks-sharing-changes-2.png)
+![Share dialog](images/workbooks-sharing-changes-2.png)
 
-This option will make your workbook configuration the default for all users. For read only users, or users with update privileges who have made no changes to their workbook, they will see your configuration on the next page refresh. For users with update privileges who have made any changes, they will only see the default if they revert their existing workbook.
+**Default for this workbook** will make your workbook configuration the default for all users. For read only users, or users with update privileges who have made no changes to their workbook, they will see your configuration on the next page refresh. For users with update privileges who have made any changes, they will only see the default if they revert their existing workbook.
 
-Select this option to make a new workbook that is identical to the current one. This is a good option if you want to make a version of the workbook that you have modified for a particular user group, but don’t want to have to start from scratch to build it. When choosing this option, you will be prompted to give the new copy a name.
+**Copy to a new workbook** makes a new workbook that is identical to the current one. This is a good option if you want to make a version of the workbook that you have modified for a particular user group, but don’t want to have to start from scratch to build it. When choosing this option, you will be prompted to give the new copy a name.
 
 ![Share workbook with copy option selected](images/workbooks-sharing-changes-3.png)
 
 After giving it a name and clicking “Ok” the copy will immediately appear.
 
-This option will make an internal workbook template that can be used to generate new similar workbooks. This is a good option if, for example, you intend to make a series of workbooks for the shop floor that are pre-filtered to work center specific criteria. Like copying a workbook, you must give the template a name.
+**New workbook template** makes an internal workbook template that can be used to generate new similar workbooks. This is a good option if, for example, you intend to make a series of workbooks for the shop floor that are pre-filtered to work center specific criteria. Like copying a workbook, you must give the template a name.
 
 You must have the administrator role to create new workbooks using templates. To learn how to do this, please go to managing workbook templates.
 
-Choose this option to update an existing template to reflect the current workbook configuration.
+**Update to a template** updates an existing template to reflect the current workbook configuration.
 
 Note: this option only updates the template, not workbooks that were previously created with the template.
 
-Users who have update privileges to a workbook can choose this action to revert their workbook personalization back to the default configuration.
+Users who have update privileges to a workbook can click Revert in the ribbon's Manage group to return their workbook personalization to the default configuration.

@@ -1,0 +1,381 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "workbooks-navigation-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1366, "height": 320},
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "workbooks-navigation-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Collapse the ribbon']"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1366, "height": 220},
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "user-settings-1.png": {
+            "steps": [
+                {"go": "/home"}
+            ],
+            "element": "[role=group][aria-label=Accounts]",
+            "pad": 6,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "user-settings-2.png": {
+            "steps": [
+                {"go": "/home"},
+                {"click": "button[title='Edit my contact information']"},
+                {"fill": ["dialog[open] input >> nth=0", "Jordan"]},
+                {"fill": ["dialog[open] input >> nth=1", "Taylor"]},
+                {"fill": ["dialog[open] input >> nth=2", "jtaylor@roadrunnercampers.com"]},
+                {"fill": ["dialog[open] input >> nth=3", "555-555-1234"]}
+            ],
+            "element": "dialog[open]"
+        },
+        "user-settings-3.png": {
+            "steps": [
+                {"go": "/home"},
+                {"click": "button[title='Change password']"},
+                {"fill": ["dialog[open] input >> nth=0", "password"]},
+                {"fill": ["dialog[open] input >> nth=1", "password"]},
+                {"fill": ["dialog[open] input >> nth=2", "password"]}
+            ],
+            "element": "dialog[open]"
+        },
+        "managing-workbooks-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title='Configure current workbook']"}
+            ],
+            "element": "[role=group][aria-label=Manage]",
+            "pad": 6,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "managing-workbooks-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current workbook']"}
+            ],
+            "element": "dialog[open]"
+        },
+        "managing-workbooks-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current workbook']"},
+                {"click": "dialog[open] >> text=Authorizations"}
+            ],
+            "element": "dialog[open]"
+        },
+        "workbooks-sharing-changes-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title='Share workbook configuration']"}
+            ],
+            "element": "[role=group][aria-label=Manage]",
+            "pad": 6,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "workbooks-sharing-changes-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Share workbook configuration']"}
+            ],
+            "element": "dialog[open]"
+        },
+        "workbooks-sharing-changes-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Share workbook configuration']"},
+                {"select": ["dialog[open] select", {"label": "Copy to a new workbook"}]}
+            ],
+            "element": "dialog[open]"
+        },
+        "worksheet-navigation-2.png": {
+            "steps": [
+                {"record": ["Product", {"number": "1-RR-SPARTAN"}]}
+            ],
+            "below": ".fb-ribbon-page"
+        },
+        "worksheet-inline-editing-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"}
+            ],
+            "element": "#toolbar-record-group",
+            "pad": 6
+        },
+        "worksheet-inline-editing-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title='Configure current worksheet']"}
+            ],
+            "element": "[role=group][aria-label=Manage]",
+            "pad": 6,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "worksheet-inline-editing-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"}
+            ],
+            "element": "dialog[open]"
+        },
+        "altering-columns-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "dialog[open] >> text=Columns"}
+            ],
+            "element": "dialog[open]"
+        },
+        "searching-and-filtering-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"fill": [".fb-search-input", "wire"]},
+                {"press": "Enter"}
+            ],
+            "below": "#toolbar",
+            "height": 260
+        },
+        "searching-and-filtering-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"fill": [".fb-search-input", "wire|light"]},
+                {"press": "Enter"}
+            ],
+            "below": "#toolbar"
+        },
+        "searching-and-filtering-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"fill": [".fb-search-input", "^wire"]},
+                {"press": "Enter"}
+            ],
+            "below": "#toolbar",
+            "height": 200
+        },
+        "searching-and-filtering-4.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"fill": [".fb-search-input", "light$"]},
+                {"press": "Enter"}
+            ],
+            "below": "#toolbar",
+            "height": 200
+        },
+        "searching-and-filtering-5.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title^='Filter results']"}
+            ],
+            "element": "#toolbar-center-group",
+            "pad": 6
+        },
+        "sorting-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title^='Sort results']"}
+            ],
+            "element": "#toolbar-center-group",
+            "pad": 6
+        },
+        "subtotaling-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title^='Calculate']"}
+            ],
+            "element": "#toolbar-center-group",
+            "pad": 6
+        },
+        "adding-and-removing-worksheets-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Add sheet']"}
+            ],
+            "element": "dialog[open]"
+        },
+        "adding-and-removing-worksheets-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"hover": "button[title='Configure current worksheet']"}
+            ],
+            "element": "[role=group][aria-label=Manage]",
+            "pad": 6,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "adding-and-removing-worksheets-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "dialog[open] >> text=Columns"},
+                {"click": "dialog[open] button:has-text('Add'):visible"}
+            ],
+            "element": "dialog[open]"
+        },
+        "list-actions-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"rightclick": "tbody tr >> nth=4"}
+            ],
+            "viewport": {"width": 1366, "height": 640}
+        },
+        "list-actions-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title='Export data']"}
+            ],
+            "element": "dialog[open]"
+        },
+        "global-settings-1.png": {
+            "steps": [
+                {"go": "/home"},
+                {"hover": "[role=group][aria-label=Global] button >> nth=0"}
+            ],
+            "element": "[role=group][aria-label=Global]",
+            "pad": 6,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "global-settings-2.png": {
+            "steps": [
+                {"go": "/home"},
+                {"click": "[role=group][aria-label=Global] button >> nth=0"}
+            ]
+        },
+        "global-settings-3.png": {
+            "steps": [
+                {"go": "/home"},
+                {"click": "[role=group][aria-label=Global] button >> nth=0"},
+                {"click": "text=SMTP Credentials"}
+            ]
+        },
+        "searching-and-filtering-6.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title^='Filter results']"},
+                {"fill": ["dialog[open] tbody tr >> nth=0 >> input >> nth=0", "Electrical"]},
+                {"press": "Tab"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] .fb-filter-dialog-property >> nth=1", "cost.amount"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "greater than"}]},
+                {"fill": ["dialog[open] tbody tr >> nth=1 >> input >> nth=0", "10"]},
+                {"press": "Tab"}
+            ],
+            "element": "dialog[open]"
+        },
+        "searching-and-filtering-7.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title^='Filter results']"},
+                {"fill": ["dialog[open] tbody tr >> nth=0 >> input >> nth=0", "Electrical"]},
+                {"press": "Tab"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] .fb-filter-dialog-property >> nth=1", "cost.amount"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "greater than"}]},
+                {"fill": ["dialog[open] tbody tr >> nth=1 >> input >> nth=0", "10"]},
+                {"press": "Tab"},
+                {"click": "dialog[open] button:has-text('Ok')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 420,
+            "after": [{"click": "button[title^='Revert workbook']"}]
+        },
+        "sorting-2.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "thead th:has-text('Category')"},
+                {"click": "button[title^='Sort results']"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=0", "cost.amount"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "Descending"}]}
+            ],
+            "element": "dialog[open]",
+            "after": [{"press": "Escape"}, {"click": "button[title^='Revert workbook']"}]
+        },
+        "sorting-3.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "thead th:has-text('Category')"},
+                {"click": "button[title^='Sort results']"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=0", "cost.amount"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "Descending"}]},
+                {"click": "dialog[open] button:has-text('Ok')"},
+                {"eval": "document.querySelectorAll('*').forEach((e) => { if (e.scrollLeft) { e.scrollLeft = 0; } })"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 420,
+            "after": [{"click": "button[title^='Revert workbook']"}]
+        },
+        "sorting-4.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "thead th:has-text('Category')"},
+                {"click": "button[title^='Sort results']"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=0", "cost.amount"]},
+                {"select": ["dialog[open] tbody tr >> nth=1 >> select >> nth=1", {"label": "Descending"}]},
+                {"click": "dialog[open] button:has-text('Ok')"}
+            ],
+            "element": ["thead th:has-text('Cost')", "thead th:has-text('Category')"],
+            "pad": 4,
+            "after": [{"click": "button[title^='Revert workbook']"}]
+        },
+        "subtotaling-2.png": {
+            "steps": [
+                {"go": "/workbook/report/inventory%20value"},
+                {"click": "button[title^='Calculate']"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=-1 >> select >> nth=0", {"label": "Item"}]},
+                {"select": ["dialog[open] tbody tr >> nth=-1 >> select >> nth=1", {"label": "COUNT"}]}
+            ],
+            "element": "dialog[open]"
+        },
+        "subtotaling-3.png": {
+            "steps": [
+                {"go": "/workbook/report/inventory%20value"},
+                {"click": "button[title^='Calculate']"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] tbody tr >> nth=-1 >> select >> nth=0", {"label": "Item"}]},
+                {"select": ["dialog[open] tbody tr >> nth=-1 >> select >> nth=1", {"label": "COUNT"}]},
+                {"click": "dialog[open] button:has-text('Ok')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "after": [{"click": "button[title^='Revert workbook']"}],
+            "viewport": {"width": 1366, "height": 640}
+        },
+        "worksheet-navigation-3.png": {
+            "steps": [
+                {"record": ["Product", {"number": "1-RR-SPARTAN"}]},
+                {"click": "table tbody tr >> nth=1"},
+                {"click": "button[title^='Open (Alt']"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1024, "height": 440}
+        },
+        "searching-and-filtering-11.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "button[title^='Filter results']"},
+                {"select": ["dialog[open] .fb-filter-dialog-property >> nth=0", "description"]},
+                {"select": ["dialog[open] tbody tr >> nth=0 >> select >> nth=1", {"label": "matches"}]},
+                {"fill": ["dialog[open] tbody tr >> nth=0 >> input >> nth=0", "wire"]},
+                {"click": "dialog[open] >> text=Show Deleted"}
+            ],
+            "element": "dialog[open]"
+        }
+    },
+    "notTaken": {
+        "worksheet-navigation-1.png": "Callouts drawn over the worksheet; needs an overlay step",
+        "worksheet-inline-editing-4.png": "Callouts, and a row being edited",
+        "altering-columns-2.png": "An open native select; a screenshot cannot show one",
+        "searching-and-filtering-8.png": "A hover tooltip; a screenshot cannot show one",
+        "searching-and-filtering-9.png": "Needs products updated this week in the data",
+        "searching-and-filtering-10.png": "Needs products updated this week in the data",
+        "searching-and-filtering-12.png": "Needs deleted products in the data",
+        "adding-and-removing-worksheets-4.png": "A worksheet button mid-drag",
+        "list-actions-2.png": "The browser's print preview",
+        "list-actions-4.png": "Excel, not the app: kept",
+        "list-actions-5.png": "Excel, not the app: kept"
+    }
+}
