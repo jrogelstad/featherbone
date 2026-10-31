@@ -5,6 +5,22 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Uploaded files are kept in the instance's database.** `/do/upload`
+  used to write to `files/upload`, which a redeploy wipes on a host that
+  rebuilds its file system, and which every instance on the server
+  shared. The bytes now go into a `"$file"` table in the instance, are
+  served at `/<db>/files/upload/<name>` to its signed-in users (ETag,
+  images and PDFs inline, anything else as a download), and are refused
+  above `fileUploadMaxMB` (new setting, 25 by default) with a 413 the
+  widget now reports. `overwrite` is honoured at last. The client builds
+  every upload address with `f.uploadUrl`. A name the instance does not
+  hold is still looked for in `files/upload`, and the old
+  `/files/upload/<name>` route stays for links already made. Printing
+  reads the logo from the table and prints without one, with a log
+  line, when the instance does not hold it. **Run `node install.js
+  --instance <name>` on each instance** (self upgrade does it) to create
+  the table. Adds a regression suite, `test/api/file-uploads.test.js`.
+  Core 3.0.0-alpha.17.
 * **About, and a REST API reference.** An Info button beside the bell
   on every screen opens an About dialog: what Featherbone is, the
   framework version, each module the instance deployed (sub-modules

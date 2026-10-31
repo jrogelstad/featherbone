@@ -46,12 +46,14 @@
     const notify = new Notify();
     const {Platform} = require("./server/services/platform");
     const {Federation} = require("./server/services/federation");
+    const {Files} = require("./server/services/files");
     const {Manager} = require("./server/services/manager");
     const {Oidc} = require("./server/services/oidc");
     const {Upgrade} = require("./server/services/upgrade");
     const upgrade = new Upgrade();
     const platform = new Platform();
     const federation = new Federation();
+    const fileStore = new Files();
     const manager = new Manager();
     const oidc = new Oidc();
     const WebSocket = require("ws");
@@ -171,6 +173,7 @@
     let eventKeys = {};
     let sessions = {};
     let fileUpload = false;
+    let fileUploadMax = 25 * 1024 * 1024;
     let port;
     let mode;
     let settings = datasource.settings();
@@ -443,6 +446,9 @@
             mode = resp.mode || "prod";
             port = process.env.PORT || resp.clientPort || 80;
             fileUpload = Boolean(resp.fileUpload);
+            fileUploadMax = Math.floor(
+                (Number(resp.fileUploadMaxMB) || 25) * 1024 * 1024
+            );
             twoFactorAuth = Boolean(resp.twoFactorAuth);
             /*
                 The password alone never makes a session: whether a
@@ -1511,39 +1517,103 @@
         );
     }
 
-    function doUpload(req, res) {
-        const DIR = "./files/upload/";
+    async function doUpload(req, res) {
+        let file = req.files && req.files.dataFile;
+        let owrite = req.body && String(req.body.overwrite) === "true";
+
         if (!fileUpload) {
             return res.status(400).send("File uploads not allowed.");
         }
-        if (Object.keys(req.files).length === 0) {
+        if (!file) {
             return res.status(400).send("No files were uploaded.");
         }
+        if (file.truncated) {
+            return res.status(413).send(
+                "File is larger than " + (fileUploadMax / 1048576) + " MB."
+            );
+        }
 
-        let file = req.files.dataFile;
-        let owrite = file.overwrite;
-        let filePath = DIR + file.name;
-        fs.stat(filePath, function (ignore, stat) {
-            if (stat && !owrite) {
-                res.json({
-                    message: "File already exists",
-                    status: "exists"
-                });
-            } else {
-                file.mv(filePath, function (err) {
-                    if (err) {
-                        logger.error(err);
-                        console.error(err);
-                        return res.status(500).json({
-                            message: "Failed to persist file",
-                            status: "failed"
-                        });
-                    }
-                    res.json({message: "Uploaded file", status: "success"});
-                });
-            }
-        });
+        try {
+            let pool = await datasource.getPool(req.tenant);
+            let status = await fileStore.put(
+                pool,
+                file.name,
+                file.data,
+                req.user.name,
+                owrite
+            );
+
+            res.json(
+                status === "success"
+                ? {message: "Uploaded file", status}
+                : {message: "File already exists", status}
+            );
+        } catch (err) {
+            logger.error(err);
+            console.error(err);
+            res.status(500).json({
+                message: "Failed to persist file",
+                status: "failed"
+            });
+        }
     }
+
+    /*
+        An uploaded file, from this instance's own table. A name
+        nothing holds there falls back to the old upload directory,
+        for files uploaded before they moved into the database.
+    */
+    async function doGetUpload(req, res) {
+        let name = String(req.params.filename || "");
+        let etag;
+        let info;
+
+        if (!req.user || !req.user.name) {
+            res.status(401).json("Unauthorized session");
+            return;
+        }
+
+        try {
+            info = await fileStore.info(
+                await datasource.getPool(req.tenant),
+                name
+            );
+
+            if (!info) {
+                res.sendFile(path.basename(name), {
+                    dotfiles: "deny",
+                    root: path.resolve("./files/upload")
+                }, function (err) {
+                    if (err && !res.headersSent) {
+                        res.status(404).json("File not found");
+                    }
+                });
+                return;
+            }
+
+            etag = "\"" + info.sha256 + "\"";
+            res.set("Cache-Control", "private, no-cache");
+            res.set("ETag", etag);
+            if (req.headers["if-none-match"] === etag) {
+                res.status(304).end();
+                return;
+            }
+
+            res.set("X-Content-Type-Options", "nosniff");
+            if (fileStore.isInline(name)) {
+                res.type(path.extname(name));
+            } else {
+                res.attachment(name);
+            }
+            res.send(await fileStore.data(
+                await datasource.getPool(req.tenant),
+                name
+            ));
+        } catch (err) {
+            error.bind(res)(err);
+        }
+    }
+
     function doImport(req, res) {
         let id = f.createId();
         let format = req.params.format;
@@ -4292,8 +4362,20 @@
             "/:db/files/downloads/:sourcename/:targetname",
             doGetDownload
         );
-        // File upload
-        dbRouter.use(expressFileUpload());
+        // File upload. Only `/do/upload` is capped by `fileUploadMaxMB`;
+        // imports keep the parser they always had.
+        const uploadParser = expressFileUpload({
+            limits: {fileSize: fileUploadMax}
+        });
+        const defaultParser = expressFileUpload();
+        dbRouter.use(function (req, res, next) {
+            return (
+                (/\/do\/upload$/).test(req.path)
+                ? uploadParser
+                : defaultParser
+            )(req, res, next);
+        });
+        dbRouter.get("/:db/files/upload/:filename", doGetUpload);
         dbRouter.get("/:db/", doGetIndexFile);
 
         /*

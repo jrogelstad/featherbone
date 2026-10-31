@@ -430,6 +430,19 @@
         "PRIMARY KEY (\"sid\") NOT DEFERRABLE INITIALLY IMMEDIATE; "
     );
 
+    const createFileSql = (
+        "CREATE TABLE \"$file\" (" +
+        "name text PRIMARY KEY," +
+        "size integer NOT NULL," +
+        "sha256 text NOT NULL," +
+        "created timestamptz NOT NULL DEFAULT now()," +
+        "created_by text," +
+        "data bytea NOT NULL); " +
+        "ALTER TABLE \"$file\" ALTER COLUMN data SET STORAGE EXTERNAL; " +
+        "COMMENT ON TABLE \"$file\" IS " +
+        "'Uploaded files, kept with the instance they belong to';"
+    );
+
     const createSettingsSql = (
         "CREATE TABLE \"$settings\" (" +
         "name text," +
@@ -572,6 +585,7 @@
             let createDashboard;
             let createDashboardTarget;
             let createSession;
+            let createFile;
             let createSubscription;
             let createSettings;
             let createEventTrigger;
@@ -689,7 +703,23 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createSessionSql, createObject);
+                        obj.client.query(createSessionSql, createFile);
+                        return;
+                    }
+                    createFile();
+                });
+            };
+
+            // Create the uploaded files table
+            createFile = function () {
+                sqlCheck("$file", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!exists) {
+                        obj.client.query(createFileSql, createObject);
                         return;
                     }
                     createObject();

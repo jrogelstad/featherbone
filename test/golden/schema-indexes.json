@@ -4,6 +4,7 @@
   "$dashboard_name_key": "CREATE UNIQUE INDEX \"$dashboard_name_key\" ON public.\"$dashboard\" USING btree (name)",
   "$dashboard_target_metric_key": "CREATE UNIQUE INDEX \"$dashboard_target_metric_key\" ON public.\"$dashboard_target\" USING btree (metric)",
   "$db_singleton": "CREATE UNIQUE INDEX \"$db_singleton\" ON public.\"$db\" USING btree ((true))",
+  "$file_pkey": "CREATE UNIQUE INDEX \"$file_pkey\" ON public.\"$file\" USING btree (name)",
   "$navigation_category_name_key": "CREATE UNIQUE INDEX \"$navigation_category_name_key\" ON public.\"$navigation_category\" USING btree (name)",
   "$profiles_pkey": "CREATE UNIQUE INDEX \"$profiles_pkey\" ON public.\"$profiles\" USING btree (role)",
   "$subscription_pkey": "CREATE UNIQUE INDEX \"$subscription_pkey\" ON public.\"$subscription\" USING btree (nodeid, eventkey, subscriptionid, objectid)",

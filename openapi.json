@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "Featherbone",
-        "version": "3.0.0-alpha.16",
+        "version": "3.0.0-alpha.17",
         "description": "Featherbone is a Node.js and PostgreSQL framework for building object-relational business applications from feathers: data classes whose definitions generate the database tables, the REST routes and the client. One server hosts many instances (databases), each served under its own path and carrying its own modules. Every path here is relative to the instance; data routes are generated per feather, and modules add routes of their own.",
         "license": {
             "name": "GNU Affero General Public License v3",
@@ -1570,7 +1570,7 @@
                 ],
                 "operationId": "upload",
                 "summary": "Upload a file",
-                "description": "Stores a file in the server's upload folder (served at /files/upload/{filename}) when config `fileUpload` is on. An existing file of the same name is kept and reported as `exists`.",
+                "description": "Stores a file in the instance's own database (served at /{db}/files/upload/{filename}) when config `fileUpload` is on. A file larger than config `fileUploadMaxMB` (25 by default) is refused with 413. An existing file of the same name is kept and reported as `exists`, unless `overwrite` is true.",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1585,7 +1585,7 @@
                                     },
                                     "overwrite": {
                                         "type": "boolean",
-                                        "description": "Replace an existing file (not honoured; see report)"
+                                        "description": "Replace an existing file of the same name"
                                     }
                                 },
                                 "required": [
@@ -1631,6 +1631,62 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "413": {
+                        "description": "Larger than `fileUploadMaxMB`",
+                        "content": {
+                            "text/html": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/files/upload/{filename}": {
+            "get": {
+                "tags": [
+                    "Data"
+                ],
+                "operationId": "getUpload",
+                "summary": "Fetch an uploaded file",
+                "description": "Sends a file uploaded to this instance. Images and PDFs are shown inline, anything else is sent as an attachment. Carries an ETag, so a repeat request is answered 304 without the bytes. A name this instance holds nothing under is looked for in the old upload folder, for files uploaded before they moved into the database.",
+                "parameters": [
+                    {
+                        "name": "filename",
+                        "in": "path",
+                        "required": true,
+                        "description": "Name the file was uploaded under",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The file",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "304": {
+                        "description": "Unchanged since the ETag given"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "description": "No such file"
                     },
                     "default": {
                         "$ref": "#/components/responses/Error"
