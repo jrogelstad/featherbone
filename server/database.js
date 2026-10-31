@@ -952,12 +952,13 @@
             already use, runs into the moment they open it.
 
             The grant is the authorization decision, so a live grant
-            is the only reason needed to write the row. Checked here
-            and not taken on trust: the identity must be active, in
-            this instance's organization, with an active grant to this
-            instance. The row joins "everyone" and nothing else -- a
-            profile created this way carries no authority the
-            organization did not give it.
+            is the only reason needed to write the row, whoever owns
+            the person: a reseller or platform staff holds one account
+            and is granted instances in other organizations. Checked
+            here and not taken on trust: the identity must be active
+            with an active grant to this instance. The row joins
+            "everyone" and nothing else -- a profile created this way
+            carries no authority the organization did not give it.
 
             Only on the identity path. On the role path a Postgres
             login role is cluster-wide, so the missing profile is the
@@ -984,8 +985,6 @@
                         "JOIN tenant t ON g._tenant_tenant_pk = t._pk " +
                         "WHERE t.id = $1 " +
                         "  AND lower(i.username) = lower($2) " +
-                        "  AND i._organization_organization_pk = " +
-                        "      t._organization_organization_pk " +
                         "  AND i.status = 'active' AND NOT i.is_deleted " +
                         "  AND g.is_active AND NOT g.is_deleted " +
                         "  AND NOT t.is_deleted"
