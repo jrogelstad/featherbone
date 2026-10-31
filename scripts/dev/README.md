@@ -10,12 +10,14 @@ database they are willing to lose.
 | `clear-instance-data.sql` | Empties the application master-data and transaction tables of one instance, leaving the Featherbone control tables (`$workbook`, `$settings`, `$feather`, forms, routes, scripts, roles, users) intact, so the packages still work. |
 | `load.js` | Runs a data script against one instance, optionally clearing it first. Warns, asks, and refuses to run a file that is not marked as a data script. |
 | `demo-data/teardrop-campers.sql` | Seventeen months of Road Runner Campers trading history plus the forward order book, built out from the ddom "Teardrop Campers" demo dataset. 271,054 rows, 17 complete months, as-of 2027-06-01. |
+| `demo-data/demo-settings.sql` | Run after every load of the demo data. Points Design settings' default site at the warehouse the load just created, and lists any other setting that names a record that is missing or deleted. |
 
 ## Running them
 
 ```
 npm run dev:load -- --list
 npm run dev:load -- --clear --script scripts/dev/demo-data/teardrop-campers.sql --db demo
+npm run dev:load -- --script scripts/dev/demo-data/demo-settings.sql --db demo
 ```
 
 Stop the server first: the clear step refuses to run while other connections are
@@ -201,6 +203,10 @@ Two consequences worth knowing before the first run:
   their own, name them: `--keep Terms,ShipMethod,Site,SalesRegion,SalesRegionState`.
   Regions are the four US census regions over all fifty states and DC; if a
   database has the demo data but lost them, `sales-regions.sql` puts them back.
+* Settings are not cleared, but the rows the load creates get new ids every time, so a
+  setting that names one goes stale: Design settings' default site did, and New Product then
+  failed to save with `Relation not found in "Site"`. `demo-settings.sql` repoints it; run
+  it after each load, with the server stopped.
 * A table that holds rows but belongs to no installed feather stops the run
   rather than being silently left behind. `--clear-orphans` clears those too.
 
