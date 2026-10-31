@@ -8,17 +8,17 @@ Job Shop itself has three editions: Standard, Professional and Enterprise where 
 
 ## Global settings
 
-The button group on the “Home” workbook menu contains the button to global settings. Note this button is only enabled for user accounts assigned the administrator role.
+Global settings are opened with Settings in the Global group on the Home tab. The button is only enabled for user accounts assigned the administrator role.
 
-![Globe button is global settings](images/global-settings-1.png)
+![Settings in the Home tab's Global group](images/global-settings-1.png)
 
-Clicking this button opens the following dialog box.
+Clicking it opens the global settings.
 
-![Global settings dialog](images/global-settings-2.png)
+![Global settings](images/global-settings-2.png)
 
-When set, the logo prints on all forms to tailor Job Shop to your business. It must be a web address that points to a JPEG file. Any other file type will generate an error when printing forms. Likewise, the address appears on all printed forms. Both settings are optional.
+The address appears on all printed forms. On the Logo tab, click the box or drop an image on it to upload your logo, which then prints on all forms to tailor Job Shop to your business; Clear goes back to the Featherbone logo. Use a JPEG or PNG image: anything else prints without a logo. Both settings are optional.
 
-Select SMTP credentials for email settings used to send printed forms via email.
+Select the SMTP Credentials tab for the email settings used to send printed forms by email.
 
 ![Global email settings](images/global-settings-3.png)
 

@@ -14,17 +14,17 @@ The rows on child tables can be further opened by selecting a row and clicking t
 
 ![Child form opened from table row](images/worksheet-navigation-3.png)
 
-From this form you can continue to drill into additional detail. In this case you could open the steel wheel product by clicking the Product button and “Open,” or by clicking on the hyperlinks of either of the substitute products. There is no limit to the traversal depth and at any point you can traverse back by clicking the “Back” or “Done” buttons.
+From this form you can continue to drill into additional detail. In this case you could open the steel wheel product by clicking the Product button and “Open,” or open any substitute products listed below it. There is no limit to the traversal depth and at any point you can traverse back by clicking the “Back” or “Done” buttons.
 
 ## Inline editing
 
-Worksheets have a mode control in the upper left corner that is disabled by default for most pages.
+Worksheets have an edit mode button at the left of the toolbar, disabled by default for most pages.
 
 ![Edit mode control disabled](images/worksheet-inline-editing-1.png)
 
-Users with update privileges to a workbook can enable this button by navigating to the worksheet configuration dialog. Go to the workbook management menu with the gear icon and select “Sheet.”
+Users with update privileges to a workbook can enable this button in the worksheet configuration dialog: click Sheet in the ribbon's Manage group.
 
-![Navigating to worksheet configuration](images/worksheet-inline-editing-2.png)
+![Sheet in the ribbon's Manage group](images/worksheet-inline-editing-2.png)
 
 Once in the configure worksheet dialog, click “Enable edit mode” and “Ok” to enable the button.
 
@@ -118,7 +118,9 @@ It’s worth mentioning that Featherbone uses a technique called “lazy loading
 
 ## Sorting
 
-The sorting functionality in Featherbone works like filtering. Click the “sort” button in the toolbar to open the dialog.
+The quickest way to sort is to click a column header: click it again to reverse the direction. Shift-click another header to add it as a further sort, or to reverse just that one. The sort dialog's Clear button removes every sort.
+
+For more control, sorting works like filtering. Click the “sort” button in the toolbar to open the dialog.
 
 ![Sort button](images/sorting-1.png)
 
@@ -156,7 +158,7 @@ As with filter and sort, subtotals are remembered with the view for users with u
 
 ## Adding and removing worksheets
 
-Users with update privileges on a workbook can add a new worksheet by clicking the right most “+” tab and will be presented with the dialog below.
+A workbook's worksheets are the buttons in the ribbon's Worksheets group. Users with update privileges on a workbook can add a new worksheet by clicking the “+” at the end of that group and will be presented with the dialog below.
 
 ![Adding a new worksheet](images/adding-and-removing-worksheets-1.png)
 
@@ -164,9 +166,9 @@ By default, the feather will be the same as the active worksheet from where the 
 
 For other users to see and use this new worksheet, the revised workbook needs to be shared as the new default. Other users with update privileges may need to revert to the new default to see it if they have also already made changes that have effectively customized their view of the workbook. Otherwise, users with read only privileges will automatically see the changes since they always see the current default after a page refresh.
 
-The worksheet configuration can be edited any time by users with update privileges via the workbook management menu by selecting “Sheet”.
+The worksheet configuration can be edited any time by users with update privileges by clicking Sheet in the ribbon's Manage group.
 
-![Navigating to edit a worksheet](images/adding-and-removing-worksheets-2.png)
+![Sheet in the ribbon's Manage group](images/adding-and-removing-worksheets-2.png)
 
 Initially the “Sheet” tab is shown in the dialog. To change columns, click on the “Columns” tab.
 
@@ -174,35 +176,35 @@ Initially the “Sheet” tab is shown in the dialog. To change columns, click o
 
 From here you can add a column (as shown), remove a column, set a custom label and move the column order by selecting a row and clicking the up or down arrows above the label header. Note it is also possible to rearrange the columns by dragging and dropping them from within the list itself.
 
-To remove a worksheet, click and drag the tab at the bottom of the page you want to delete to the right. The “+” symbol will change to a trash can. Drag the tab on to the trash can and you will be prompted with a confirmation dialog. Click “Ok” and the worksheet will be removed.
+To remove a worksheet, drag its button in the Worksheets group. A trash can appears beside the “+”; drop the button on it and you will be prompted with a confirmation dialog. Click “Ok” and the worksheet will be removed.
 
 ![Removing a worksheet](images/adding-and-removing-worksheets-4.png)
 
-Note that you cannot remove the active worksheet, only non-selected worksheets can be removed as shown above.
+Note that you cannot remove the active worksheet; only worksheets that are not open can be removed.
 
 ## Actions
 
-Every worksheet has an action menu, some with some actions specific to the feather being displayed, and a few standard actions applicable to all worksheets. Actions can either be accessed by the action menu at the top, or right clicking on a specific row as shown below:
+Every worksheet has actions, some specific to the feather being displayed and a few standard ones that apply to all worksheets. They are in the ribbon's Actions group, and on the menu you get by right-clicking a row:
 
-![Actions via menu and right click](images/list-actions-1.png)
+![Actions in the ribbon and on a row's right-click menu](images/list-actions-1.png)
 
 Actions specific to a particular worksheet are listed first, where these actions may be enabled conditional to data in the selected record. For example, in the above record “Roll Costs” is disabled because the selected product is purchased, in which case rolling costs does not apply.
 
 There are three standard actions described below.
 
-Prints the entire contents of the list. Note this will query all records in the search at once, so may take some time on large result sets.
+**Print List** prints the entire contents of the list. Note this will query all records in the search at once, so may take some time on large result sets.
 
 ![Printing a worksheet – landscape](images/list-actions-2.png)
 
 Also note, the format of the list auto sizes to accommodate columns shown and the width of the paper. It may be helpful to change to landscape printing, use a larger paper size, or reduce the number of columns shown if the columns are overly crowded.
 
-You may export all the data in the list to a file in popular formats including Excel, Open Document Spreadsheet and JavaScript Object Notation (JSON).
+**Export** saves all the data in the list to a file in popular formats including Excel, Open Document Spreadsheet and JavaScript Object Notation (JSON).
 
 ![Export dialog](images/list-actions-3.png)
 
-This can be useful to create highly tailored reports, but also if you intend to do some kind of mass editing that would otherwise be too tedious to do record by record in Featherbone, even using inline editing. Exported records can be imported from the same menu to apply mass changes to your records. Note, however, if the purpose is to mass update, it is a good idea to uncheck “Only visible columns” so that all data is exported rather than only the data you can see in the worksheet.
+This can be useful to create highly tailored reports, but also if you intend to do some kind of mass editing that would otherwise be too tedious to do record by record in Featherbone, even using inline editing. Exported records can be imported again to apply mass changes to your records. Note, however, if the purpose is to mass update, it is a good idea to uncheck “Only visible columns” so that all data is exported rather than only the data you can see in the worksheet.
 
-Use import to mass load new records or mass update existing records. The format of import files is very particular, we recommend you export all columns of a worksheet first to establish the format, then add or edit records in the exported file following the format provided.
+Use **Import** to mass load new records or mass update existing records. The format of import files is very particular, we recommend you export all columns of a worksheet first to establish the format, then add or edit records in the exported file following the format provided.
 
 ![Export file with call outs](images/list-actions-4.png)
 
