@@ -49,6 +49,7 @@ node/node_modules
 node/npm-debug.log
 node_modules
 server/config.json
+server/config.NC.json
 logs
 client/out
 client/api.js
