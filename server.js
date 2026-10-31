@@ -4447,6 +4447,7 @@
             doAdminInstance("deployPackage")
         );
         app.post("/platform/instance/drop", doAdminInstance("dropInstance"));
+        app.post("/platform/instance/move", doAdminInstance("moveInstance"));
         app.post("/platform/template", doAdminInstance("buildTemplate"));
         app.post(
             "/platform/instance/upgrade",
