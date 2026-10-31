@@ -63,7 +63,7 @@
     const KNOWN = [
         "--help", "--list", "--clear", "--dry-run", "--yes",
         "--allow-prod", "--clear-orphans", "--script", "--db",
-        "--instance", "--keep", "--anchor"
+        "--instance", "--keep", "--anchor", "--no-settings"
     ];
     const readline = require("readline");
 
@@ -72,6 +72,7 @@
     const ROOT = path.resolve(__dirname, "../..");
     const CLEAR = path.join(ROOT, "scripts/dev/clear-instance-data.sql");
     const DEMO_DIR = path.join(ROOT, "scripts/dev/demo-data");
+    const SETTINGS = path.join(DEMO_DIR, "demo-settings.sql");
 
     const config = new Config();
     let argv = process.argv;
@@ -84,6 +85,7 @@
     let clearOrphans = false;
     let keepList = "";
     let anchor = "";
+    let noSettings = false;
 
     function fail(msg) {
         console.error("\n" + msg + "\n");
@@ -116,6 +118,9 @@
             "  --anchor <date>   the date the data script should treat\n" +
             "                    as today, for example 2027-07-05; a\n" +
             "                    script carrying no anchor ignores it\n" +
+            "  --no-settings     skip demo-settings.sql, which runs after\n" +
+            "                    every data script and points each setting\n" +
+            "                    at a record that exists\n" +
             "  --allow-prod      permit a database whose $db.mode is\n" +
             "                    \"prod\"\n" +
             "  --dry-run         show the plan and the clear step's\n" +
@@ -338,6 +343,7 @@
         let state;
         let answer;
         let settings = {};
+        let doSettings;
 
         if (argv.indexOf("--help") !== -1 || argv.indexOf("-h") !== -1) {
             usage();
@@ -356,6 +362,8 @@
                 assumeYes = true;
             } else if (arg === "--allow-prod") {
                 allowProd = true;
+            } else if (arg === "--no-settings") {
+                noSettings = true;
             } else if (arg === "--clear-orphans") {
                 clearOrphans = true;
             } else if (arg === "--script") {
@@ -423,6 +431,12 @@
                 );
             }
         }
+
+        // Settings name records the load replaces, so every load ends here
+        doSettings = Boolean(
+            scriptPath && !noSettings && existsSync(SETTINGS) &&
+            path.resolve(scriptPath) !== SETTINGS
+        );
 
         state = await inspect(conf);
         if (state.kind === null) {
@@ -501,6 +515,14 @@
                 );
             }
         }
+        if (doSettings) {
+            console.log("  step " + (
+                doClear
+                ? "3"
+                : "2"
+            ) + "     point the settings at records that exist " +
+                    "(demo-settings.sql)");
+        }
         console.log("");
 
         if (!dryRun && !assumeYes) {
@@ -560,6 +582,22 @@
             console.log(
                 "--- " + path.basename(scriptPath) + " not run (dry run) ---"
             );
+        }
+
+        if (doSettings && !dryRun) {
+            console.log("--- settings ---");
+            try {
+                await psql(SETTINGS, conf, {});
+            } catch (err) {
+                fail(
+                    "The data loaded, but the settings step failed: " +
+                    err.message + "\nRun it again by hand: npm run " +
+                    "dev:load -- --script scripts/dev/demo-data/" +
+                    "demo-settings.sql --db " + dbName
+                );
+            }
+        } else if (doSettings) {
+            console.log("--- demo-settings.sql not run (dry run) ---");
         }
 
         console.log("\nDone." + (
