@@ -1418,6 +1418,43 @@ describe("client components", function () {
         });
 
         /*
+            Clicking a money column's header sorts by the money itself,
+            where the dialog lists its amount: the row had nothing to
+            show and read blank (John, Oct 2026). A related record's
+            money is the same, and so is a key saved before.
+        */
+        it("sort-dialog.js shows a sort by money as the amount listed",
+                function () {
+            let vm = dialogVm("sortDialog", {
+                feather: catalog.getFeather("TestWidgets"),
+                filter: f.prop({sort: [
+                    {order: "ASC", property: "amount"},
+                    {order: "DESC", property: "name"}
+                ]})
+            });
+            let out;
+            let selects;
+            let listedValues;
+
+            vm.show();
+            out = R.render(comps.sortDialog, {viewModel: vm});
+            selects = R.findAll(out.tree, R.byTag("select"));
+            listedValues = R.findAll(selects[0], R.byTag("option")).map(
+                (o) => o.attrs.value
+            );
+
+            assert.ok(listedValues.includes("amount.amount"), "listed");
+            assert.ok(!listedValues.includes("amount"), "only its amount");
+            assert.equal(selects[0].attrs.value, "amount.amount");
+            assert.equal(selects[2].attrs.value, "name", "others as saved");
+            assert.equal(
+                vm.filter().sort[0].property,
+                "amount",
+                "and what is saved is as it was"
+            );
+        });
+
+        /*
             Dropping every sort key is this dialog's own button, rather
             than an item on a menu of its own hung off a column header.
             It writes straight to the filter the grid holds and closes

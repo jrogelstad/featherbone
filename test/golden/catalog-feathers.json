@@ -449,6 +449,33 @@
       "updatedBy": "string readOnly <Object"
     }
   },
+  "FbtDeposit": {
+    "inherits": "Kind",
+    "isChild": false,
+    "isFetchOnStartup": false,
+    "isReadOnly": false,
+    "isSystem": false,
+    "module": "FbtModel",
+    "overloads": {},
+    "plural": "FbtDeposits",
+    "properties": {
+      "code": "string required naturalKey <Kind",
+      "created": "string:dateTime readOnly default=\"now()\" <Object",
+      "createdBy": "string readOnly <Object",
+      "description": "string labelKey <Kind",
+      "etag": "string alwaysLoad default=\"createId()\" <Document",
+      "id": "string required readOnly alwaysLoad default=\"createId()\" <Object",
+      "isDeleted": "boolean readOnly alwaysLoad <Object",
+      "lock": "object:lock readOnly alwaysLoad <Object",
+      "meta": "object readOnly alwaysLoad <Object",
+      "note": "string <Kind",
+      "objectType": "string readOnly alwaysLoad <Object",
+      "owner": "string:userAccount required alwaysLoad <Document",
+      "terms": "relation(FbtTerms) [code,depositAmount]",
+      "updated": "string:dateTime readOnly default=\"now()\" <Object",
+      "updatedBy": "string readOnly <Object"
+    }
+  },
   "FbtLocation": {
     "inherits": "Document",
     "isChild": false,

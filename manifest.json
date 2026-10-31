@@ -1,6 +1,6 @@
 {
     "module": "Core",
-    "version": "3.0.0-alpha.17",
+    "version": "3.0.0-alpha.20",
     "files": [
         {
             "type": "execute",

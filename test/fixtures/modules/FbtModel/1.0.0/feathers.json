@@ -308,5 +308,47 @@
                 }
             }
         ]
+    },
+    {
+        "name": "FbtDeposit",
+        "description": "A deposit held against Terms: money on a related record",
+        "plural": "FbtDeposits",
+        "module": "FbtModel",
+        "inherits": "Kind",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "terms": {
+                "description": "Terms the deposit is held against",
+                "alias": "",
+                "type": {
+                    "relation": "FbtTerms",
+                    "properties": [
+                        "code",
+                        "depositAmount"
+                    ]
+                },
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "authorizations": [
+            {
+                "role": "everyone",
+                "actions": {
+                    "canCreate": true,
+                    "canRead": true,
+                    "canUpdate": true,
+                    "canDelete": true
+                }
+            }
+        ]
     }
 ]
