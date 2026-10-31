@@ -612,6 +612,94 @@ describe("client components", function () {
             assert.ok(R.find(tree, R.byTag("datalist")));
         });
 
+        it("resource-link-relation.js takes a dropped file, or Upload",
+                function () {
+            let tree = editor("resourceLinkRelation", "link");
+            let input = R.find(tree, R.byTag("input"));
+
+            assert.equal(typeof input.attrs.ondrop, "function");
+            assert.ok(input.attrs.placeholder.includes("drop file"));
+            assert.ok(R.find(tree, R.byTag("button")),
+                    "a button opens the file browser");
+
+            tree = editor("contactRelation", "contact");
+            assert.equal(R.find(tree, R.byTag("button")), undefined,
+                    "other relations have no Upload");
+        });
+
+        it("resource-link-relation.js uploads a dropped file and links it",
+                async function (t) {
+            let vm;
+            let seen = [];
+            let wasUser = f.currentUser();
+            let hadStyle = globalThis.getComputedStyle;
+            let held = false;
+            let big = false;
+            let file = new globalThis.File(["x"], "plan.pdf");
+            let evt = {
+                dataTransfer: {files: [file]},
+                preventDefault: () => undefined
+            };
+
+            editor("resourceLinkRelation", "link");
+            vm = fw.relations().link;
+            f.currentUser({name: "admin"});
+            globalThis.getComputedStyle = () => ({
+                color: "rgb(0, 0, 0)",
+                getPropertyValue: () => ""
+            });
+            env.respond(function (req) {
+                seen.push(req.method + " " + req.url.replace(/^.*\/demo/, ""));
+                if (req.url.endsWith("/data/resource-links")) {
+                    return [];
+                }
+                if (req.url.endsWith("/do/upload")) {
+                    if (big) {
+                        throw new Error("File is larger than 25 MB.");
+                    }
+                    if (held) {
+                        return {status: "exists"};
+                    }
+                    return {status: "success"};
+                }
+                return {};
+            });
+
+            function restore() {
+                // Close what the snackbar still holds
+                R.findAll(f.snackbar(), (n) => Boolean(
+                    n.attrs && n.attrs.title === "Close notification"
+                )).forEach((n) => n.attrs.onclick());
+                globalThis.getComputedStyle = hadStyle;
+                f.currentUser(wasUser);
+                env.respond(server.handle);
+            }
+
+            t.after(restore);
+            vm.onDrop(evt);
+            await env.flush();
+            assert.deepEqual(seen, [
+                "POST /data/resource-links",
+                "POST /do/upload",
+                "POST /data/resource-link"
+            ]);
+            assert.equal(R.text(f.snackbar()), "");
+
+            seen.length = 0;
+            held = true;
+            vm.onDrop(evt);
+            await env.flush();
+            assert.equal(seen.includes("POST /data/resource-link"), false,
+                    "no link to a file that was not stored");
+            assert.ok(R.text(f.snackbar()).includes("already exists"));
+
+            held = false;
+            big = true;
+            vm.onDrop(evt);
+            await env.flush();
+            assert.ok(R.text(f.snackbar()).includes("larger than 25 MB"));
+        });
+
         it("relation-widget.js searches the related feather", function () {
             let item = f.createModel("TestItem");
             // Generic relation widget built from the feather definition

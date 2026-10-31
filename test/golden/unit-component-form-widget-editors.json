@@ -187,9 +187,12 @@
     "label": "Link:",
     "tags": [
       "#",
+      "[",
       "a",
+      "button",
       "datalist",
       "div",
+      "i",
       "input",
       "label"
     ]
@@ -201,9 +204,12 @@
     "label": "Help:",
     "tags": [
       "#",
+      "[",
       "a",
+      "button",
       "datalist",
       "div",
+      "i",
       "input",
       "label"
     ]

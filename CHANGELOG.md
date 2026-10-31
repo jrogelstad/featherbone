@@ -5,6 +5,13 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Resource links take a file again.** Dropping a file on a resource
+  link field, or the new Upload button beside it (and in the cell
+  menu), uploads it to the instance and links it, as it did before
+  upload was switched off for want of storage that survives a deploy.
+  A name the instance already holds, or a file over `fileUploadMaxMB`,
+  is reported rather than failing silently. Core 3.0.0-alpha.21, no
+  install.
 * **Uploaded files are kept in the instance's database.** `/do/upload`
   used to write to `files/upload`, which a redeploy wipes on a host that
   rebuilds its file system, and which every instance on the server
