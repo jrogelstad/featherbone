@@ -676,6 +676,18 @@ describe("client components", function () {
             });
         }
 
+        // Stands in for the browser's localStorage, which has no DOM here
+        function memoryStore() {
+            let kept = {};
+
+            return {
+                getItem: (key) => kept[key] ?? null,
+                setItem: function (key, value) {
+                    kept[key] = String(value);
+                }
+            };
+        }
+
         it("renders headers and one row per model", function () {
             let vm = tableVm();
             let out = R.render(comps.tableWidget, {viewModel: vm});
@@ -980,18 +992,31 @@ describe("client components", function () {
             preview fills with what everyone else is getting.
         */
         it("format dialog scopes a format, and shows the hidden one",
-                function () {
+                async function () {
             let model = list[0];
             let vm = tableVm();
             let saved = globalThis.getComputedStyle;
+            let savedStore = globalThis.window.localStorage;
             let here = "sheet:fbsheet1";
             let dlg = vm.formatDialog();
 
             globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            // No habit yet: the browser has kept nothing
+            globalThis.window.localStorage = memoryStore();
             after(function () {
                 globalThis.getComputedStyle = saved;
+                globalThis.window.localStorage = savedStore;
                 model.setMeta(null);
             });
+
+            // Asking the menu is what asks whether the record may be updated
+            catalog.store().global().listMeta.cellActions({
+                attr: "name",
+                formatDialog: dlg,
+                label: "Name",
+                model
+            });
+            await env.flush();
 
             function render() {
                 return R.render(comps.dialog, {viewModel: dlg}).tree;
@@ -1024,13 +1049,14 @@ describe("client components", function () {
                 return R.find(render(), R.byClass("fb-format-hidden-note"));
             }
 
-            // Nothing stored: one's own, everywhere
+            // Nothing stored and no habit: the whole row, for everyone,
+            // everywhere -- the most intuitive choice
             dlg.open(model, "name", "Name", here);
             assert.deepEqual(radios().map((r) => [r.text, r.checked]), [
-                ["Cell “Name”", true],
-                ["Whole row", false],
-                ["Just me", true],
-                ["Everyone", false],
+                ["Cell “Name”", false],
+                ["Whole row", true],
+                ["Just me", false],
+                ["Everyone", true],
                 ["Just here", false],
                 ["Everywhere", true]
             ]);
@@ -1103,6 +1129,145 @@ describe("client components", function () {
                     "here applies wherever the record appears"
                 )
             });
+        });
+
+        /*
+            Users settle into one way of formatting and should not have
+            to click to it each time, so the dialog opens on whatever
+            it was last saved with (John, Oct 2026). A habit counts
+            only for what is possible where it is used again.
+        */
+        it("format dialog opens where it was last saved, within reason",
+                async function () {
+            let vm = tableVm();
+            let dlg = vm.formatDialog();
+            let meta = catalog.store().global().listMeta;
+            let savedStore = globalThis.window.localStorage;
+            let here = "sheet:fbsheet1";
+            let owner = list[0];
+            let reader = list[2];
+
+            globalThis.window.localStorage = memoryStore();
+            after(function () {
+                globalThis.window.localStorage = savedStore;
+            });
+
+            function checked() {
+                return R.findAll(
+                    R.render(comps.dialog, {viewModel: dlg}).tree,
+                    R.byClass("fb-format-target")
+                ).filter(function (one) {
+                    return Boolean(
+                        R.find(one, R.byTag("input")).attrs.checked
+                    );
+                }).map((one) => R.text(one));
+            }
+
+            function pick(text) {
+                R.find(
+                    R.findAll(
+                        R.render(comps.dialog, {viewModel: dlg}).tree,
+                        R.byClass("fb-format-target")
+                    ).find((one) => R.text(one) === text),
+                    R.byTag("input")
+                ).attrs.onchange();
+            }
+
+            function ask(model) {
+                meta.cellActions({
+                    attr: "name",
+                    formatDialog: dlg,
+                    label: "Name",
+                    model
+                });
+            }
+
+            // The server says the first may be updated, the second not
+            server.failNext("GET", "/do/is-authorized", new Error("no"));
+            ask(reader);
+            await env.flush();
+            ask(owner);
+            await env.flush();
+
+            // No habit: the whole row, for everyone, everywhere
+            dlg.open(owner, "name", "Name", here);
+            assert.deepEqual(
+                checked(),
+                ["Whole row", "Everyone", "Everywhere"]
+            );
+
+            // Saving with other choices is what makes them the habit
+            pick("Cell “Name”");
+            pick("Just me");
+            pick("Just here");
+            dlg.onOk()();
+            dlg.open(owner, "name", "Name", here);
+            assert.deepEqual(
+                checked(),
+                ["Cell “Name”", "Just me", "Just here"]
+            );
+
+            // Cancelling is not saving, so it leaves the habit alone
+            pick("Whole row");
+            dlg.open(owner, "name", "Name", here);
+            assert.deepEqual(
+                checked(),
+                ["Cell “Name”", "Just me", "Just here"]
+            );
+
+            // A list with no place of its own cannot be "just here", and
+            // saving there does not unlearn that
+            dlg.open(owner, "name", "Name", undefined);
+            assert.deepEqual(
+                checked(),
+                ["Cell “Name”", "Just me", "Everywhere"]
+            );
+            dlg.onOk()();
+            dlg.open(owner, "name", "Name", here);
+            assert.deepEqual(
+                checked(),
+                ["Cell “Name”", "Just me", "Just here"]
+            );
+
+            // Without update permission, a habit of formatting for
+            // everyone gives way to the one thing allowed, and says why
+            pick("Everyone");
+            dlg.onOk()();
+            dlg.open(reader, "name", "Name", here);
+            assert.deepEqual(
+                checked(),
+                ["Cell “Name”", "Just me", "Just here"]
+            );
+            dlg.open(owner, "name", "Name", here);
+            assert.deepEqual(
+                checked(),
+                ["Cell “Name”", "Everyone", "Just here"]
+            );
+            dlg.open(reader, "name", "Name", here);
+            assert.deepEqual(R.findAll(
+                R.render(comps.dialog, {viewModel: dlg}).tree,
+                R.byClass("fb-format-target")
+            ).filter(
+                (one) => R.text(one) === "Everyone"
+            ).map((one) => [
+                Boolean(R.find(one, R.byTag("input")).attrs.disabled),
+                one.attrs.title
+            ]), [[
+                true,
+                "You need update permission on this record to format " +
+                "it for everyone"
+            ]]);
+
+            // And the menu lets a reader format, though not take notes
+            assert.deepEqual(
+                meta.cellActions({
+                    attr: "name",
+                    formatDialog: dlg,
+                    label: "Name",
+                    model: reader
+                }).map((a) => [a.key, a.disabled]),
+                [["format", false], ["note", true]]
+            );
         });
 
         /*
