@@ -2197,6 +2197,26 @@ button:disabled .fb-ipicon,
   cursor: pointer;
 }
 
+/*
+  A disabled "Just here", where the list has no place of its own. Its
+  tooltip says why, so the label only has to look unavailable.
+*/
+.fb-format-target:has(input:disabled) {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/*
+  That a shared format is sitting behind the user's own. Quiet, since
+  it is only worth acting on now and then, but it is the only thing on
+  screen that gives the hidden format away.
+*/
+.fb-format-hidden-note {
+  color: var(--fb-label-text);
+  font-size: 0.85em;
+  font-style: italic;
+}
+
 .fb-swatch-row {
   display: flex;
   flex-wrap: wrap;
