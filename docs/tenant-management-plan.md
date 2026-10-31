@@ -1102,6 +1102,22 @@ instance.*
     - Refused while held for maintenance or while a build is unfinished.
     - Done when: `test/api/move-instance.test.js` (6 claims) passes.
 
+- [x] **G.7 The instance trail is the organization's.** (S) *Done
+  2026-10-31 on `fix/audit-trail-scope`.* `manager.systemAudit` read every
+  `instance.*` and `database.*` row in the manager, so the Instances
+  screen showed an organization administrator other customers' instance
+  names and the cluster's database names. It now takes the organization
+  and an organization administrator sees only rows recorded on its
+  behalf; the `database.*` rows record none, so they are the platform's
+  alone. A platform administrator still sees everything. Found while
+  building G.6.
+    - Done when: `test/api/instance-audit-scope.test.js` (2 claims) passes,
+      and fails without the fix.
+    - *Not done, noticed:* the same screen also hands an organization
+      administrator the cluster's unregistered database names and the
+      connection list (host, port, user), because registering an instance
+      needs them. Whether that is theirs to see is a decision, not a bug.
+
 ## 7. What the improvement plan loses to this plan
 
 Update `featherbone-improvement-plan.md` to mark these. Nothing is dropped;
