@@ -64,6 +64,11 @@
     const upgrade = new Upgrade();
 
     const STATUSES = ["active", "disabled"];
+    const SIGN_IN_LABELS = {
+        both: "a password or single sign-on",
+        password: "a password",
+        sso: "single sign-on only"
+    };
 
     function forbidden(message) {
         return {
@@ -2178,7 +2183,12 @@
 
                     let trail = await manager.systemAudit(
                         mclient,
-                        obj.limit
+                        obj.limit,
+                        (
+                            ctx.tier === "platform"
+                            ? undefined
+                            : ctx.organizationPk
+                        )
                     );
                     let unattached = await manager.orphanInstances(mclient);
                     let connections = await manager.services(mclient);
@@ -4153,6 +4163,420 @@
                 return true;
             });
         };
+
+        /*
+            What moving an instance would do, read under a lock on its
+            registry row so the plan applied is the plan shown.
+        */
+        async function movePlan(mclient, ctx, data) {
+            let target = await manager.instanceById(
+                mclient,
+                ctx.organizationPk,
+                data.id
+            );
+            let cols = (
+                "SELECT _pk, id, name, is_active, authentication, " +
+                "  is_two_factor_required FROM organization "
+            );
+            let from;
+            let to;
+            let resp;
+            let warnings = [];
+
+            if (!target) {
+                throw notFound("No instance in this organization has that id");
+            }
+
+            await mclient.query(
+                "SELECT 1 FROM tenant WHERE _pk = $1 FOR UPDATE",
+                [target._pk]
+            );
+            from = (await mclient.query(
+                cols + "WHERE _pk = $1",
+                [ctx.organizationPk]
+            )).rows[0];
+            to = (await mclient.query(
+                cols + "WHERE id = $1 AND NOT is_deleted",
+                [data.to]
+            )).rows[0];
+
+            if (!to) {
+                throw notFound("No such organization to move it to");
+            }
+            if (to._pk === from._pk) {
+                throw invalid(target.name + " already belongs to " + to.name);
+            }
+            if (target.is_maintenance) {
+                throw invalid(
+                    target.name + " is held for maintenance. End that " +
+                    "before moving it."
+                );
+            }
+
+            resp = await mclient.query(
+                "SELECT to_regclass('\"$provision\"') AS t"
+            );
+            if (resp.rows[0].t) {
+                resp = await mclient.query(
+                    (
+                        "SELECT 1 FROM \"$provision\" " +
+                        "WHERE tenant_pk = $1 AND state <> 'active'"
+                    ),
+                    [target._pk]
+                );
+                if (resp.rows.length) {
+                    throw invalid(
+                        target.name + " is still being built. Resume " +
+                        "or drop it before moving it."
+                    );
+                }
+            }
+
+            /*
+                Who the new organization does not answer for loses
+                access (John, 2026-10-31). Platform administrators
+                answer for every organization; anyone appointed over
+                the new one answers for it.
+            */
+            resp = await mclient.query(
+                (
+                    "SELECT i._pk, i.username, i.full_name, " +
+                    "  home.name AS home " +
+                    "FROM access_grant g " +
+                    "JOIN identity i ON i._pk = g._identity_identity_pk " +
+                    "LEFT JOIN organization home " +
+                    "  ON home._pk = i._organization_organization_pk " +
+                    "WHERE g._tenant_tenant_pk = $1 " +
+                    "  AND g.is_active AND NOT g.is_deleted " +
+                    "  AND NOT i.is_deleted AND NOT i.is_platform_admin " +
+                    "  AND i._organization_organization_pk " +
+                    "    IS DISTINCT FROM $2 " +
+                    "  AND NOT EXISTS (" +
+                    "    SELECT 1 FROM organization_admin a " +
+                    "    WHERE a._identity_identity_pk = i._pk " +
+                    "      AND a._organization_organization_pk = $2 " +
+                    "      AND a.is_active AND NOT a.is_deleted) " +
+                    "ORDER BY lower(i.username)"
+                ),
+                [target._pk, to._pk]
+            );
+
+            let revoked = resp.rows;
+
+            resp = await mclient.query(
+                (
+                    "SELECT count(*)::int AS n FROM access_grant g " +
+                    "JOIN identity i ON i._pk = g._identity_identity_pk " +
+                    "WHERE g._tenant_tenant_pk = $1 " +
+                    "  AND g.is_active AND NOT g.is_deleted " +
+                    "  AND NOT i.is_deleted " +
+                    "  AND NOT (i.is_platform_admin AND " +
+                    "    i._organization_organization_pk " +
+                    "      IS DISTINCT FROM $3) " +
+                    "  AND NOT (i._pk = ANY($2::bigint[]))"
+                ),
+                [target._pk, revoked.map((row) => row._pk), to._pk]
+            );
+
+            let kept = resp.rows[0].n;
+
+            resp = await mclient.query(
+                (
+                    "SELECT count(*)::int AS n FROM tenant " +
+                    "WHERE _organization_organization_pk = $1 " +
+                    "  AND _pk <> $2 AND NOT is_deleted"
+                ),
+                [from._pk, target._pk]
+            );
+
+            let emptied = resp.rows[0].n === 0;
+            let keptOpenFor = [];
+
+            if (emptied && from.is_active) {
+                // Closing an organization locks its people out entirely
+                resp = await mclient.query(
+                    (
+                        "SELECT username FROM identity " +
+                        "WHERE _organization_organization_pk = $1 " +
+                        "  AND is_platform_admin AND status = 'active' " +
+                        "  AND NOT is_deleted ORDER BY lower(username)"
+                    ),
+                    [from._pk]
+                );
+                keptOpenFor = resp.rows.map((row) => row.username);
+            }
+
+            let closes = emptied && from.is_active && !keptOpenFor.length;
+
+            if (to.authentication !== from.authentication) {
+                warnings.push(
+                    to.name + " signs in with " + (
+                        SIGN_IN_LABELS[to.authentication] ||
+                        to.authentication
+                    ) + ", " + from.name + " with " + (
+                        SIGN_IN_LABELS[from.authentication] ||
+                        from.authentication
+                    ) + ". Sign-in to " + target.name + " follows " +
+                    to.name + " from now on."
+                );
+            }
+            if (to.is_two_factor_required !== from.is_two_factor_required) {
+                warnings.push(
+                    to.is_two_factor_required
+                    ? to.name + " requires a second factor, so everyone " +
+                        "signing in to " + target.name + " will need one."
+                    : to.name + " does not require a second factor, " +
+                        "which " + from.name + " did."
+                );
+            }
+            if (!to.is_active) {
+                warnings.push(
+                    to.name + " is closed, so its people cannot sign in " +
+                    "to " + target.name + " until it is opened."
+                );
+            }
+            if (!kept) {
+                warnings.push(
+                    "Nobody in " + to.name + " will have access to " +
+                    target.name + " yet. Grant it from the Users screen."
+                );
+            }
+            if (closes) {
+                warnings.push(
+                    from.name + " has no other instance and will be " +
+                    "closed."
+                );
+            } else if (keptOpenFor.length) {
+                warnings.push(
+                    from.name + " has no other instance but stays open: " +
+                    "it is home to platform administrator " +
+                    keptOpenFor.join(", ") + ", whom closing it would " +
+                    "lock out."
+                );
+            }
+
+            return {closes, from, keptOpenFor, revoked, target, to, warnings};
+        }
+
+        /**
+            Move an instance to another organization. Platform
+            administrators only. The database is not touched; who
+            answers for it is.
+
+            Everyone the new organization does not answer for loses
+            their grant, their super user flag in the instance and
+            their sessions in it. An organization left with no instance
+            is closed. Each organization's trail records the move.
+
+            `data.dryRun` returns the same plan and changes nothing,
+            which is what the console shows before asking.
+
+            @method moveInstance
+            @param {Object} payload
+            @param {Object} payload.data
+            @param {String} payload.data.id Instance id
+            @param {String} payload.data.to Organization id
+            @param {Boolean} [payload.data.dryRun]
+            @return {Promise} The plan
+        */
+        that.moveInstance = async function (obj) {
+            let data = obj.data || {};
+            let isDryRun = data.dryRun === true;
+
+            return await manager.run(async function (mclient) {
+                let ctx = await contextFor(mclient, obj);
+                let instance;
+                let plan;
+
+                requirePlatform(ctx, "move an instance");
+                await mclient.query("BEGIN");
+
+                try {
+                    plan = await movePlan(mclient, ctx, data);
+
+                    if (!isDryRun) {
+                        instance = await moveApply(mclient, obj, ctx, plan);
+                    }
+                    await mclient.query(
+                        isDryRun
+                        ? "ROLLBACK"
+                        : "COMMIT"
+                    );
+                } catch (e) {
+                    await mclient.query("ROLLBACK");
+                    if (instance) {
+                        await instance.client.query("ROLLBACK");
+                        instance.done();
+                    }
+                    return Promise.reject(e);
+                }
+
+                // The manager has committed; the demotions follow it
+                if (instance) {
+                    await instance.client.query("COMMIT").then(
+                        instance.done,
+                        function (err) {
+                            instance.done();
+                            return Promise.reject(err);
+                        }
+                    );
+                }
+
+                return {
+                    closes: plan.closes,
+                    database: plan.target.pg_database,
+                    from: {id: plan.from.id, name: plan.from.name},
+                    id: plan.target.id,
+                    name: plan.target.name,
+                    revoked: plan.revoked.map(function (row) {
+                        return {
+                            fullName: row.full_name,
+                            homeOrganization: row.home,
+                            username: row.username
+                        };
+                    }),
+                    to: {id: plan.to.id, name: plan.to.name},
+                    warnings: plan.warnings
+                };
+            });
+        };
+
+        /*
+            The writes. The instance's demotions run in a transaction
+            of their own, left open for the caller to commit after the
+            manager does, so a move that fails leaves nobody demoted.
+        */
+        async function moveApply(mclient, obj, ctx, plan) {
+            let target = plan.target;
+            let pks = plan.revoked.map((row) => row._pk);
+            let names = plan.revoked.map((row) => row.username.toLowerCase());
+            let label = target.name + " (" + target.pg_database + ")";
+            let instance;
+            let i = 0;
+
+            if (names.length) {
+                let served = obj.registry || [];
+
+                served = served.find(
+                    (entry) => entry.pgDatabase === target.pg_database
+                );
+
+                if (!served) {
+                    throw invalid(
+                        target.name + " is not being served here, so the " +
+                        "super users losing access could not be lowered. " +
+                        "Nothing was moved."
+                    );
+                }
+
+                instance = await db.connect(served);
+                await instance.client.query("BEGIN");
+                await instance.client.query(
+                    (
+                        "UPDATE user_account SET is_super = false, " +
+                        "  updated = now(), updated_by = 'system' " +
+                        "WHERE lower(name) = ANY($1) AND is_super"
+                    ),
+                    [names]
+                );
+            }
+
+            try {
+                await mclient.query(
+                    (
+                        "UPDATE access_grant SET is_active = false, " +
+                        "  updated = now(), updated_by = $3 " +
+                        "WHERE _tenant_tenant_pk = $1 " +
+                        "  AND _identity_identity_pk = ANY($2::bigint[]) " +
+                        "  AND is_active AND NOT is_deleted"
+                    ),
+                    [target._pk, pks, obj.user || "system"]
+                );
+
+                while (i < plan.revoked.length) {
+                    await manager.audit(mclient, {
+                        action: "grant.revoked",
+                        actorPk: actorPk(ctx),
+                        by: obj.user,
+                        detail: (
+                            target.name + " moved to " + plan.to.name
+                        ),
+                        organizationPk: plan.from._pk,
+                        targetIdentityPk: plan.revoked[i]._pk
+                    });
+                    i += 1;
+                }
+
+                let sessions = await mclient.query(
+                    "SELECT to_regclass('\"$session\"') AS t"
+                );
+
+                if (names.length && sessions.rows[0].t) {
+                    await mclient.query(
+                        (
+                            "DELETE FROM \"$session\" " +
+                            "WHERE sess->>'database' = $1 " +
+                            "  AND lower(sess->'passport'->>'user') " +
+                            "    = ANY($2)"
+                        ),
+                        [target.pg_database, names]
+                    );
+                }
+
+                await mclient.query(
+                    (
+                        "UPDATE tenant " +
+                        "SET _organization_organization_pk = $2, " +
+                        "  updated = now(), updated_by = $3 " +
+                        "WHERE _pk = $1"
+                    ),
+                    [target._pk, plan.to._pk, obj.user || "system"]
+                );
+                await manager.audit(mclient, {
+                    action: "instance.moved_out",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: label + " to " + plan.to.name,
+                    organizationPk: plan.from._pk
+                });
+                await manager.audit(mclient, {
+                    action: "instance.moved_in",
+                    actorPk: actorPk(ctx),
+                    by: obj.user,
+                    detail: label + " from " + plan.from.name,
+                    organizationPk: plan.to._pk
+                });
+
+                if (plan.closes) {
+                    await mclient.query(
+                        (
+                            "UPDATE organization SET is_active = false, " +
+                            "  updated = now(), updated_by = $2 " +
+                            "WHERE _pk = $1"
+                        ),
+                        [plan.from._pk, obj.user || "system"]
+                    );
+                    await manager.audit(mclient, {
+                        action: "organization.closed",
+                        actorPk: actorPk(ctx),
+                        by: obj.user,
+                        detail: (
+                            "No instance left after " + target.name +
+                            " moved to " + plan.to.name
+                        ),
+                        organizationPk: plan.from._pk
+                    });
+                }
+            } catch (e) {
+                if (instance) {
+                    await instance.client.query("ROLLBACK");
+                    instance.done();
+                }
+                return Promise.reject(e);
+            }
+
+            return instance;
+        }
 
         /**
             Build or rebuild a template database from a registered

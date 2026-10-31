@@ -47,13 +47,14 @@ function listMeta() {
     A user's formats over the business styles: row, then cell, each
     replacing only what the user set (see list-meta.js).
 */
-function applyMeta(model, attr, tdOpts) {
+function applyMeta(vm, model, attr, tdOpts) {
     let meta = listMeta();
+    let place = vm.place();
 
     Object.assign(
         tdOpts.style,
-        meta.css(meta.rowFormat(model)),
-        meta.css(meta.cellFormat(model, attr))
+        meta.css(meta.rowFormat(model, place)),
+        meta.css(meta.cellFormat(model, attr, place))
     );
 }
 
@@ -280,7 +281,7 @@ function createTableDataEditor(options, col) {
     tdOpts.style.fontSize = zoom;
 
     handleStyle(style, tdOpts);
-    applyMeta(theModel, col, tdOpts);
+    applyMeta(theVm, theModel, col, tdOpts);
     handleMeta(
         theVm,
         theModel,
@@ -474,7 +475,7 @@ function createTableDataView(options, col) {
         title: otitle
     });
 
-    applyMeta(model, col, tdOpts);
+    applyMeta(theVm, model, col, tdOpts);
     handleMeta(theVm, model, col, item.label || theVm.alias(col), tdOpts);
 
     if (indentOn && options.idx === 0) {
@@ -769,7 +770,7 @@ function createTableRow(options, pModel) {
         // The user's row format over the business style
         rowOpts.style = Object.assign(
             rowOpts.style || {},
-            listMeta().css(listMeta().rowFormat(pModel))
+            listMeta().css(listMeta().rowFormat(pModel, theVm.place()))
         );
         rowTint = f.iconFilter(rowOpts.style.color);
         if (rowTint) {
@@ -2246,6 +2247,18 @@ tableWidget.viewModel = function (options) {
     */
     vm.contextCell = f.prop();
     /**
+        What the host calls the place this list appears in, so a format
+        can be made to apply here and nowhere else: a worksheet id, a
+        form id and its child property. Undefined where a list has no
+        place that outlasts the moment -- a search page, a drill-down
+        dialog -- and then "Just here" is not offered at all.
+
+        @method place
+        @param {String} place
+        @return {String}
+    */
+    vm.place = f.prop(options.place);
+    /**
         Dialog for a cell's or row's format.
 
         @method formatDialog
@@ -2304,7 +2317,8 @@ tableWidget.viewModel = function (options) {
             feather: vm.feather(),
             formatDialog: vm.formatDialog(),
             noteDialog: vm.noteDialog(),
-            onError: metaError
+            onError: metaError,
+            place: vm.place()
         }).map(function (item, idx, ary) {
             return m("li", {
                 id: "context-meta-" + item.key,
