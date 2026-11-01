@@ -5,6 +5,11 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The format dialog's choices line up.** Apply to, Who and Where now
+  sit in one grid, so the first option of each is above the next, and
+  the usual choice -- the default -- is on the left: Whole row, Everyone
+  and Everywhere, then Cell, Just me and Just here. Client only, no
+  install. Core 3.0.0-alpha.23.
 * **Resource links take a file again.** Dropping a file on a resource
   link field, or the new Upload button beside it (and in the cell
   menu), uploads it to the instance and links it, as it did before

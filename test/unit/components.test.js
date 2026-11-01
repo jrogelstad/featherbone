@@ -1141,12 +1141,12 @@ describe("client components", function () {
             // everywhere -- the most intuitive choice
             dlg.open(model, "name", "Name", here);
             assert.deepEqual(radios().map((r) => [r.text, r.checked]), [
-                ["Cell “Name”", false],
                 ["Whole row", true],
-                ["Just me", false],
+                ["Cell “Name”", false],
                 ["Everyone", true],
-                ["Just here", false],
-                ["Everywhere", true]
+                ["Just me", false],
+                ["Everywhere", true],
+                ["Just here", false]
             ]);
 
             // Every option says what it will do
@@ -1154,7 +1154,7 @@ describe("client components", function () {
                 assert.ok(one.title, one.text + " has a tooltip");
             });
             assert.equal(
-                radios()[2].title,
+                radios()[3].title,
                 "Only you see this format"
             );
             assert.equal(hiddenNote(), undefined, "nothing hidden yet");
@@ -1208,7 +1208,7 @@ describe("client components", function () {
 
             // A list with no place of its own cannot scope to itself
             dlg.open(model, "name", "Name", undefined);
-            assert.deepEqual(radios()[4], {
+            assert.deepEqual(radios()[5], {
                 checked: false,
                 disabled: true,
                 text: "Just here",
