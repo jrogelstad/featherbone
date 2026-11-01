@@ -22,6 +22,26 @@ Notable changes to Featherbone. Dates are the day the work landed on
   it under Engineering). Adds `three-cad-viewer` and `occt-import-js`
   (the latter LGPL-2.1, loaded as a separate file). Run `npm install`,
   restart and `node install.js --instance <name>`. Core
+  3.0.0-alpha.27.
+* **A list's row menu is no longer hidden behind its totals row.** The
+  menu had no layer of its own, so the list's sticky header and footer
+  painted over its middle. Client only, no install. Core
+  3.0.0-alpha.26.
+* **The row menu of a list inside a form opens at the click.** A right-click
+  in a child list (order lines, say) opened its menu far down the
+  screen: it was positioned absolutely against the form's tab instead
+  of the window. It is now fixed to the click, so every list agrees.
+  Client only, no install. Core 3.0.0-alpha.25.
+* **The format dialog's choices line up.** Apply to, Who and Where now
+  sit in one grid, so the first option of each is above the next, and
+  the usual choice -- the default -- is on the left: Whole row, Everyone
+  and Everywhere, then Cell, Just me and Just here. Client only, no
+  install. Core 3.0.0-alpha.24.
+* **Upload is a menu item, not a button.** On a resource link field the
+  Upload action now sits in the field's own menu (the label button, after
+  Search, Open and New) instead of a button beside the input, and is
+  disabled with the reason on hover when the field is read only. Dropping
+  a file on the field still works. Client only, no install. Core
   3.0.0-alpha.23.
 * **Resource links take a file again.** Dropping a file on a resource
   link field, or the new Upload button beside it (and in the cell

@@ -150,7 +150,7 @@ function linkFiles(vm, files) {
 resourceLinkRelation.viewModel = function (options) {
     let vm = f.createViewModel("RelationWidget", options);
     vm.labelClass = "fb-relation-label truncate";
-    vm.placeholder = "Search or → drop file ←";
+    vm.placeholder = "Search or → drop file here ←";
     vm.onDragLeave = function (evt) {
         evt.preventDefault();
     };
@@ -168,9 +168,9 @@ resourceLinkRelation.viewModel = function (options) {
     };
 
     /*
-        Open the file browser, for the Upload button beside the field
-        and the table cell's menu; the relation widget shows them only
-        when the view model has this.
+        Open the file browser, for the Upload item in the field's menu
+        (form label and table cell); both show it only when the view
+        model has this.
     */
     vm.upload = function () {
         let input = document.createElement("input");
@@ -181,13 +181,6 @@ resourceLinkRelation.viewModel = function (options) {
         };
         input.click();
     };
-
-    vm.uploadButton = f.prop(f.createViewModel("Button", {
-        onclick: vm.upload,
-        title: "Upload a file and link to it",
-        icon: "upload_file",
-        class: "fb-data-type-edit-button"
-    }));
 
     vm.labels = function () {
         let resource;

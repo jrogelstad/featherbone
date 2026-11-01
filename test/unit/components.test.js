@@ -649,15 +649,28 @@ describe("client components", function () {
                 function () {
             let tree = editor("resourceLinkRelation", "link");
             let input = R.find(tree, R.byTag("input"));
+            let widgets = formWidget(model, "TestWidgets");
+            let out = R.render(comps.formWidget, {viewModel: widgets});
+            let item = f.createModel("TestItem");
+
+            // The relation's view model exists once the editor has run
+            out = R.render(comps.formWidget, {viewModel: widgets});
 
             assert.equal(typeof input.attrs.ondrop, "function");
             assert.ok(input.attrs.placeholder.includes("drop file"));
-            assert.ok(R.find(tree, R.byTag("button")),
-                    "a button opens the file browser");
+            assert.ok(R.find(out.tree, R.byId("nav-relation-upload-link")),
+                    "the field's menu opens the file browser");
 
-            tree = editor("contactRelation", "contact");
-            assert.equal(R.find(tree, R.byTag("button")), undefined,
-                    "other relations have no Upload");
+            widgets = formWidget(item, "TestItem");
+            R.render(comps.formWidget, {viewModel: widgets});
+            out = R.render(comps.formWidget, {viewModel: widgets});
+            assert.ok(R.find(out.tree, R.byId("nav-relation-search-category")),
+                    "other relations keep their menu");
+            assert.equal(
+                R.find(out.tree, R.byId("nav-relation-upload-category")),
+                undefined,
+                "but have no Upload"
+            );
         });
 
         it("resource-link-relation.js uploads a dropped file and links it",
@@ -1174,12 +1187,12 @@ describe("client components", function () {
             // everywhere -- the most intuitive choice
             dlg.open(model, "name", "Name", here);
             assert.deepEqual(radios().map((r) => [r.text, r.checked]), [
-                ["Cell “Name”", false],
                 ["Whole row", true],
-                ["Just me", false],
+                ["Cell “Name”", false],
                 ["Everyone", true],
-                ["Just here", false],
-                ["Everywhere", true]
+                ["Just me", false],
+                ["Everywhere", true],
+                ["Just here", false]
             ]);
 
             // Every option says what it will do
@@ -1187,7 +1200,7 @@ describe("client components", function () {
                 assert.ok(one.title, one.text + " has a tooltip");
             });
             assert.equal(
-                radios()[2].title,
+                radios()[3].title,
                 "Only you see this format"
             );
             assert.equal(hiddenNote(), undefined, "nothing hidden yet");
@@ -1241,7 +1254,7 @@ describe("client components", function () {
 
             // A list with no place of its own cannot scope to itself
             dlg.open(model, "name", "Name", undefined);
-            assert.deepEqual(radios()[4], {
+            assert.deepEqual(radios()[5], {
                 checked: false,
                 disabled: true,
                 text: "Just here",
@@ -1643,6 +1656,61 @@ describe("client components", function () {
 
                 assert.equal(sizedBox("1"), unzoomed);
                 assert.equal(sizedBox(undefined), unzoomed);
+            });
+        });
+
+        /*
+            The menu was position: absolute at page coordinates, which is
+            right only when no ancestor is positioned. A child list sits in
+            a form's tab, which is, so its menu opened far below the click
+            (John, Nov 2026). Fixed and at viewport coordinates is the
+            same wherever the list is, and still right once scrolled.
+        */
+        describe("row context menu position", function () {
+            let saved;
+
+            function menuStyleAfterClick(zoom) {
+                let vm = tableVm();
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let row = R.findAll(R.find(out.tree, R.byTag("tbody")),
+                        R.byTag("tr"))[0];
+
+                globalThis.getComputedStyle = () => ({zoom});
+                row.attrs.oncontextmenu({
+                    clientX: 300,
+                    clientY: 200,
+                    pageX: 300,
+                    pageY: 1200,
+                    preventDefault: () => undefined
+                });
+                out = R.render(comps.tableWidget, {viewModel: vm});
+                return R.find(out.tree, function (n) {
+                    return R.classOf(n).includes("fb-context-menu");
+                }).attrs.style;
+            }
+
+            before(function () {
+                saved = globalThis.getComputedStyle;
+            });
+
+            after(function () {
+                globalThis.getComputedStyle = saved;
+            });
+
+            it("is fixed at the click in the viewport", function () {
+                let style = menuStyleAfterClick("1");
+
+                assert.equal(style.position, "fixed");
+                assert.equal(style.left, "300px");
+                assert.equal(style.top, "200px", "not the scrolled page's");
+            });
+
+            it("allows for the page zoom", function () {
+                let style = menuStyleAfterClick("1.5");
+
+                assert.equal(style.position, "fixed");
+                assert.equal(style.left, "200px");
+                assert.equal(style.top, "133.33333333333334px");
             });
         });
 
