@@ -5,6 +5,12 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Upload is a menu item, not a button.** On a resource link field the
+  Upload action now sits in the field's own menu (the label button, after
+  Search, Open and New) instead of a button beside the input, and is
+  disabled with the reason on hover when the field is read only. Dropping
+  a file on the field still works. Client only, no install. Core
+  3.0.0-alpha.23.
 * **Resource links take a file again.** Dropping a file on a resource
   link field, or the new Upload button beside it (and in the cell
   menu), uploads it to the instance and links it, as it did before

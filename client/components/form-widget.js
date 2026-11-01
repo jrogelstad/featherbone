@@ -274,7 +274,32 @@ function buildFieldset(vm, attrs) {
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + theKey,
                             class: "material-icons fb-menu-list-icon"
-                        }, "add_circle")], " New")
+                        }, "add_circle")], " New"),
+                        (
+                            relation.upload
+                            ? m("li", {
+                                id: "nav-relation-upload-" + theKey,
+                                class: editMenuClass(),
+                                title: (
+                                    canEdit()
+                                    ? undefined
+                                    : "Read only: cannot upload"
+                                ),
+                                onclick: (
+                                    canEdit()
+                                    ? function () {
+                                        menuButtons[theKey].display = "none";
+                                        relation.upload();
+                                        return false; // Stop propagation
+                                    }
+                                    : undefined
+                                )
+                            }, [m("i", {
+                                id: "nav-relation-upload-icon-" + theKey,
+                                class: "material-icons fb-menu-list-icon"
+                            }, "upload_file")], " Upload")
+                            : undefined
+                        )
                     ])
                 ]),
                 m("div", {

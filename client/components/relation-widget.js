@@ -859,13 +859,6 @@ relationWidget.component = {
                 autocomplete: "off"
             }),
             menu,
-            (
-                (vm.upload && !vm.isCell() && !readOnly)
-                ? m(f.getComponent("Button"), {
-                    viewModel: vm.uploadButton()
-                })
-                : undefined
-            ),
             m("div", {
                 class: labelClass
             }, vm.labels()),
