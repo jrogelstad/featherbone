@@ -5,6 +5,11 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The row menu of a list inside a form opens at the click.** A right-click
+  in a child list (order lines, say) opened its menu far down the
+  screen: it was positioned absolutely against the form's tab instead
+  of the window. It is now fixed to the click, so every list agrees.
+  Client only, no install. Core 3.0.0-alpha.25.
 * **The format dialog's choices line up.** Apply to, Who and Where now
   sit in one grid, so the first option of each is above the next, and
   the usual choice -- the default -- is on the left: Whole row, Everyone
