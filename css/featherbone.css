@@ -2186,6 +2186,35 @@ button:disabled .fb-ipicon,
   margin-bottom: 12px;
 }
 
+/*
+  Apply to, Who and Where share one grid: label, first option, second
+  option. Each row is a flex line elsewhere in the dialog, so here the
+  line steps aside (display: contents) and its children become cells,
+  which is what lines the options up from one row to the next.
+*/
+.fb-format-grid {
+  display: grid;
+  grid-template-columns: 80px max-content max-content;
+  column-gap: 8px;
+  row-gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.fb-format-grid > .fb-format-line {
+  display: contents;
+}
+
+.fb-format-grid .fb-format-target {
+  margin-right: 16px;
+}
+
+/* The hidden-format line gets a row of its own under the options */
+.fb-format-grid .fb-format-hidden-note {
+  grid-column: 2 / -1;
+  margin-top: -6px;
+}
+
 .fb-format-label {
   width: 80px;
   flex: none;

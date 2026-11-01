@@ -620,87 +620,95 @@ function formatDialog(options) {
             class: "fb-format-dialog",
             id: dlg.ids().content
         }, [
-            m("div", {class: "fb-format-line"}, [
-                m("span", {class: "fb-format-label"}, "Apply to"),
-                choice({
-                    group: "target",
-                    prop: target,
-                    text: "Cell “" + label + "”",
-                    title: "Format this one cell",
-                    value: "cell"
-                }),
-                choice({
-                    group: "target",
-                    prop: target,
-                    text: "Whole row",
-                    title: "Format every cell in this row",
-                    value: "row"
-                })
-            ]),
-            m("div", {class: "fb-format-line"}, [
-                m("span", {class: "fb-format-label"}, "Who"),
-                choice({
-                    group: "who",
-                    prop: who,
-                    text: "Just me",
-                    title: "Only you see this format",
-                    value: "mine"
-                }),
-                choice({
-                    disabled: !canShare(model),
-                    group: "who",
-                    prop: who,
-                    text: "Everyone",
-                    title: (
-                        canShare(model)
-                        ? (
-                            "Everyone who can see this record sees " +
-                            "this format"
-                        )
-                        : (
-                            "You need update permission on this " +
-                            "record to format it for everyone"
-                        )
-                    ),
-                    value: "all"
-                }),
-                (
-                    hidden()
-                    ? m("span", {
-                        class: "fb-format-hidden-note",
+            /*
+                The three choices sit in one grid so that the first
+                option of each lines up under the others, and the
+                second likewise. The first is the usual one -- the
+                defaults -- so the eye lands on it at the left.
+            */
+            m("div", {class: "fb-format-grid"}, [
+                m("div", {class: "fb-format-line"}, [
+                    m("span", {class: "fb-format-label"}, "Apply to"),
+                    choice({
+                        group: "target",
+                        prop: target,
+                        text: "Whole row",
+                        title: "Format every cell in this row",
+                        value: "row"
+                    }),
+                    choice({
+                        group: "target",
+                        prop: target,
+                        text: "Cell “" + label + "”",
+                        title: "Format this one cell",
+                        value: "cell"
+                    })
+                ]),
+                m("div", {class: "fb-format-line"}, [
+                    m("span", {class: "fb-format-label"}, "Who"),
+                    choice({
+                        disabled: !canShare(model),
+                        group: "who",
+                        prop: who,
+                        text: "Everyone",
                         title: (
-                            "Choose Everyone to see the format they " +
-                            "are getting"
-                        )
-                    }, "Everyone also has a format here")
-                    : undefined
-                )
-            ]),
-            m("div", {class: "fb-format-line"}, [
-                m("span", {class: "fb-format-label"}, "Where"),
-                choice({
-                    disabled: !place,
-                    group: "scope",
-                    prop: scope,
-                    text: "Just here",
-                    title: (
-                        place
-                        ? "Applies only in this list"
-                        : (
-                            "This list has no place of its own, so a " +
-                            "format here applies wherever the record " +
-                            "appears"
-                        )
-                    ),
-                    value: "here"
-                }),
-                choice({
-                    group: "scope",
-                    prop: scope,
-                    text: "Everywhere",
-                    title: "Applies wherever this record appears",
-                    value: "everywhere"
-                })
+                            canShare(model)
+                            ? (
+                                "Everyone who can see this record " +
+                                "sees this format"
+                            )
+                            : (
+                                "You need update permission on this " +
+                                "record to format it for everyone"
+                            )
+                        ),
+                        value: "all"
+                    }),
+                    choice({
+                        group: "who",
+                        prop: who,
+                        text: "Just me",
+                        title: "Only you see this format",
+                        value: "mine"
+                    }),
+                    (
+                        hidden()
+                        ? m("span", {
+                            class: "fb-format-hidden-note",
+                            title: (
+                                "Choose Everyone to see the format " +
+                                "they are getting"
+                            )
+                        }, "Everyone also has a format here")
+                        : undefined
+                    )
+                ]),
+                m("div", {class: "fb-format-line"}, [
+                    m("span", {class: "fb-format-label"}, "Where"),
+                    choice({
+                        group: "scope",
+                        prop: scope,
+                        text: "Everywhere",
+                        title: "Applies wherever this record appears",
+                        value: "everywhere"
+                    }),
+                    choice({
+                        disabled: !place,
+                        group: "scope",
+                        prop: scope,
+                        text: "Just here",
+                        title: (
+                            place
+                            ? "Applies only in this list"
+                            : (
+                                "This list has no place of its own, " +
+                                "so a format here applies wherever " +
+                                "the record appears"
+                            )
+                        ),
+                        value: "here"
+                    })
+                ])
             ]),
             m("div", {class: "fb-format-line"}, [
                 m("span", {class: "fb-format-label"}, "Background"),
