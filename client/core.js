@@ -1792,6 +1792,42 @@ f.hashCode = function (s) {
     );
 };
 
+/**
+    Attributes for an anchor that opens a resource link's `resource`.
+
+    A resource that is a route in this app (`#!/edit/cad_model/...`)
+    opens the way a link to any other Featherbone record does, in the
+    same window by the router. Anything else (an uploaded file, a web
+    page) opens in a new tab.
+
+    @method resourceAnchor
+    @param {String} resource
+    @param {Function} [before] Called when an app route is followed
+    @return {Object} Attributes for `m("a", ...)`
+*/
+f.resourceAnchor = function (resource, before) {
+    let attrs = {href: resource, class: "fb-link"};
+    let path;
+
+    if (typeof resource === "string" && resource.slice(0, 3) === "#!/") {
+        path = resource.slice(2);
+        attrs.onclick = function (evt) {
+            if (evt.ctrlKey || evt.metaKey || evt.shiftKey) {
+                return; // Let the browser open it in another tab
+            }
+            evt.preventDefault();
+            if (before) {
+                before();
+            }
+            m.route.set(path);
+        };
+    } else {
+        attrs.target = "_blank";
+    }
+
+    return attrs;
+};
+
 f.types.resourceLink = {};
 f.types.resourceLink.tableData = function (obj, decorator) {
 
@@ -1818,11 +1854,11 @@ f.types.resourceLink.tableData = function (obj, decorator) {
     if (decorator) {
         return decorator(obj, rec, icon, label);
     } else {
-        return m("a", {
-            href: rec,
-            target: "_blank",
-            class: "fb-link"
-        }, icon, label);
+        return m("a", f.resourceAnchor(rec, function () {
+            if (obj.viewModel && obj.viewModel.canToggle) {
+                obj.viewModel.canToggle(false);
+            }
+        }), icon, label);
     }
 };
 f.types.helpLink = {};

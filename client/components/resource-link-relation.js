@@ -203,11 +203,7 @@ resourceLinkRelation.viewModel = function (options) {
 
             if (resource) {
                 elements.push(
-                    m("a", {
-                        href: resource,
-                        target: "_blank",
-                        class: "fb-link"
-                    }, [
+                    m("a", f.resourceAnchor(resource), [
                         m("i", {
                             class: (
                                 "material-icons " +
