@@ -666,6 +666,41 @@ describe("client components", function () {
             assert.ok(R.find(tree, R.byTag("datalist")));
         });
 
+        it("resource-link-relation.js draws the icon the way lists do, " +
+                "and opens an app route in place", function () {
+            let vm;
+            let link;
+            let anchor;
+            let icon;
+            let held = model.data.link;
+
+            editor("resourceLinkRelation", "link");
+            vm = fw.relations().link;
+            link = {data: {
+                icon: () => "cube",
+                resource: () => "#!/edit/cad_model/abc"
+            }};
+            model.data.link = () => link;
+
+            anchor = vm.labels()[0];
+            icon = anchor.children[0];
+            assert.equal(anchor.attrs.href, "#!/edit/cad_model/abc");
+            assert.equal(anchor.attrs.target, undefined);
+            assert.equal(icon.tag, "img", "a cube is an IconPark image");
+            assert.ok(icon.attrs.src.endsWith("/cube.svg"));
+            assert.ok(
+                icon.attrs.className.includes("fb-contact-relation-icon")
+            );
+
+            link.data.icon = () => "";
+            link.data.resource = () => "/demo/files/plan.pdf";
+            anchor = vm.labels()[0];
+            assert.equal(anchor.attrs.target, "_blank");
+            assert.ok(anchor.children[0].attrs.src.endsWith("/file-text.svg"),
+                    "a link with no icon shows a document");
+            model.data.link = held;
+        });
+
         it("resource-link-relation.js takes a dropped file, or Upload",
                 function () {
             let tree = editor("resourceLinkRelation", "link");

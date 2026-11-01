@@ -204,13 +204,10 @@ resourceLinkRelation.viewModel = function (options) {
             if (resource) {
                 elements.push(
                     m("a", f.resourceAnchor(resource), [
-                        m("i", {
-                            class: (
-                                "material-icons " +
-                                "fb-contact-relation-icon " +
-                                "fb-icon-button"
-                            )
-                        }, (icon || "resource")),
+                        f.icon(
+                            (icon || "article"),
+                            "fb-contact-relation-icon fb-icon-button"
+                        ),
                         resource
                     ])
                 );

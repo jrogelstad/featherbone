@@ -10,7 +10,9 @@ Notable changes to Featherbone. Dates are the day the work landed on
   `#!/edit/cad_model/...`) now opens the way a link to any other record
   does, in the same window, instead of in a new tab. Links to files and
   web pages still open in a new tab, and Ctrl, Cmd or Shift click still
-  opens an app link in one.
+  opens an app link in one. The link under the field now draws its icon
+  the way lists do, so a CAD model's cube shows there too, and a link
+  with no icon shows a document rather than the word "resource".
 * **3D models, as records.** A new core feather, `CadModel`, inherits
   `ResourceLink`, so a model is offered wherever a link to a drawing is
   chosen (a product's drawing, an item document) and opening that link
