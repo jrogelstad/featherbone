@@ -5,6 +5,11 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Module routes called with a trailing slash.** SupplyChain's client
+  calls several routes (convert planned purchase, plan supply, count
+  create and post, inventory report, bill of lading) with a trailing
+  slash, which found no route and answered 404. The slash is ignored.
+
 * **About, and a REST API reference.** An Info button beside the bell
   on every screen opens an About dialog: what Featherbone is, the
   framework version, each module the instance deployed (sub-modules

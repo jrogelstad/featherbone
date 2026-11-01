@@ -75,6 +75,14 @@ describe("packages on disk", function () {
         );
     });
 
+    it("answers a route called with a trailing slash", async function () {
+        // SupplyChain's client calls several routes this way
+        let resp = await admin.post("/fbtest/version/", {});
+
+        assert.equal(resp.version, "1.0.0");
+        assert.equal(resp.source, "disk");
+    });
+
     it("keeps the two registries isolated under interleaving",
             async function () {
         let answers = await Promise.all([
