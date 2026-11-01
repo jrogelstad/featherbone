@@ -591,6 +591,27 @@ describe("client components", function () {
             assert.match(R.text(tree), /1 part, 1 triangles/);
             assert.ok(R.find(tree, R.byTag("input")));
 
+            // A new record links to itself, since the form will not save
+            // one whose required `resource` is empty
+            let data = {
+                id: f.prop("abc123"),
+                resource: f.prop("")
+            };
+
+            editor("cadViewerWidget", "model", {
+                model: {data},
+                prop: f.prop("")
+            });
+            assert.equal(data.resource(), "#!/edit/cad_model/abc123");
+
+            // One that has a link keeps it
+            data.resource("#!/edit/cad_model/other");
+            editor("cadViewerWidget", "model", {
+                model: {data},
+                prop: f.prop("")
+            });
+            assert.equal(data.resource(), "#!/edit/cad_model/other");
+
             // Read only: no box, and a plain note when empty
             tree = editor("cadViewerWidget", "model", {
                 prop: f.prop(""),

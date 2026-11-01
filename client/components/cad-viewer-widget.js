@@ -205,6 +205,32 @@ cadViewerWidget.viewModel = function (options) {
     }
 
     /**
+        A model links to itself. The server's trigger fills `resource`
+        in too, but the form refuses to save a record whose required
+        `resource` is empty before the server is asked, so a new record
+        takes its link here, from the id it already holds.
+
+        @method linkToSelf
+    */
+    function linkToSelf() {
+        let data = (
+            (options.model && options.model.data)
+            ? options.model.data
+            : {}
+        );
+
+        if (
+            typeof data.resource === "function" &&
+            typeof data.id === "function" &&
+            !data.resource() && data.id()
+        ) {
+            data.resource("#!/edit/cad_model/" + data.id());
+        }
+    }
+
+    linkToSelf();
+
+    /**
         Read a file, and make what it holds the record's model.
 
         @method importFile
