@@ -275,6 +275,8 @@ describe("client/core.js helpers", function () {
             assert.equal(hooked, 1);
             assert.equal(env.routes().length, routed + 1);
             assert.equal(env.routes()[routed].route, "/edit/cad_model/abc");
+            assert.deepEqual(env.routes()[routed].options, {state: {}},
+                    "so the form's Back returns here, not to the home page");
 
             // Ctrl, Cmd or Shift still opens another tab
             anchor.onclick({ctrlKey: true, preventDefault: stop});

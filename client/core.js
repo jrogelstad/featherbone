@@ -1819,7 +1819,10 @@ f.resourceAnchor = function (resource, before) {
             if (before) {
                 before();
             }
-            m.route.set(path);
+            // A state object, as a relation's open link gives, marks this
+            // as a page reached from another: the form's Back returns to
+            // where the link was followed, not to the home page
+            m.route.set(path, null, {state: {}});
         };
     } else {
         attrs.target = "_blank";
