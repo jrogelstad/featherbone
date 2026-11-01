@@ -1626,6 +1626,61 @@ describe("client components", function () {
             });
         });
 
+        /*
+            The menu was position: absolute at page coordinates, which is
+            right only when no ancestor is positioned. A child list sits in
+            a form's tab, which is, so its menu opened far below the click
+            (John, Nov 2026). Fixed and at viewport coordinates is the
+            same wherever the list is, and still right once scrolled.
+        */
+        describe("row context menu position", function () {
+            let saved;
+
+            function menuStyleAfterClick(zoom) {
+                let vm = tableVm();
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let row = R.findAll(R.find(out.tree, R.byTag("tbody")),
+                        R.byTag("tr"))[0];
+
+                globalThis.getComputedStyle = () => ({zoom});
+                row.attrs.oncontextmenu({
+                    clientX: 300,
+                    clientY: 200,
+                    pageX: 300,
+                    pageY: 1200,
+                    preventDefault: () => undefined
+                });
+                out = R.render(comps.tableWidget, {viewModel: vm});
+                return R.find(out.tree, function (n) {
+                    return R.classOf(n).includes("fb-context-menu");
+                }).attrs.style;
+            }
+
+            before(function () {
+                saved = globalThis.getComputedStyle;
+            });
+
+            after(function () {
+                globalThis.getComputedStyle = saved;
+            });
+
+            it("is fixed at the click in the viewport", function () {
+                let style = menuStyleAfterClick("1");
+
+                assert.equal(style.position, "fixed");
+                assert.equal(style.left, "300px");
+                assert.equal(style.top, "200px", "not the scrolled page's");
+            });
+
+            it("allows for the page zoom", function () {
+                let style = menuStyleAfterClick("1.5");
+
+                assert.equal(style.position, "fixed");
+                assert.equal(style.left, "200px");
+                assert.equal(style.top, "133.33333333333334px");
+            });
+        });
+
         it("runs Mode and Selection statecharts", function () {
             let vm = tableVm();
             assert.deepEqual(vm.state().current().slice(0, 2),

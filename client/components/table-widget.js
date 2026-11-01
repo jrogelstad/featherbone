@@ -942,11 +942,14 @@ function createTableRow(options, pModel) {
         theVm.contextCell(e.fbCell);
         theVm.noteCard().hide();
         contextMenuOwner = theVm;
-        // Page coordinates are zoomed (see pageScale); CSS ones are not
+        // Fixed, at viewport coordinates: absolute resolved against the
+        // nearest positioned ancestor, which a child list has (its tab)
+        // but a top-level list does not. Zoomed, see pageScale.
         contextMenuStyle({
             display: "block",
-            left: e.pageX / pageScale() + "px",
-            top: e.pageY / pageScale() + "px"
+            left: e.clientX / pageScale() + "px",
+            position: "fixed",
+            top: e.clientY / pageScale() + "px"
         });
     };
 
