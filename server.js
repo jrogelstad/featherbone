@@ -1904,6 +1904,9 @@
         case ".woff2":
             mimetype = {"Content-Type": "font/woff2"};
             break;
+        case ".wasm":
+            mimetype = {"Content-Type": "application/wasm"};
+            break;
         default:
             throw new Error("Unknown file type " + suffix);
         }
@@ -3698,7 +3701,12 @@
         "/node_modules/dialog-polyfill/dialog-polyfill.css",
         "/node_modules/codemirror/theme/neat.css",
         "/node_modules/typeface-raleway/index.css",
-        "/node_modules/gantt/dist/gantt.min.js"
+        "/node_modules/gantt/dist/gantt.min.js",
+        // CAD viewer: fetched by the CadModel page only, not every load
+        "/node_modules/three-cad-viewer/dist/three-cad-viewer.min.js",
+        "/node_modules/three-cad-viewer/dist/three-cad-viewer.css",
+        "/node_modules/occt-import-js/dist/occt-import-js.js",
+        "/node_modules/occt-import-js/dist/occt-import-js.wasm"
     ];
 
     /*

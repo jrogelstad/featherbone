@@ -50,7 +50,7 @@ const COMPONENT_FILES = [
     "form-widget", "money-relation", "search-input", "search-page",
     "sort-dialog", "settings-page", "table-dialog", "list-meta",
     "table-widget",
-    "url-widget", "image-upload-widget", "gantt", "sign-in-page",
+    "url-widget", "image-upload-widget", "cad-viewer-widget", "gantt", "sign-in-page",
     "form-page", "workbook-page", "about-dialog",
     "account-menu", "navigator-menu", "send-mail-page", "ribbon"
 ];
@@ -254,6 +254,7 @@ function install(opts) {
     globalThis.Qs = require("qs");
     globalThis.jsonpatch = require("fast-json-patch");
     globalThis.f = require(path.join(ROOT, "common", "core.js"));
+    globalThis.f.cad = require(path.join(ROOT, "common", "cad.js"));
     if (opts.stableIds) {
         let n = 0;
         globalThis.f.createId = function () {

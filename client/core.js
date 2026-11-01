@@ -438,6 +438,10 @@ formats.color = {
     type: "string",
     default: "#000000"
 };
+formats.cadModel = {
+    type: "string",
+    default: ""
+};
 formats.textArea = {
     type: "string",
     default: ""
@@ -1343,6 +1347,17 @@ formats.image.tableData = function (obj) {
     return (
         value
         ? m("img", {src, class: "fb-table-image", title: value})
+        : ""
+    );
+};
+
+formats.cadModel.editor = function (options) {
+    return m(catalog.store().components().cadViewerWidget, options);
+};
+formats.cadModel.tableData = function (obj) {
+    return (
+        obj.value
+        ? "3D model"
         : ""
     );
 };

@@ -107,7 +107,8 @@ describe("client components", function () {
     it("registers every component and view model", function () {
         assert.deepEqual(Object.keys(comps).sort(), [
             "accountMenu", "addressRelation", "aggregateDialog",
-            "autonumber", "button", "changePasswordPage", "checkEmailPage",
+            "autonumber", "button", "cadViewerWidget", "changePasswordPage",
+            "checkEmailPage",
             "checkbox", "childFormPage", "childTable", "confirmCodePage",
             "contactRelation", "dataList", "dataType", "dialog",
             "envBanner", "filterDialog", "formDialog", "formPage", "formWidget", "gantt",
@@ -565,6 +566,38 @@ describe("client components", function () {
                     "https://example.com/logo.png");
             assert.equal(R.find(tree, R.byClass("fb-input")).attrs.value,
                     "https://example.com/logo.png");
+        });
+
+        it("cad-viewer-widget.js shows the model or asks for one", function () {
+            let tree;
+            let shapes = JSON.stringify({
+                parts: [{id: "/a/b", shape: {triangles: [0, 1, 2]}}]
+            });
+
+            // Nothing yet: an invitation, and the file box to answer it
+            tree = editor("cadViewerWidget", "model", {prop: f.prop("")});
+            assert.match(R.text(tree), /No model yet/);
+            assert.equal(
+                R.find(tree, R.byTag("input")).attrs.type,
+                "file"
+            );
+            assert.match(
+                R.find(tree, R.byTag("input")).attrs.accept,
+                /\.step/
+            );
+
+            // Held: the summary, with the box still there to replace it
+            tree = editor("cadViewerWidget", "model", {prop: f.prop(shapes)});
+            assert.match(R.text(tree), /1 part, 1 triangles/);
+            assert.ok(R.find(tree, R.byTag("input")));
+
+            // Read only: no box, and a plain note when empty
+            tree = editor("cadViewerWidget", "model", {
+                prop: f.prop(""),
+                readonly: true
+            });
+            assert.match(R.text(tree), /No model has been imported/);
+            assert.equal(R.find(tree, R.byTag("input")), undefined);
         });
 
         it("data-type.js renders the type selector and relation dialog",

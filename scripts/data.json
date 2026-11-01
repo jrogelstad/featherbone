@@ -1743,4 +1743,35 @@
             }
         ]
     }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "189xde3aa3jf",
+    "data": {
+        "name": "CadModel",
+        "description": "3D model form",
+        "feather": "CadModel",
+        "module": "Core",
+        "attrs": [
+            {
+                "attr": "label"
+            },
+            {
+                "attr": "revision"
+            },
+            {
+                "attr": "units"
+            },
+            {
+                "attr": "source"
+            },
+            {
+                "attr": "notes"
+            },
+            {
+                "attr": "model",
+                "showLabel": false
+            }
+        ]
+    }
 }]

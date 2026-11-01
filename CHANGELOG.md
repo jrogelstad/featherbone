@@ -5,6 +5,24 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **3D models, as records.** A new core feather, `CadModel`, inherits
+  `ResourceLink`, so a model is offered wherever a link to a drawing is
+  chosen (a product's drawing, an item document) and opening that link
+  goes to the model's own page, which draws it with three-cad-viewer.
+  Drop a STEP, STL or three-cad-viewer `.json` file on the page, or
+  choose one: it is read in the browser (STEP by occt-import-js, which is
+  WebAssembly and loads only when a model is opened), and the record
+  keeps the shapes, its `revision` (a whole number, 1 or more), `units`
+  and the file's name. SolidWorks `.sldprt` and `.sldasm` are not read;
+  the page says to Save As STEP, and a `.slddrw` to save the PDF. The
+  shapes are kept as JSON text in `model`, up to 4.5 MB: the server
+  camel-cases the keys of any object property it returns and drops those
+  starting with an underscore, which breaks the viewer's snake case
+  format. The navigation lives in the module that wants it (JobShop puts
+  it under Engineering). Adds `three-cad-viewer` and `occt-import-js`
+  (the latter LGPL-2.1, loaded as a separate file). Run `npm install`,
+  restart and `node install.js --instance <name>`. Core
+  3.0.0-alpha.23.
 * **Resource links take a file again.** Dropping a file on a resource
   link field, or the new Upload button beside it (and in the cell
   menu), uploads it to the instance and links it, as it did before
