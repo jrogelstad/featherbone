@@ -54,6 +54,38 @@
       "updatedBy": "string readOnly <Object"
     }
   },
+  "CadModel": {
+    "inherits": "ResourceLink",
+    "isChild": false,
+    "isFetchOnStartup": false,
+    "isReadOnly": false,
+    "isSystem": false,
+    "module": "Core",
+    "overloads": {},
+    "plural": "CadModels",
+    "properties": {
+      "created": "string:dateTime readOnly default=\"now()\" <Object",
+      "createdBy": "string readOnly <Object",
+      "displayValue": "string naturalKey readOnly <ResourceLink",
+      "etag": "string alwaysLoad default=\"createId()\" <Document",
+      "icon": "string:icon alwaysLoad default=\"open_in_new\" list=article|description|folder_open|image|open_in_new|photo_library|picture_as_pdf|place|table_view <ResourceLink",
+      "id": "string required readOnly alwaysLoad default=\"createId()\" <Object",
+      "isDeleted": "boolean readOnly alwaysLoad <Object",
+      "label": "string alwaysLoad <ResourceLink",
+      "lock": "object:lock readOnly alwaysLoad <Object",
+      "meta": "object readOnly alwaysLoad <Object",
+      "model": "string:cadModel",
+      "notes": "string:textArea <ResourceLink",
+      "objectType": "string readOnly alwaysLoad <Object",
+      "owner": "string:userAccount required alwaysLoad <Document",
+      "resource": "string:url required labelKey alwaysLoad <ResourceLink",
+      "revision": "integer required default=1 min=1",
+      "source": "string",
+      "units": "string default=\"in\" list=in|mm",
+      "updated": "string:dateTime readOnly default=\"now()\" <Object",
+      "updatedBy": "string readOnly <Object"
+    }
+  },
   "Comment": {
     "inherits": "Object",
     "isChild": false,

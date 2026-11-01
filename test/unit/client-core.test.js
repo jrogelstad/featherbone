@@ -206,10 +206,10 @@ describe("client/core.js helpers", function () {
     describe("formats", function () {
         it("registers the expected format names", function () {
             assert.deepEqual(Object.keys(f.formats()).sort(), [
-                "autonumber", "color", "dataType", "date", "dateTime",
-                "email", "enum", "gantt", "icon", "image", "lock", "money",
-                "overloadType", "password", "richText", "role", "script",
-                "string", "tel", "textArea", "url", "userAccount"
+                "autonumber", "cadModel", "color", "dataType", "date",
+                "dateTime", "email", "enum", "gantt", "icon", "image", "lock",
+                "money", "overloadType", "password", "richText", "role",
+                "script", "string", "tel", "textArea", "url", "userAccount"
             ]);
         });
 
@@ -253,6 +253,61 @@ describe("client/core.js helpers", function () {
                 end: "2026-01-05"
             }]});
             assert.deepEqual(g.fromType(null), {data: []});
+        });
+
+        it("resourceAnchor follows an app route in place, a URL in a new tab",
+                function () {
+            let hooked = 0;
+            let prevented = 0;
+            let anchor = f.resourceAnchor("#!/edit/cad_model/abc", function () {
+                hooked += 1;
+            });
+            let routed = env.routes().length;
+
+            function stop() {
+                prevented += 1;
+            }
+
+            assert.equal(anchor.href, "#!/edit/cad_model/abc");
+            assert.equal(anchor.target, undefined);
+            anchor.onclick({preventDefault: stop});
+            assert.equal(prevented, 1, "the browser does not also follow it");
+            assert.equal(hooked, 1);
+            assert.equal(env.routes().length, routed + 1);
+            assert.equal(env.routes()[routed].route, "/edit/cad_model/abc");
+            assert.deepEqual(env.routes()[routed].options, {state: {}},
+                    "so the form's Back returns here, not to the home page");
+
+            // Ctrl, Cmd or Shift still opens another tab
+            anchor.onclick({ctrlKey: true, preventDefault: stop});
+            assert.equal(prevented, 1);
+            assert.equal(env.routes().length, routed + 1);
+
+            anchor = f.resourceAnchor("/demo/files/plan.pdf");
+            assert.equal(anchor.target, "_blank");
+            assert.equal(anchor.onclick, undefined);
+            anchor = f.resourceAnchor("https://example.com/a");
+            assert.equal(anchor.target, "_blank");
+            assert.equal(f.resourceAnchor("").target, "_blank");
+        });
+
+        it("a resource link cell opens an app route without a new tab",
+                function () {
+            let rec = {data: {
+                icon: () => "cube",
+                label: () => "Trailer",
+                resource: () => "#!/edit/cad_model/abc"
+            }};
+            let cell = f.types.resourceLink.tableData({value: rec});
+
+            assert.equal(cell.tag, "a");
+            assert.equal(cell.attrs.href, "#!/edit/cad_model/abc");
+            assert.equal(cell.attrs.target, undefined);
+            assert.equal(typeof cell.attrs.onclick, "function");
+
+            rec.data.resource = () => "/demo/files/plan.pdf";
+            cell = f.types.resourceLink.tableData({value: rec});
+            assert.equal(cell.attrs.target, "_blank");
         });
 
         it("dataType tableData describes relations", function () {
