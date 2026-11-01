@@ -616,15 +616,28 @@ describe("client components", function () {
                 function () {
             let tree = editor("resourceLinkRelation", "link");
             let input = R.find(tree, R.byTag("input"));
+            let widgets = formWidget(model, "TestWidgets");
+            let out = R.render(comps.formWidget, {viewModel: widgets});
+            let item = f.createModel("TestItem");
+
+            // The relation's view model exists once the editor has run
+            out = R.render(comps.formWidget, {viewModel: widgets});
 
             assert.equal(typeof input.attrs.ondrop, "function");
             assert.ok(input.attrs.placeholder.includes("drop file"));
-            assert.ok(R.find(tree, R.byTag("button")),
-                    "a button opens the file browser");
+            assert.ok(R.find(out.tree, R.byId("nav-relation-upload-link")),
+                    "the field's menu opens the file browser");
 
-            tree = editor("contactRelation", "contact");
-            assert.equal(R.find(tree, R.byTag("button")), undefined,
-                    "other relations have no Upload");
+            widgets = formWidget(item, "TestItem");
+            R.render(comps.formWidget, {viewModel: widgets});
+            out = R.render(comps.formWidget, {viewModel: widgets});
+            assert.ok(R.find(out.tree, R.byId("nav-relation-search-category")),
+                    "other relations keep their menu");
+            assert.equal(
+                R.find(out.tree, R.byId("nav-relation-upload-category")),
+                undefined,
+                "but have no Upload"
+            );
         });
 
         it("resource-link-relation.js uploads a dropped file and links it",
