@@ -5,6 +5,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A feather that inherits `CadModel` links to its own page.** The link a
+  model writes to itself (and the one the form fills in before the first
+  save) now names the record's own feather, not `CadModel`, so a package
+  feather such as SupplyChain's `EngineerCadModel` opens on its own form.
 * **Resource links to a page in the app open in place.** A resource
   link whose `resource` is a route in Featherbone itself (a CAD model's
   `#!/edit/cad_model/...`) now opens the way a link to any other record

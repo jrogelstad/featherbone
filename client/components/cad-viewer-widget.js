@@ -205,8 +205,9 @@ cadViewerWidget.viewModel = function (options) {
     }
 
     /**
-        A model links to itself. The server's trigger fills `resource`
-        in too, but the form refuses to save a record whose required
+        A model links to itself, as the feather it is (a feather that
+        inherits CadModel has its own page). The server's trigger fills
+        `resource` in too, but the form refuses to save a record whose required
         `resource` is empty before the server is asked, so a new record
         takes its link here, from the id it already holds.
 
@@ -224,7 +225,11 @@ cadViewerWidget.viewModel = function (options) {
             typeof data.id === "function" &&
             !data.resource() && data.id()
         ) {
-            data.resource("#!/edit/cad_model/" + data.id());
+            data.resource(
+                "#!/edit/" + String(
+                    (options.model && options.model.name) || "CadModel"
+                ).toSnakeCase() + "/" + data.id()
+            );
         }
     }
 

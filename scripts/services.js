@@ -503,6 +503,8 @@ function handleCadModel(obj) {
 
     return new Promise(function (resolve, reject) {
         let rec = obj.newRec;
+        let name = obj.name || "CadModel";
+        let route = name.toSnakeCase();
         let revision = (
             rec.revision === undefined
             ? 1
@@ -515,11 +517,15 @@ function handleCadModel(obj) {
             return;
         }
 
-        // Link to itself, one name per revision
+        // Link to itself, one name per revision. The link opens the
+        // record as the feather it is (a feather inheriting CadModel has
+        // its own form), so it names obj.name, not CadModel.
         rec.id = rec.id || f.createId();
         rec.label = rec.label || "CAD model";
         rec.displayValue = rec.label + " rev " + revision;
-        rec.resource = rec.resource || "#!/edit/cad_model/" + rec.id;
+        rec.resource = rec.resource || (
+            "#!/edit/" + route + "/" + rec.id
+        );
 
         resolve();
     });

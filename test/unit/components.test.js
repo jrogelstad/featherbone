@@ -612,6 +612,17 @@ describe("client components", function () {
             });
             assert.equal(data.resource(), "#!/edit/cad_model/other");
 
+            // A feather that inherits CadModel links to its own page
+            data = {
+                id: f.prop("xyz789"),
+                resource: f.prop("")
+            };
+            editor("cadViewerWidget", "model", {
+                model: {data, name: "EngineerCadModel"},
+                prop: f.prop("")
+            });
+            assert.equal(data.resource(), "#!/edit/engineer_cad_model/xyz789");
+
             // Read only: no box, and a plain note when empty
             tree = editor("cadViewerWidget", "model", {
                 prop: f.prop(""),
