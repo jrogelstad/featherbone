@@ -1,0 +1,488 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Plan",
+        "version": "2.1.13",
+        "description": "Supply planning: allocation of supply to demand, creation of planned orders, achievable due dates and projected availability."
+    },
+    "tags": [
+        {
+            "name": "Allocation and supply planning",
+            "description": "Create and clear allocations, and plan new supply for demand."
+        },
+        {
+            "name": "Planning analysis",
+            "description": "Read-only planning calculations: due dates and projected availability."
+        }
+    ],
+    "paths": {
+        "/calculate-due-date": {
+            "post": {
+                "tags": [
+                    "Planning analysis"
+                ],
+                "operationId": "doCalculateDueDate",
+                "summary": "Calculate an achievable due date",
+                "description": "Works out when a quantity of a product can be ready at a site: walks the indented bill of material (kits flattened, reorder-point items and expense items excluded), consumes existing open supply that is unallocated or already allocated to `demandId`, schedules new supply for the rest back from the requested date using item site lead times, and takes the longest lead time path. If that path does not fit before the requested date, the due date moves out and new supply moves with it. The shipping buffer of plan settings (days) is added at the end. Read only: nothing is created or allocated. Refuses when item, site or quantity is missing, or the product has no item site at the site.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "itemId",
+                                    "siteId",
+                                    "quantity"
+                                ],
+                                "properties": {
+                                    "itemId": {
+                                        "type": "string",
+                                        "description": "Product id"
+                                    },
+                                    "siteId": {
+                                        "type": "string",
+                                        "description": "Site id"
+                                    },
+                                    "quantity": {
+                                        "type": "number",
+                                        "description": "Quantity required"
+                                    },
+                                    "requestedDate": {
+                                        "type": "string",
+                                        "description": "Requested date; the first 10 characters are read as YYYY-MM-DD. Defaults to today"
+                                    },
+                                    "demandId": {
+                                        "type": "string",
+                                        "description": "Demand (sales order line, requirement) whose existing allocations count as supply"
+                                    },
+                                    "allocateParent": {
+                                        "type": "boolean",
+                                        "description": "Also consume unallocated supply of the product itself, not just of its components",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Due date and the plan behind it",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "dueDate": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Achievable due date (YYYY-MM-DD), including the shipping buffer"
+                                        },
+                                        "plan": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PlanDueDateTask"
+                                            },
+                                            "description": "Gantt rows of the supply plan; a \"Shipping Buffer\" row is appended when plan settings define one"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/clear-allocations": {
+            "post": {
+                "tags": [
+                    "Allocation and supply planning"
+                ],
+                "operationId": "doClearAllocations",
+                "summary": "Clear all allocations",
+                "description": "Deletes every allocation of product supply and sets allocated quantity to zero on all product supplies and demands, in every site. Unless `updateOrders` is false, then refreshes the plan status of each work order and sales order that had allocated requirements or lines. Runs as direct SQL, so feather-level authorization on Allocation is not checked.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "updateOrders": {
+                                        "type": "boolean",
+                                        "description": "Refresh plan status of affected work orders and sales orders",
+                                        "default": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Allocations cleared"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/create-allocations": {
+            "post": {
+                "tags": [
+                    "Allocation and supply planning"
+                ],
+                "operationId": "doCreateAllocations",
+                "summary": "Allocate supply to demand",
+                "description": "Allocates open, unallocated supply to open, unallocated demand of the same item and site, demand and supply each taken firm before planned, then by due date and creation time, inventory last. Demand at item sites with planning policy R (reorder point) is skipped. Existing allocations between the same supply and demand are increased rather than duplicated. Plan status of affected work orders and sales orders is updated. Progress is tracked as a server process, published to `subscription` when given. With `clear`, all allocations are cleared first (see `/clear-allocations`).",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "demandId": {
+                                        "type": "string",
+                                        "description": "Allocate only this demand, from supply of its item and site; all open demand when omitted"
+                                    },
+                                    "clear": {
+                                        "type": "boolean",
+                                        "description": "Clear all allocations first",
+                                        "default": false
+                                    },
+                                    "eventKey": {
+                                        "type": "string",
+                                        "description": "Event key under which records are locked and then unlocked; generated when omitted"
+                                    },
+                                    "subscription": {
+                                        "type": "object",
+                                        "description": "Subscription to receive progress events of the server process",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Subscription id"
+                                            },
+                                            "eventKey": {
+                                                "type": "string",
+                                                "description": "Event key of the client session"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\"Allocations created\", or an empty array when there was no open demand to allocate",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "string",
+                                            "example": "Allocations created"
+                                        },
+                                        {
+                                            "type": "array",
+                                            "maxItems": 0,
+                                            "items": {}
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-inventory-plan": {
+            "post": {
+                "tags": [
+                    "Planning analysis"
+                ],
+                "operationId": "doGetInventoryPlan",
+                "summary": "Get projected availability of an inventory record",
+                "description": "Lists open, unallocated supply (not inventory) and demand of the inventory record's item and site in due date order, supply after demand on the same date, with a running available quantity starting from on hand less allocated. When the item site has safety stock, a first row subtracts it. Read only.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Inventory id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plan rows in date order",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "dueDate": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "nullable": true,
+                                                "description": "Due date, serialized as a timestamp at midnight server time; null on the safety stock row"
+                                            },
+                                            "quantity": {
+                                                "type": "number",
+                                                "description": "Unallocated quantity: positive for supply, negative for demand and safety stock"
+                                            },
+                                            "available": {
+                                                "type": "number",
+                                                "description": "Projected available quantity after this row"
+                                            },
+                                            "supply": {
+                                                "allOf": [
+                                                    {
+                                                        "type": "object",
+                                                        "description": "Document reference",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "number": {
+                                                                "type": "string",
+                                                                "description": "Document number"
+                                                            },
+                                                            "objectType": {
+                                                                "type": "string",
+                                                                "description": "Feather name of the document"
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "nullable": true,
+                                                "description": "Supply document; null on demand rows (empty string on the safety stock row)"
+                                            },
+                                            "demand": {
+                                                "allOf": [
+                                                    {
+                                                        "type": "object",
+                                                        "description": "Document reference",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "number": {
+                                                                "type": "string",
+                                                                "description": "Document number"
+                                                            },
+                                                            "objectType": {
+                                                                "type": "string",
+                                                                "description": "Feather name of the document"
+                                                            }
+                                                        }
+                                                    }
+                                                ],
+                                                "nullable": true,
+                                                "description": "Demand document; null on supply rows. On the safety stock row: the item site, number \"Safety Stock\""
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/plan-supply": {
+            "post": {
+                "tags": [
+                    "Allocation and supply planning"
+                ],
+                "operationId": "doPlanSupply",
+                "summary": "Plan supply for one demand",
+                "description": "Allocates existing supply to the demand (as `/create-allocations` with `demandId`), then, when the demand is still short and its item site planning policy is L (plan to order) or M (make to order), creates new supply and allocates it. L: planned purchases (purchased items, with primary supplier, unit, price break and requester) or planned work orders, in quantities respecting the item site minimum, maximum and increment. M: one work order for the shortage, with the product's drawing and documents. New supply is due `timeBuffer` days before the demand and starts the item site lead time earlier; sales order links are carried over. Refuses when the demand is not found.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "demandId"
+                                ],
+                                "properties": {
+                                    "demandId": {
+                                        "type": "string",
+                                        "description": "Demand id (sales order line, sales order requirement, work order requirement, outside process)"
+                                    },
+                                    "eventKey": {
+                                        "type": "string",
+                                        "description": "Event key used for record locks while allocating"
+                                    },
+                                    "timeBuffer": {
+                                        "type": "integer",
+                                        "default": 0,
+                                        "description": "Days new supply is due before the demand"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`false`: the demand was already fully allocated; nothing created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Supply allocated and planned as needed"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "PlanDueDateTask": {
+                "type": "object",
+                "description": "One row of a due date plan (Gantt)",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Supply id for existing supply, bill of material item id for new supply, a generated id for a new work order group, \"planSettings\" for the shipping buffer"
+                    },
+                    "key": {
+                        "type": "string",
+                        "description": "Item id for new supply, supply id for existing work orders"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Display text: supply number, item and quantity, indented with leading spaces by depth; new supply reads \"(NEW <type>)\""
+                    },
+                    "level": {
+                        "type": "integer",
+                        "description": "Bill of material depth; 0 is the planned item"
+                    },
+                    "objectType": {
+                        "type": "string",
+                        "description": "Supply feather (Inventory, WorkOrder, PurchaseOrderLine...) or, for new supply, PlannedPurchase, PlannedWorkOrder or WorkOrder; Settings for the shipping buffer"
+                    },
+                    "feather": {
+                        "type": "string",
+                        "description": "Feather to open for the row: WorkOrder or Product"
+                    },
+                    "number": {
+                        "type": "object",
+                        "description": "Document reference",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "number": {
+                                "type": "string",
+                                "description": "Document number"
+                            },
+                            "objectType": {
+                                "type": "string",
+                                "description": "Feather name of the document"
+                            }
+                        }
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Start date (YYYY-MM-DD)"
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Due date (YYYY-MM-DD)"
+                    },
+                    "quantity": {
+                        "type": "number",
+                        "description": "Quantity to make or buy (new supply rows)"
+                    },
+                    "percent": {
+                        "type": "number",
+                        "description": "Always 0"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "\"group\", \"task\" or empty"
+                    },
+                    "parent": {
+                        "type": "string",
+                        "description": "Id of the parent row"
+                    },
+                    "links": {
+                        "type": "array",
+                        "description": "Gantt dependencies of this row",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "target": {
+                                    "type": "string",
+                                    "description": "Id of the row this one depends on"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "FS",
+                                        "FF"
+                                    ],
+                                    "description": "FS finish-to-start, FF finish-to-finish"
+                                }
+                            }
+                        }
+                    },
+                    "detail": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "description": "Child rows: due date plan rows, or for an existing work order the rows of its work order plan (`/make/get-work-order-plan`)"
+                    },
+                    "route": {
+                        "type": "string",
+                        "description": "Client route of the settings (shipping buffer row)"
+                    },
+                    "isNew": {
+                        "type": "boolean",
+                        "description": "Present on the shipping buffer row"
+                    }
+                }
+            }
+        }
+    }
+}

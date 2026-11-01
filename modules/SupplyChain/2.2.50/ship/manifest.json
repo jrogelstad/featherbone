@@ -1,0 +1,95 @@
+{
+    "module": "Ship",
+    "version": "2.1.13",
+    "dependencies": [
+        "Sell",
+        "Buy"
+    ],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "service",
+            "name": "doCreateBillOfLading",
+            "path": "do-create-bill-of-lading.js"
+        },
+        {
+            "type": "service",
+            "name": "doCreateShipmentLabel",
+            "path": "do-create-shipment-label.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetPurchaseOrderShipData",
+            "path": "do-get-purchase-order-ship-data.js"
+        },
+        {
+            "type": "service",
+            "name": "doGetSalesOrderShipData",
+            "path": "do-get-sales-order-ship-data.js"
+        },
+        {
+            "type": "service",
+            "name": "doPrintBillOfLading",
+            "path": "do-print-bill-of-lading.js"
+        },
+        {
+            "type": "service",
+            "name": "doPrintShipmentLabels",
+            "path": "do-print-shipment-labels.js"
+        },
+        {
+            "type": "service",
+            "name": "doShipOutsideProcessShipments",
+            "path": "do-ship-outside-process-shipments.js"
+        },
+        {
+            "type": "service",
+            "name": "doShipSalesOrderShipment",
+            "path": "do-ship-sales-order-shipment.js"
+        },
+        {
+            "type": "service",
+            "name": "doVoidSalesOrderShipmentLabel",
+            "path": "do-void-sales-order-shipment-label.js"
+        },
+        {
+            "type": "service",
+            "name": "triggersSalesOrderShipment",
+            "path": "triggers-sales-order-shipment.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "batch",
+            "path": "routes.json"
+        },
+        {
+            "type": "settings",
+            "name": "shipSettings",
+            "path": "ship-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": [
+        {
+            "package": "fs",
+            "version": "",
+            "property": "",
+            "export": ""
+        },
+        {
+            "package": "node-downloader-helper",
+            "version": "^1.0.19",
+            "property": "DownloaderHelper",
+            "export": "DownloaderHelper"
+        }
+    ]
+}

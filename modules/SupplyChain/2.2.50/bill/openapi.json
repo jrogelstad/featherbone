@@ -1,0 +1,260 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Bill",
+        "version": "2.1.14",
+        "description": "Customer billing: invoices, prepaid invoices and invoices raised from sales order shipments, payment application, and a sales order's billing history."
+    },
+    "tags": [
+        {
+            "name": "Invoice actions",
+            "description": "Invoice a shipment and apply customer payments to invoices."
+        },
+        {
+            "name": "Sales order billing history",
+            "description": "What has been invoiced and shipped against a sales order."
+        }
+    ],
+    "paths": {
+        "/do-apply-invoice-payment": {
+            "post": {
+                "tags": [
+                    "Invoice actions"
+                ],
+                "operationId": "doApplyInvoicePayment",
+                "summary": "Apply a payment to invoices",
+                "description": "Applies one payment across the given invoices (any mix of Invoice, PrepaidInvoice and ShipmentInvoice), oldest first by invoice date, then number: each invoice is paid in full until the amount runs out, the last one partly. Each invoice gets a payment row with the amount and reference, and its `paid` amount is raised; the invoice is then saved, so its triggers recompute the balance. Locks the invoices. Refuses when none of the invoices are found, the payment currency differs from any invoice's currency, or the amount exceeds the total unpaid on the invoices.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids",
+                                    "amount"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Invoice ids (of any invoice kind)"
+                                    },
+                                    "amount": {
+                                        "type": "object",
+                                        "required": [
+                                            "amount",
+                                            "currency"
+                                        ],
+                                        "description": "Payment amount",
+                                        "properties": {
+                                            "amount": {
+                                                "type": "number",
+                                                "description": "Amount paid; must not exceed the unpaid total"
+                                            },
+                                            "currency": {
+                                                "type": "string",
+                                                "description": "Currency code, e.g. `USD`; must match the invoices' currency"
+                                            }
+                                        }
+                                    },
+                                    "reference": {
+                                        "type": "string",
+                                        "description": "Payment reference (check number, transfer id) stored on each payment row"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Applied. The body is the message \"Payment applied\".",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/do-create-shipment-invoice": {
+            "post": {
+                "tags": [
+                    "Invoice actions"
+                ],
+                "operationId": "doCreateShipmentInvoice",
+                "summary": "Invoice a sales order shipment",
+                "description": "Creates a shipment invoice dated today for a sales order shipment. Bill-to, contact, currency, customer, customer PO, terms, notes and taxability come from the sales order; ship-to, ship method, Incoterms and freight from the shipment. One invoice line per shipment line with a quantity, at the sales order line's discounted price (rounded to cents). When the sales order is taxable, taxes use the rates for the ship-to address, on taxable lines and, where the rate says so, freight. Unapplied prepaid invoices for the sales order are then applied, oldest first, until the invoice total is covered, and the shipment is marked invoiced. Locks the shipment. Refuses when the shipment is not found or is already invoiced.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "SalesOrderShipment id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Id of the new shipment invoice.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/sales-order-history": {
+            "post": {
+                "tags": [
+                    "Sales order billing history"
+                ],
+                "operationId": "doSalesOrderHistory",
+                "summary": "Get a sales order's billing history",
+                "description": "Returns a sales order's invoiced and uninvoiced activity as a flat two-level list, for display as a tree. For each invoice (by invoice date, then number) a level 0 row totals the quantity and amount of its sales history rows and is followed by one level 1 row per history row (item, tax or freight). Then, for each shipment not yet invoiced (by ship date, then number), a level 0 row and one level 1 row per line with a quantity; these have no amount.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "SalesOrder id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "History rows, each header followed by its detail rows.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Row id: the sales history row, shipment or shipment line id (a generated id on invoice headers)"
+                                            },
+                                            "level": {
+                                                "type": "integer",
+                                                "enum": [
+                                                    0,
+                                                    1
+                                                ],
+                                                "description": "0 for an invoice or uninvoiced shipment header, 1 for its detail"
+                                            },
+                                            "description": {
+                                                "type": "string",
+                                                "description": "Invoice kind on invoice headers, \"Uninvoiced shipment\" on shipment headers, else the line description"
+                                            },
+                                            "invoice": {
+                                                "type": "object",
+                                                "nullable": true,
+                                                "description": "The invoice (`id`, `number`, `invoiceDate`, `billTo`, `shipTo`, `objectType`); absent on uninvoiced shipment rows"
+                                            },
+                                            "product": {
+                                                "type": "object",
+                                                "nullable": true,
+                                                "description": "Item on detail rows (TaxType on tax rows); the invoice on invoice headers; absent on shipment headers"
+                                            },
+                                            "quantity": {
+                                                "type": "number",
+                                                "description": "Quantity; on headers the sum of the detail quantities"
+                                            },
+                                            "shipment": {
+                                                "type": "object",
+                                                "nullable": true,
+                                                "description": "Shipment on header rows; null on detail rows"
+                                            },
+                                            "shipDate": {
+                                                "type": "string",
+                                                "format": "date",
+                                                "nullable": true,
+                                                "description": "Invoice date on invoice headers, ship date on shipment headers, `YYYY-MM-DD`"
+                                            },
+                                            "amount": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Money"
+                                                    }
+                                                ],
+                                                "nullable": true,
+                                                "description": "Invoiced amount; on invoice headers the sum of the details; null on uninvoiced shipment rows"
+                                            },
+                                            "isDeleted": {
+                                                "type": "boolean",
+                                                "description": "Always false"
+                                            },
+                                            "lock": {
+                                                "type": "object",
+                                                "nullable": true,
+                                                "description": "Always null"
+                                            },
+                                            "created": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When the source record was created"
+                                            },
+                                            "createdBy": {
+                                                "type": "string",
+                                                "description": "User who created the source record"
+                                            },
+                                            "updated": {
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "description": "When the source record was last updated"
+                                            },
+                                            "updatedBy": {
+                                                "type": "string",
+                                                "description": "User who last updated the source record"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    }
+}

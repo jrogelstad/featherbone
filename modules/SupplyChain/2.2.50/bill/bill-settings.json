@@ -1,0 +1,79 @@
+{
+    "name": "billSettings",
+    "module": "Bill",
+    "description": "Bill settings",
+    "properties": {
+        "standardInvoice": {
+            "description": "Standard invoice print form",
+            "type": {
+                "relation": "PrintForm",
+                "properties": [
+                    "name",
+                    "description",
+                    "title",
+                    "feather"
+                ]
+            }
+        },
+        "prepaidInvoice": {
+            "description": "Standard invoice print form",
+            "type": {
+                "relation": "PrintForm",
+                "properties": [
+                    "name",
+                    "description",
+                    "title",
+                    "feather"
+                ]
+            }
+        },
+        "shipmentInvoice": {
+            "description": "Standard invoice print form",
+            "type": {
+                "relation": "PrintForm",
+                "properties": [
+                    "name",
+                    "description",
+                    "title",
+                    "feather"
+                ]
+            }
+        },
+        "onCreate": {
+            "description": "Select what to do on create shipment invoice",
+            "default": "N",
+            "type": "string",
+            "dataList": [
+                {
+                    "value": "N",
+                    "label": "Do nothing"
+                },
+                {
+                    "value": "E",
+                    "label": "Email"
+                },
+                {
+                    "value": "D",
+                    "label": "Download"
+                },
+                {
+                    "value": "I",
+                    "label": "Open Invoice"
+                },
+                {
+                    "value": "O",
+                    "label": "Open PDF"
+                },
+                {
+                    "value": "P",
+                    "label": "Print"
+                }
+            ]
+        },
+        "mailText": {
+            "description": "Default message text for invoice email",
+            "type": "string",
+            "format": "textArea"
+        }
+    }
+}

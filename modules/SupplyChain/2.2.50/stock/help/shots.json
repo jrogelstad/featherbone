@@ -1,0 +1,138 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "inventory-moves-1.png": {
+            "setup": "locations",
+            "steps": [
+                {"record": ["MoveInventory", {"item.number": "3-110V-OUTLET"}]}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "inventory-by-location-1.png": {
+            "setup": "locations",
+            "steps": [
+                {"go": "/workbook/stock/inventory%20by%20location"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 360,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "work-order-issue-1.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"go": "/workbook/stock/issues"},
+                {"click": "button[title='Alt + N']"},
+                {"type": ["input:right-of(:text('Work Order:'))", "W-01762-4"]},
+                {"press": "Tab"},
+                {"wait": 800},
+                {"click": "button:has-text('Issue all'):visible"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1600, "height": 800}
+        },
+        "inventory-1.png": {
+            "steps": [
+                {"go": "/workbook/stock/inventory"}
+            ],
+            "below": ".fb-ribbon-page"
+        },
+        "inventory-3.png": {
+            "steps": [
+                {"record": ["Inventory", {"item.number": "3-CABINET-KNOB"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Stock')"}
+            ],
+            "viewport": {"width": 1366, "height": 768},
+            "below": ".fb-ribbon-page"
+        },
+        "inventory-4.png": {
+            "steps": [
+                {"go": "/workbook/stock/transactions"}
+            ],
+            "below": ".fb-ribbon-page"
+        },
+        "inventory-2.png": {
+            "steps": [
+                {"go": "/workbook/stock/inventory"},
+                {"clickif": "button[title*='Edit mode']:has-text('edit_off')"},
+                {"click": "tbody tr:has-text('3-CABINET-KNOB') td >> nth=6"},
+                {"type": ["tr.fb-table-row-editor #inputQuantity", "10"]},
+                {"press": "Tab"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768},
+            "after": [{"click": "button[title^='Revert workbook']"}]
+        },
+        "inventory-transactions-1.png": {
+            "steps": [
+                {"go": "/workbook/stock/transactions"}
+            ],
+            "below": ".fb-ribbon-page"
+        },
+        "inventory-adjustments-1.png": {
+            "steps": [
+                {"go": "/workbook/stock/adjustments"}
+            ],
+            "below": ".fb-ribbon-page"
+        },
+        "inventory-adjustments-2.png": {
+            "steps": [
+                {"go": "/workbook/stock/adjustments"},
+                {"click": "button[title='Alt + N']"},
+                {"fill": ["input >> visible=true >> nth=1", "3-110V-OUTLET"]},
+                {"press": "Tab"},
+                {"fill": ["input >> visible=true >> nth=2", "WH1"]},
+                {"press": "Tab"},
+                {"fill": ["input >> visible=true >> nth=3", "10"]},
+                {"fill": ["textarea >> visible=true >> nth=0", "Extra box of outlets brought in from the service van."]}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768},
+            "height": 460
+        },
+        "how-to-use-location-control-2.png": {
+            "steps": [
+                {"go": "/workbook/stock/inventory"},
+                {"click": "button[title='Configure current worksheet']"},
+                {"click": "dialog[open] >> text=Columns"},
+                {"click": "dialog[open] button:has-text('Add'):visible"},
+                {"select": ["dialog[open] select:visible >> nth=-1", {"label": "Blocked"}]}
+            ],
+            "element": "dialog[open]"
+        },
+        "how-to-use-location-control-1.png": {
+            "setup": "locations",
+            "steps": [
+                {"record": ["Location", {"name": "A1S2B5"}]}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 300,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "how-to-use-location-control-3.png": {
+            "setup": "locations",
+            "steps": [
+                {"record": ["Site", {"code": "WH2"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Location Control')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "how-to-use-location-control-4.png": {
+            "setup": "locations",
+            "steps": [
+                {"record": ["Product", {"number": "3-110V-OUTLET"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Inventory')"},
+                {"click": "tr:has-text('WH2')"},
+                {"click": "button[title='Open (Alt + O)']:visible"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1366, "height": 420},
+            "viewport": {"width": 1366, "height": 768}
+        }
+    },
+    "notTaken": {
+    }
+}

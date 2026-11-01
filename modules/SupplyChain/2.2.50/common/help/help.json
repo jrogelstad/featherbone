@@ -1,0 +1,40 @@
+{
+    "title": "Common",
+    "default": "order-to-cash.md",
+    "pages": [
+        {
+            "path": "order-to-cash.md",
+            "title": "The order to cash life cycle"
+        },
+        {
+            "path": "contacts.md",
+            "title": "Contacts"
+        },
+        {
+            "path": "reference-data.md",
+            "title": "Reference data"
+        },
+        {
+            "path": "alerts.md",
+            "title": "Alerts and server processes"
+        },
+        {
+            "path": "glossary.md",
+            "title": "Glossary"
+        }
+    ],
+    "forms": {
+        "Alert Form": "alerts.md",
+        "Employee": "reference-data.md"
+    },
+    "feathers": {
+        "Alert": "alerts.md",
+        "Carrier": "reference-data.md",
+        "Contact": "contacts.md",
+        "Country": "reference-data.md",
+        "Employee": "reference-data.md",
+        "ShipMethod": "reference-data.md",
+        "State": "reference-data.md",
+        "TaxType": "reference-data.md"
+    }
+}

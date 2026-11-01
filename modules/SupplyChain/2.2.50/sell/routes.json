@@ -1,0 +1,189 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "bcefimb4pp09",
+        "data": {
+            "module": "Sell",
+            "path": "/close-sales-order",
+            "function": "doCloseSalesOrder"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "3ewk4g2lagbd",
+        "data": {
+            "module": "Sell",
+            "path": "/create-sales-order-shipment-label",
+            "function": "doCreateSalesOrderShipmentLabel"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "9akmn80bo0i",
+        "data": {
+            "module": "Sell",
+            "path": "/explode-sales-order",
+            "function": "doExplodeSalesOrder"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "51gxgd6sefd1",
+        "data": {
+            "module": "Sell",
+            "path": "/get-address-tax-rates",
+            "function": "doGetAddressTaxRates"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "bmvsrdp2c3fl",
+        "data": {
+            "module": "Sell",
+            "path": "/get-customer-data",
+            "function": "doGetCustomerData"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "ijoyrjoytopw",
+        "data": {
+            "module": "Sell",
+            "path": "/get-sales-tile-data",
+            "function": "doGetSalesTileData"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "rky3e5dityce",
+        "data": {
+            "module": "Sell",
+            "path": "/get-sales-kpis",
+            "function": "doGetSalesKpis"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "goo5ukvrm5zl",
+        "data": {
+            "module": "Sell",
+            "path": "/get-sales-order-line-plan",
+            "function": "doGetSalesOrderLinePlan"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "poclexa2e7j0",
+        "data": {
+            "module": "Sell",
+            "path": "/get-sales-order-plan",
+            "function": "doGetSalesOrderPlan"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "6b3u5usmkhz5",
+        "data": {
+            "module": "Sell",
+            "path": "/hold",
+            "function": "doSalesOrderHold"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "jq4dd2ghx5dx",
+        "data": {
+            "module": "Sell",
+            "path": "/import-zip2tax",
+            "function": "doZip2TaxImport"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "blafiy4qhuxf",
+        "data": {
+            "module": "Sell",
+            "path": "/plan-sales-order-supply",
+            "function": "doPlanSalesOrderSupply"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "4hw4ldrt2xy5",
+        "data": {
+            "module": "Sell",
+            "path": "/refresh-sales-bi",
+            "function": "doRefreshSalesBi"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "dayn7mrqk2ir",
+        "data": {
+            "module": "Sell",
+            "path": "/release-sales-orders",
+            "function": "doReleaseSalesOrders"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "rt5at8gdb1vv",
+        "data": {
+            "module": "Sell",
+            "path": "/start-sales-orders",
+            "function": "doStartSalesOrders"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "mch5i4nw7b4z",
+        "data": {
+            "module": "Sell",
+            "path": "/void-sales-order-shipment-label",
+            "function": "doVoidSalesOrderShipmentLabel"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Sell",
+        "id": "7kv3ayzegvkv",
+        "data": {
+            "module": "Sell",
+            "path": "/get-sales-schedule",
+            "function": "doGetSalesSchedule"
+        }
+    }
+]

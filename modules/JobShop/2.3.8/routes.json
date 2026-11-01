@@ -1,0 +1,13 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "JobShop",
+        "id": "98of8a749tc1",
+        "data": {
+            "module": "JobShop",
+            "path": "/do-configure",
+            "function": "doConfigureJobShop"
+        }
+    }
+]

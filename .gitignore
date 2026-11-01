@@ -63,7 +63,7 @@ claude-branches/
 
 # Ignore the packages installed on this server (ADR-002), at the root
 # only: the fixture packages under test/fixtures are the project's own
-/modules
+#/modules
 scripts/dev/
 # The production client bundle, built by server.js as it starts
 # (scripts/build-client.js) rather than committed: every merge that

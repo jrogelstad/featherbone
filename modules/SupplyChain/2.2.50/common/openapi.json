@@ -1,0 +1,273 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Common",
+        "version": "2.1.12",
+        "description": "Shared SupplyChain base: reference data used by every other module, PDF consolidation for batch printing, and the grouped dashboard tile engine over every bi rollup."
+    },
+    "tags": [
+        {
+            "name": "PDF consolidation",
+            "description": "Join generated PDF files into one download."
+        },
+        {
+            "name": "Cross-module analytics",
+            "description": "Dashboard tile data over the sales, purchase, production and inventory rollups."
+        }
+    ],
+    "paths": {
+        "/consolidate-print": {
+            "post": {
+                "tags": [
+                    "PDF consolidation"
+                ],
+                "operationId": "doConsolidatePrint",
+                "summary": "Join PDF files into one",
+                "description": "Joins PDF files from the server's files/downloads folder, in the order given and keeping each page's size, into a new file in the same folder, then deletes the source files. All sources are read before anything is written, so an unreadable file leaves them in place. Fetch the result with GET /{db}/files/downloads/{file}. Refuses when sourceFiles is missing or the pdf-lib library is not loaded.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "sourceFiles"
+                                ],
+                                "properties": {
+                                    "sourceFiles": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "File names in files/downloads, in page order."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Name of the joined file (<generated id>.pdf), or an empty string when sourceFiles is empty.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-bi-tile-data": {
+            "post": {
+                "tags": [
+                    "Cross-module analytics"
+                ],
+                "operationId": "doGetBiTileData",
+                "summary": "Grouped dashboard tile",
+                "description": "Sums one measure of a bi rollup over a to-date window ending at asOf, grouped by one dimension, with a comparison window and monthly sparklines per row. sales, purchase and production are flows summed over the window; inventory is a balance (running total to asOf, comparison the balance a year or a month earlier, sparkline the balance at each month end) and ignores window. Amounts are in base currency. Rollups are built by each module's refresh route (/sell/refresh-sales-bi, /buy/refresh-purchase-bi, /make/refresh-production-bi, /stock/refresh-inventory-bi). Read-only. Refuses an unknown fact, dimension, window, measure or comparison.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "dimension"
+                                ],
+                                "properties": {
+                                    "fact": {
+                                        "type": "string",
+                                        "enum": [
+                                            "sales",
+                                            "purchase",
+                                            "production",
+                                            "inventory"
+                                        ],
+                                        "default": "sales",
+                                        "description": "Rollup fact table to read."
+                                    },
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date (YYYY-MM-DD). Omitted means the server's current date."
+                                    },
+                                    "measure": {
+                                        "type": "string",
+                                        "description": "Measure of the fact. sales: bookings (default), cogs, profit, revenue. purchase: ordered (default), purchased. production: produced. inventory: quantity (default), value."
+                                    },
+                                    "dimension": {
+                                        "type": "string",
+                                        "description": "What to group by. sales: customer, customerCategory, region, item, itemCategory, itemGroup, site. purchase: supplier, item, itemCategory, itemGroup, site. production: item, itemCategory, itemGroup, site. inventory: item, itemCategory, itemGroup, itemSource."
+                                    },
+                                    "window": {
+                                        "type": "string",
+                                        "enum": [
+                                            "WTD",
+                                            "MTD",
+                                            "QTD",
+                                            "YTD"
+                                        ],
+                                        "description": "To-date period ending at asOf. Required except for inventory, which is a balance and ignores it."
+                                    },
+                                    "comparison": {
+                                        "type": "string",
+                                        "enum": [
+                                            "priorYear",
+                                            "priorPeriod",
+                                            "none"
+                                        ],
+                                        "default": "priorYear",
+                                        "description": "Comparison window: the same window a year earlier, one window unit earlier, or none."
+                                    },
+                                    "sparkline": {
+                                        "type": "integer",
+                                        "default": 12,
+                                        "description": "Months of history per row; 0 for none."
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "default": 0,
+                                        "description": "Keep only the first N rows by amount; 0 for all."
+                                    },
+                                    "sort": {
+                                        "type": "string",
+                                        "enum": [
+                                            "amount",
+                                            "name"
+                                        ],
+                                        "default": "amount",
+                                        "description": "Row order. name sorts by label after the limit is applied."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tile rows and totals.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CommonBiTileData"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CommonBiTileData": {
+                "type": "object",
+                "properties": {
+                    "asOf": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Reporting date the figures were computed at (YYYY-MM-DD); the request's asOf, or the server's current date when omitted."
+                    },
+                    "comparison": {
+                        "type": "string",
+                        "enum": [
+                            "priorYear",
+                            "priorPeriod",
+                            "none"
+                        ],
+                        "description": "Comparison basis actually used. A priorYear request falls back to priorPeriod when the rollup has no data a year back but has data one period back."
+                    },
+                    "measure": {
+                        "type": "string",
+                        "description": "Measure used (the request's, or the fact's default)."
+                    },
+                    "needsRefresh": {
+                        "type": "boolean",
+                        "description": "True when the rollup for this fact has never been built; rows is then empty and total is 0."
+                    },
+                    "refreshedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "When the rollup was last rebuilt; null when never."
+                    },
+                    "rows": {
+                        "type": "array",
+                        "description": "One row per dimension value, ordered by amount descending (or by label when sort is \"name\"), cut to limit.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "Id (or code) of the dimension value."
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "description": "Display label of the dimension value."
+                                },
+                                "amount": {
+                                    "type": "number",
+                                    "description": "Measure in base currency over the window (for inventory: the balance at asOf)."
+                                },
+                                "units": {
+                                    "type": "number",
+                                    "description": "Quantity in inventory units over the same window."
+                                },
+                                "comparison": {
+                                    "type": "number",
+                                    "nullable": true,
+                                    "description": "Amount over the comparison window; null when comparison is none or there is no data."
+                                },
+                                "unitsComparison": {
+                                    "type": "number",
+                                    "nullable": true,
+                                    "description": "Units over the comparison window; null as for comparison."
+                                },
+                                "pctOfTotal": {
+                                    "type": "number",
+                                    "description": "Amount as a percentage (0-100) of total; 0 when total is 0."
+                                },
+                                "spark": {
+                                    "type": "array",
+                                    "description": "Monthly history ending at asOf, oldest first. Months with no data are absent.",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "month": {
+                                                "type": "string",
+                                                "description": "First day of the month. A database date that the pg driver returns as a JavaScript Date, so it arrives as an ISO date-time string (server-local midnight)."
+                                            },
+                                            "amount": {
+                                                "type": "number",
+                                                "description": "Measure for that month (for inventory: the balance at month end)."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "total": {
+                        "type": "number",
+                        "description": "Sum of amount over all rows before limit is applied."
+                    },
+                    "window": {
+                        "type": "string",
+                        "description": "The request's window, echoed."
+                    }
+                }
+            }
+        }
+    }
+}

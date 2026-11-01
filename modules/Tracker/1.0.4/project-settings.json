@@ -1,0 +1,19 @@
+{
+    "name": "projectSettings",
+    "module": "Tracker",
+    "description": "Project settings",
+    "properties": {
+        "projectForm": {
+            "description": "Project print form",
+            "type": {
+                "relation": "Form",
+                "properties": [
+                    "name",
+                    "description",
+                    "title",
+                    "feather"
+                ]
+            }
+        }
+    }
+}

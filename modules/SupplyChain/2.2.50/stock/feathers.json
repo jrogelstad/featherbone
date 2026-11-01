@@ -1,0 +1,4065 @@
+[
+    {
+        "name": "ItemCategory",
+        "description": "Item category",
+        "plural": "ItemCategories",
+        "module": "Stock",
+        "inherits": "Category",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false
+    },
+    {
+        "name": "ItemGroup",
+        "description": "Item group",
+        "plural": "ItemGroups",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ItemUnit",
+        "description": "Item unit of measure",
+        "plural": "ItemUnits",
+        "module": "Stock",
+        "inherits": "Unit",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": true,
+        "isReadOnly": false,
+        "properties": {
+            "isDefault": {
+                "description": "Default unit of measure for new items",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ItemUnitConversion",
+        "description": "Global item unit of measure conversions",
+        "plural": "ItemUnitConversions",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": true,
+        "isReadOnly": false,
+        "properties": {
+            "ratio": {
+                "description": "Conversion ratio",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "fromUnit": {
+                "description": "From unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "dimension"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "toUnit": {
+                "description": "To unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "dimension"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "Location",
+        "description": "Location",
+        "plural": "Locations",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Decscription",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "N",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "N",
+                        "label": "Nettable"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Inspection"
+                    },
+                    {
+                        "value": "B",
+                        "label": "Blocked"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ReceiptDetail",
+        "description": "Location and trace detail for receipt",
+        "plural": "ReceiptDetails",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "quantity": {
+                "description": "Quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "location": {
+                "description": "Location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "type"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Lot or serial number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ReceiptLine",
+        "description": "Receipt line",
+        "plural": "ReceiptLines",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "line": {
+                "description": "Receipt line number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Receipt quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Site",
+        "description": "Inventory site",
+        "plural": "Sites",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "code": {
+                "description": "Code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "address": {
+                "description": "Address",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "locationControlled": {
+                "description": "Use location controlled inventory",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "defaultLocation": {
+                "description": "Default location for transactions",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "type"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "defaultShipLocation": {
+                "description": "Default shipment location",
+                "alias": "Default Ship Loc.",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "defaultReceiveLocation": {
+                "description": "Default receiving location",
+                "alias": "Default Rcv. Loc.",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "objectType"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "defaultWipLocation": {
+                "description": "Default production location for issuing materials",
+                "alias": "WIP Location",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "type"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "billTo": {
+                "description": "Bill to address for purchases",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryReport",
+        "description": "Inventory transaction report snapshots",
+        "plural": "InventoryReports",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "asOf": {
+                "description": "As of date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "materialValue": {
+                "description": "Sum of material cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborValue": {
+                "description": "Sum of labor value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "overheadValue": {
+                "description": "Sum of overhead value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceValue": {
+                "description": "Sum of service value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "totalValue": {
+                "description": "Sum of total value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Notes for historic reference",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Site if calculated on only one site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryReportDetail",
+        "description": "Supporting detail for inventory reports",
+        "plural": "InventoryReportDetails",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "materialValue": {
+                "description": "Material value of product inventory",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborValue": {
+                "description": "Labor value of product inventory",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "overheadValue": {
+                "description": "Overhead value of product inventory",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceValue": {
+                "description": "Service value of product inventory",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "totalValue": {
+                "description": "Total value of product inventory",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity on hand",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryValue",
+        "description": "Inventory valuation snapshot",
+        "plural": "InventoryValues",
+        "module": "Stock",
+        "inherits": "InventoryReport",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "isClosing": {
+                "description": "Kept as reported when the period closed; never recalculated",
+                "alias": "Closing",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Item",
+        "description": "Item master",
+        "plural": "Items",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Unique identifier",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "unit": {
+                "description": "Unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "group": {
+                "description": "Used for filtering and reporting",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemGroup"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "category": {
+                "description": "Used for filtering and reporting",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemCategory"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "price": {
+                "description": "Default sales price",
+                "alias": "",
+                "type": "object",
+                "format": "salesPrice",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "eoq": {
+                "description": "Economic order quantity. Quantity basis used for cost roll ups.",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": 1,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "materialCost": {
+                "description": "Cost of purchased materials in the product",
+                "alias": "",
+                "type": "object",
+                "format": "unitCost",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborCost": {
+                "description": "Cost of labor distributed to the product",
+                "alias": "",
+                "type": "object",
+                "format": "unitCost",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceCost": {
+                "description": "Cost for outside service processing",
+                "alias": "",
+                "type": "object",
+                "format": "unitCost",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "overheadCost": {
+                "description": "Shop or machine rate distributed to the product",
+                "alias": "",
+                "type": "object",
+                "format": "unitCost",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "cost": {
+                "description": "Total costs of material, labor, service and overhead costs",
+                "alias": "",
+                "type": "object",
+                "format": "unitCost",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Default site for orders and material transations",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "locationControlled"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Level of tracability control",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "N",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "N",
+                        "label": "None"
+                    },
+                    {
+                        "value": "S",
+                        "label": "Serial"
+                    },
+                    {
+                        "value": "L",
+                        "label": "Lot"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "isFractional": {
+                "description": "Allow fractions of a unit to be transacted. For example if enabled would allow a work order requirement 1.25 gallons. If disabled, transactions all round up to the next whole number.",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Item status. Only 'Active' items may be transacted against.",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Inactive"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "isSold": {
+                "description": "Indicates whether item can be entered on a sales order",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "weight": {
+                "description": "Used for ship label cost calculations",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Drives inventory transaction behavior. See help for details.",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "I",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "I",
+                        "label": "Inventory"
+                    },
+                    {
+                        "value": "E",
+                        "label": "Expense"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "source": {
+                "description": "Default assumption for how item is acquired when planning and doing cost roll ups and ordering supply",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Purchased"
+                    },
+                    {
+                        "value": "M",
+                        "label": "Manufactured"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "countryOfOrigin": {
+                "description": "Country of origin. Used for customs information when international ship methods are used on shipments.",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "harmonizedTariffCode": {
+                "description": "Harmonized tariff code. Used for customs information when international ship methods are used on shipments.",
+                "alias": "Harmonized Code",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "customsValue": {
+                "description": "Custom's value. Used for customs information when international ship methods are used on shipments.",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "comments": {
+                "description": "Internal text that typically does not print.",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "longDescription": {
+                "description": "Description appropriate for product catalogs",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "customsDescription": {
+                "description": "Description for customs. Used for customs information when international ship methods are used on shipments.",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "freightCode": {
+                "description": "Used on Bill of Lading",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "class"
+                    ],
+                    "relation": "FreightCode"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "drawingLink": {
+                "description": "Drawing link copies to work order as a production reference.",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "label",
+                        "icon",
+                        "resource",
+                        "displayValue"
+                    ],
+                    "relation": "ResourceLink"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "taxable": {
+                "description": "Charge sales tax on sales orders ",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryValueDetail",
+        "description": "Product detail on inventory value report",
+        "plural": "InventoryValueDetails",
+        "module": "Stock",
+        "inherits": "InventoryReportDetail",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": true,
+        "properties": {
+            "inventoryValue": {
+                "description": "Parent record",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "InventoryValue",
+                    "childOf": "details"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item relation, labeled Product",
+                "alias": "Product",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Demand",
+        "description": "Demand",
+        "plural": "Demands",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "unit",
+                        "status",
+                        "type",
+                        "price",
+                        "cost",
+                        "weight",
+                        "trace",
+                        "isFractional",
+                        "objectType",
+                        "source",
+                        "taxable",
+                        "serviceCost"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "locationControlled"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "quantityDue": {
+                "description": "Quantity due",
+                "alias": "Qty. Due",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "dueDate": {
+                "description": "Required due date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Closed"
+                    }
+                ],
+                "isIndexed": true,
+                "isAlwaysLoad": true
+            },
+            "allocated": {
+                "description": "Quantity allocated",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "priority": {
+                "description": "Priority",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "2",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "1",
+                        "label": "High"
+                    },
+                    {
+                        "value": "2",
+                        "label": "Normal"
+                    },
+                    {
+                        "value": "3",
+                        "label": "Low"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "links": {
+                "description": "Linkage information for propagating downstream",
+                "alias": "",
+                "type": "object",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryAdjustment",
+        "description": "Inventory adjustment transaction",
+        "plural": "InventoryAdjustments",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Transaction number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "ADJ-",
+                    "sequence": "inventory_adjust",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "category",
+                        "site",
+                        "sites",
+                        "unit",
+                        "laborCost",
+                        "materialCost",
+                        "overheadCost",
+                        "serviceCost",
+                        "cost",
+                        "trace"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "locationControlled",
+                        "defaultLocation"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Transaction type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "I",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "I",
+                        "label": "In"
+                    },
+                    {
+                        "value": "O",
+                        "label": "Out"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isPosted": {
+                "description": "Is posted to inventory",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "postedDate": {
+                "description": "Posted date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "comments": {
+                "description": "Comments",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "error": {
+                "description": "Error text if posting failed",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        },
+        "overloads": {
+            "item": {
+                "alias": "Product",
+                "type": {
+                    "type": "relation",
+                    "relation": "Product",
+                    "properties": []
+                }
+            }
+        }
+    },
+    {
+        "name": "InventoryAdjustmentDetail",
+        "description": "Location and trace detail for adjustments",
+        "plural": "InventoryAdjustmentDetails",
+        "module": "Stock",
+        "inherits": "ReceiptDetail",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "inventoryAdjustment": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "InventoryAdjustment",
+                    "childOf": "details"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ItemConversion",
+        "description": "Item unit of measure conversion",
+        "plural": "ItemConversions",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "item": {
+                "description": "Parent item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number"
+                    ],
+                    "relation": "Item",
+                    "childOf": "conversions"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "ratio": {
+                "description": "Conversion ratio",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "fromUnit": {
+                "description": "From unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "toUnit": {
+                "description": "To unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ItemDocument",
+        "description": "Item master documents",
+        "plural": "ItemMasterDocuments",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "item": {
+                "description": "Item master",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "Item",
+                    "childOf": "documents"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "link": {
+                "description": "Supporting Document Link",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "icon",
+                        "displayValue",
+                        "label",
+                        "resource",
+                        "notes"
+                    ],
+                    "relation": "ResourceLink"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Item document notes",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ItemSite",
+        "description": "Item site",
+        "plural": "ItemSites",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "item": {
+                "description": "Parent item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "isFractional",
+                        "status",
+                        "type",
+                        "id",
+                        "unit",
+                        "cost",
+                        "laborCost",
+                        "materialCost",
+                        "overheadCost",
+                        "serviceCost"
+                    ],
+                    "relation": "Item",
+                    "childOf": "sites"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "defaultLocation",
+                        "locationControlled",
+                        "id"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isPrimary": {
+                "description": "Primary site indicator",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reorderPoint": {
+                "description": "Trigger for replenishment",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "safetyStock": {
+                "description": "Minimum stock allowed",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "minimumOrderQuantity": {
+                "description": "Minimum order quantity",
+                "alias": "Min. Quantity",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": 1,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "maximumOrderQuantity": {
+                "description": "Maximum order quantity",
+                "alias": "Max. Quantity",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "orderIncrement": {
+                "description": "Incremental quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": 1,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "abcClass": {
+                "description": "Velocity indicator",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "A",
+                        "label": "A"
+                    },
+                    {
+                        "value": "B",
+                        "label": "B"
+                    },
+                    {
+                        "value": "C",
+                        "label": "C"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "defaultLocation": {
+                "description": "Default location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "planningPolicy": {
+                "description": "Planning policy",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "M",
+                        "label": "Make to order"
+                    },
+                    {
+                        "value": "L",
+                        "label": "Plan to order"
+                    },
+                    {
+                        "value": "R",
+                        "label": "Reorder point"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "leadTime": {
+                "description": "Supply lead time days",
+                "alias": "Lead Time (Days)",
+                "type": "integer",
+                "format": "",
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "wipLocation": {
+                "description": "Production issue location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "useHardAllocations": {
+                "description": "When allocating, use hard allocations.",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "issueMethod": {
+                "description": "Method to issue materials to work orders",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "B",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "B",
+                        "label": "Backflush"
+                    },
+                    {
+                        "value": "M",
+                        "label": "Manual"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Receipt",
+        "description": "Receipt base class",
+        "plural": "Receipts",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "RC-",
+                    "sequence": "receipt_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "receiptDate": {
+                "description": "Receipt date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "R",
+                        "label": "Received"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "locationControlled",
+                        "defaultReceiveLocation",
+                        "defaultLocation",
+                        "defaultWipLocation"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "error": {
+                "description": "Error message if posting faild",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "Shipment",
+        "description": "Shipment base class",
+        "plural": "Shipments",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "SH-",
+                    "sequence": "shipment_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipDate": {
+                "description": "Ship date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "today()",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "S",
+                        "label": "Shipped"
+                    },
+                    {
+                        "value": "X",
+                        "label": "Void"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "contact": {
+                "description": "Contact",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "phone",
+                        "email"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipTo": {
+                "description": "Ship to address",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipMethod": {
+                "description": "Ship method",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "international",
+                        "objectType",
+                        "packageType"
+                    ],
+                    "relation": "ShipMethod"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "incoTerms": {
+                "description": "Incoterms",
+                "alias": "Incoterms",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "IncoTerms"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "defaultShipLocation",
+                        "defaultLocation",
+                        "defaultWipLocation",
+                        "locationControlled",
+                        "address"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isPrinted": {
+                "description": "Packing slip is printe",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "printTime": {
+                "description": "Time packing slip was printed",
+                "alias": "",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "printedBy": {
+                "description": "User who printed packing slip",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "trackingNumber": {
+                "description": "Carrier tracking number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shippedBy": {
+                "description": "Employee shipping the shipment",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "fullName",
+                        "phone",
+                        "isActive"
+                    ],
+                    "relation": "Employee"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "labelId": {
+                "description": "Shipping label id",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "labelVoid": {
+                "description": "Label has been voided",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "labelUrl": {
+                "description": "Label address",
+                "alias": "",
+                "type": "string",
+                "format": "url",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipToName": {
+                "description": "Deprecated. Use ship to address name.",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "contents": {
+                "description": "The contents of the shipment",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "gift",
+                        "label": "Gift"
+                    },
+                    {
+                        "value": "merchandise",
+                        "label": "Merchandise"
+                    },
+                    {
+                        "value": "returned_goods",
+                        "label": "Returned Goods"
+                    },
+                    {
+                        "value": "documents",
+                        "label": "Documents"
+                    },
+                    {
+                        "value": "sample",
+                        "label": "Sample"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "nonDelivery": {
+                "description": "Indicates what should be done if the shipment cannot be delivered",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "treat_as_abandoned",
+                        "label": "Treat as Abandoned"
+                    },
+                    {
+                        "value": "return_to_sender",
+                        "label": "Return to Sender"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "packageType": {
+                "description": "packageType",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "PackageType"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "treat_as_abandoned",
+                        "label": "Treat as Abandoned"
+                    },
+                    {
+                        "value": "return_to_sender",
+                        "label": "Return to Sender"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipWeight": {
+                "description": "Total ship weight",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Printable shipment note",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "comments": {
+                "description": "Internal comments",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "packStatus": {
+                "description": "Indicate how far along packing is, not started, partial or complete",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "N",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "N",
+                        "label": "Not started"
+                    },
+                    {
+                        "value": "P",
+                        "label": "Partial"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Complete"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "containerCount": {
+                "description": "Number of containers",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "freightCharges": {
+                "description": "Actual shipping charges",
+                "alias": "Shipping",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ShipmentLine",
+        "description": "Shipment line",
+        "plural": "ShipmentLines",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "line": {
+                "description": "Shipment line number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Ship quantity",
+                "alias": "Shipped",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "isFractional",
+                        "trace",
+                        "type",
+                        "cost",
+                        "unit",
+                        "weight",
+                        "countryOfOrigin",
+                        "customsValue",
+                        "harmonizedTariffCode",
+                        "freightCode"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ShipmentTrackingUrl",
+        "description": "Shipment tracking urls",
+        "plural": "ShipmentTrackingUrls",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "shipment": {
+                "description": "Parent shipment",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "Shipment",
+                    "childOf": "trackingUrls"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "url": {
+                "description": "Tracking URL",
+                "alias": "",
+                "type": "string",
+                "format": "url",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Supply",
+        "description": "Supply",
+        "plural": "Supplies",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "unit",
+                        "trace",
+                        "status",
+                        "isFractional",
+                        "materialCost",
+                        "category",
+                        "group",
+                        "cost",
+                        "type",
+                        "source"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "site": {
+                "description": "site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "locationControlled"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "quantity": {
+                "description": "Quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -9999999999,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "startDate": {
+                "description": "Start date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "dueDate": {
+                "description": "Due date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Closed"
+                    }
+                ],
+                "isIndexed": true,
+                "isAlwaysLoad": true
+            },
+            "priority": {
+                "description": "priority",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "2",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "1",
+                        "label": "High"
+                    },
+                    {
+                        "value": "2",
+                        "label": "Normal"
+                    },
+                    {
+                        "value": "3",
+                        "label": "Low"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "notes": {
+                "description": "Internal notes",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "allocated": {
+                "description": "Quantity allocated",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Inventory",
+        "description": "Inventory supply",
+        "plural": "Inventories",
+        "module": "Stock",
+        "inherits": "Supply",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "materialValue": {
+                "description": "Material value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborValue": {
+                "description": "Labor value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceValue": {
+                "description": "Service value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "overheadValue": {
+                "description": "Overhead",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "totalValue": {
+                "description": "Total value",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "available": {
+                "description": "Available",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "atInspection": {
+                "description": "Quantity at quality inspection",
+                "alias": "Inspection",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "blocked": {
+                "description": "Quantity block from transactions",
+                "alias": "Blocked",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "onOrder": {
+                "description": "Quantity on order",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "demand": {
+                "description": "Quantity in demand",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shortage": {
+                "description": "Inventory shortage projected",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reorder": {
+                "description": "Item should be reordered based on supply and demand",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "projected": {
+                "description": "Available inventory, plus supply on order minus demand",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "itemSite": {
+                "description": "Item site record",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "safetyStock",
+                        "reorderPoint",
+                        "minimumOrderQuantity",
+                        "maximumOrderQuantity",
+                        "orderIncrement",
+                        "abcClass",
+                        "leadTime",
+                        "planningPolicy"
+                    ],
+                    "relation": "ItemSite"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "lastCount": {
+                "description": "Last physical count date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "startOfTime()",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isActiveCount": {
+                "description": "Is in an active physical count",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "status": {
+                "default": "A",
+                "dataList": [
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "Closed",
+                        "label": "Closed"
+                    }
+                ]
+            },
+            "item": {
+                "alias": "Product"
+            }
+        }
+    },
+    {
+        "name": "InventoryLocation",
+        "description": "Inventory location data",
+        "plural": "InventoryLocations",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": true,
+        "properties": {
+            "inventory": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "item",
+                        "site"
+                    ],
+                    "relation": "Inventory",
+                    "childOf": "locations"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "location": {
+                "description": "Location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "type"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity on hand",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -9999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Trace",
+        "description": "Lot or serial number",
+        "plural": "Traces",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "L",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "L",
+                        "label": "Lot"
+                    },
+                    {
+                        "value": "S",
+                        "label": "Serial"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reference": {
+                "description": "External trace",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "date": {
+                "description": "Initialization date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "today()",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isOnHand": {
+                "description": "Quantity on hand",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryTrace",
+        "description": "Inventory lot and serial trace detail",
+        "plural": "InventoryTraced",
+        "module": "Stock",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "inventory": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "item",
+                        "site"
+                    ],
+                    "relation": "Inventory",
+                    "childOf": "traced"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "location": {
+                "description": "Location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity on hand",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Lot or serial trace",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "createdBy",
+                        "number",
+                        "reference",
+                        "type",
+                        "date"
+                    ],
+                    "relation": "Trace"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "InventoryTransaction",
+        "description": "Inventory transaction",
+        "plural": "InventoryTransactions",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": true,
+        "properties": {
+            "number": {
+                "description": "Transaction number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "T",
+                    "sequence": "inv_trans_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "date": {
+                "description": "Transaction date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -9999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "comments": {
+                "description": "Comments",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantityBefore": {
+                "description": "Quantity before",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -9999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantityAfter": {
+                "description": "Quantity after",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -9999999999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "location": {
+                "description": "Location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Lot or serial number",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "type"
+                    ],
+                    "relation": "Trace"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "materialCost": {
+                "description": "Material cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "laborCost": {
+                "description": "Labor cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceCost": {
+                "description": "Service cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "overheadCost": {
+                "description": "Overhead cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "totalCost": {
+                "description": "Total cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reference": {
+                "description": "Document reference",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Transaction type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "document": {
+                "description": "Document",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "MoveInventory",
+        "description": "Move inventory from one location to another",
+        "plural": "MoveInventories",
+        "module": "Stock",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "MV-",
+                    "sequence": "moveinv_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "date": {
+                "description": "Move date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "item": {
+                "description": "Item",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "isFractional",
+                        "sites",
+                        "status",
+                        "trace",
+                        "site"
+                    ],
+                    "relation": "Item"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "site": {
+                "description": "Site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "locationControlled"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "quantity": {
+                "description": "quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "fromLocation": {
+                "description": "From location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "toLocation": {
+                "description": "To location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Lot or serial number",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "item",
+                        "isOnHand",
+                        "type"
+                    ],
+                    "relation": "Trace"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "status": {
+                "description": "Status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Closed"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "error": {
+                "description": "Error text if posting failed",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        },
+        "overloads": {
+            "item": {
+                "alias": "Product",
+                "type": {
+                    "type": "relation",
+                    "relation": "Product",
+                    "properties": []
+                }
+            }
+        }
+    }
+]

@@ -1,0 +1,101 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "sales-history-1.png": {
+            "steps": [
+                {"go": "/workbook/bill/sales%20history"}
+            ],
+            "below": ".fb-ribbon-page"
+        },
+        "invoice-lines-1.png": {
+            "steps": [
+                {"record": ["ShipmentInvoice", {"number": "I-00955"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Lines')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "invoice-actions-1.png": {
+            "setup": "billing",
+            "steps": [
+                {"go": "/workbook/bill/active%20invoices"},
+                {"click": "tr:has-text('S-01957')"},
+                {"click": "button:has-text('Apply Payment'):visible"},
+                {"type": ["dialog[open] input >> nth=0", "Check #1234"]},
+                {"type": ["dialog[open] input >> nth=1", "100.00"]},
+                {"click": "dialog[open] label >> nth=0"}
+            ],
+            "element": "dialog[open]",
+            "viewport": {"width": 1366, "height": 900},
+            "after": [{"click": "dialog[open] button:has-text('Cancel')"}]
+        },
+        "invoice-payments-1.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["ShipmentInvoice", {"salesOrder.number": "S-01957"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Payments')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 760,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "invoice-taxes-1.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["ShipmentInvoice", {"salesOrder.number": "S-01955"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Taxes')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 760,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "how-the-billing-cycle-works-3.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["PrepaidInvoice", {"salesOrder.number": "S-01958"}]}
+            ],
+            "pdf": {"click": "button[title='Print to PDF']", "page": 1, "width": 1024}
+        },
+        "how-the-billing-cycle-works-4.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["ShipmentInvoice", {"salesOrder.number": "S-01956"}]}
+            ],
+            "pdf": {"click": "button[title='Print to PDF']", "page": 1, "width": 1024}
+        },
+        "how-the-billing-cycle-works-5.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["ShipmentInvoice", {"salesOrder.number": "S-01956"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Lines')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 760,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "how-the-billing-cycle-works-6.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["ShipmentInvoice", {"salesOrder.number": "S-01956"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Prepayments')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 760,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "how-the-billing-cycle-works-7.png": {
+            "setup": "billing",
+            "steps": [
+                {"record": ["PrepaidInvoice", {"salesOrder.number": "S-01956"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Applications')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 760,
+            "viewport": {"width": 1366, "height": 900}
+        }
+    },
+    "notTaken": {
+        "how-the-billing-cycle-works-1.png": "Diagram or photo, not the app: kept",
+        "how-the-billing-cycle-works-2.png": "Diagram or photo, not the app: kept"
+    }
+}

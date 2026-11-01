@@ -1,0 +1,12 @@
+{
+    "title": "Count",
+    "default": "counting.md",
+    "pages": [
+        {
+            "path": "counting.md",
+            "title": "Physical counts"
+        }
+    ],
+    "forms": {},
+    "feathers": {}
+}

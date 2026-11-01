@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Engineering",
+        "icon": "tool",
+        "sequence": 0
+    },
+    {
+        "name": "Inventory",
+        "icon": "inbox",
+        "sequence": 1
+    },
+    {
+        "name": "Plan",
+        "icon": "calendar",
+        "sequence": 2
+    },
+    {
+        "name": "Production",
+        "icon": "factory-building",
+        "sequence": 3
+    },
+    {
+        "name": "Delivery",
+        "icon": "truck",
+        "sequence": 4
+    },
+    {
+        "name": "Administration",
+        "icon": "setting-config",
+        "sequence": 5
+    }
+]

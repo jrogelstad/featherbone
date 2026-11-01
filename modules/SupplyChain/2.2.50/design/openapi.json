@@ -1,0 +1,911 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Design",
+        "version": "2.1.14",
+        "description": "Product engineering: bills of material, where-used, standard cost roll-up with proposed costs, and product labels and BOM print-outs."
+    },
+    "tags": [
+        {
+            "name": "Design item lookups",
+            "description": "Read child lists of one item or product."
+        },
+        {
+            "name": "Bill of material reports",
+            "description": "Indented bill of material and where-used trees."
+        },
+        {
+            "name": "Product cost actions",
+            "description": "Roll up standard costs and approve or apply the resulting proposed costs."
+        },
+        {
+            "name": "Design PDF printing",
+            "description": "Produce PDF files in the server's download folder."
+        }
+    ],
+    "paths": {
+        "/approve-proposed-costs": {
+            "post": {
+                "tags": [
+                    "Product cost actions"
+                ],
+                "operationId": "doApproveProposedCosts",
+                "summary": "Approve proposed costs",
+                "description": "Sets proposed costs from Proposed (`P`) to Approved (`A`). With `ids`, each listed proposal still in status `P` is updated through the ProposedCost feather (others are ignored) and the call answers 200 with a message. Without `ids`, every proposal in status `P` is approved with one SQL update, proposed-cost change subscriptions are dropped, and the call answers 204.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "ProposedCost ids. Omit to approve all pending proposals."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Listed proposals approved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "`Proposal(s) approved`"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "All pending proposals approved (no `ids` given)"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-item-bom": {
+            "post": {
+                "tags": [
+                    "Design item lookups"
+                ],
+                "operationId": "doGetItemBom",
+                "summary": "Get a product's bill of material",
+                "description": "Returns the product's single-level bill of material lines. Answers 204 with no body when the product is not found or not readable.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Product id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bill of material lines",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProductBillOfMaterialItem"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-item-conversions": {
+            "post": {
+                "tags": [
+                    "Design item lookups"
+                ],
+                "operationId": "doGetItemConversions",
+                "summary": "Get an item's unit conversions",
+                "description": "Returns the item's unit conversions. Answers 204 with no body when the item is not found or not readable.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Item id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Unit conversions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ItemConversion"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-item-operation-bom": {
+            "post": {
+                "tags": [
+                    "Design item lookups"
+                ],
+                "operationId": "doGetItemOperationBom",
+                "summary": "Get an item's operation bill of material (not implemented)",
+                "description": "Declared in routes.json, but no function named `doGetItemOperationBom` is registered, so every call currently fails with an error response.",
+                "responses": {
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-item-sites": {
+            "post": {
+                "tags": [
+                    "Design item lookups"
+                ],
+                "operationId": "doGetItemSites",
+                "summary": "Get an item's sites",
+                "description": "Returns the item's site records (planning settings per site). Answers 204 with no body when the item is not found or not readable.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Item id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Item sites",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ItemSite"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-indented-bom": {
+            "post": {
+                "tags": [
+                    "Bill of material reports"
+                ],
+                "operationId": "doIndentedBillOfMaterial",
+                "summary": "Get an indented bill of material",
+                "description": "Despite the path, returns data, not a PDF: the full multi-level bill of material of a product, the product itself first (level 0) followed by every component in tree order, siblings by BOM sequence, with extended costs. Recursive bills are cut at the repeated line, flagged `cycle`. Fails with `Product id <id> not found` when the product does not exist.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "itemId"
+                                ],
+                                "properties": {
+                                    "itemId": {
+                                        "type": "string",
+                                        "description": "Product id"
+                                    },
+                                    "useEoq": {
+                                        "type": "boolean",
+                                        "description": "Cost the bill for the product's economic order quantity instead of one unit",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Indented bill of material",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DesignIndentedBomRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-indented-bom-form": {
+            "post": {
+                "tags": [
+                    "Design PDF printing"
+                ],
+                "operationId": "doPrintIndentedBomForm",
+                "summary": "Print an indented bill of material",
+                "description": "Renders the rows the caller sends (typically the result of `/print-indented-bom`, possibly filtered) as a Letter-size PDF with the company address and logo from global settings, and returns the generated file name. A cost column is printed when the first row has `totalCost`; its currency must exist or the call fails with `Currency <code> not found`. Download the file with `GET /<db>/pdf/<file name>`; the server deletes it once read.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "data"
+                                ],
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "description": "What to print",
+                                        "required": [
+                                            "product",
+                                            "bom"
+                                        ],
+                                        "properties": {
+                                            "product": {
+                                                "type": "object",
+                                                "description": "Product printed in the heading",
+                                                "required": [
+                                                    "number"
+                                                ],
+                                                "properties": {
+                                                    "number": {
+                                                        "type": "string",
+                                                        "description": "Product number"
+                                                    },
+                                                    "description": {
+                                                        "type": "string",
+                                                        "description": "Product description"
+                                                    }
+                                                }
+                                            },
+                                            "bom": {
+                                                "type": "array",
+                                                "description": "Rows to print, in order. Each needs `product.number`, `unit.code`, `level` (indent), `quantityPer` unless `noQty`, and `totalCost.amount` (a number) when costs are printed.",
+                                                "items": {
+                                                    "$ref": "#/components/schemas/DesignIndentedBomRow"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "description": "Report title",
+                                        "default": "Indented Bill Of Material"
+                                    },
+                                    "noQty": {
+                                        "type": "boolean",
+                                        "description": "Leave out the quantity-per column",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Generated PDF file name",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "File name, `<random id>.pdf`"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-indented-where-used": {
+            "post": {
+                "tags": [
+                    "Bill of material reports"
+                ],
+                "operationId": "doIndentedWhereUsed",
+                "summary": "Get an indented where-used list",
+                "description": "Returns every product whose bill of material uses the item, directly (level 0) or through intermediate products (level 1 and up), in tree order, siblings by product number. With `flatten`, returns instead only the sold products anywhere in that tree, once each, sorted by number (final products the item goes into).",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "itemId"
+                                ],
+                                "properties": {
+                                    "itemId": {
+                                        "type": "string",
+                                        "description": "Item (component) id"
+                                    },
+                                    "flatten": {
+                                        "type": "boolean",
+                                        "description": "Return only distinct sold top-level products",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Where-used lines",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DesignWhereUsedRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-product-label": {
+            "post": {
+                "tags": [
+                    "Design PDF printing"
+                ],
+                "operationId": "doPrintProductLabel",
+                "summary": "Print product labels",
+                "description": "Renders 4 x 4 inch labels for a product (number, Code 39 barcode, description, long description, revision and date, with the company address and logo), one page per copy, and returns the file name. Fails with `A product ID must be provided` when `id` is missing. Download the file with `GET /<db>/pdf/<file name>`; the server deletes it once read.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Product id"
+                                    },
+                                    "copies": {
+                                        "type": "integer",
+                                        "description": "Number of labels",
+                                        "default": 1,
+                                        "minimum": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Generated PDF file name",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "File name, `<product number>.pdf`"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/roll-up-costs": {
+            "post": {
+                "tags": [
+                    "Product cost actions"
+                ],
+                "operationId": "doRollUpCosts",
+                "summary": "Roll up standard costs",
+                "description": "Recalculates material, labor, overhead, service and total standard cost of manufactured products from their bills of material (component costs, quantity per, fixed quantity, ratio, EOQ) and routings (run and setup time, yield, labor and machine resource rates, services), lowest level first. With `itemId`, rolls that product and the manufactured products in its bill; without it, every active manufactured product and kit. By default each changed cost is written as a ProposedCost in status `P` for review (`/approve-proposed-costs`, then `/update-proposed-costs`), and proposals that now equal the current cost are removed. With `autoUpdate`, costs are written straight to the products and a zero-quantity `Standard Cost Update` inventory transaction is posted for each site holding stock. Only one roll-up runs per database at a time. Refuses when a roll-up is already running, when any approved (`A`) proposed cost exists for an active product, when a bill includes an inactive product, or, for one product without a bill, when it is inactive, an expense item, or not found.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "itemId": {
+                                        "type": "string",
+                                        "description": "Product id. Omit to roll up all products."
+                                    },
+                                    "autoUpdate": {
+                                        "type": "boolean",
+                                        "description": "Apply costs directly instead of creating proposed costs",
+                                        "default": false
+                                    },
+                                    "subscription": {
+                                        "$ref": "#/components/schemas/DesignProcessSubscription"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Roll-up finished"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/update-proposed-costs": {
+            "post": {
+                "tags": [
+                    "Product cost actions"
+                ],
+                "operationId": "doUpdateProposedCosts",
+                "summary": "Apply approved proposed costs",
+                "description": "For each approved (`A`) proposed cost (the listed ones, or all when `ids` is omitted), copies its material, labor, overhead, service and total cost onto the product, sets the proposal to Updated (`U`), and posts a zero-quantity `Standard Cost Update` inventory transaction for each site where the product has positive stock. Listed proposals not in status `A` are ignored.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "ProposedCost ids. Omit to apply all approved proposals."
+                                    },
+                                    "subscription": {
+                                        "$ref": "#/components/schemas/DesignProcessSubscription"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Costs applied",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "`Item(s) updated with proposed costs`"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "DesignIndentedBomRow": {
+                "type": "object",
+                "description": "One line of an indented bill of material, in tree order (each component follows its parent). Component costs are extended: unit cost x build quantity x quantity per, plus fixed quantity, x ratio.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Bill of material line id (the product id on the level 0 row)"
+                    },
+                    "level": {
+                        "type": "integer",
+                        "description": "Depth in the bill: 0 for the product itself, 1 for its direct components, and so on"
+                    },
+                    "product": {
+                        "type": "object",
+                        "description": "The component (the product itself on the level 0 row)",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Product id"
+                            },
+                            "number": {
+                                "type": "string",
+                                "description": "Product number"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Product description"
+                            },
+                            "status": {
+                                "type": "string",
+                                "description": "Product status code"
+                            },
+                            "objectType": {
+                                "type": "string",
+                                "description": "Always `Product`"
+                            }
+                        }
+                    },
+                    "quantityPer": {
+                        "type": "number",
+                        "description": "Quantity per parent; on the level 0 row the requested build quantity (1, or the EOQ when `useEoq` is set)"
+                    },
+                    "fixedQuantity": {
+                        "type": "number",
+                        "description": "Fixed quantity per parent"
+                    },
+                    "ratio": {
+                        "oneOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "Scrap/yield ratio. Component rows return the database numeric as a string; the level 0 row returns 1."
+                    },
+                    "unit": {
+                        "type": "object",
+                        "description": "Unit of measure of the line",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Unit id"
+                            },
+                            "code": {
+                                "type": "string",
+                                "description": "Unit code"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Unit description"
+                            }
+                        }
+                    },
+                    "materialCost": {
+                        "type": "object",
+                        "description": "Cost of the line. The level 0 row carries the product's own Money value (amount, currency, effective, baseAmount); component rows carry amount and currency only.",
+                        "properties": {
+                            "amount": {
+                                "type": "number",
+                                "description": "Cost amount"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "description": "Currency code"
+                            }
+                        }
+                    },
+                    "laborCost": {
+                        "type": "object",
+                        "description": "Cost of the line. The level 0 row carries the product's own Money value (amount, currency, effective, baseAmount); component rows carry amount and currency only.",
+                        "properties": {
+                            "amount": {
+                                "type": "number",
+                                "description": "Cost amount"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "description": "Currency code"
+                            }
+                        }
+                    },
+                    "overheadCost": {
+                        "type": "object",
+                        "description": "Cost of the line. The level 0 row carries the product's own Money value (amount, currency, effective, baseAmount); component rows carry amount and currency only.",
+                        "properties": {
+                            "amount": {
+                                "type": "number",
+                                "description": "Cost amount"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "description": "Currency code"
+                            }
+                        }
+                    },
+                    "serviceCost": {
+                        "type": "object",
+                        "description": "Cost of the line. The level 0 row carries the product's own Money value (amount, currency, effective, baseAmount); component rows carry amount and currency only.",
+                        "properties": {
+                            "amount": {
+                                "type": "number",
+                                "description": "Cost amount"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "description": "Currency code"
+                            }
+                        }
+                    },
+                    "totalCost": {
+                        "type": "object",
+                        "description": "Cost of the line. The level 0 row carries the product's own Money value (amount, currency, effective, baseAmount); component rows carry amount and currency only.",
+                        "properties": {
+                            "amount": {
+                                "type": "number",
+                                "description": "Cost amount"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "description": "Currency code"
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Product status code"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Item type code of the component (not set on the level 0 row)"
+                    },
+                    "drawingLink": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Drawing resource link of the component product, or null",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Resource link id"
+                            },
+                            "displayValue": {
+                                "type": "string",
+                                "description": "Display value"
+                            },
+                            "resource": {
+                                "type": "string",
+                                "description": "URL or file name"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Label"
+                            },
+                            "icon": {
+                                "type": "string",
+                                "description": "Icon name"
+                            }
+                        }
+                    },
+                    "cycle": {
+                        "type": "boolean",
+                        "description": "True when this line repeats an ancestor, i.e. the bill is recursive; the branch is not expanded further"
+                    },
+                    "created": {
+                        "type": "string",
+                        "description": "When the line was created, local time `YYYY-MM-DDTHH:mm`"
+                    },
+                    "createdBy": {
+                        "type": "string",
+                        "description": "User who created the line"
+                    },
+                    "updated": {
+                        "type": "string",
+                        "description": "When the line was last updated, local time `YYYY-MM-DDTHH:mm`"
+                    },
+                    "updatedBy": {
+                        "type": "string",
+                        "description": "User who last updated the line"
+                    }
+                }
+            },
+            "DesignWhereUsedRow": {
+                "type": "object",
+                "description": "One line of an indented where-used list, in tree order",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Bill of material line id"
+                    },
+                    "level": {
+                        "type": "integer",
+                        "description": "0 for products that use the item directly, 1 for products that use those, and so on"
+                    },
+                    "product": {
+                        "type": "object",
+                        "description": "The product whose bill contains the item on the row below it",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Parent product id"
+                            },
+                            "number": {
+                                "type": "string",
+                                "description": "Parent product number"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Parent product description"
+                            },
+                            "isSold": {
+                                "type": "boolean",
+                                "description": "Whether the parent product is sold"
+                            },
+                            "status": {
+                                "type": "string",
+                                "description": "Parent product status code"
+                            },
+                            "objectType": {
+                                "type": "string",
+                                "description": "Always `Product`"
+                            }
+                        }
+                    },
+                    "quantityPer": {
+                        "type": "number",
+                        "description": "Quantity per parent"
+                    },
+                    "fixedQuantity": {
+                        "type": "number",
+                        "description": "Fixed quantity per parent"
+                    },
+                    "ratio": {
+                        "type": "string",
+                        "description": "Scrap/yield ratio, as the database numeric string"
+                    },
+                    "unit": {
+                        "type": "object",
+                        "description": "Unit of measure of the line",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Unit id"
+                            },
+                            "code": {
+                                "type": "string",
+                                "description": "Unit code"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Unit description"
+                            }
+                        }
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Parent product status code"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Parent item type code"
+                    },
+                    "drawingLink": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Drawing resource link of the component product, or null",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Resource link id"
+                            },
+                            "displayValue": {
+                                "type": "string",
+                                "description": "Display value"
+                            },
+                            "resource": {
+                                "type": "string",
+                                "description": "URL or file name"
+                            },
+                            "label": {
+                                "type": "string",
+                                "description": "Label"
+                            },
+                            "icon": {
+                                "type": "string",
+                                "description": "Icon name"
+                            }
+                        }
+                    },
+                    "cycle": {
+                        "type": "boolean",
+                        "description": "True when the line repeats an ancestor (recursive bill)"
+                    },
+                    "created": {
+                        "type": "string",
+                        "description": "Line created, local time `YYYY-MM-DDTHH:mm`"
+                    },
+                    "createdBy": {
+                        "type": "string",
+                        "description": "User who created the line"
+                    },
+                    "updated": {
+                        "type": "string",
+                        "description": "Line last updated, local time `YYYY-MM-DDTHH:mm`"
+                    },
+                    "updatedBy": {
+                        "type": "string",
+                        "description": "User who last updated the line"
+                    }
+                }
+            },
+            "DesignProcessSubscription": {
+                "type": "object",
+                "description": "Optional. When given, progress of the long-running process is pushed to this subscription as it runs.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Subscription id chosen by the caller"
+                    },
+                    "eventKey": {
+                        "type": "string",
+                        "description": "The caller's event key (from the session's event stream)"
+                    }
+                }
+            }
+        }
+    }
+}

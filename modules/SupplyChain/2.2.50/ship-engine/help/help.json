@@ -1,0 +1,12 @@
+{
+    "title": "ShipEngine",
+    "default": "ship-engine.md",
+    "pages": [
+        {
+            "path": "ship-engine.md",
+            "title": "ShipEngine"
+        }
+    ],
+    "forms": {},
+    "feathers": {}
+}

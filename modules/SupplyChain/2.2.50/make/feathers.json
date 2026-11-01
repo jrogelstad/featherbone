@@ -1,0 +1,1724 @@
+[
+    {
+        "name": "PlannedWorkOrder",
+        "description": "Planned work order",
+        "plural": "PlannedWorkOrders",
+        "module": "Make",
+        "inherits": "PlannedOrder",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false
+    },
+    {
+        "name": "PlannedOperation",
+        "description": "Planned work order operation",
+        "plural": "PlannedOperations",
+        "module": "Make",
+        "inherits": "Operation",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "plannedWorkOrder": {
+                "description": "Parent planned order",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "PlannedWorkOrder",
+                    "childOf": "operations"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrder",
+        "description": "Work order",
+        "plural": "WorkOrders",
+        "module": "Make",
+        "inherits": "Supply",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "ordered": {
+                "description": "Ordered",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "received": {
+                "description": "Quantity recevied",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "isPrinted": {
+                "description": "Printed",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "printTime": {
+                "description": "Print time",
+                "alias": "",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "closeDate": {
+                "description": "Close date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedLaborCost": {
+                "description": "Estimated labor cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedMaterialCost": {
+                "description": "Estimated material cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedServiceCost": {
+                "description": "Estimated service cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedOverheadCost": {
+                "description": "Estimated overhead cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedTotalCost": {
+                "description": "Estimated total cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualLaborCost": {
+                "description": "Actual labor cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualMaterialCost": {
+                "description": "Actual material cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualServiceCost": {
+                "description": "Actual service cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualOverheadCost": {
+                "description": "Actual overhead cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualTotalCost": {
+                "description": "Actual total cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "instructions": {
+                "description": "Work instructions for paperwork",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "scheduleMethod": {
+                "description": "Schedule method",
+                "alias": "Schedule",
+                "type": "string",
+                "format": "",
+                "default": "F",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "F",
+                        "label": "Forward"
+                    },
+                    {
+                        "value": "B",
+                        "label": "Backward"
+                    },
+                    {
+                        "value": "M",
+                        "label": "Manual"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "printedBy": {
+                "description": "User who printed",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "drawingLink": {
+                "description": "Drawing",
+                "alias": "Drawing",
+                "type": {
+                    "properties": [
+                        "icon",
+                        "label",
+                        "resource",
+                        "displayValue"
+                    ],
+                    "relation": "ResourceLink"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "onHold": {
+                "description": "On hold indicator",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "salesDemand": {
+                "description": "Most downstream sales order line",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "item"
+                    ],
+                    "relation": "SalesOrderLine"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "salesOrder": {
+                "description": "Most downstream sales order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "status",
+                        "shipTo",
+                        "purchaseOrder"
+                    ],
+                    "relation": "SalesOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "error": {
+                "description": "Error message",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "planStatus": {
+                "description": "Planning status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "U",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "U",
+                        "label": "Has unallocated requirements"
+                    },
+                    {
+                        "value": "P",
+                        "label": "Some or all materials have planned orders"
+                    },
+                    {
+                        "value": "O",
+                        "label": "Some or all materials on order"
+                    },
+                    {
+                        "value": "I",
+                        "label": "All allocated material in inventory"
+                    },
+                    {
+                        "value": "C",
+                        "label": "No material allocations required"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "operationEndDate": {
+                "description": "Last operation schedule date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        },
+        "overloads": {
+            "item": {
+                "alias": "Product"
+            },
+            "number": {
+                "autonumber": {
+                    "prefix": "W-",
+                    "sequence": "work_order_seq",
+                    "length": 5,
+                    "suffix": "",
+                    "objectType": ""
+                }
+            },
+            "status": {
+                "default": "U",
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "I",
+                        "label": "In Process"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Closed"
+                    },
+                    {
+                        "value": "U",
+                        "label": "Unexploded"
+                    }
+                ]
+            },
+            "quantity": {
+                "alias": "Remaining"
+            }
+        }
+    },
+    {
+        "name": "WorkOrderComment",
+        "description": "Comments on work order",
+        "plural": "WorkOrderComments",
+        "module": "Make",
+        "inherits": "Comment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrder": {
+                "description": "Parent work order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number"
+                    ],
+                    "relation": "WorkOrder",
+                    "childOf": "comments"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isSystem": {
+                "description": "System generated comment",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrderDocument",
+        "description": "Work order documents",
+        "plural": "WorkOrderDocuments",
+        "module": "Make",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workorder": {
+                "description": "Work Order",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "WorkOrder",
+                    "childOf": "documents"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "link": {
+                "description": "Supporting Document Link",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "icon",
+                        "displayValue",
+                        "resource",
+                        "label",
+                        "notes"
+                    ],
+                    "relation": "ResourceLink"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Work order document notes",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrderOperation",
+        "description": "Work order operation",
+        "plural": "WorkOrderOperations",
+        "module": "Make",
+        "inherits": "Operation",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrder": {
+                "description": "Work order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "priority",
+                        "status",
+                        "id",
+                        "onHold",
+                        "item",
+                        "salesOrder",
+                        "dueDate",
+                        "allocated",
+                        "drawingLink"
+                    ],
+                    "relation": "WorkOrder",
+                    "childOf": "operations"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualLaborCost": {
+                "description": "Actual labor cost",
+                "alias": "Actual Labor",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualOverheadCost": {
+                "description": "Actual overhead cost",
+                "alias": "Actual Overhead",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualServiceCost": {
+                "description": "Actual service cost",
+                "alias": "Actual Service",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "onHold": {
+                "description": "Operation is on hold",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "setupComplete": {
+                "description": "Setup complete",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "toComplete": {
+                "description": "Quantity to complete",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "available": {
+                "description": "Available to process",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "isLast": {
+                "description": "Is last operation flab",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "started": {
+                "description": "Quantity started",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isManualAdd": {
+                "description": "Operation was manually added after explosion",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "service": {
+                "description": "Service item for outside process",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "serviceCost"
+                    ],
+                    "relation": "Service"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "outsideProcessId": {
+                "description": "Internal reference for outside process",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "serviceLeadTime": {
+                "description": "Lead time for service",
+                "alias": "Service Lead Time (Days)",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "OperationCompletion",
+        "description": "Reported operation completions",
+        "plural": "OperationCompletions",
+        "module": "Make",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Transaction number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "OC-",
+                    "sequence": "op_compl_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "operation": {
+                "description": "Work order operation",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "laborResource",
+                        "machineResource",
+                        "status",
+                        "onHold"
+                    ],
+                    "relation": "WorkOrderOperation"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "quantity": {
+                "description": "Quantity completed or started",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "employee": {
+                "description": "Employee",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "fullName"
+                    ],
+                    "relation": "Employee"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "closeOperation": {
+                "description": "Close operation",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isPosted": {
+                "description": "isPosted",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "postDate": {
+                "description": "Post date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "error": {
+                "description": "Error message if posting failed",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "startOperation": {
+                "description": "If true, only issue material for the operation",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "OutsideProcess",
+        "description": "Demand for outside service",
+        "plural": "OutsideProcesses",
+        "module": "Make",
+        "inherits": "Demand",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesDemand": {
+                "description": "Most downstream sales order line",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "item"
+                    ],
+                    "relation": "SalesOrderLine"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "salesOrder": {
+                "description": "Most downstream sales order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "status",
+                        "shipTo",
+                        "purchaseOrder"
+                    ],
+                    "relation": "SalesOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipped": {
+                "description": "Quantity shipped",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "received": {
+                "description": "Quantity received",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "workOrderOperation": {
+                "description": "Work order operation",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number"
+                    ],
+                    "relation": "WorkOrderOperation"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "workOrder": {
+                "description": "Work order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number"
+                    ],
+                    "relation": "WorkOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "required": {
+                "description": "Original required quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrderIssue",
+        "description": "Header for manual issue transactions",
+        "plural": "WorkOrderIssues",
+        "module": "Make",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Auto generated number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "WI-",
+                    "sequence": "wo_issue_seq",
+                    "length": 5,
+                    "suffix": "",
+                    "objectType": ""
+                },
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "date": {
+                "description": "Transaction date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "today()",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "workOrder": {
+                "description": "Work order relation",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "status",
+                        "onHold",
+                        "site",
+                        "item"
+                    ],
+                    "relation": "WorkOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Notes about the transaction",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Transaction status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "P",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Issued"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "operation": {
+                "description": "Work order operation to issue against",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description",
+                        "status",
+                        "sequence"
+                    ],
+                    "relation": "WorkOrderOperation"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "error": {
+                "description": "Error text",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            }
+        }
+    },
+    {
+        "name": "WorkOrderReceipt",
+        "description": "Work order receipt transaction",
+        "plural": "WorkOrderReceipts",
+        "module": "Make",
+        "inherits": "Receipt",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrder": {
+                "description": "Work order to receive against",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "status",
+                        "site",
+                        "allocated",
+                        "item",
+                        "received",
+                        "quantity",
+                        "ordered"
+                    ],
+                    "relation": "WorkOrder"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Receipt quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrderReceiptDetail",
+        "description": "Work order receipt lot and serial information",
+        "plural": "WorkOrderReceiptDetails",
+        "module": "Make",
+        "inherits": "ReceiptDetail",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrderReceipt": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "WorkOrderReceipt",
+                    "childOf": "details"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrderRequirement",
+        "description": "Work order material requirement",
+        "plural": "WorkOrderRequirements",
+        "module": "Make",
+        "inherits": "Demand",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrder": {
+                "description": "Parent work order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "item",
+                        "status",
+                        "id"
+                    ],
+                    "relation": "WorkOrder",
+                    "childOf": "materials"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "sequence": {
+                "description": "Sequence number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "operation": {
+                "description": "Operation sequence number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "fixedQuantity": {
+                "description": "Fixed quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantityPer": {
+                "description": "Quantity per",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "required": {
+                "description": "Total required quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "issued": {
+                "description": "Quantity issued",
+                "alias": "Issued",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "returned": {
+                "description": "Quantity returned",
+                "alias": "Returned",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedCost": {
+                "description": "Estimated cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualCost": {
+                "description": "Actual cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "unit": {
+                "description": "Unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "ratio": {
+                "description": "Unit of measure conversion ratio",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "substitutions": {
+                "description": "Substitution ID array. Limits search on item list",
+                "alias": "",
+                "type": "array",
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isManualAdd": {
+                "description": "Material added manually to the work order",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reference": {
+                "description": "References",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "quantityDue": {
+                "alias": "Remaining"
+            },
+            "item": {
+                "alias": "Product"
+            }
+        }
+    },
+    {
+        "name": "WorkOrderIssueMaterial",
+        "description": "Work order issue material requirements",
+        "plural": "WorkOrderIssueMaterials",
+        "module": "Make",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrderIssue": {
+                "description": "Parent relation",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "WorkOrderIssue",
+                    "childOf": "materials"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "materialRequirement": {
+                "description": "Work order material requirement",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "sequence",
+                        "status",
+                        "item",
+                        "site",
+                        "required",
+                        "issued",
+                        "allocated",
+                        "returned",
+                        "actualCost"
+                    ],
+                    "relation": "WorkOrderRequirement"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity to issue",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "min": -99999,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "WorkOrderIssueDetail",
+        "description": "Lot serial and location detail for work order issue materials",
+        "plural": "WorkOrderIssueDetails",
+        "module": "Make",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "workOrderIssueMaterial": {
+                "description": "Parent record",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "WorkOrderIssueMaterial",
+                    "childOf": "details"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity issued",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "location": {
+                "description": "Issue location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "type"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Lot or serial number",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "isOnHand"
+                    ],
+                    "relation": "Trace"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

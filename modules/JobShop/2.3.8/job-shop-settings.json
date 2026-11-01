@@ -1,0 +1,26 @@
+{
+    "name": "jobShopSettings",
+    "module": "JobShop",
+    "description": "Job shop settings",
+    "properties": {
+        "edition": {
+            "default": "Standard",
+            "description": "Edition set to",
+            "type": "string",
+            "dataList": [
+                {
+                    "value": "Standard",
+                    "label": "Standard"
+                },
+                {
+                    "value": "Professional",
+                    "label": "Professional"
+                },
+                {
+                    "value": "Enterprise",
+                    "label": "Enterprise"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,753 @@
+[
+    {
+        "name": "Bugs",
+        "description": "Bug tracker",
+        "icon": "bug_report",
+        "defaultConfig": [
+            {
+                "name": "Active",
+                "feather": "Bug",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 83
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 369
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 127
+                        },
+                        {
+                            "attr": "package",
+                            "label": "",
+                            "width": 82
+                        },
+                        {
+                            "attr": "assignedTo",
+                            "label": "",
+                            "width": 105
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 144
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 117
+                        },
+                        {
+                            "attr": "updated",
+                            "label": "",
+                            "width": 182
+                        },
+                        {
+                            "attr": "created",
+                            "label": "",
+                            "width": 185
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "property": "number",
+                            "method": "COUNT"
+                        }
+                    ],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "isClosed",
+                                "value": false,
+                                "operator": "="
+                            }
+                        ],
+                        "sort": [
+                            {
+                                "property": "priority"
+                            },
+                            {
+                                "property": "updated",
+                                "order": "DESC"
+                            }
+                        ]
+                    }
+                },
+                "form": "",
+                "isEditModeEnabled": false,
+                "openInNewWindow": false,
+                "actions": []
+            },
+            {
+                "name": "New",
+                "feather": "Bug",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 67
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 220
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 99
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 87
+                        },
+                        {
+                            "attr": "created",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "updated",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": [],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "status",
+                                "value": "N",
+                                "operator": "="
+                            }
+                        ]
+                    }
+                },
+                "actions": [],
+                "form": "",
+                "isEditModeEnabled": false,
+                "openInNewWindow": false
+            },
+            {
+                "name": "Confirmed",
+                "feather": "Bug",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 58
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 264
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 127
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 99
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 68
+                        },
+                        {
+                            "attr": "updated",
+                            "label": "",
+                            "width": 182
+                        },
+                        {
+                            "attr": "created",
+                            "label": "",
+                            "width": 185
+                        }
+                    ],
+                    "aggregates": [],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "status",
+                                "value": "C",
+                                "operator": "="
+                            }
+                        ]
+                    }
+                },
+                "actions": [],
+                "form": "",
+                "isEditModeEnabled": false,
+                "openInNewWindow": false
+            },
+            {
+                "name": "In Process",
+                "feather": "Bug",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 67
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 220
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 99
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 87
+                        },
+                        {
+                            "attr": "created",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "updated",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": [],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "status",
+                                "value": "I",
+                                "operator": "="
+                            }
+                        ]
+                    }
+                },
+                "actions": [],
+                "form": "",
+                "isEditModeEnabled": false,
+                "openInNewWindow": false
+            },
+            {
+                "name": "Closed",
+                "feather": "Bug",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "package",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "foundIn",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "fixedIn",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 67
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 220
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 99
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 87
+                        },
+                        {
+                            "attr": "created",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "updated",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "property": "number",
+                            "method": "COUNT"
+                        }
+                    ],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "isClosed",
+                                "value": true,
+                                "operator": "="
+                            }
+                        ],
+                        "sort": [
+                            {
+                                "property": "updated",
+                                "order": "DESC"
+                            }
+                        ]
+                    }
+                },
+                "actions": [],
+                "form": "",
+                "isEditModeEnabled": true,
+                "openInNewWindow": false
+            }
+        ],
+        "module": "Tracker",
+        "sequence": 10,
+        "actions": {},
+        "label": "",
+        "isTemplate": null,
+        "category": "Track"
+    },
+    {
+        "name": "Features",
+        "description": "Feature request",
+        "icon": "auto_awesome",
+        "defaultConfig": [
+            {
+                "name": "Active",
+                "feather": "Feature",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 74
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 386
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 103
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 85
+                        },
+                        {
+                            "attr": "assignedTo",
+                            "label": "",
+                            "width": 106
+                        },
+                        {
+                            "attr": "package",
+                            "label": "",
+                            "width": 110
+                        },
+                        {
+                            "attr": "project",
+                            "label": "",
+                            "width": 67
+                        },
+                        {
+                            "attr": "project.description",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "estHours",
+                            "label": "",
+                            "width": 93
+                        },
+                        {
+                            "attr": "actHours",
+                            "label": "",
+                            "width": 96
+                        },
+                        {
+                            "attr": "reproduction",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "property": "number",
+                            "method": "COUNT"
+                        }
+                    ],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "isClosed",
+                                "value": false,
+                                "operator": "="
+                            }
+                        ],
+                        "sort": [
+                            {
+                                "property": "priority",
+                                "order": "ASC"
+                            },
+                            {
+                                "property": "updated",
+                                "order": "DESC"
+                            }
+                        ]
+                    }
+                },
+                "actions": [],
+                "form": "",
+                "isEditModeEnabled": true,
+                "openInNewWindow": false
+            },
+            {
+                "name": "Queue",
+                "feather": "Feature",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 74
+                        },
+                        {
+                            "attr": "scope",
+                            "label": "",
+                            "width": 130
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 310
+                        },
+                        {
+                            "attr": "effort",
+                            "label": "",
+                            "width": 123
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 103
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": 108
+                        },
+                        {
+                            "attr": "assignedTo",
+                            "label": "",
+                            "width": 106
+                        },
+                        {
+                            "attr": "package",
+                            "label": "",
+                            "width": 110
+                        },
+                        {
+                            "attr": "estHours",
+                            "label": "",
+                            "width": 93
+                        },
+                        {
+                            "attr": "actHours",
+                            "label": "",
+                            "width": 96
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "property": "number",
+                            "method": "COUNT"
+                        }
+                    ],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "priority",
+                                "value": [
+                                    "1",
+                                    "2",
+                                    "3"
+                                ],
+                                "operator": "IN"
+                            },
+                            {
+                                "property": "isClosed",
+                                "value": false,
+                                "operator": "="
+                            }
+                        ],
+                        "sort": [
+                            {
+                                "property": "priority"
+                            },
+                            {
+                                "property": "scope"
+                            },
+                            {
+                                "property": "priority"
+                            },
+                            {
+                                "property": "status"
+                            },
+                            {
+                                "property": "updated"
+                            }
+                        ]
+                    }
+                },
+                "form": "",
+                "isEditModeEnabled": true,
+                "openInNewWindow": false,
+                "actions": []
+            },
+            {
+                "name": "Closed",
+                "feather": "Feature",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 76
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 274
+                        },
+                        {
+                            "attr": "foundIn",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "fixedIn",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "status",
+                            "label": "",
+                            "width": 87
+                        },
+                        {
+                            "attr": "priority",
+                            "label": "",
+                            "width": -6
+                        },
+                        {
+                            "attr": "project",
+                            "label": "",
+                            "width": 67
+                        },
+                        {
+                            "attr": "project.description",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "reporter",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "scope",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "property": "number",
+                            "method": "COUNT"
+                        }
+                    ],
+                    "filter": {
+                        "limit": 20,
+                        "criteria": [
+                            {
+                                "property": "isClosed",
+                                "value": true,
+                                "operator": "="
+                            }
+                        ],
+                        "sort": [
+                            {
+                                "property": "updated",
+                                "order": "DESC"
+                            }
+                        ]
+                    }
+                },
+                "actions": [],
+                "form": "",
+                "isEditModeEnabled": true,
+                "openInNewWindow": false
+            }
+        ],
+        "module": "Tracker",
+        "sequence": 20,
+        "actions": {},
+        "label": "",
+        "isTemplate": null,
+        "category": "Track"
+    },
+    {
+        "name": "Projects",
+        "description": "Projects",
+        "icon": "view_timeline",
+        "launchConfig": {
+            "settings": "projectSettings"
+        },
+        "defaultConfig": [
+            {
+                "name": "Project",
+                "feather": "Project",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "number",
+                            "label": "",
+                            "width": 97
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 260
+                        },
+                        {
+                            "attr": "plannedStartDate",
+                            "label": "",
+                            "width": 0
+                        },
+                        {
+                            "attr": "plannedEndDate",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": []
+                },
+                "form": "",
+                "isEditModeEnabled": false,
+                "openInNewWindow": false,
+                "actions": [
+                    {
+                        "name": "Print",
+                        "title": "Print project form",
+                        "icon": "print",
+                        "method": "print",
+                        "validator": "checkPrint",
+                        "hasSeparator": false
+                    }
+                ]
+            }
+        ],
+        "module": "Tracker",
+        "sequence": 0,
+        "actions": {},
+        "label": "",
+        "isTemplate": null,
+        "category": "Track"
+    },
+    {
+        "name": "Tests",
+        "description": "Test sets",
+        "icon": "checklist",
+        "defaultConfig": [
+            {
+                "name": "TestSet",
+                "feather": "TestSet",
+                "list": {
+                    "columns": [
+                        {
+                            "attr": "name",
+                            "label": "",
+                            "width": 219
+                        },
+                        {
+                            "attr": "description",
+                            "label": "",
+                            "width": 355
+                        },
+                        {
+                            "attr": "project",
+                            "label": "",
+                            "width": 0
+                        }
+                    ],
+                    "aggregates": []
+                },
+                "form": "",
+                "isEditModeEnabled": false,
+                "openInNewWindow": false,
+                "actions": []
+            }
+        ],
+        "module": "Tracker",
+        "sequence": 30,
+        "actions": {},
+        "label": "",
+        "isTemplate": null,
+        "category": "Track"
+    }
+]

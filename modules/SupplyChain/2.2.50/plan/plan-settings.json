@@ -1,0 +1,11 @@
+{
+    "name": "planSettings",
+    "module": "Plan",
+    "description": "plan settings",
+    "properties": {
+        "shippingBuffer": {
+            "description": "Time buffer between when supply and shipment is planned",
+            "type": "integer"
+        }
+    }
+}

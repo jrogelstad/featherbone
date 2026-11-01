@@ -1,0 +1,291 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Count",
+        "version": "2.1.11",
+        "description": "Physical inventory counts: generate count tags for a site, print recount sheets, and post counted differences to the inventory ledger."
+    },
+    "tags": [
+        {
+            "name": "Physical count actions",
+            "description": "Create and post physical counts."
+        },
+        {
+            "name": "Physical count printing",
+            "description": "PDF output for physical counts."
+        }
+    ],
+    "paths": {
+        "/create-physical-count": {
+            "post": {
+                "tags": [
+                    "Physical count actions"
+                ],
+                "operationId": "doCreatePhysicalCount",
+                "summary": "Create a physical count",
+                "description": "Creates a PhysicalCount for a site with one tag per eligible inventory record of an active item (per trace number or location when the stock is held that way), ordered by last count date then item number, optionally capped at `max` tags. Each tag records the current quantity and its value at item cost (base currency) with the change preset to remove it all until counted. Tags are sorted by location then item and numbered from `startTagNr`. Refuses when a count is already active, no base currency is set, `site` is missing, or no inventory matches.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "site"
+                                ],
+                                "properties": {
+                                    "site": {
+                                        "type": "object",
+                                        "description": "Site to count",
+                                        "required": [
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Record id"
+                                            }
+                                        }
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Count description"
+                                    },
+                                    "startTagNr": {
+                                        "type": "integer",
+                                        "description": "First tag number",
+                                        "default": 1
+                                    },
+                                    "abcClass": {
+                                        "type": "string",
+                                        "description": "Only item sites in this ABC class",
+                                        "enum": [
+                                            "",
+                                            "A",
+                                            "B",
+                                            "C"
+                                        ]
+                                    },
+                                    "item": {
+                                        "type": "object",
+                                        "description": "Only this item",
+                                        "required": [
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Record id"
+                                            }
+                                        }
+                                    },
+                                    "category": {
+                                        "type": "object",
+                                        "description": "Only items in this ItemCategory",
+                                        "required": [
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Record id"
+                                            }
+                                        }
+                                    },
+                                    "group": {
+                                        "type": "object",
+                                        "description": "Only items in this ItemGroup",
+                                        "required": [
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Record id"
+                                            }
+                                        }
+                                    },
+                                    "hasQuantity": {
+                                        "type": "boolean",
+                                        "description": "Only inventory with non-zero quantity"
+                                    },
+                                    "fromLocation": {
+                                        "type": "object",
+                                        "description": "Only this location, or the start of the range when `useLocationRange`",
+                                        "required": [
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Record id"
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "description": "Location name; compared for the range"
+                                            }
+                                        }
+                                    },
+                                    "useLocationRange": {
+                                        "type": "boolean",
+                                        "description": "Include locations whose name is between `fromLocation.name` and `toLocation.name`",
+                                        "default": false
+                                    },
+                                    "toLocation": {
+                                        "type": "object",
+                                        "description": "End of the location range",
+                                        "required": [
+                                            "id"
+                                        ],
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Record id"
+                                            },
+                                            "name": {
+                                                "type": "string",
+                                                "description": "Location name"
+                                            }
+                                        }
+                                    },
+                                    "useDays": {
+                                        "type": "boolean",
+                                        "description": "Apply `days`",
+                                        "default": false
+                                    },
+                                    "days": {
+                                        "type": "integer",
+                                        "description": "Only inventory last counted at least this many days ago"
+                                    },
+                                    "useMax": {
+                                        "type": "boolean",
+                                        "description": "Apply `max`",
+                                        "default": false
+                                    },
+                                    "max": {
+                                        "type": "integer",
+                                        "description": "Maximum number of tags"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Count created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "`Physical count created successfully`"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-physical-count": {
+            "post": {
+                "tags": [
+                    "Physical count actions"
+                ],
+                "operationId": "doPostPhysicalCount",
+                "summary": "Post a physical count",
+                "description": "Locks the count, closes it (`isActive` false, `closedTime` now), and for each completed tag with a non-zero quantity change posts a `Physical Count` inventory transaction dated today (reference `<count>\\<tag>`, with location and trace), releasing allocations first when a decrease cuts into allocated stock, then recalculates inventory orders for the item. Incomplete tags and tags without change post nothing. On failure the posting rolls back and an error Alert is raised. Refuses when the count is not found or not active.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "PhysicalCount id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Count posted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "`Physical count posted successfully`"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-recount": {
+            "post": {
+                "tags": [
+                    "Physical count printing"
+                ],
+                "operationId": "doPrintRecount",
+                "summary": "Print recount tags",
+                "description": "Prints the tags flagged for recount on an active count with the given form and returns the file name. Refuses when no id is given, the count is not found or not active, or no tag is flagged. Download the file with `GET /<db>/pdf/<file name>`; the server deletes it once read.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "minItems": 1,
+                                        "description": "PhysicalCount ids; only the first is printed"
+                                    },
+                                    "form": {
+                                        "type": "string",
+                                        "description": "Name of the Form to print with; omit for a generated layout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Generated PDF file name",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "File name, `<count number>.pdf`"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    }
+}

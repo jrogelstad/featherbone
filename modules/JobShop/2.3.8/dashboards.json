@@ -1,0 +1,251 @@
+[
+    {
+        "name": "Overview",
+        "label": "Overview",
+        "description": "",
+        "module": "JobShop",
+        "sequence": 0,
+        "isDefault": true,
+        "config": {
+            "asOf": "2027-06-01",
+            "grid": 24,
+            "seen": [
+                "inventory",
+                "production",
+                "purchase",
+                "sales"
+            ],
+            "tiles": [
+                {
+                    "cols": 6,
+                    "rows": 6,
+                    "type": "measure",
+                    "id": "tile-w0jjzl6oqyfa",
+                    "col": 17,
+                    "row": 1,
+                    "targetMode": "none",
+                    "source": "sales",
+                    "display": "table",
+                    "showSpark": false,
+                    "hideLabels": false,
+                    "measure": "revenue",
+                    "dimension": "customer",
+                    "window": "YTD",
+                    "comparison": "none",
+                    "limit": "10",
+                    "sort": "amount",
+                    "showUnits": "true"
+                },
+                {
+                    "cols": 8,
+                    "rows": 9,
+                    "type": "histogram",
+                    "id": "tile-yi3rfj30zyde",
+                    "col": 9,
+                    "row": 8,
+                    "schedules": [
+                        "sales",
+                        "production"
+                    ],
+                    "bucket": "week",
+                    "value": "amount",
+                    "maxHorizon": 5
+                },
+                {
+                    "cols": 8,
+                    "rows": 7,
+                    "targetMode": "auto",
+                    "heading": "Operations metrics",
+                    "type": "kpi",
+                    "kpis": [
+                        "buyBacklog",
+                        "buyOnTimeReceipt",
+                        "buyOverdueBacklog",
+                        "makeProducedMtd",
+                        "makeOnTimeCompletion",
+                        "stockInventoryValue"
+                    ],
+                    "id": "tile-pait8osug6t4",
+                    "col": 9,
+                    "row": 1
+                },
+                {
+                    "cols": 8,
+                    "rows": 5,
+                    "type": "measure",
+                    "id": "src-sales",
+                    "col": 1,
+                    "row": 12,
+                    "source": "sales",
+                    "showSpark": true,
+                    "measure": "revenue",
+                    "dimension": "region",
+                    "window": "YTD",
+                    "comparison": "priorYear",
+                    "sequence": 1
+                },
+                {
+                    "cols": 8,
+                    "rows": 5,
+                    "type": "measure",
+                    "id": "tile-uj54ynj98ags",
+                    "col": 1,
+                    "row": 7,
+                    "targetMode": "none",
+                    "source": "sales",
+                    "display": "bullets",
+                    "showSpark": false,
+                    "hideLabels": false,
+                    "measure": "revenue",
+                    "dimension": "item",
+                    "window": "YTD",
+                    "comparison": "none",
+                    "limit": "0",
+                    "sort": "amount",
+                    "showUnits": ""
+                },
+                {
+                    "cols": 8,
+                    "rows": 6,
+                    "targetMode": "growth",
+                    "targetValue": 5,
+                    "heading": "Sales metrics",
+                    "type": "kpi",
+                    "kpis": [
+                        "salesAvgOrderSize",
+                        "salesBookingsYtd",
+                        "salesProfitYtd",
+                        "salesOnTimeDelivery",
+                        "salesBacklog"
+                    ],
+                    "id": "tile-lh3hfxy4kboa",
+                    "col": 1,
+                    "row": 1
+                },
+                {
+                    "cols": 6,
+                    "rows": 5,
+                    "targetMode": "none",
+                    "type": "measure",
+                    "source": "purchase",
+                    "display": "table",
+                    "showSpark": false,
+                    "hideLabels": false,
+                    "measure": "purchased",
+                    "dimension": "supplier",
+                    "window": "YTD",
+                    "comparison": "priorYear",
+                    "limit": "5",
+                    "sort": "amount",
+                    "showUnits": "true",
+                    "id": "tile-iulv4vrdezeo",
+                    "col": 17,
+                    "row": 7
+                },
+                {
+                    "cols": 6,
+                    "rows": 5,
+                    "targetMode": "history",
+                    "type": "measure",
+                    "source": "inventory",
+                    "display": "table",
+                    "showSpark": false,
+                    "hideLabels": false,
+                    "measure": "value",
+                    "dimension": "itemCategory",
+                    "comparison": "priorYear",
+                    "limit": "5",
+                    "sort": "amount",
+                    "showUnits": "true",
+                    "id": "tile-w04t7fpvzf68",
+                    "col": 17,
+                    "row": 12
+                }
+            ],
+            "title": null
+        }
+    },
+    {
+        "name": "Sales",
+        "label": "Sales",
+        "description": "",
+        "module": "JobShop",
+        "sequence": 0,
+        "isDefault": false,
+        "config": {
+            "asOf": "2027-06-01",
+            "seen": [
+                "sales"
+            ],
+            "tiles": [
+                {
+                    "id": "tile-uj54ynj98ags",
+                    "sequence": 3,
+                    "cols": 4,
+                    "rows": 3,
+                    "targetMode": "none",
+                    "type": "measure",
+                    "source": "sales",
+                    "display": "bullets",
+                    "showSpark": false,
+                    "comparison": "none",
+                    "dimension": "item",
+                    "showUnits": "true",
+                    "col": 5,
+                    "row": 1
+                },
+                {
+                    "id": "tile-w0jjzl6oqyfa",
+                    "sequence": 3,
+                    "cols": 4,
+                    "rows": 3,
+                    "targetMode": "none",
+                    "type": "measure",
+                    "source": "sales",
+                    "display": "table",
+                    "showSpark": false,
+                    "comparison": "none",
+                    "dimension": "customer",
+                    "showUnits": "true",
+                    "col": 5,
+                    "row": 4
+                },
+                {
+                    "id": "tile-lh3hfxy4kboa",
+                    "sequence": 2,
+                    "cols": 4,
+                    "rows": 3,
+                    "targetMode": "growth",
+                    "targetValue": 5,
+                    "type": "kpi",
+                    "heading": "Key Metrics",
+                    "kpis": [
+                        "salesAvgOrderSize",
+                        "salesBookingsYtd",
+                        "salesNewCustomers",
+                        "salesProfitYtd",
+                        "salesOnTimeDelivery"
+                    ],
+                    "col": 1,
+                    "row": 1
+                },
+                {
+                    "id": "src-sales",
+                    "sequence": 1,
+                    "source": "sales",
+                    "type": "measure",
+                    "cols": 4,
+                    "rows": 3,
+                    "comparison": "priorYear",
+                    "dimension": "region",
+                    "measure": "revenue",
+                    "showSpark": true,
+                    "window": "YTD",
+                    "col": 1,
+                    "row": 4
+                }
+            ],
+            "title": null
+        }
+    }
+]

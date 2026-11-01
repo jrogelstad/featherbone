@@ -1,0 +1,14 @@
+{
+    "title": "Ship",
+    "default": "shipping.md",
+    "pages": [
+        {
+            "path": "shipping.md",
+            "title": "Shipping"
+        }
+    ],
+    "forms": {
+        "Outside Process Shipment Form": "shipping.md"
+    },
+    "feathers": {}
+}

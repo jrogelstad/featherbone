@@ -1,0 +1,30 @@
+{
+    "module": "Project",
+    "version": "2.1.9",
+    "dependencies": [],
+    "files": [
+        {
+            "type": "feather",
+            "path": "feathers.json"
+        },
+        {
+            "type": "service",
+            "name": "triggersTask",
+            "path": "triggers-task.js"
+        },
+        {
+            "type": "batch",
+            "path": "forms.json"
+        },
+        {
+            "type": "settings",
+            "name": "projectSettings",
+            "path": "project-settings.json"
+        },
+        {
+            "type": "module",
+            "path": "module.js"
+        }
+    ],
+    "npm": []
+}
