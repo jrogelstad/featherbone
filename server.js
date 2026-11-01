@@ -690,7 +690,11 @@
                 name: "getRouteFunction",
                 user: systemUser,
                 data: {
-                    key: req.params.module + "/" + req.params[0]
+                    // Client calls some routes with a trailing slash
+                    key: (
+                        req.params.module + "/" +
+                        req.params[0].replace(/\/+$/, "")
+                    )
                 },
                 tenant: req.tenant
             }, true);
