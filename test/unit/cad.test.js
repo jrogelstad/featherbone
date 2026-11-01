@@ -200,6 +200,60 @@ describe("cad.fromOcct (STEP)", function () {
         assert.equal(tree.bb.xmin, -30);
     });
 
+    it("keeps the file's names and which leaves are bodies", function () {
+        // Two parts both called Knob, and a Housing made of two solids
+        let mesh = function (name) {
+            return {
+                attributes: {
+                    normal: {array: [0, 0, 1, 0, 0, 1, 0, 0, 1]},
+                    position: {array: [0, 0, 0, 1, 0, 0, 0, 1, 0]}
+                },
+                index: {array: [0, 1, 2]},
+                name
+            };
+        };
+        let tree = cad.fromOcct({
+            meshes: [mesh("Knob"), mesh("Shell"), mesh("Lid")],
+            root: {
+                children: [{
+                    children: [],
+                    meshes: [0],
+                    name: "Knob"
+                }, {
+                    children: [],
+                    meshes: [0],
+                    name: "Knob"
+                }, {
+                    children: [],
+                    meshes: [1, 2],
+                    name: "Housing"
+                }],
+                meshes: [],
+                name: "Top"
+            },
+            success: true
+        }, "box.step");
+        let top = tree.parts;
+        let housing = top.find((p) => p.source_name === "Housing");
+
+        assert.deepEqual(
+            top.map((p) => p.name),
+            ["Knob", "Knob (2)", "Housing"]
+        );
+        assert.deepEqual(
+            top.map((p) => p.source_name),
+            ["Knob", "Knob", "Housing"],
+            "a repeat is made unique for the viewer; its source name stays"
+        );
+        assert.equal(top[0].body, undefined);
+        assert.deepEqual(
+            housing.parts.map((p) => p.body),
+            [true, true],
+            "the solids of a part are bodies"
+        );
+        assertDrawable(tree);
+    });
+
     it("refuses a failed read", function () {
         assert.throws(
             () => cad.fromOcct({success: false}, "x.step"),

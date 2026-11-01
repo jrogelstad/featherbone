@@ -555,7 +555,12 @@
 
     /**
         Turn what occt-import-js reads from a STEP, IGES or BREP file into
-        a shapes tree, keeping the assembly's names.
+        a shapes tree, keeping the assembly's names. Two keys the viewer
+        does not read are added for what reads the tree afterwards (an
+        engineering bill of material): `source_name` on each node is the
+        name the file gave it, before a repeat among its siblings was made
+        unique ("Knob (2)" is "Knob"), and `body` on a leaf marks one of
+        several solids a part is made of, rather than a part.
 
         @method fromOcct
         @param {Object} result From ReadStepFile and its kin
@@ -641,18 +646,23 @@
                     cleanName(mesh.name || node.name || "Part"),
                     used
                 );
+                let body = meshLeaf(index, id + "/" + leafName, leafName);
 
-                parts.push(meshLeaf(index, id + "/" + leafName, leafName));
+                // One of several solids a part is made of, not a part
+                body.body = true;
+                parts.push(body);
             });
             children.forEach(function (child) {
-                let childName = uniqueName(
-                    cleanName(child.name || "Part"),
-                    used
-                );
+                let sourceName = cleanName(child.name || "Part");
+                let childName = uniqueName(sourceName, used);
                 let sub = build(child, id + "/" + childName, false);
 
-                // Leaves carry their name; groups need it set
+                // Leaves carry their name; groups need it set. The name
+                // the file gave it is kept, since a name that repeats
+                // among its siblings is made unique above ("Knob (2)"),
+                // and a bill of material wants the part, not the copy.
                 sub.name = childName;
+                sub.source_name = sourceName;
                 if (!sub.shape && !sub.parts.length) {
                     return;
                 }
