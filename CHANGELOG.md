@@ -5,6 +5,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Module routes called with a trailing slash.** SupplyChain's client
+  calls several routes (convert planned purchase, plan supply, count
+  create and post, inventory report, bill of lading) with a trailing
+  slash, which found no route and answered 404. The slash is ignored.
 * **A feather that inherits `CadModel` links to its own page.** The link a
   model writes to itself (and the one the form fills in before the first
   save) now names the record's own feather, not `CadModel`, so a package
