@@ -1712,8 +1712,11 @@ button:disabled .fb-ipicon,
   vertical-align: middle;
 }
 
+/* Its own z-index: the list's sticky header and totals footer (2) paint
+   over a menu that has none, whatever its list's z-index says. */
 .fb-context-menu {
   position: absolute;
+  z-index: 9999;
 }
 
 /* Some buttons are also the icon element itself -- the dropdown triggers

@@ -5,6 +5,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A list's row menu is no longer hidden behind its totals row.** The
+  menu had no layer of its own, so the list's sticky header and footer
+  painted over its middle. Client only, no install. Core
+  3.0.0-alpha.26.
 * **The row menu of a list inside a form opens at the click.** A right-click
   in a child list (order lines, say) opened its menu far down the
   screen: it was positioned absolutely against the form's tab instead
