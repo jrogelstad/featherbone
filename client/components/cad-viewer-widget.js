@@ -464,18 +464,25 @@ cadViewerWidget.component = {
                     oncreate: (v) => vm.draw(v.dom),
                     onupdate: (v) => vm.draw(v.dom)
                 }),
-                (
-                    (vm.busy() || vm.loading())
-                    ? m("div", {class: "fb-cad-viewer-loading"}, [
-                        m("div", {class: "lds-large-dual-ring"}),
-                        m("div", (
-                            vm.busy()
-                            ? "Reading the file..."
-                            : "Drawing the model..."
-                        ))
-                    ])
-                    : null
-                )
+                // Always there, shown or hidden: nothing is added to or
+                // removed from the page as the work starts and ends
+                m("div", {
+                    class: "fb-cad-viewer-loading",
+                    style: {
+                        display: (
+                            (vm.busy() || vm.loading())
+                            ? "flex"
+                            : "none"
+                        )
+                    }
+                }, [
+                    m("div", {class: "lds-large-dual-ring"}),
+                    m("div", (
+                        vm.busy()
+                        ? "Reading the file..."
+                        : "Drawing the model..."
+                    ))
+                ])
             ]),
             (
                 summary
