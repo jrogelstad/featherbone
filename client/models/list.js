@@ -339,6 +339,16 @@ function createList(feather) {
     ary.indentOn = f.prop("");
 
     /**
+        The column the indented tree is drawn in, by attribute name.
+        Defaults to the first column.
+
+        @method indentColumn
+        @param {String} Attribute Attribute of the column
+        @return {String}
+    */
+    ary.indentColumn = f.prop("");
+
+    /**
         Model index.
 
         @method index
@@ -907,6 +917,7 @@ function list(feather) {
         ary.subscribe(options.subscribe === true);
         ary.isEditable(options.isEditable !== false);
         ary.indentOn(options.indentOn || "");
+        ary.indentColumn(options.indentColumn || "");
 
         if (options.fetch !== false) {
             ary.fetch(options.filter, options.merge, options.background);

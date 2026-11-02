@@ -632,6 +632,38 @@ describe("client components", function () {
             assert.equal(R.find(tree, R.byTag("input")), undefined);
         });
 
+        it("cad-viewer-widget.js shows a spinner while it works", function () {
+            let comp = comps.cadViewerWidget;
+            let r = R.render(comp, {
+                id: "model",
+                parentProperty: "model",
+                parentViewModel: fw,
+                prop: f.prop("")
+            });
+            let vm = r.state.viewModel;
+            let spinner = function () {
+                return R.find(
+                    comp.view.call(r.state, r.vnode),
+                    R.byClass("fb-cad-viewer-loading")
+                );
+            };
+
+            // At rest: none
+            assert.equal(spinner(), undefined);
+
+            // Reading a dropped file
+            vm.busy(true);
+            assert.match(R.text(spinner()), /Reading the file/);
+            assert.ok(R.find(spinner(), R.byClass("lds-large-dual-ring")));
+            vm.busy(false);
+
+            // Building the drawing
+            vm.loading(true);
+            assert.match(R.text(spinner()), /Drawing the model/);
+            vm.loading(false);
+            assert.equal(spinner(), undefined);
+        });
+
         it("data-type.js renders the type selector and relation dialog",
                 function () {
             let tree = editor("dataType", "type");
@@ -888,6 +920,57 @@ describe("client components", function () {
                 }
             };
         }
+
+        it("draws the indented tree in the column the list names",
+                async function () {
+            // Row levels 0, 1, 2 (the quantity); rows 2 and 3 have parents
+            let saved = globalThis.getComputedStyle;
+
+            async function chevronAt(indentColumn) {
+                let tree = f.createList("TestItem", {
+                    fetch: false,
+                    indentColumn,
+                    indentOn: "qty"
+                });
+                let vm;
+                let row;
+
+                await tree.fetch();
+                vm = vms.tableWidget({
+                    config: {columns: [{attr: "qty"}, {attr: "name"}]},
+                    feather: "TestItem",
+                    height: "200px",
+                    models: tree
+                });
+                row = R.findAll(
+                    R.find(
+                        R.render(comps.tableWidget, {viewModel: vm}).tree,
+                        R.byTag("tbody")
+                    ),
+                    R.byTag("tr")
+                )[0];
+
+                return R.findAll(row, R.byTag("td")).map(function (td) {
+                    return Boolean(R.find(td, (node) => (
+                        node && node.attrs &&
+                        String(node.attrs.key || "").endsWith("-indent")
+                    )));
+                }).indexOf(true);
+            }
+
+            // Icon tinting resolves var() colors through the browser
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            let first = await chevronAt("");
+            let named = await chevronAt("name");
+
+            globalThis.getComputedStyle = saved;
+            assert.ok(first > -1, "a chevron in the first column");
+            assert.equal(
+                named,
+                first + 2,
+                "one column (and its spacer) further along"
+            );
+        });
 
         it("renders headers and one row per model", function () {
             let vm = tableVm();

@@ -99,6 +99,17 @@ cadViewerWidget.loadReader = function () {
     return PENDING.occt;
 };
 
+// Resolves after the browser has had the chance to paint
+function nextPaint() {
+    return new Promise(function (resolve) {
+        if (globalThis.requestAnimationFrame) {
+            globalThis.requestAnimationFrame(() => setTimeout(resolve, 0));
+        } else {
+            setTimeout(resolve, 0);
+        }
+    });
+}
+
 /**
     Turn the bytes of a dropped file into a shapes tree.
 
@@ -150,6 +161,15 @@ cadViewerWidget.viewModel = function (options) {
     let parseError = "";
 
     vm.busy = f.prop(false);
+    /**
+        True from the moment a model starts to be drawn until it has
+        been, while the viewer is fetched and the model built.
+
+        @method loading
+        @param {Boolean} flag
+        @return {Boolean}
+    */
+    vm.loading = f.prop(false);
     vm.dragging = f.prop(false);
     vm.error = f.prop("");
     /**
@@ -296,13 +316,20 @@ cadViewerWidget.viewModel = function (options) {
             el.innerHTML = "";
         }
         if (!tree || !tree.parts) {
+            vm.loading(false);
+
             return;
         }
 
+        vm.loading(true);
+        m.redraw();
         try {
             await cadViewerWidget.loadViewer();
+            // Let the spinner be seen before the build holds the page
+            await nextPaint();
         } catch (err) {
             vm.error(err.message);
+            vm.loading(false);
             m.redraw();
             return;
         }
@@ -334,8 +361,9 @@ cadViewerWidget.viewModel = function (options) {
             }, {up: "Z"});
         } catch (err) {
             vm.error("This model could not be drawn: " + err.message);
-            m.redraw();
         }
+        vm.loading(false);
+        m.redraw();
     };
 
     /**
@@ -420,7 +448,7 @@ cadViewerWidget.component = {
                 class: "fb-cad-viewer-canvas",
                 style: {
                     minHeight: (
-                        summary
+                        (summary || vm.busy())
                         ? "520px"
                         : "0"
                     ),
@@ -428,7 +456,18 @@ cadViewerWidget.component = {
                 },
                 oncreate: (v) => vm.draw(v.dom),
                 onupdate: (v) => vm.draw(v.dom)
-            }),
+            }, (
+                (vm.busy() || vm.loading())
+                ? m("div", {class: "fb-cad-viewer-loading"}, [
+                    m("div", {class: "lds-large-dual-ring"}),
+                    m("div", (
+                        vm.busy()
+                        ? "Reading the file..."
+                        : "Drawing the model..."
+                    ))
+                ])
+                : undefined
+            )),
             (
                 summary
                 ? m("div", {class: "fb-cad-viewer-summary"}, (
