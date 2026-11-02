@@ -16,6 +16,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
   as they are, which the note in `scripts/services.js` always said it did
   but which revoked them all. **Run `node install.js --instance <name>`**
   (new settings property; `Core` 3.0.0-alpha.28).
+* **The CAD viewer's drawing fits its box.** The viewer drew at its own
+  default size, 800 by 600, in a box made 520 high, so the bottom of the
+  drawing and its axes marker spilled over the file drop box below. It is
+  told the size of the box once the model is drawn.
 * **A package can give its workbooks their grants.** The `authorizations`
   in a package's `workbooks.json` were ignored on install, so a new
   database had workbooks only a super user could open. They are now given
