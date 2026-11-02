@@ -5,6 +5,11 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A reader can leave a note.** `Note…` on a list cell needed update
+  permission on the record, so a buyer could not tell production a part
+  would be late on a work order. A note is kept apart from the record and
+  changes nothing in it, so reading the record is enough. A format for
+  everyone still needs update.
 * **A spinner while a CAD drawing loads.** The CAD viewer shows a spinner
   and a short note over its canvas while a dropped file is read and while
   the viewer builds the model, so it is clear the page is working.

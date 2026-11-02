@@ -167,7 +167,8 @@ remembers its target, who and scope, and the next dialog opens there.
 
 A user who can read a record but not update it can format it for
 themselves: the cell menu's `Format…` needs only that the record can
-be read, `Note…` still needs update permission, and in the dialog
+be read, so does `Note…` (a note is kept apart from the record and changes
+nothing in it), and in the dialog
 `Everyone` is disabled with a tooltip saying why. (The server always
 allowed this; the first client cut still gated the whole menu on
 update permission, so the feature was unreachable for exactly the

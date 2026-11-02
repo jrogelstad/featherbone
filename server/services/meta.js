@@ -199,8 +199,9 @@
 
         /**
             Change one format or the current user's note on a record.
-            Needs update authorization on the record. A user can only
-            write or clear their own note.
+            A note, and a format for oneself, need only that the record
+            can be read; a format for everyone needs update authorization.
+            A user can only write or clear their own note.
 
             @method saveMeta
             @param {Object} payload
@@ -313,14 +314,17 @@
 
             /*
                 A format for everyone changes what everyone reads, so it
-                needs update rights, as a note does. A format for
-                oneself is a view preference, and being able to see the
-                record is enough for one: otherwise a user with
-                read-only access to a list could not mark it up for
-                their own eyes (John, Oct 2026).
+                needs update rights. A format for oneself is a view
+                preference, and being able to see the record is enough
+                for one: otherwise a user with read-only access to a
+                list could not mark it up for their own eyes (John,
+                Oct 2026). A note is not the record: it is kept apart
+                from it and does not change it, so anyone who can read
+                the record may leave one, a buyer telling production
+                about a work order, say (John, Nov 2026).
             */
             needs = (
-                (isFormat && who === "mine")
+                (!isFormat || who === "mine")
                 ? "canRead"
                 : "canUpdate"
             );

@@ -1585,7 +1585,7 @@ describe("client components", function () {
                 "it for everyone"
             ]]);
 
-            // And the menu lets a reader format, though not take notes
+            // And the menu lets a reader format and leave notes
             assert.deepEqual(
                 meta.cellActions({
                     attr: "name",
@@ -1593,7 +1593,7 @@ describe("client components", function () {
                     label: "Name",
                     model: reader
                 }).map((a) => [a.key, a.disabled]),
-                [["format", false], ["note", true]]
+                [["format", false], ["note", false]]
             );
         });
 
