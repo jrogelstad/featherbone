@@ -817,6 +817,17 @@
                                     return;
                                 }
 
+                                /*
+                                    A package's grants start a workbook
+                                    off. Once it exists they belong to
+                                    whoever has changed them, so an
+                                    upgrade leaves them alone.
+                                */
+                                if (wb.isInstallGrant) {
+                                    wb.authorizations = false;
+                                    authorizations = false;
+                                }
+
                                 mayUpdate(wb, row).then(function (may) {
                                     let e;
 

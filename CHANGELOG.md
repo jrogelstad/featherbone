@@ -5,6 +5,12 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A package can give its workbooks their grants.** The `authorizations`
+  in a package's `workbooks.json` were ignored on install, so a new
+  database had workbooks only a super user could open. They are now given
+  to a workbook the package creates, naming any role that is missing. A
+  workbook that already exists keeps the grants it has, so an upgrade
+  never undoes a change an administrator made.
 * **A spinner while a CAD drawing loads.** The CAD viewer shows a spinner
   and a short note over its canvas while a dropped file is read and while
   the viewer builds the model, so it is clear the page is working.
