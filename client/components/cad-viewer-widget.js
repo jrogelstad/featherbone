@@ -310,6 +310,7 @@ cadViewerWidget.viewModel = function (options) {
         let text = options.prop();
         let tree;
         let box;
+        let cadWidth;
 
         if (text === shown || !el) {
             return;
@@ -348,9 +349,10 @@ cadViewerWidget.viewModel = function (options) {
         }
 
         box = el.getBoundingClientRect();
+        cadWidth = Math.max(480, Math.floor(box.width - 260));
         viewer = new CadViewer.Viewer(
             new CadViewer.Display(el, {
-                cadWidth: Math.max(480, Math.floor(box.width - 260)),
+                cadWidth,
                 height: 520,
                 treeWidth: 240,
                 theme: "light",
@@ -369,6 +371,10 @@ cadViewerWidget.viewModel = function (options) {
                 defaultOpacity: 0.5,
                 normalLen: 0
             }, {up: "Z"});
+            // The viewer draws at its own default size (800 x 600) until it
+            // is told the one the display was made for, and the drawing
+            // then spills out of it, its axes marker over what follows
+            viewer.resizeCadView(cadWidth, 240, 520);
         } catch (err) {
             vm.error("This model could not be drawn: " + err.message);
         }
