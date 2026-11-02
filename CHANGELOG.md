@@ -5,6 +5,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The CAD viewer's drawing fits its box.** The viewer drew at its own
+  default size, 800 by 600, in a box made 520 high, so the bottom of the
+  drawing and its axes marker spilled over the file drop box below. It is
+  told the size of the box once the model is drawn.
 * **A spinner while a CAD drawing loads.** The CAD viewer shows a spinner
   and a short note over its canvas while a dropped file is read and while
   the viewer builds the model, so it is clear the page is working.
