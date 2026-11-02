@@ -181,6 +181,22 @@
       "CREATE TRIGGER base_currency_update_trigger AFTER UPDATE ON public.base_currency FOR EACH ROW EXECUTE FUNCTION update_trigger()"
     ]
   },
+  "cad_model": {
+    "columns": {
+      "model": "text",
+      "revision": "integer",
+      "source": "text",
+      "units": "text"
+    },
+    "inherits": [
+      "resource_link"
+    ],
+    "triggers": [
+      "CREATE TRIGGER cad_model_delete_trigger AFTER DELETE ON public.cad_model FOR EACH ROW EXECUTE FUNCTION delete_trigger()",
+      "CREATE TRIGGER cad_model_insert_trigger AFTER INSERT ON public.cad_model FOR EACH ROW EXECUTE FUNCTION insert_trigger()",
+      "CREATE TRIGGER cad_model_update_trigger AFTER UPDATE ON public.cad_model FOR EACH ROW EXECUTE FUNCTION update_trigger()"
+    ]
+  },
   "comment": {
     "columns": {
       "text": "text"

@@ -217,6 +217,57 @@
         }
     },
     {
+        "name": "CadModel",
+        "plural": "CadModels",
+        "module": "Core",
+        "inherits": "ResourceLink",
+        "description": "3D model drawn by three-cad-viewer; a resource link to itself",
+        "authorizations": [
+            {
+                "role": "everyone",
+                "actions": {
+                    "canCreate": false,
+                    "canRead": true,
+                    "canUpdate": false,
+                    "canDelete": false
+                }
+            }
+        ],
+        "properties": {
+            "revision": {
+                "description": "Revision number",
+                "type": "integer",
+                "default": 1,
+                "min": 1,
+                "isRequired": true
+            },
+            "units": {
+                "description": "Units the model is drawn in",
+                "type": "string",
+                "default": "in",
+                "dataList": [
+                    {
+                        "value": "in",
+                        "label": "Inches"
+                    },
+                    {
+                        "value": "mm",
+                        "label": "Millimeters"
+                    }
+                ]
+            },
+            "source": {
+                "description": "File the model was imported from, as held by the instance",
+                "type": "string"
+            },
+            "model": {
+                "description": "Shapes tree for three-cad-viewer (version 3), as JSON text so the server leaves its key names alone",
+                "type": "string",
+                "format": "cadModel"
+            }
+        }
+    },
+    {
         "name": "Form",
         "plural": "Forms",
         "module": "Core",

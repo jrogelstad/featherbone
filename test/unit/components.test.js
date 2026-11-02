@@ -107,7 +107,8 @@ describe("client components", function () {
     it("registers every component and view model", function () {
         assert.deepEqual(Object.keys(comps).sort(), [
             "accountMenu", "addressRelation", "aggregateDialog",
-            "autonumber", "button", "changePasswordPage", "checkEmailPage",
+            "autonumber", "button", "cadViewerWidget", "changePasswordPage",
+            "checkEmailPage",
             "checkbox", "childFormPage", "childTable", "confirmCodePage",
             "contactRelation", "dataList", "dataType", "dialog",
             "envBanner", "filterDialog", "formDialog", "formPage", "formWidget", "gantt",
@@ -567,6 +568,126 @@ describe("client components", function () {
                     "https://example.com/logo.png");
         });
 
+        it("cad-viewer-widget.js shows the model or asks for one", function () {
+            let tree;
+            let shapes = JSON.stringify({
+                parts: [{id: "/a/b", shape: {triangles: [0, 1, 2]}}]
+            });
+
+            // Nothing yet: an invitation, and the file box to answer it
+            tree = editor("cadViewerWidget", "model", {prop: f.prop("")});
+            assert.match(R.text(tree), /No model yet/);
+            assert.equal(
+                R.find(tree, R.byTag("input")).attrs.type,
+                "file"
+            );
+            assert.match(
+                R.find(tree, R.byTag("input")).attrs.accept,
+                /\.step/
+            );
+
+            // Held: the summary, with the box still there to replace it
+            tree = editor("cadViewerWidget", "model", {prop: f.prop(shapes)});
+            assert.match(R.text(tree), /1 part, 1 triangles/);
+            assert.ok(R.find(tree, R.byTag("input")));
+
+            // A new record links to itself, since the form will not save
+            // one whose required `resource` is empty
+            let data = {
+                id: f.prop("abc123"),
+                resource: f.prop("")
+            };
+
+            editor("cadViewerWidget", "model", {
+                model: {data},
+                prop: f.prop("")
+            });
+            assert.equal(data.resource(), "#!/edit/cad_model/abc123");
+
+            // One that has a link keeps it
+            data.resource("#!/edit/cad_model/other");
+            editor("cadViewerWidget", "model", {
+                model: {data},
+                prop: f.prop("")
+            });
+            assert.equal(data.resource(), "#!/edit/cad_model/other");
+
+            // A feather that inherits CadModel links to its own page
+            data = {
+                id: f.prop("xyz789"),
+                resource: f.prop("")
+            };
+            editor("cadViewerWidget", "model", {
+                model: {data, name: "EngineerCadModel"},
+                prop: f.prop("")
+            });
+            assert.equal(data.resource(), "#!/edit/engineer_cad_model/xyz789");
+
+            // Read only: no box, and a plain note when empty
+            tree = editor("cadViewerWidget", "model", {
+                prop: f.prop(""),
+                readonly: true
+            });
+            assert.match(R.text(tree), /No model has been imported/);
+            assert.equal(R.find(tree, R.byTag("input")), undefined);
+        });
+
+        it("cad-viewer-widget.js shows a spinner while it works", function () {
+            let comp = comps.cadViewerWidget;
+            let r = R.render(comp, {
+                id: "model",
+                parentProperty: "model",
+                parentViewModel: fw,
+                prop: f.prop("")
+            });
+            let vm = r.state.viewModel;
+            let overlay = function () {
+                return R.find(
+                    comp.view.call(r.state, r.vnode),
+                    R.byClass("fb-cad-viewer-loading")
+                );
+            };
+            // What a person sees: the overlay while it is shown
+            let spinner = function () {
+                let node = overlay();
+
+                return (
+                    node.attrs.style.display === "none"
+                    ? undefined
+                    : node
+                );
+            };
+
+            // At rest it is there but hidden, so nothing is added to or
+            // removed from the page when the work starts and ends
+            assert.ok(overlay());
+            assert.equal(spinner(), undefined);
+
+            // Never inside the canvas, which the viewer owns
+            assert.equal(
+                R.find(
+                    R.find(
+                        comp.view.call(r.state, r.vnode),
+                        R.byClass("fb-cad-viewer-canvas")
+                    ),
+                    R.byClass("fb-cad-viewer-loading")
+                ),
+                undefined
+            );
+
+            // Reading a dropped file
+            vm.busy(true);
+            assert.match(R.text(spinner()), /Reading the file/);
+            assert.ok(R.find(spinner(), R.byClass("lds-large-dual-ring")));
+            vm.busy(false);
+
+            // Building the drawing
+            vm.loading(true);
+            assert.match(R.text(spinner()), /Drawing the model/);
+            vm.loading(false);
+            assert.equal(spinner(), undefined);
+        });
+
         it("data-type.js renders the type selector and relation dialog",
                 function () {
             let tree = editor("dataType", "type");
@@ -610,6 +731,41 @@ describe("client components", function () {
             assert.ok(R.find(tree, R.byTag("datalist")));
             tree = editor("helpLinkRelation", "help");
             assert.ok(R.find(tree, R.byTag("datalist")));
+        });
+
+        it("resource-link-relation.js draws the icon the way lists do, " +
+                "and opens an app route in place", function () {
+            let vm;
+            let link;
+            let anchor;
+            let icon;
+            let held = model.data.link;
+
+            editor("resourceLinkRelation", "link");
+            vm = fw.relations().link;
+            link = {data: {
+                icon: () => "cube",
+                resource: () => "#!/edit/cad_model/abc"
+            }};
+            model.data.link = () => link;
+
+            anchor = vm.labels()[0];
+            icon = anchor.children[0];
+            assert.equal(anchor.attrs.href, "#!/edit/cad_model/abc");
+            assert.equal(anchor.attrs.target, undefined);
+            assert.equal(icon.tag, "img", "a cube is an IconPark image");
+            assert.ok(icon.attrs.src.endsWith("/cube.svg"));
+            assert.ok(
+                icon.attrs.className.includes("fb-contact-relation-icon")
+            );
+
+            link.data.icon = () => "";
+            link.data.resource = () => "/demo/files/plan.pdf";
+            anchor = vm.labels()[0];
+            assert.equal(anchor.attrs.target, "_blank");
+            assert.ok(anchor.children[0].attrs.src.endsWith("/file-text.svg"),
+                    "a link with no icon shows a document");
+            model.data.link = held;
         });
 
         it("resource-link-relation.js takes a dropped file, or Upload",
@@ -788,6 +944,76 @@ describe("client components", function () {
                 }
             };
         }
+
+        it("draws the indented tree in the column the list names",
+                async function () {
+            // Row levels 0, 1, 2 (the quantity); rows 2 and 3 have parents
+            let saved = globalThis.getComputedStyle;
+
+            async function chevronAt(indentColumn) {
+                let tree = f.createList("TestItem", {
+                    fetch: false,
+                    indentColumn,
+                    indentOn: "qty"
+                });
+                let vm;
+                let row;
+
+                await tree.fetch();
+                vm = vms.tableWidget({
+                    config: {columns: [{attr: "qty"}, {attr: "name"}]},
+                    feather: "TestItem",
+                    height: "200px",
+                    models: tree
+                });
+                row = R.findAll(
+                    R.find(
+                        R.render(comps.tableWidget, {viewModel: vm}).tree,
+                        R.byTag("tbody")
+                    ),
+                    R.byTag("tr")
+                )[0];
+
+                return R.findAll(row, R.byTag("td")).map(function (td) {
+                    return Boolean(R.find(td, (node) => (
+                        node && node.attrs &&
+                        String(node.attrs.key || "").endsWith("-indent")
+                    )));
+                }).indexOf(true);
+            }
+
+            // Icon tinting resolves var() colors through the browser
+            globalThis.getComputedStyle = () => ({color: "rgb(1, 2, 3)"});
+            let first = await chevronAt("");
+            let named = await chevronAt("name");
+
+            globalThis.getComputedStyle = saved;
+            assert.ok(first > -1, "a chevron in the first column");
+            assert.equal(
+                named,
+                first + 2,
+                "one column (and its spacer) further along"
+            );
+        });
+
+        it("shows the rows in the order the list gives", function () {
+            let vm = tableVm();
+            let names = () => R.findAll(
+                R.find(
+                    R.render(comps.tableWidget, {viewModel: vm}).tree,
+                    R.byTag("tbody")
+                ),
+                R.byTag("tr")
+            ).map((row) => R.text(row));
+            let natural = names();
+            let reversed;
+
+            list.displayOrder = () => list.slice().reverse();
+            reversed = names();
+            delete list.displayOrder;
+
+            assert.deepEqual(reversed, natural.slice().reverse());
+        });
 
         it("renders headers and one row per model", function () {
             let vm = tableVm();

@@ -5,6 +5,70 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A spinner while a CAD drawing loads.** The CAD viewer shows a spinner
+  and a short note over its canvas while a dropped file is read and while
+  the viewer builds the model, so it is clear the page is working.
+* **No scroll bar in the wait spinner.** The large spinner shown while a
+  record saves turned inside a dialog that scrolls, and the swing of its
+  rotated ring made the dialog grow a scroll bar. The ring now clips its
+  own overflow.
+* **A list can give its rows in an order of its own.** A table shows the
+  rows in the order `displayOrder()` returns when the list has one, so a
+  child array shown as a tree can follow its levels without being
+  reordered (a child array's order is part of what is saved).
+* **A tree list can name its indent column.** `createList` takes
+  `indentColumn`, the attribute whose cell carries the chevron and the
+  indent of an `indentOn` tree; without it the first column does, as
+  before.
+* **Module routes called with a trailing slash.** SupplyChain's client
+  calls several routes (convert planned purchase, plan supply, count
+  create and post, inventory report, bill of lading) with a trailing
+  slash, which found no route and answered 404. The slash is ignored.
+* **A feather that inherits `CadModel` links to its own page.** The link a
+  model writes to itself (and the one the form fills in before the first
+  save) now names the record's own feather, not `CadModel`, so a package
+  feather such as SupplyChain's `EngineerCadModel` opens on its own form.
+* **A STEP import keeps what a bill of material needs.** Each node of an
+  imported model carries `source_name`, the name its file gave it before a
+  repeat among its siblings was made unique ("Knob (2)" is "Knob"), and a
+  leaf that is one of several solids of a part is marked `body`. The viewer
+  ignores both.
+* **A STEP import keeps the assemblies below the first level.** The
+  STEP reader (occt-import-js) flattens everything under the first level of
+  an assembly, so a sub-assembly's parts arrived as a bare list of solids.
+  The import now reads the file's own product structure (`cad.stepAssembly`)
+  and puts the parts back under the assemblies they belong to, when the file
+  and the reader agree on what is there; otherwise the model comes in as
+  before. `source_name` keeps a name as the file wrote it, slashes included
+  ("3-PLYWOOD-BIRCH-3/8"), though the viewer's own name and id still have
+  them replaced.
+* **Resource links to a page in the app open in place.** A resource
+  link whose `resource` is a route in Featherbone itself (a CAD model's
+  `#!/edit/cad_model/...`) now opens the way a link to any other record
+  does, in the same window, instead of in a new tab. Links to files and
+  web pages still open in a new tab, and Ctrl, Cmd or Shift click still
+  opens an app link in one. Back or Done on the page it opens returns to
+  where the link was followed, not to the home page. The link under the field now draws its icon
+  the way lists do, so a CAD model's cube shows there too, and a link
+  with no icon shows a document rather than the word "resource".
+* **3D models, as records.** A new core feather, `CadModel`, inherits
+  `ResourceLink`, so a model is offered wherever a link to a drawing is
+  chosen (a product's drawing, an item document) and opening that link
+  goes to the model's own page, which draws it with three-cad-viewer.
+  Drop a STEP, STL or three-cad-viewer `.json` file on the page, or
+  choose one: it is read in the browser (STEP by occt-import-js, which is
+  WebAssembly and loads only when a model is opened), and the record
+  keeps the shapes, its `revision` (a whole number, 1 or more), `units`
+  and the file's name. SolidWorks `.sldprt` and `.sldasm` are not read;
+  the page says to Save As STEP, and a `.slddrw` to save the PDF. The
+  shapes are kept as JSON text in `model`, up to 4.5 MB: the server
+  camel-cases the keys of any object property it returns and drops those
+  starting with an underscore, which breaks the viewer's snake case
+  format. The navigation lives in the module that wants it (JobShop puts
+  it under Engineering). Adds `three-cad-viewer` and `occt-import-js`
+  (the latter LGPL-2.1, loaded as a separate file). Run `npm install`,
+  restart and `node install.js --instance <name>`. Core
+  3.0.0-alpha.27.
 * **A list's row menu is no longer hidden behind its totals row.** The
   menu had no layer of its own, so the list's sticky header and footer
   painted over its middle. Client only, no install. Core

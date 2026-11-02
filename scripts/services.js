@@ -496,6 +496,69 @@ f.datasource.registerFunction(
 );
 
 /*
+  CadModel
+*/
+function handleCadModel(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let rec = obj.newRec;
+        let name = obj.name || "CadModel";
+        let route = name.toSnakeCase();
+        let revision = (
+            rec.revision === undefined
+            ? 1
+            : rec.revision
+        );
+
+        // `min` on the property is only a hint to the form
+        if (!Number.isInteger(revision) || revision < 1) {
+            reject("Revision must be a whole number, 1 or higher");
+            return;
+        }
+
+        // Link to itself, one name per revision. The link opens the
+        // record as the feather it is (a feather inheriting CadModel has
+        // its own form), so it names obj.name, not CadModel.
+        rec.id = rec.id || f.createId();
+        rec.label = rec.label || "CAD model";
+        rec.displayValue = rec.label + " rev " + revision;
+        rec.resource = rec.resource || (
+            "#!/edit/" + route + "/" + rec.id
+        );
+
+        resolve();
+    });
+}
+
+// A new model shows as one, not as the link icon a resource link starts with
+function handleNewCadModel(obj) {
+    "use strict";
+
+    let rec = obj.newRec;
+
+    if (!rec.icon || rec.icon === "open_in_new") {
+        rec.icon = "cube";
+    }
+
+    return handleCadModel(obj);
+}
+
+f.datasource.registerFunction(
+    "POST",
+    "CadModel",
+    handleNewCadModel,
+    f.datasource.TRIGGER_BEFORE
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "CadModel",
+    handleCadModel,
+    f.datasource.TRIGGER_BEFORE
+);
+
+/*
   Currency
 */
 function doUpdateCurrencyBefore(obj) {

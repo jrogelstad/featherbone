@@ -2868,10 +2868,30 @@ button:disabled .fb-ipicon,
     animation-timing-function: linear;
 }
 
+/* The wait over a CAD drawing while it is read or drawn: over the
+   canvas, which the viewer only fills once it has been built. */
+.fb-cad-viewer-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--fb-surface);
+  color: var(--fb-text-muted);
+  pointer-events: none;
+}
+
 .lds-large-dual-ring {
   display: inline-block;
   width: 160px;
   height: 160px;
+  /* The ring turns inside a square a little larger than it is, and a
+     turning box's corners count toward the scrollable area of whatever
+     holds it, so the wait dialog grew a scroll bar while it spun. */
+  overflow: hidden;
 }
 
 .lds-large-dual-ring:after {
