@@ -3288,7 +3288,13 @@ tableWidget.component = {
         }());
 
         // Build rows
-        rows = theVm.models().map(createTableRow.bind(null, {
+        // A list may show its rows in an order of its own, as a child
+        // array does that can't be reordered without being changed
+        rows = (
+            theVm.models().displayOrder
+            ? theVm.models().displayOrder()
+            : theVm.models()
+        ).map(createTableRow.bind(null, {
             config: theConfig,
             idx: 0,
             vm: theVm,

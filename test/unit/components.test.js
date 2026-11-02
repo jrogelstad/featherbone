@@ -972,6 +972,25 @@ describe("client components", function () {
             );
         });
 
+        it("shows the rows in the order the list gives", function () {
+            let vm = tableVm();
+            let names = () => R.findAll(
+                R.find(
+                    R.render(comps.tableWidget, {viewModel: vm}).tree,
+                    R.byTag("tbody")
+                ),
+                R.byTag("tr")
+            ).map((row) => R.text(row));
+            let natural = names();
+            let reversed;
+
+            list.displayOrder = () => list.slice().reverse();
+            reversed = names();
+            delete list.displayOrder;
+
+            assert.deepEqual(reversed, natural.slice().reverse());
+        });
+
         it("renders headers and one row per model", function () {
             let vm = tableVm();
             let out = R.render(comps.tableWidget, {viewModel: vm});
