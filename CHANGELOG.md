@@ -5,6 +5,12 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A package can give its workbooks their grants.** The `authorizations`
+  in a package's `workbooks.json` were ignored on install, so a new
+  database had workbooks only a super user could open. They are now given
+  to a workbook the package creates, naming any role that is missing. A
+  workbook that already exists keeps the grants it has, so an upgrade
+  never undoes a change an administrator made.
 * **A reader can leave a note.** `Note…` on a list cell needed update
   permission on the record, so a buyer could not tell production a part
   would be late on a work order. A note is kept apart from the record and

@@ -917,9 +917,18 @@
                         }
                     };
 
-                    // Disable authorization updates
+                    /*
+                        Grants a package declares are given to a workbook
+                        it creates; one that exists keeps whatever it has
+                        (workbooks.js), so an upgrade never undoes a
+                        change somebody made.
+                    */
                     workbooks.forEach(function (wb) {
-                        wb.authorizations = false;
+                        if (Array.isArray(wb.authorizations)) {
+                            wb.isInstallGrant = true;
+                        } else {
+                            wb.authorizations = false;
+                        }
                         wb.localConfig = [];
                     });
                     pDatasource.request(payload, true).then(
