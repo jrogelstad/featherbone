@@ -553,6 +553,132 @@
         return cad.fromTriangles(positions, name);
     };
 
+    // The arguments of a STEP entity, split where its commas are
+    function stepArgs(text) {
+        let args = [];
+        let depth = 0;
+        let inString = false;
+        let from = 0;
+        let i;
+
+        for (i = 0; i < text.length; i += 1) {
+            let ch = text[i];
+
+            if (inString) {
+                if (ch === "'" && text[i + 1] === "'") {
+                    i += 1;
+                } else if (ch === "'") {
+                    inString = false;
+                }
+            } else if (ch === "'") {
+                inString = true;
+            } else if (ch === "(") {
+                depth += 1;
+            } else if (ch === ")") {
+                depth -= 1;
+            } else if (ch === "," && depth === 0) {
+                args.push(text.slice(from, i).trim());
+                from = i + 1;
+            }
+        }
+        args.push(text.slice(from).trim());
+
+        return args;
+    }
+
+    function stepString(arg) {
+        let found = /^'((?:[^']|'')*)'$/.exec(arg || "");
+
+        return (
+            found
+            ? found[1].replace(/''/g, "'")
+            : ""
+        );
+    }
+
+    /**
+        Read the product structure of a STEP file: which assemblies hold
+        which parts. The reader the viewer uses (occt-import-js) keeps only
+        the first level of assemblies and flattens everything beneath them,
+        so a sub-assembly's parts arrive as a bare list of meshes. The
+        structure is what puts them back where they belong.
+
+        @method stepAssembly
+        @param {ArrayBuffer|Uint8Array|String} data The STEP file
+        @return {Object|null} `{name, parts}` of the top assembly (a part is
+          `{name}`), or null when the file holds no assembly
+    */
+    cad.stepAssembly = function (data) {
+        let text = (
+            typeof data === "string"
+            ? data
+            : new TextDecoder("latin1").decode(data)
+        );
+        let re = new RegExp(
+            "#(\\d+)\\s*=\\s*(PRODUCT_DEFINITION_FORMATION(?:_WITH_SPECIFIED_" +
+            "SOURCE)?|PRODUCT_DEFINITION|PRODUCT|NEXT_ASSEMBLY_USAGE_" +
+            "OCCURRENCE)\\s*\\(([^;]*)\\)\\s*;",
+            "g"
+        );
+        let products = new Map();
+        let formations = new Map();
+        let definitions = new Map();
+        let kids = new Map();
+        let isChild = new Set();
+        let found = re.exec(text);
+        let roots;
+
+        while (found) {
+            let args = stepArgs(found[3]);
+            let id = "#" + found[1];
+
+            switch (found[2]) {
+            case "PRODUCT":
+                products.set(id, (
+                    stepString(args[1]) ||
+                    stepString(args[0]) ||
+                    "Part"
+                ));
+                break;
+            case "PRODUCT_DEFINITION":
+                definitions.set(id, args[2]);
+                break;
+            case "NEXT_ASSEMBLY_USAGE_OCCURRENCE":
+                if (!kids.has(args[3])) {
+                    kids.set(args[3], []);
+                }
+                kids.get(args[3]).push(args[4]);
+                isChild.add(args[4]);
+                break;
+            default:
+                formations.set(id, args[2]);
+            }
+            found = re.exec(text);
+        }
+
+        function nameOf(definition) {
+            return products.get(formations.get(definitions.get(definition)));
+        }
+
+        function build(definition, depth) {
+            let node = {name: nameOf(definition)};
+            let below = kids.get(definition);
+
+            if (below && depth < 50) {
+                node.parts = below.map((d) => build(d, depth + 1));
+            }
+
+            return node;
+        }
+
+        roots = Array.from(kids.keys()).filter((d) => !isChild.has(d));
+        if (roots.length !== 1 || !nameOf(roots[0])) {
+            return null;
+        }
+
+        return build(roots[0], 0);
+    };
+
     /**
         Turn what occt-import-js reads from a STEP, IGES or BREP file into
         a shapes tree, keeping the assembly's names. Two keys the viewer
@@ -562,15 +688,22 @@
         unique ("Knob (2)" is "Knob"), and `body` on a leaf marks one of
         several solids a part is made of, rather than a part.
 
+        The reader flattens an assembly below its first level. When the
+        file's product structure is given (`stepAssembly`) and it agrees
+        with what was read, the parts are put back under the assemblies
+        they belong to.
+
         @method fromOcct
         @param {Object} result From ReadStepFile and its kin
         @param {String} name File name, for the model's name
+        @param {Object} [structure] From `stepAssembly`
         @return {Object} Shapes tree
     */
-    cad.fromOcct = function (result, name) {
+    cad.fromOcct = function (result, name, structure) {
         let title = stripExtension(name);
         let total = 0;
         let box = null;
+        let nested = new Map();
         let root;
 
         if (!result || !result.success || !result.root) {
@@ -630,6 +763,77 @@
             return made.part;
         }
 
+        function leavesOf(part) {
+            return (
+                part.parts
+                ? part.parts.reduce((n, p) => n + leavesOf(p), 0)
+                : 1
+            );
+        }
+
+        // The assembly the flattened node was, from the file's structure
+        function nest(part, indexes, id) {
+            let used = new Set();
+
+            return {
+                version: 3,
+                name: cleanName(part.name),
+                id,
+                loc: IDENTITY,
+                parts: part.parts.map(function (child) {
+                    let sourceName = String(child.name).trim();
+                    let childName = uniqueName(cleanName(sourceName), used);
+                    let sub = (
+                        child.parts
+                        ? nest(child, indexes, id + "/" + childName)
+                        : meshLeaf(
+                            indexes.shift(),
+                            id + "/" + childName,
+                            childName
+                        )
+                    );
+
+                    sub.name = childName;
+                    sub.source_name = sourceName;
+
+                    return sub;
+                })
+            };
+        }
+
+        // Which flattened nodes the file's structure can put back
+        function plan() {
+            let tops = result.root.children || [];
+
+            if (!structure || tops.length !== 1) {
+                return;
+            }
+            let top = tops[0];
+            let parts = structure.parts || [];
+            let kids = top.children || [];
+
+            if (
+                String(top.name || "").trim() !== structure.name ||
+                kids.length !== parts.length
+            ) {
+                return;
+            }
+            kids.forEach(function (kid, i) {
+                let part = parts[i];
+                let under = kid.children || [];
+                let meshes = kid.meshes || [];
+
+                if (
+                    part.parts &&
+                    String(kid.name || "").trim() === part.name &&
+                    !under.length &&
+                    meshes.length === leavesOf(part)
+                ) {
+                    nested.set(kid, part);
+                }
+            });
+        }
+
         // A node with one mesh and nothing under it is the part itself
         function build(node, id, isTop) {
             let used = new Set();
@@ -637,6 +841,9 @@
             let meshes = node.meshes || [];
             let children = node.children || [];
 
+            if (nested.has(node)) {
+                return nest(nested.get(node), meshes.slice(), id);
+            }
             if (!isTop && meshes.length === 1 && !children.length) {
                 return meshLeaf(meshes[0], id, cleanName(node.name || "Part"));
             }
@@ -653,8 +860,8 @@
                 parts.push(body);
             });
             children.forEach(function (child) {
-                let sourceName = cleanName(child.name || "Part");
-                let childName = uniqueName(sourceName, used);
+                let sourceName = String(child.name || "Part").trim();
+                let childName = uniqueName(cleanName(sourceName), used);
                 let sub = build(child, id + "/" + childName, false);
 
                 // Leaves carry their name; groups need it set. The name
@@ -682,6 +889,7 @@
             };
         }
 
+        plan();
         root = build(result.root, "/" + title, true);
         root.normal_len = 0;
         root.bb = boxToObject(box || [0, 0, 0, 0, 0, 0]);
