@@ -9,6 +9,11 @@ Notable changes to Featherbone. Dates are the day the work landed on
   default size, 800 by 600, in a box made 520 high, so the bottom of the
   drawing and its axes marker spilled over the file drop box below. It is
   told the size of the box once the model is drawn.
+* **A reader can leave a note.** `Note…` on a list cell needed update
+  permission on the record, so a buyer could not tell production a part
+  would be late on a work order. A note is kept apart from the record and
+  changes nothing in it, so reading the record is enough. A format for
+  everyone still needs update.
 * **A spinner while a CAD drawing loads.** The CAD viewer shows a spinner
   and a short note over its canvas while a dropped file is read and while
   the viewer builds the model, so it is clear the page is working.
@@ -37,6 +42,15 @@ Notable changes to Featherbone. Dates are the day the work landed on
   repeat among its siblings was made unique ("Knob (2)" is "Knob"), and a
   leaf that is one of several solids of a part is marked `body`. The viewer
   ignores both.
+* **A STEP import keeps the assemblies below the first level.** The
+  STEP reader (occt-import-js) flattens everything under the first level of
+  an assembly, so a sub-assembly's parts arrived as a bare list of solids.
+  The import now reads the file's own product structure (`cad.stepAssembly`)
+  and puts the parts back under the assemblies they belong to, when the file
+  and the reader agree on what is there; otherwise the model comes in as
+  before. `source_name` keeps a name as the file wrote it, slashes included
+  ("3-PLYWOOD-BIRCH-3/8"), though the viewer's own name and id still have
+  them replaced.
 * **Resource links to a page in the app open in place.** A resource
   link whose `resource` is a route in Featherbone itself (a CAD model's
   `#!/edit/cad_model/...`) now opens the way a link to any other record

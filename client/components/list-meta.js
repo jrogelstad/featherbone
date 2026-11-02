@@ -40,7 +40,6 @@ const SWATCHES = [
     "gray"
 ];
 
-const NO_RIGHTS = "You need update permission on this record";
 const NOT_SAVED = "Save the record first";
 const NOT_HERE = "This list can't hold notes or formats";
 const CHECKING = "Checking permission…";
@@ -355,8 +354,8 @@ function canShare(model) {
     Whether formats and notes can be written for the record at all, and
     if not why. Asks the server once per model, then redraws. Update
     permission is not asked of here: a format of one's own needs only
-    to be able to read the record, so what update permission buys is
-    settled by canShare -- the notes, and a format for everyone.
+    to be able to read the record, nor is a note, so what update
+    permission buys is settled by canShare -- a format for everyone.
 */
 function why(model, feather) {
     let state = model.state().current()[0];
@@ -1172,12 +1171,8 @@ function cellActions(options) {
     let model = options.model;
     let attr = options.attr;
     let reason = why(model, options.feather);
-    // A note is shared by nature, so it takes update permission
-    let noteReason = reason || (
-        canShare(model)
-        ? ""
-        : NO_RIGHTS
-    );
+    // A note is kept apart from the record, so reading it is enough
+    let noteReason = reason;
     let mine = !noteReason && myNote(model, attr);
 
     function act(run) {

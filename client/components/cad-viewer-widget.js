@@ -123,6 +123,7 @@ cadViewerWidget.read = async function (file) {
     let data;
     let occt;
     let result;
+    let structure;
 
     if (found.message) {
         throw new Error(found.message);
@@ -138,8 +139,17 @@ cadViewerWidget.read = async function (file) {
 
     occt = await cadViewerWidget.loadReader();
     result = occt[READERS[kind]](data, null);
+    if (kind === "step") {
+        // The reader keeps only the first level of assemblies; the file
+        // itself says what sits under the others
+        try {
+            structure = f.cad.stepAssembly(data);
+        } catch (ignore) {
+            structure = undefined;
+        }
+    }
 
-    return f.cad.fromOcct(result, file.name);
+    return f.cad.fromOcct(result, file.name, structure);
 };
 
 /**

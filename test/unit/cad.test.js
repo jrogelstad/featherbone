@@ -254,6 +254,34 @@ describe("cad.fromOcct (STEP)", function () {
         assertDrawable(tree);
     });
 
+    it("keeps a slash in the source name, not in the id", function () {
+        let tree = cad.fromOcct({
+            meshes: [{
+                attributes: {
+                    normal: {array: [0, 0, 1, 0, 0, 1, 0, 0, 1]},
+                    position: {array: [0, 0, 0, 1, 0, 0, 0, 1, 0]}
+                },
+                index: {array: [0, 1, 2]},
+                name: "3-PLYWOOD-BIRCH-3/8"
+            }],
+            root: {
+                children: [{
+                    children: [],
+                    meshes: [0],
+                    name: "3-PLYWOOD-BIRCH-3/8"
+                }],
+                meshes: [],
+                name: "Top"
+            },
+            success: true
+        }, "box.step");
+        let part = tree.parts[0];
+
+        assert.equal(part.name, "3-PLYWOOD-BIRCH-3-8");
+        assert.equal(part.source_name, "3-PLYWOOD-BIRCH-3/8");
+        assert.equal(part.id, "/box/3-PLYWOOD-BIRCH-3-8");
+    });
+
     it("refuses a failed read", function () {
         assert.throws(
             () => cad.fromOcct({success: false}, "x.step"),
@@ -325,5 +353,108 @@ describe("cad text", function () {
         assert.ok(leaves(back)[0].shape.obj_vertices);
         assert.equal(cad.fromText(""), undefined);
         assert.equal(cad.fromText(undefined), undefined);
+    });
+});
+
+describe("cad.stepAssembly and a nested STEP file", function () {
+    let occt;
+    let result;
+
+    function names(node) {
+        let key = node.source_name || node.name;
+        let out = {};
+
+        if (!node.parts) {
+            return key;
+        }
+        out[key] = node.parts.map(names);
+
+        return out;
+    }
+
+    async function read() {
+        if (!result) {
+            occt = await require("occt-import-js")();
+            result = occt[READ_STEP](
+                new Uint8Array(fixture("nested.step")),
+                null
+            );
+        }
+
+        return result;
+    }
+
+    it("reads which assemblies hold which parts", function () {
+        let found = cad.stepAssembly(fixture("nested.step"));
+
+        assert.deepEqual(found, {
+            name: "Top",
+            parts: [{
+                name: "Alevel",
+                parts: [{
+                    name: "Blevel",
+                    parts: [{
+                        name: "Clevel",
+                        parts: [{
+                            name: "Dlevel",
+                            parts: [{name: "D1"}, {name: "D2"}]
+                        }, {name: "C1"}]
+                    }, {name: "B1"}]
+                }, {name: "A1"}]
+            }, {name: "T1"}]
+        });
+    });
+
+    it("says nothing about a file that is no assembly", function () {
+        assert.equal(cad.stepAssembly("nothing here"), null);
+        assert.equal(cad.stepAssembly(fixture("plate.stl")), null);
+    });
+
+    it("is flattened by the reader below the first level", async function () {
+        let tree = cad.fromOcct(await read(), "nested.step");
+        let top = tree.parts[0];
+
+        assert.deepEqual(
+            top.parts.map((p) => p.name),
+            ["Alevel", "T1"]
+        );
+        assert.deepEqual(
+            top.parts[0].parts.map((p) => p.body),
+            [true, true, true, true, true],
+            "everything under Alevel arrives as loose solids"
+        );
+    });
+
+    it("puts the parts back under their assemblies", async function () {
+        let tree = cad.fromOcct(
+            await read(),
+            "nested.step",
+            cad.stepAssembly(fixture("nested.step"))
+        );
+
+        assert.deepEqual(names(tree.parts[0]), {
+            Top: [{
+                Alevel: [{
+                    Blevel: [{Clevel: [{Dlevel: ["D1", "D2"]}, "C1"]}, "B1"]
+                }, "A1"]
+            }, "T1"]
+        });
+        assert.equal(leaves(tree).length, 6);
+        assert.equal(leaves(tree).some((p) => p.body), false);
+        assertDrawable(tree);
+    });
+
+    it("stays flat when the file and reader disagree", async function () {
+        let wrong = cad.stepAssembly(fixture("nested.step"));
+        let tree;
+
+        // The file's structure with a part too few under Alevel
+        wrong.parts[0].parts.pop();
+        tree = cad.fromOcct(await read(), "nested.step", wrong);
+
+        assert.deepEqual(
+            tree.parts[0].parts[0].parts.map((p) => p.body),
+            [true, true, true, true, true]
+        );
     });
 });
