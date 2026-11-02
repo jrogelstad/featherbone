@@ -1,9 +1,9 @@
 /*
     Formats and notes on list rows: POST /do/meta (server/services/
     meta.js), the `meta` column every object carries, and the rules
-    around it. A note, and a format for everyone, need update
-    authorization; a format for oneself needs only to be able to read
-    the record, since it changes nothing anyone else sees. A user
+    around it. A format for everyone needs update authorization; a note,
+    and a format for oneself, need only that the record can be read,
+    since neither changes the record. A user
     writes and clears only their own note, and only their own private
     format. Note HTML is sanitized; ordinary saves never touch meta;
     and a meta-only change is announced as "meta", not "update", so a
@@ -524,19 +524,9 @@ describe("list formats and notes (meta)", function () {
             rec = await newRec();
         });
 
-        it("refuses a user who may read but not update", async function () {
-            let resp = await meta(readerS, {
-                id: rec.id,
-                action: "note",
-                attr: "code",
-                html: "nope"
-            });
-
-            assert.equal(resp.status, 401);
-            assert.match(String(resp.body), /Not authorized to update/);
-
+        it("refuses a reader a format for everyone", async function () {
             // A format for everyone changes what everyone reads
-            resp = await meta(readerS, {
+            let resp = await meta(readerS, {
                 id: rec.id,
                 action: "format",
                 target: "row",
@@ -573,6 +563,33 @@ describe("list formats and notes (meta)", function () {
                 action: "clearFormat",
                 target: "row",
                 who: "mine"
+            });
+            assert.equal(resp.status, 200);
+            assert.equal(resp.body, null);
+        });
+
+        /*
+            A note is kept apart from the record and changes nothing in
+            it, so a reader can leave one: a buyer telling production
+            that a part will be late (John, Nov 2026).
+        */
+        it("lets that user leave and clear a note", async function () {
+            let resp = await meta(readerS, {
+                id: rec.id,
+                action: "note",
+                attr: "code",
+                html: "<p>Part will be late</p>"
+            });
+
+            assert.equal(resp.status, 200, JSON.stringify(resp.body));
+            assert.deepEqual(resp.body.notes.code.map(
+                (one) => [one.by, one.html]
+            ), [[reader.name, "<p>Part will be late</p>"]]);
+
+            resp = await meta(readerS, {
+                id: rec.id,
+                action: "clearNote",
+                attr: "code"
             });
             assert.equal(resp.status, 200);
             assert.equal(resp.body, null);
