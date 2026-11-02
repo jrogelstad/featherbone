@@ -365,6 +365,11 @@ function createTableDataView(options, col) {
         ? theVm.models().indentOn()
         : ""
     );
+    let indentColumn = (
+        theVm.models().indentColumn
+        ? theVm.models().indentColumn()
+        : ""
+    );
     let icon;
 
     columnWidth -= 6;
@@ -478,7 +483,12 @@ function createTableDataView(options, col) {
     applyMeta(theVm, model, col, tdOpts);
     handleMeta(theVm, model, col, item.label || theVm.alias(col), tdOpts);
 
-    if (indentOn && options.idx === 0) {
+    // The tree goes in the first column unless the list names another
+    if (indentOn && (
+        indentColumn
+        ? item.attr === indentColumn
+        : options.idx === 0
+    )) {
         iconStyle = {
             fontSize: "18px",
             verticalAlign: "text-top",

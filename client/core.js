@@ -1647,6 +1647,8 @@ f.baseCurrency = function (effective) {
     @param {Boolean} [options.showDeleted] Show deleted
     @param {Boolean} [options.isEditable] Models are editable (default true)
     @param {Boolean} [options.indentOn] Property defining indentation levels
+    @param {String} [options.indentColumn] Attribute whose column carries the
+      tree chevron and indent (default: the first column)
     @param {Object} [options.filter] Filter
     @return {List}
 */

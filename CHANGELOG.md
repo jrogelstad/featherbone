@@ -5,6 +5,17 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A spinner while a CAD drawing loads.** The CAD viewer shows a spinner
+  and a short note over its canvas while a dropped file is read and while
+  the viewer builds the model, so it is clear the page is working.
+* **No scroll bar in the wait spinner.** The large spinner shown while a
+  record saves turned inside a dialog that scrolls, and the swing of its
+  rotated ring made the dialog grow a scroll bar. The ring now clips its
+  own overflow.
+* **A tree list can name its indent column.** `createList` takes
+  `indentColumn`, the attribute whose cell carries the chevron and the
+  indent of an `indentOn` tree; without it the first column does, as
+  before.
 * **Module routes called with a trailing slash.** SupplyChain's client
   calls several routes (convert planned purchase, plan supply, count
   create and post, inventory report, bill of lading) with a trailing
