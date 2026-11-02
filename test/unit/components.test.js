@@ -641,15 +641,39 @@ describe("client components", function () {
                 prop: f.prop("")
             });
             let vm = r.state.viewModel;
-            let spinner = function () {
+            let overlay = function () {
                 return R.find(
                     comp.view.call(r.state, r.vnode),
                     R.byClass("fb-cad-viewer-loading")
                 );
             };
+            // What a person sees: the overlay while it is shown
+            let spinner = function () {
+                let node = overlay();
 
-            // At rest: none
+                return (
+                    node.attrs.style.display === "none"
+                    ? undefined
+                    : node
+                );
+            };
+
+            // At rest it is there but hidden, so nothing is added to or
+            // removed from the page when the work starts and ends
+            assert.ok(overlay());
             assert.equal(spinner(), undefined);
+
+            // Never inside the canvas, which the viewer owns
+            assert.equal(
+                R.find(
+                    R.find(
+                        comp.view.call(r.state, r.vnode),
+                        R.byClass("fb-cad-viewer-canvas")
+                    ),
+                    R.byClass("fb-cad-viewer-loading")
+                ),
+                undefined
+            );
 
             // Reading a dropped file
             vm.busy(true);

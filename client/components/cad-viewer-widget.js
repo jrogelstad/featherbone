@@ -454,21 +454,38 @@ cadViewerWidget.component = {
             class: "fb-cad-viewer",
             style: Object.assign({width: "100%"}, vm.style())
         }, [
+            // The spinner is beside the canvas, not in it: the viewer clears
+            // and fills the canvas itself, and Mithril must not own any of
+            // what is in there
             m("div", {
-                class: "fb-cad-viewer-canvas",
-                style: {
-                    minHeight: (
-                        (summary || vm.busy())
-                        ? "520px"
-                        : "0"
-                    ),
-                    position: "relative"
-                },
-                oncreate: (v) => vm.draw(v.dom),
-                onupdate: (v) => vm.draw(v.dom)
-            }, (
-                (vm.busy() || vm.loading())
-                ? m("div", {class: "fb-cad-viewer-loading"}, [
+                class: "fb-cad-viewer-stage",
+                style: {position: "relative"}
+            }, [
+                m("div", {
+                    class: "fb-cad-viewer-canvas",
+                    style: {
+                        minHeight: (
+                            (summary || vm.busy())
+                            ? "520px"
+                            : "0"
+                        ),
+                        position: "relative"
+                    },
+                    oncreate: (v) => vm.draw(v.dom),
+                    onupdate: (v) => vm.draw(v.dom)
+                }),
+                // Always there, shown or hidden: nothing is added to or
+                // removed from the page as the work starts and ends
+                m("div", {
+                    class: "fb-cad-viewer-loading",
+                    style: {
+                        display: (
+                            (vm.busy() || vm.loading())
+                            ? "flex"
+                            : "none"
+                        )
+                    }
+                }, [
                     m("div", {class: "lds-large-dual-ring"}),
                     m("div", (
                         vm.busy()
@@ -476,8 +493,7 @@ cadViewerWidget.component = {
                         : "Drawing the model..."
                     ))
                 ])
-                : undefined
-            )),
+            ]),
             (
                 summary
                 ? m("div", {class: "fb-cad-viewer-summary"}, (
