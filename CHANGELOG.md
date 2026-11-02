@@ -12,6 +12,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
   record saves turned inside a dialog that scrolls, and the swing of its
   rotated ring made the dialog grow a scroll bar. The ring now clips its
   own overflow.
+* **A list can give its rows in an order of its own.** A table shows the
+  rows in the order `displayOrder()` returns when the list has one, so a
+  child array shown as a tree can follow its levels without being
+  reordered (a child array's order is part of what is saved).
 * **A tree list can name its indent column.** `createList` takes
   `indentColumn`, the attribute whose cell carries the chevron and the
   indent of an `indentOn` tree; without it the first column does, as
