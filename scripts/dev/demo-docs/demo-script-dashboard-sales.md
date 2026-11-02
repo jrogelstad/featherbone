@@ -1,6 +1,6 @@
-# Featherbone demo script: sections 1 and 2 (Dashboard, Sales)
+# Featherbone demo script: sections 1-3 (Dashboard, Sales, Purchasing)
 
-Status: DRAFT 1. Walked click-by-click on the replica (Core alpha.27, SupplyChain 2.2.53, JobShop 2.3.10, clock 2027-06-01, seed v5), except where marked TO VERIFY.
+Status: DRAFT 2 (Purchasing added 2 Nov). Walked click-by-click on the replica (Core alpha.27, SupplyChain 2.2.53, JobShop 2.3.10, clock 2027-06-01, seed v5), except where marked TO VERIFY.
 Cast names are placeholders for John to confirm. Voice: Piper `ryan-high` (to confirm). Narration runs about 150 words a minute, so each section is about 5 minutes with pauses.
 
 Conventions: **[click]** is an action on screen, *italic* lines are narration, (m:ss) is the target running time.
@@ -61,6 +61,38 @@ Notes for production:
 - Start takes about 9 seconds on the replica. Cut or speed-ramp in the edit.
 - "Start" tooltip is "Start production"; Release tooltip is "Change Pending order to Active".
 - Placeholders to confirm: names, role titles, whether Marcus enters a PO number (left blank here).
+
+---
+
+## Section 3: Purchasing (about 5 min)
+
+Cast: Priya Nair, Buyer (placeholder). Sign in as the buyer role user (walked as admin).
+
+Starting state: S-02141 is Active (end of Sales). Start created three planned purchases, all linked to the order: PL-1 4 x 3-EVO-FEET-MOUNT at $40, PL-2 2 x 3-ROOF-SPAR at $125 (both eTrailer dot com, due 6/28/2027), and PL-3 the powder coat (Tidewater, $100). Result of the walk: one PO **P-27034** for eTrailer, $410, plus a second PO **P-27035** for Home Depot, $125.86.
+
+| Time | Action | Narration |
+|---|---|---|
+| 0:00 | Plan tab, **Buy** in the ribbon, **Planned Purchases** sheet. Three rows: PL-3, PL-1, PL-2. Scroll right to show Price, Primary Demand (W-01834-1.55 / .56), Sales Order S-02141, Lakeshore Campers, 1-RR-RIALTO. | *Priya is the buyer. When Marcus started the order, Featherbone worked out what the Rialto needs that we don't have on the shelf and planned the purchases. Nobody typed these. Each line says what it's for: the roof rack mounts and the roof spar, for work order one on sales order S-02141, Lakeshore's Rialto.* |
+| 0:50 | Point at supplier ETRAILER and price columns. | *It also picked the supplier and the price, from the item's supplier list: eTrailer for both, forty dollars a mount, a hundred and twenty-five a spar.* |
+| 1:15 | **[click]** PL-1, **[shift-click]** PL-2. Ribbon **Convert** lights up. | *Both are from the same supplier, so she'll buy them together. The powder coat is a different animal: it goes out to Tidewater and comes back, so it is handled with outside processing. She leaves it.* |
+| 1:40 | **[click]** Convert. Dialog "Convert planned purchase": Supplier ETRAILER, Use Existing Order unchecked. **[click]** Convert. | *Convert turns plans into a purchase order. She could add to an open order with this supplier; today a new one.* |
+| 2:00 | Purchase Order P-27034 opens, status Pending: eTrailer dot com, contact, planned delivery 06/28/2027, two lines, total $410.00. | *One order, two lines, four hundred and ten dollars, with the supplier's contact already on it and the planned delivery date carried from the plan.* |
+| 2:25 | **[click]** Release. Status Active. (The PO PDF opens in a new tab; cut to it for a moment.) **[click]** Print: "Success". | *Release makes the order real and produces the document for the supplier. Print sends it to the printer. Email is one more button.* |
+| 2:55 | Plan tab, **Plan** workbook, **Shortages** sheet. Point at the rows with negative Projected. | *The buyer's second job: what else is short? This list is everything projected to run out against demand. The campers are made to order, so they show here by design. The purchased items are the ones Priya cares about.* |
+| 3:25 | **[click]** 3-HOSE-CLAMP-1 (projected -12). **[click]** Create Planned Order. A Planned Purchase form opens: quantity 70, Home Depot, supplier item 602046, **Order Quantity 7 pack at $17.98**, Ratio 10. | *Hose clamps are short by a dozen. She raises a planned purchase right from the shortage. Featherbone fills in the supplier, their part number, and the price, and it converts the units: we use clamps one at a time, Home Depot sells packs of ten, so it orders seven packs for seventy clamps.* |
+| 4:00 | **[click]** Save. Buy, Planned Purchases, **[click]** the new row (PL-5), **Convert**, **Convert**. PO P-27035 opens: Home Depot, 7 packs, $125.86. **[click]** Release. | *Convert, release. Two purchase orders in a couple of minutes, and every line traces to a reason.* |
+| 4:20 | **[click]** Open Purchase Orders, search P-27034, open it. **[click]** Receive. Purchase Order Receipt: both lines, To Receive 4 and 2. **[click]** Receive All, **[click]** Save. Status Received. | *Parts arrive from eTrailer. The dock person opens the order, receives everything against it, and saves. The roof rack parts are on the shelf, and the order's lines show received.* |
+| 4:50 | End on the receipt (or the two lines now received). | *With parts in, the production manager has what he needs. Next, production.* |
+
+Notes for production:
+- Verified on the replica: select two rows with the same supplier and Convert makes ONE PO with both lines. Saving the receipt posts it (status Received, stock 4 and 2); no separate Post step.
+- The visible rows past the screen width (Price, Primary Demand, Sales Order) need a horizontal scroll; or shrink columns in the cut.
+- Cut the delivery gap between release and receipt (parts are planned for 6/28; the film receives them on 6/1). Say "when the shipment arrives" and cut.
+- Do not convert or receive PL-3 (powder coat): it is an outside process and cannot be received as an ordinary PO receipt. Leave it in Planned Purchases.
+- The new receipt shows as RC-07740 (receipts share one number sequence with work order receipts). Correct, but avoid dwelling on it.
+- Send (email) is not demonstrable (no mail service); skip.
+- Release opens the PO PDF in a new tab (`buySettings.onRelease`); headless recording gets a download, so render the PDF to an image and cut it in.
+- Placeholders to confirm: Priya Nair as buyer; whether to show the Shortages beat or end at the first PO (about 1:45 shorter).
 
 ---
 
