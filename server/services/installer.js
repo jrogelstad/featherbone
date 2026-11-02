@@ -666,8 +666,28 @@
                     }, true).then(callback).catch(rollback);
                 }
 
+                /*
+                    Whether this database has taken over its own
+                    authorizations (globalSettings.isLocalAuthorization).
+                    Until it has, the grants a package declares are the
+                    ones in force and an install rewrites them; once it
+                    has, an install leaves the grants of anything already
+                    here alone.
+                */
+                function isLocalAuthorization() {
+                    return pClient.query(
+                        "SELECT data->>'isLocalAuthorization' AS flag " +
+                        "FROM \"$settings\" WHERE name = 'globalSettings';"
+                    ).then(function (resp) {
+                        return (
+                            resp.rows.length > 0 &&
+                            resp.rows[0].flag === "true"
+                        );
+                    });
+                }
+
                 function saveFeathers(feathers, isSystem) {
-                    function callback(resp) {
+                    function callback(resp, isLocal) {
                         let payload;
                         let data = [];
 
@@ -716,6 +736,11 @@
 
                             if (auths) {
                                 feather.authorizations = auths.map(toFeather);
+                            }
+
+                            // Theirs now: no grants is leave them alone
+                            if (isLocal && existingId) {
+                                feather.authorizations = [];
                             }
 
                             feather.properties = keys.map(function (key) {
@@ -803,13 +828,15 @@
                         return;
                     }
 
-                    pDatasource.request({
-                        method: "GET",
-                        name: "Feather",
-                        user: pUser,
-                        client: pClient,
-                        properties: ["id", "name"]
-                    }, true).then(callback).catch(rollback);
+                    isLocalAuthorization().then(function (isLocal) {
+                        return pDatasource.request({
+                            method: "GET",
+                            name: "Feather",
+                            user: pUser,
+                            client: pClient,
+                            properties: ["id", "name"]
+                        }, true).then((resp) => callback(resp, isLocal));
+                    }).catch(rollback);
                 }
 
                 /*

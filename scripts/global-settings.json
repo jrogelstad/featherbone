@@ -97,6 +97,11 @@
             "type": "integer",
             "default": 465,
             "isOrganization": true
+        },
+        "isLocalAuthorization": {
+            "description": "This database manages its own feather and workbook authorizations. Off: the grants packages declare are the ones in force, and installing or upgrading a package rewrites them. On: an install or upgrade leaves the grants of everything already here alone, and an administrator changes them in the Feather Authorizations list or on a feather",
+            "type": "boolean",
+            "default": false
         }
     }
 }

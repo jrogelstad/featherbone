@@ -5,6 +5,17 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A database can take over its own authorizations.** A new setting,
+  `isLocalAuthorization` in the global settings (off by default), says who
+  owns the grants on feathers. Off, nothing changes: the grants packages
+  declare are the ones in force and an install or upgrade rewrites them.
+  On, an install or upgrade leaves the grants of a feather that is already
+  here alone, so what an administrator set is not undone; a feather a
+  package brings new still starts with what the package declares. Also,
+  a feather saved with no grants listed on an update now leaves its grants
+  as they are, which the note in `scripts/services.js` always said it did
+  but which revoked them all. **Run `node install.js --instance <name>`**
+  (new settings property; `Core` 3.0.0-alpha.28).
 * **A package can give its workbooks their grants.** The `authorizations`
   in a package's `workbooks.json` were ignored on install, so a new
   database had workbooks only a super user could open. They are now given
