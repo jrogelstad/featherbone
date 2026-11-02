@@ -5,6 +5,17 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A database can take over its own authorizations.** A new setting,
+  `isLocalAuthorization` in the global settings (off by default), says who
+  owns the grants on feathers. Off, nothing changes: the grants packages
+  declare are the ones in force and an install or upgrade rewrites them.
+  On, an install or upgrade leaves the grants of a feather that is already
+  here alone, so what an administrator set is not undone; a feather a
+  package brings new still starts with what the package declares. Also,
+  a feather saved with no grants listed on an update now leaves its grants
+  as they are, which the note in `scripts/services.js` always said it did
+  but which revoked them all. **Run `node install.js --instance <name>`**
+  (new settings property; `Core` 3.0.0-alpha.28).
 * **The CAD viewer's drawing fits its box.** The viewer drew at its own
   default size, 800 by 600, in a box made 520 high, so the bottom of the
   drawing and its axes marker spilled over the file drop box below. It is

@@ -309,7 +309,10 @@ async function doUpsertFeather(obj) {
                     }
                 }
             });
-            feather.authorizations = auths;
+            // As the note above says, none declared is leave them alone
+            if (obj.newRec.authorizations.length) {
+                feather.authorizations = auths;
+            }
         }
 
         payload = {

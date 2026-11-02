@@ -16,6 +16,7 @@
     "properties": [
       "city",
       "country",
+      "isLocalAuthorization",
       "logo",
       "name",
       "phone",
