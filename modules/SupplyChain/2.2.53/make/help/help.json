@@ -1,0 +1,30 @@
+{
+    "title": "Make",
+    "default": "work-orders.md",
+    "pages": [
+        {
+            "path": "work-orders.md",
+            "title": "Work orders"
+        },
+        {
+            "path": "execute.md",
+            "title": "Dispatch and completions"
+        },
+        {
+            "path": "resources.md",
+            "title": "Labor and machine resources"
+        },
+        {
+            "path": "work-in-process-value.md",
+            "title": "Work in process value"
+        }
+    ],
+    "forms": {
+        "Operation Completion Form": "execute.md",
+        "Outside Process Form": "work-orders.md"
+    },
+    "feathers": {
+        "OperationCompletion": "execute.md",
+        "OutsideProcess": "work-orders.md"
+    }
+}

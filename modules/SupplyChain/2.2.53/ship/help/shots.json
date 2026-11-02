@@ -1,0 +1,45 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "sales-order-shipment-customs-1.png": {
+            "steps": [
+                {"record": ["SalesOrderShipment", {"number": "SH-00955"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Customs')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 720,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "sales-order-shipment-containers-1.png": {
+            "steps": [
+                {"record": ["SalesOrderShipment", {"number": "SH-00954"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Containers')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-shipment-lines-1.png": {
+            "steps": [
+                {"record": ["SalesOrderShipment", {"number": "SH-00955"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Lines')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-shipment-lines-2.png": {
+            "steps": [
+                {"record": ["SalesOrderShipment", {"number": "SH-00955"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) tbody tr >> nth=0"},
+                {"click": "button[title^='Open (Alt']:visible"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1366, "height": 420},
+            "viewport": {"width": 1366, "height": 768}
+        }
+    },
+    "notTaken": {
+        "how-the-shipping-cycle-works-1.png": "Diagram or photo, not the app: kept",
+        "how-the-shipping-cycle-works-2.png": "Diagram or photo, not the app: kept",
+        "how-the-shipping-cycle-works-3.png": "Diagram or photo, not the app: kept"
+    }
+}

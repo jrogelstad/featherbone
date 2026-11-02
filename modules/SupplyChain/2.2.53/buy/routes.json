@@ -1,0 +1,90 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "kp8skjd61ii4",
+        "data": {
+            "module": "Buy",
+            "path": "/change-purchase-order-status",
+            "function": "doChangePurchaseOrderStatus"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "zyxr53zxgic",
+        "data": {
+            "module": "Buy",
+            "path": "/convert-planned-purchase",
+            "function": "doConvertPlannedPurchase"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "y73douoompxn",
+        "data": {
+            "module": "Buy",
+            "path": "/get-item-supplier",
+            "function": "doGetItemSupplier"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "xfxb54s31dbz",
+        "data": {
+            "module": "Buy",
+            "path": "/get-purchase-order-receipt-data",
+            "function": "doGetPurchaseOrderReceiptData"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "dy792ppvhdc3",
+        "data": {
+            "module": "Buy",
+            "path": "/post-purchase-order-receipts",
+            "function": "doPostPurchaseOrderReceipts"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "vdc9w1mgov46",
+        "data": {
+            "module": "Buy",
+            "path": "/get-purchase-kpis",
+            "function": "doGetPurchaseKpis"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "g88ic3ao5rr8",
+        "data": {
+            "module": "Buy",
+            "path": "/get-purchase-schedule",
+            "function": "doGetPurchaseSchedule"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Buy",
+        "id": "oatj9jkg0ix3",
+        "data": {
+            "module": "Buy",
+            "path": "/refresh-purchase-bi",
+            "function": "doRefreshPurchaseBi"
+        }
+    }
+]

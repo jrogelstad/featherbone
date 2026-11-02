@@ -1,0 +1,12 @@
+{
+    "title": "Plan",
+    "default": "planning.md",
+    "pages": [
+        {
+            "path": "planning.md",
+            "title": "Planning"
+        }
+    ],
+    "forms": {},
+    "feathers": {}
+}

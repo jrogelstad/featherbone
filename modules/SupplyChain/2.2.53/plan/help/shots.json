@@ -1,0 +1,28 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "shortages-1.png": {
+            "steps": [
+                {"record": ["Inventory", {"item.number": "3-WIRE-16GA-GRN"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) button[title='Refresh']"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 1000}
+        },
+        "reorder-worksheet-1.png": {
+            "steps": [
+                {"record": ["Inventory", {"item.number": "3-WIRE-16GA-WHT"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) button[title='Refresh']"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 1000}
+        }
+    },
+    "notTaken": {
+        "planning-concepts-overview-1.png": "Diagram or photo, not the app: kept",
+        "planning-concepts-overview-2.png": "A story, not a screen: a sales order whose work orders are allocated to one another, with the text built on W-00027 and S-00009. The demo has such orders, but the same work orders are staged by the Make pictures and the text must be rewritten around whichever are chosen",
+        "planning-concepts-overview-3.png": "Part of the same planning story: the work order hierarchy for the same orders",
+        "planning-concepts-overview-4.png": "Part of the same story: plywood allocated across stock, a purchase order and a planned order. The demo has no inventory item supplied from all three at once, so it needs data made for the purpose",
+        "planning-concepts-overview-5.png": "Part of the same story: a work order timeline with dependencies, described point by point in the text"
+    }
+}

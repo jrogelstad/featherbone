@@ -1,0 +1,24 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Common",
+        "id": "l3df3gar8gsb",
+        "data": {
+            "module": "Common",
+            "path": "/consolidate-print",
+            "function": "doConsolidatePrint"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Common",
+        "id": "mofrdox4omz7",
+        "data": {
+            "module": "Common",
+            "path": "/get-bi-tile-data",
+            "function": "doGetBiTileData"
+        }
+    }
+]

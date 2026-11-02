@@ -1,0 +1,89 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "sales-order-comments-1.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-01955"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Comments')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-taxes-1.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-01955"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Taxes')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-lines-1.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-02140"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Lines')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-timeline-1.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-01959"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-history-1.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-01954"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('History')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-timeline-2.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-01959"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) input[type=checkbox] >> nth=0"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-lines-2.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-02140"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) tbody tr >> nth=0"},
+                {"click": "button[title='Calculate due date']"}
+            ],
+            "element": "dialog[open]",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-lines-3.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-02140"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) tbody tr >> nth=0"},
+                {"click": "button[title='Calculate due date']"},
+                {"click": "dialog[open] input[type=checkbox] >> nth=0"}
+            ],
+            "element": "dialog[open]",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "sales-order-lines-4.png": {
+            "steps": [
+                {"record": ["SalesOrder", {"number": "S-01959"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) tbody tr >> nth=0"},
+                {"click": "button[title^='Open (Alt']:visible"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1366, "height": 760},
+            "viewport": {"width": 1366, "height": 768}
+        }
+    },
+    "notTaken": {
+        "how-the-sales-order-life-cycle-works-1.jpg": "Diagram or photo, not the app: kept",
+        "how-the-sales-order-life-cycle-works-2.png": "Diagram or photo, not the app: kept",
+        "how-the-sales-order-life-cycle-works-3.png": "Diagram or photo, not the app: kept"
+    }
+}

@@ -1,0 +1,479 @@
+[
+    {
+        "name": "Task",
+        "description": "Task",
+        "plural": "Tasks",
+        "module": "Project",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "",
+                    "sequence": "task_seq",
+                    "length": 5,
+                    "suffix": ""
+                },
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "description": {
+                "description": "Short description",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "priority": {
+                "description": "Priority",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "3",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "1",
+                        "label": "Showstopper"
+                    },
+                    {
+                        "value": "2",
+                        "label": "High"
+                    },
+                    {
+                        "value": "3",
+                        "label": "Normal"
+                    },
+                    {
+                        "value": "4",
+                        "label": "Low"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "comments": {
+                "description": "Comments",
+                "alias": "",
+                "type": "string",
+                "format": "richText",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "assignedTo": {
+                "description": "assignedTo",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isClosed": {
+                "description": "Issue is closed",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "plannedEndDate": {
+                "description": "Planned end date",
+                "alias": "End",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "Project",
+        "description": "Project",
+        "plural": "Projects",
+        "module": "Project",
+        "inherits": "Task",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "plannedStartDate": {
+                "description": "Planned start date",
+                "alias": "Start",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "gantt": {
+                "description": "Gantt chart",
+                "alias": "",
+                "type": "object",
+                "format": "gantt",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "percentComplete": {
+                "description": "Percent complete",
+                "alias": "% Complete",
+                "type": "integer",
+                "format": "",
+                "max": 100,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ProjectTask",
+        "description": "Project task",
+        "plural": "ProjectTasks",
+        "module": "Project",
+        "inherits": "Task",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "project": {
+                "description": "Parent project",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Project",
+                    "childOf": "tasks"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "plannedStartDate": {
+                "description": "Planned start date",
+                "alias": "Start",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "percentComplete": {
+                "description": "Percent complete",
+                "alias": "% Complete",
+                "type": "integer",
+                "format": "",
+                "max": 100,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "wbs": {
+                "description": "Work breakdown structure",
+                "alias": "WBS",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "linkId": {
+                "description": "Id that will stay persistent, even if project tasks moved up and down in list",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "createId()",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Task type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "normal",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "normal",
+                        "label": "Normal"
+                    },
+                    {
+                        "value": "group",
+                        "label": "Group"
+                    },
+                    {
+                        "value": "milestone",
+                        "label": "Milestone"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "parent": {
+                "description": "Parent task",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ProjectTaskLink",
+        "description": "Links between dependent tasks",
+        "plural": "ProjectTaskLinks",
+        "module": "Project",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "projectTask": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "ProjectTask",
+                    "childOf": "links"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "task": {
+                "description": "Successor task",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "type": {
+                "description": "Link type",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "FS",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "FS",
+                        "label": "Finish to Start"
+                    },
+                    {
+                        "value": "FF",
+                        "label": "Finish to Finish"
+                    },
+                    {
+                        "value": "SS",
+                        "label": "Start to Start"
+                    },
+                    {
+                        "value": "SF",
+                        "label": "Start to Finish"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ProjectTeam",
+        "description": "Project team members",
+        "plural": "ProjectTeams",
+        "module": "Project",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "project": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "Project",
+                    "childOf": "team"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "member": {
+                "description": "Member contact",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "phone",
+                        "address"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isLead": {
+                "description": "Is project manager lead",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "TaskHistory",
+        "description": "Task comment history",
+        "plural": "TaskHistories",
+        "module": "Project",
+        "inherits": "Comment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "task": {
+                "description": "Parent task",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "description"
+                    ],
+                    "relation": "Task",
+                    "childOf": "history"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

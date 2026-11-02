@@ -1,0 +1,90 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "product-actions-1.png": {
+            "steps": [
+                {"record": ["Product", {"number": "1-RR-QUINALT"}]},
+                {"click": "button[title='Print labels']:visible"}
+            ],
+            "pdf": {"click": "dialog[open] button:has-text('Ok'):visible", "page": 1, "width": 420}
+        },
+        "product-inventory-1.png": {
+            "steps": [
+                {"record": ["Product", {"number": "3-110V-OUTLET"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Inventory')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "product-inventory-2.png": {
+            "steps": [
+                {"record": ["Product", {"number": "3-110V-OUTLET"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Inventory')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) tbody tr >> nth=0"},
+                {"click": "button[title^='Open (Alt']:visible"}
+            ],
+            "viewport": {"width": 1366, "height": 768},
+            "clip": {"x": 0, "y": 0, "width": 1366, "height": 330}
+        },
+        "product-conversions-1.png": {
+            "steps": [
+                {"record": ["Product", {"number": "3-WIRE-16GA-RED"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Suppliers')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "product-conversions-2.png": {
+            "steps": [
+                {"record": ["Product", {"number": "3-WIRE-16GA-RED"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Conversions')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "product-indented-bill-of-material-1.png": {
+            "steps": [
+                {"record": ["Product", {"number": "1-RR-QUINALT"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Indented Materials')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "product-where-used-1.png": {
+            "steps": [
+                {"record": ["Product", {"number": "3-LATCH"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Where Used')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "conversions-2.png": {
+            "steps": [
+                {"go": "/workbook/items/conversions"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 300
+        },
+        "conversions-1.png": {
+            "steps": [
+                {"record": ["ItemUnit", {"code": "ft"}]},
+                {"eval": "(() => { const t = [...document.querySelectorAll('select')].filter(e => e.offsetParent && /dimension/i.test((e.id || '') + e.closest('div').textContent))[0]; t.size = t.options.length; t.style.height = (t.size * 17 + 6) + 'px'; })()"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 360
+        },
+        "design-settings-1.png": {
+            "steps": [
+                {"go": "/workbook/items/products"},
+                {"click": "[role=group][aria-label=Design] button"}
+            ],
+            "clip": {"x": 0, "y": 0, "width": 1024, "height": 360}
+        }
+    },
+    "notTaken": {
+        "conversions-3.png": "Diagram or photo, not the app: kept",
+        "design-how-the-item-life-cycle-works-1.png": "Diagram or photo, not the app: kept",
+        "design-how-to-roll-costs-1.png": "Diagram or photo, not the app: kept",
+        "design-how-to-roll-costs-2.png": "Diagram or photo, not the app: kept"
+    }
+}

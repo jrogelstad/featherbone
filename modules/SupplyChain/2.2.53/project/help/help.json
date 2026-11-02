@@ -1,0 +1,12 @@
+{
+    "title": "Project",
+    "default": "projects.md",
+    "pages": [
+        {
+            "path": "projects.md",
+            "title": "Projects"
+        }
+    ],
+    "forms": {},
+    "feathers": {}
+}

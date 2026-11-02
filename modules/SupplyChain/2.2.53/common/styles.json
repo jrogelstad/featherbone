@@ -1,0 +1,121 @@
+[
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "tgu6aprt38q0",
+        "data": {
+            "name": "ALERT-CRITICAL",
+            "description": "Critical alert",
+            "module": "Common",
+            "hasColor": true,
+            "color": "#ff0000",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "1hw8b1hmn9ki",
+        "data": {
+            "name": "ALERT-WARNING",
+            "description": "Warning alert",
+            "module": "Common",
+            "hasColor": true,
+            "color": "#ffa500",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "ghbl1udrym8m",
+        "data": {
+            "name": "ALT-EMPHASIS",
+            "description": "Emphasize data alternate",
+            "module": "Common",
+            "hasColor": true,
+            "color": "#008000",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "b3k8xllyroe8",
+        "data": {
+            "name": "BOLD",
+            "description": "Bold font",
+            "module": "Common",
+            "hasColor": false,
+            "color": "#000000",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "bold",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "i2k9k7fd7gx2",
+        "data": {
+            "name": "EMPHASIS",
+            "description": "Emphasize data",
+            "module": "Common",
+            "hasColor": true,
+            "color": "#0000ff",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "gzxm79tl0zsi",
+        "data": {
+            "name": "HIGH",
+            "description": "High priority",
+            "module": "Common",
+            "hasColor": true,
+            "color": "#ff0000",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    },
+    {
+        "name": "Style",
+        "method": "POST",
+        "module": "Common",
+        "id": "2r3hx74zf6m2",
+        "data": {
+            "name": "WARNING",
+            "description": "Warning",
+            "module": "Common",
+            "hasColor": true,
+            "color": "#ffa500",
+            "hasBackgroundColor": false,
+            "backgroundColor": "#FFFFFF",
+            "fontWeight": "normal",
+            "underline": "none"
+        }
+    }
+]

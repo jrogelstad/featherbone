@@ -1,0 +1,28 @@
+{
+    "name": "commonSettings",
+    "module": "Common",
+    "description": "Common settings",
+    "properties": {
+        "costDecimals": {
+            "description": "Decimal places on costs",
+            "type": "integer",
+            "min": 0,
+            "max": 6,
+            "default": 2
+        },
+        "purchasePriceDecimals": {
+            "description": "Decimal places on purchase prices",
+            "type": "integer",
+            "min": 0,
+            "max": 6,
+            "default": 2
+        },
+        "salesPriceDecimals": {
+            "description": "Decimal places on sales prices",
+            "type": "integer",
+            "min": 0,
+            "max": 6,
+            "default": 2
+        }
+    }
+}

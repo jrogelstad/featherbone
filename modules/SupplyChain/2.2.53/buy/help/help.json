@@ -1,0 +1,37 @@
+{
+    "title": "Buy",
+    "default": "purchase-orders.md",
+    "pages": [
+        {
+            "path": "purchase-orders.md",
+            "title": "Purchase orders"
+        },
+        {
+            "path": "outside-process.md",
+            "title": "Outside process shipments"
+        },
+        {
+            "path": "suppliers.md",
+            "title": "Suppliers and settings"
+        }
+    ],
+    "forms": {
+        "Item Supplier": "suppliers.md",
+        "Item Supplier List Form": "suppliers.md",
+        "Outside Process Shipment Line Form": "outside-process.md",
+        "Planned Purchase": "purchase-orders.md",
+        "Print Purchase Order": "purchase-orders.md",
+        "Purchase Order": "purchase-orders.md",
+        "Purchase Order Line": "purchase-orders.md",
+        "Purchase Order Line Child": "purchase-orders.md",
+        "Purchase Order Receipt Line Child": "purchase-orders.md",
+        "Purchase Receipt": "purchase-orders.md",
+        "Supplier Form": "suppliers.md"
+    },
+    "feathers": {
+        "ItemSupplier": "suppliers.md",
+        "OutsideProcessShipment": "outside-process.md",
+        "OutsideProcessShipmentLine": "outside-process.md",
+        "Supplier": "suppliers.md"
+    }
+}

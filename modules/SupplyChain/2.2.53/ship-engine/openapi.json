@@ -1,0 +1,125 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "ShipEngine",
+        "version": "2.1.10",
+        "description": "Connects shipping to the ShipEngine label service: imports the account's carriers, services and package types, and voids purchased labels. Needs an API key in the shipEngineSettings settings."
+    },
+    "tags": [
+        {
+            "name": "ShipEngine carriers",
+            "description": "Carrier, service and package type data imported from ShipEngine."
+        },
+        {
+            "name": "ShipEngine labels",
+            "description": "Labels bought through ShipEngine."
+        }
+    ],
+    "paths": {
+        "/import-carriers": {
+            "post": {
+                "tags": [
+                    "ShipEngine carriers"
+                ],
+                "operationId": "doImportShipEngineCarriers",
+                "summary": "Import carriers from ShipEngine",
+                "description": "Lists the carriers on the ShipEngine account and inserts one ShipEngineCarrier per carrier, with its services and package types, using the ShipEngine carrier id as the record id. Runs as a server process in one transaction and posts ShipEngine alerts when it starts, finishes or fails. Refuses on any ShipEngine error, and when a carrier with the same id already exists (the insert does not update).",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "subscription": {
+                                        "type": "object",
+                                        "description": "Optional. Subscription that receives server process progress events.",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Subscription id."
+                                            },
+                                            "eventKey": {
+                                                "type": "string",
+                                                "description": "The client's event key."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Always \"Ship engine carriers imported\".",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/void-label": {
+            "post": {
+                "tags": [
+                    "ShipEngine labels"
+                ],
+                "operationId": "doVoidShipEngineLabel",
+                "summary": "Void a ShipEngine label",
+                "description": "Asks ShipEngine to void a label. Changes no Featherbone records; Sell's /void-sales-order-shipment-label also marks the shipment. A refusal by ShipEngine comes back as approved false with status 200; transport and validation errors from ShipEngine are returned as errors.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "labelId"
+                                ],
+                                "properties": {
+                                    "labelId": {
+                                        "type": "string",
+                                        "description": "ShipEngine label id (SalesOrderShipment.labelId)."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ShipEngine's answer.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "approved": {
+                                            "type": "boolean",
+                                            "description": "Whether ShipEngine voided the label."
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "ShipEngine's explanation."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    }
+}

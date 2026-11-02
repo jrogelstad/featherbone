@@ -1,0 +1,196 @@
+{
+    "viewport": {"width": 1024, "height": 640},
+    "shots": {
+        "work-order-receipts-1.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrderReceipt", {"workOrder.number": "W-01770-4"}]}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 460,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "work-order-operations-1.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01762-2"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Operations')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "dispatch-list-1.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"go": "/workbook/execute/dispatch"},
+                {"click": "tbody tr:has-text('W-01762-2') td >> nth=14"},
+                {"type": ["tr.fb-table-row-editor #inputToComplete", "1"]},
+                {"press": "Tab"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 400,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "operation-completions-2.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"go": "/workbook/execute/operation%20completions"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 300,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "operation-completions-3.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["OperationCompletion", {"number": "OC-00002"}]}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 420,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "operation-completions-4.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01762-4"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Operations')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 520,
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "operation-completions-5.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01762-4"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) input[type=checkbox] >> nth=0"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 720,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "work-order-materials-1.png": {
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01829-1"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Materials')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "work-order-hierarchy-1.png": {
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01829-1"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Hierarchy')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "work-order-timeline-1.png": {
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01829-1"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "work-order-comments-1.png": {
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01762-1"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Comments')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "planned-work-orders-1.png": {
+            "steps": [
+                {"record": ["Inventory", {"item.number": "2-GALLEY-ASSY"}]},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) button[title='Refresh']"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "planned-work-orders-2.png": {
+            "steps": [
+                {"record": ["PlannedWorkOrder", {"number": "PL-2"}]}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768},
+            "height": 330
+        },
+        "work-order-header-1.png": {
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01829-1"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 768}
+        },
+        "work-order-header-2.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01770-2"}]},
+                {"select": ["select:right-of(:text('Schedule:'))", "B"]},
+                {"click": "button:has-text('Apply'):visible"},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) input[type=checkbox] >> nth=0"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 720,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "work-order-header-3.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01762-2"}]},
+                {"select": ["select:right-of(:text('Schedule:'))", "M"]},
+                {"fill": ["input:right-of(:text('Start Date:'))", "2027-05-02"]},
+                {"fill": ["input:right-of(:text('Due Date:'))", "2027-05-17"]},
+                {"click": "button:has-text('Apply'):visible"},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) input[type=checkbox] >> nth=0"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 720,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "work-order-header-4.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01766-2"}]},
+                {"select": ["select:right-of(:text('Schedule:'))", "M"]},
+                {"fill": ["input:right-of(:text('Due Date:'))", "2027-05-11"]},
+                {"click": "button:has-text('Apply'):visible"},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) input[type=checkbox] >> nth=0"}
+            ],
+            "below": ".fb-ribbon-page",
+            "height": 720,
+            "viewport": {"width": 1366, "height": 900}
+        },
+        "work-order-header-5.png": {
+            "setup": "enterprise",
+            "steps": [
+                {"go": "/workbook/make/open%20work%20orders"}
+            ],
+            "element": "tr:has-text('W-01766-2') td >> nth=6",
+            "pad": 0,
+            "viewport": {"width": 1366, "height": 700}
+        },
+        "work-order-timeline-2.png": {
+            "steps": [
+                {"record": ["WorkOrder", {"number": "W-01829-1"}]},
+                {"click": "button.fb-group-tab-form:visible:text-is('Timeline')"},
+                {"click": ".fb-tabbed-panes:not(.fb-tabbed-panes-hidden) input[type=checkbox] >> nth=0"}
+            ],
+            "below": ".fb-ribbon-page",
+            "viewport": {"width": 1366, "height": 900}
+        }
+    },
+    "notTaken": {
+        "how-the-work-order-life-cycle-works-1.png": "Diagram or photo, not the app: kept",
+        "how-the-work-order-life-cycle-works-2.png": "Diagram or photo, not the app: kept",
+        "operation-completions-1.jpg": "Diagram or photo, not the app: kept"
+    }
+}

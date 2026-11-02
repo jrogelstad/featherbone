@@ -1,0 +1,2065 @@
+[
+    {
+        "name": "CustomerCategory",
+        "description": "Customer category",
+        "plural": "CustomerCategories",
+        "module": "Sell",
+        "inherits": "Category",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false
+    },
+    {
+        "name": "Customer",
+        "description": "Customer",
+        "plural": "Customers",
+        "module": "Sell",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "name": {
+                "description": "Name",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": true,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isActive": {
+                "description": "Active status",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "contact": {
+                "description": "Primary contact",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "phone",
+                        "email",
+                        "address"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "billTo": {
+                "description": "Bill to address",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "terms": {
+                "description": "Payment terms",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code"
+                    ],
+                    "relation": "Terms"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "currency": {
+                "description": "Currency",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "Currency"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "creditStatus": {
+                "description": "Credit status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "G",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "G",
+                        "label": "Good"
+                    },
+                    {
+                        "value": "W",
+                        "label": "Warn"
+                    },
+                    {
+                        "value": "H",
+                        "label": "Hold"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "billToIsShipto": {
+                "description": "Whether to automatically use bill to as ship to address",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipTo": {
+                "description": "Ship to address",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Default sell from site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipMethod": {
+                "description": "Default ship method",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ShipMethod"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "incoTerms": {
+                "description": "Specifies who is responsible for paying for and managing the shipment, insurance, documentation, customs clearance, and other logistical activities",
+                "alias": "Incoterms",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "IncoTerms"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "discount": {
+                "description": "Sales discount percent",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "taxable": {
+                "description": "Is taxable",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": true,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "category": {
+                "description": "Category",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "CustomerCategory"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Customer notes",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "taxId": {
+                "description": "Tax exempt identification number",
+                "alias": "Tax ID",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "CustomerComment",
+        "description": "Customer comments",
+        "plural": "CustomerComments",
+        "module": "Sell",
+        "inherits": "Comment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "customer": {
+                "description": "Parent customer",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "name"
+                    ],
+                    "relation": "Customer",
+                    "childOf": "comments"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "CustomerContact",
+        "description": "Customer contacts",
+        "plural": "CustomerContacts",
+        "module": "Sell",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "customer": {
+                "description": "Parent",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "name"
+                    ],
+                    "relation": "Customer",
+                    "childOf": "contacts"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "contact": {
+                "description": "Contact",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "email",
+                        "phone",
+                        "address"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isPrimary": {
+                "description": "Is primary",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesOrder",
+        "description": "Sales order",
+        "plural": "SalesOrders",
+        "module": "Sell",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "number": {
+                "description": "Number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "autonumber": {
+                    "prefix": "S-",
+                    "sequence": "sales_seq",
+                    "length": 5,
+                    "suffix": "",
+                    "objectType": ""
+                },
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "orderDate": {
+                "description": "Order date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "status": {
+                "description": "Order status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "I",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "S",
+                        "label": "Shipping"
+                    },
+                    {
+                        "value": "B",
+                        "label": "Back Order"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Closed"
+                    },
+                    {
+                        "value": "I",
+                        "label": "Incomplete"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "customer": {
+                "description": "Customer",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "name",
+                        "discount"
+                    ],
+                    "relation": "Customer"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "purchaseOrder": {
+                "description": "Customer purchase order number",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "billTo": {
+                "description": "Bill to",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "contact": {
+                "description": "Contact",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "fullName",
+                        "phone",
+                        "email",
+                        "address"
+                    ],
+                    "relation": "Contact"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "shipTo": {
+                "description": "Ship to",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "type",
+                        "name",
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "postalCode",
+                        "country",
+                        "phone"
+                    ],
+                    "relation": "Address"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "requestedDate": {
+                "description": "RequstedDate",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "promiseDate": {
+                "description": "Date confirmed to deliver",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "terms": {
+                "description": "Terms",
+                "alias": "Payment Terms",
+                "type": {
+                    "properties": [
+                        "code"
+                    ],
+                    "relation": "Terms"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "currency": {
+                "description": "Currency",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "Currency"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "shipMethod": {
+                "description": "Ship method",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "international",
+                        "packageType"
+                    ],
+                    "relation": "ShipMethod"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "incoTerms": {
+                "description": "Incoterms",
+                "alias": "Incoterms",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "IncoTerms"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "site": {
+                "description": "Ship from site",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description",
+                        "defaultShipLocation",
+                        "defaultLocation",
+                        "locationControlled"
+                    ],
+                    "relation": "Site"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "taxable": {
+                "description": "Taxable",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "subtotal": {
+                "description": "Subtotal",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "tax": {
+                "description": "Tax",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "freight": {
+                "description": "Estimated shipping cost",
+                "alias": "Shipping",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "total": {
+                "description": "Total",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "confirmationPrinted": {
+                "description": "Confirmaton is printed",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "confirmationPrintTime": {
+                "description": "Time confirmation was printed",
+                "alias": "",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "confirmationPrintedBy": {
+                "description": "User who printed confirmation",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "picklistPrinted": {
+                "description": "Picklist is printed",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "picklistPrintTime": {
+                "description": "Time picklist was printed",
+                "alias": "",
+                "type": "string",
+                "format": "dateTime",
+                "default": "null",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "picklistPrintedBy": {
+                "description": "User who printed the picklist",
+                "alias": "",
+                "type": "string",
+                "format": "userAccount",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "source": {
+                "description": "Order creation source",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "Manual entry",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipInstructions": {
+                "description": "Ship instructions that print on paperwork",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "salesRep": {
+                "description": "Sales representative",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "fullName",
+                        "isActive",
+                        "phone",
+                        "email",
+                        "address"
+                    ],
+                    "relation": "Employee"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "onHold": {
+                "description": "Order is on hold",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "default": false,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "planStatus": {
+                "description": "Planning status",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "U",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "dataList": [
+                    {
+                        "value": "U",
+                        "label": "Has unallocated requirements"
+                    },
+                    {
+                        "value": "P",
+                        "label": "Some or all materials have planned orders"
+                    },
+                    {
+                        "value": "O",
+                        "label": "Some or all materials on order"
+                    },
+                    {
+                        "value": "I",
+                        "label": "All allocated material in inventory"
+                    },
+                    {
+                        "value": "C",
+                        "label": "No material allocations required"
+                    }
+                ],
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "billingNotes": {
+                "description": "Notes to appear on invoices",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesOrderComment",
+        "description": "Sales Order Comment",
+        "plural": "SalesOrderComments",
+        "module": "Sell",
+        "inherits": "Comment",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesOrder": {
+                "description": "Parent sales order",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "SalesOrder",
+                    "childOf": "comments"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "isSystem": {
+                "description": "System generated comment",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesOrderLine",
+        "description": "Sales order line",
+        "plural": "SalesOrderLines",
+        "module": "Sell",
+        "inherits": "Demand",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesOrder": {
+                "description": "Parent sales order",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "customer",
+                        "shipTo",
+                        "shipMethod",
+                        "purchaseOrder",
+                        "id",
+                        "onHold",
+                        "orderDate"
+                    ],
+                    "relation": "SalesOrder",
+                    "childOf": "lines"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "line": {
+                "description": "Line number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "orderDate": {
+                "description": "Order date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "today()",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "ordered": {
+                "description": "Quantity ordered",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "price": {
+                "description": "Unit price",
+                "alias": "Unit price",
+                "type": "object",
+                "format": "salesPrice",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "amount": {
+                "description": "Total amount",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": true
+            },
+            "requestedDate": {
+                "description": "Customer requested date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "originalPromiseDate": {
+                "description": "Original promise date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "notes": {
+                "description": "Free form text",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipInstructions": {
+                "description": "Shipping instructions",
+                "alias": "",
+                "type": "string",
+                "format": "textArea",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shipped": {
+                "description": "Shipped quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "backOrdered": {
+                "description": "Back ordered quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "promiseDate": {
+                "description": "Current promise date",
+                "alias": "",
+                "type": "string",
+                "format": "date",
+                "default": "null",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "discount": {
+                "description": "Discount",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 2,
+                "precision": 5,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualLaborCost": {
+                "description": "Actual labor cost of goods sold",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualMaterialCost": {
+                "description": "Actual material cost of goods sold",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualServiceCost": {
+                "description": "Actual service cost of goods sold",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualOverheadCost": {
+                "description": "Actual overhead cost of goods sold",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualTotalCost": {
+                "description": "Actual total cost of goods sold",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "discountPrice": {
+                "description": "Unit price after discoun",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "inShipping": {
+                "description": "Quantity in shipping",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "taxable": {
+                "description": "Flag whether line item is taxable",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        },
+        "overloads": {
+            "status": {
+                "dataList": [
+                    {
+                        "value": "P",
+                        "label": "Pending"
+                    },
+                    {
+                        "value": "A",
+                        "label": "Active"
+                    },
+                    {
+                        "value": "S",
+                        "label": "Shipping"
+                    },
+                    {
+                        "value": "B",
+                        "label": "Back ordered"
+                    },
+                    {
+                        "value": "C",
+                        "label": "Closed"
+                    }
+                ]
+            },
+            "item": {
+                "alias": "Product",
+                "type": {
+                    "type": "relation",
+                    "relation": "Product",
+                    "properties": []
+                }
+            }
+        }
+    },
+    {
+        "name": "SalesOrderRequirement",
+        "description": "Requirements for assemble to order sales order lines",
+        "plural": "SalesOrderRequirements",
+        "module": "Sell",
+        "inherits": "Demand",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesOrderLine": {
+                "description": "parent",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "id",
+                        "line"
+                    ],
+                    "relation": "SalesOrderLine",
+                    "childOf": "materials"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "sequence": {
+                "description": "Sequence number",
+                "alias": "",
+                "type": "integer",
+                "format": "",
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "fixedQuantity": {
+                "description": "Fixed quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantityPer": {
+                "description": "Quantity per sales order line unit",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "required": {
+                "description": "Total required quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "issued": {
+                "description": "Quantity issued",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "returned": {
+                "description": "Quantity returned",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "estimatedCost": {
+                "description": "Estimated cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "actualCost": {
+                "description": "Actual cost",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "unit": {
+                "description": "Unit of measure",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "ItemUnit"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "ratio": {
+                "description": "Unit of measure ratio",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 1,
+                "isReadOnly": true,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesOrderTax",
+        "description": "Sales order tax",
+        "plural": "SalesOrderTaxes",
+        "module": "Sell",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "salesOrder": {
+                "description": "Parent sales order",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "SalesOrder",
+                    "childOf": "taxes"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "taxType": {
+                "description": "Tax type",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "TaxType"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "amount": {
+                "description": "Amount",
+                "alias": "",
+                "type": "object",
+                "format": "money",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "percent": {
+                "description": "Tax rate percent",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shippingTaxable": {
+                "description": "Tax freight amount",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "ShipmentDetail",
+        "description": "Shipment line details",
+        "plural": "ShipmentDetails",
+        "module": "Sell",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "shipmentLine": {
+                "description": "Parent shipment line",
+                "alias": "",
+                "type": {
+                    "properties": [],
+                    "relation": "ShipmentLine",
+                    "childOf": "details"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "quantity": {
+                "description": "Quantity",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "location": {
+                "description": "Location",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "name",
+                        "description",
+                        "type"
+                    ],
+                    "relation": "Location"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "trace": {
+                "description": "Lot or serial",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "number",
+                        "reference",
+                        "isOnHand"
+                    ],
+                    "relation": "Trace"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "TaxRate",
+        "description": "Tax rates table",
+        "plural": "TaxRates",
+        "module": "Sell",
+        "inherits": "Document",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "zipCode": {
+                "description": "Postal code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "salesTaxRate": {
+                "description": "Total tax rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "rateState": {
+                "description": "State tax rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reportingCodeState": {
+                "description": "State reporting code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "rateCounty": {
+                "description": "County tax rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reportingCodeCounty": {
+                "description": "County reporting code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "rateCity": {
+                "description": "City rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reportingCodeCity": {
+                "description": "City reporting code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "rateSpecialDistrict": {
+                "description": "Special district rate",
+                "alias": "",
+                "type": "number",
+                "format": "",
+                "scale": 8,
+                "precision": 18,
+                "default": 0,
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "reportingCodeSpecialDistrict": {
+                "description": "Special district reporting code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "city": {
+                "description": "City",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "postOffice": {
+                "description": "Post office",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "state": {
+                "description": "State",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "county": {
+                "description": "County",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "shippingTaxable": {
+                "description": "Tax shipping charges",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "primaryRecord": {
+                "description": "Primary record",
+                "alias": "",
+                "type": "boolean",
+                "format": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "z2tId": {
+                "description": "Zip2Tax Identifier",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": false,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    },
+    {
+        "name": "SalesRegion",
+        "description": "Sales region",
+        "plural": "SalesRegions",
+        "module": "Sell",
+        "inherits": "Category",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false
+    },
+    {
+        "name": "SalesRegionState",
+        "description": "Associates a state or province with a sales region",
+        "plural": "SalesRegionStates",
+        "module": "Sell",
+        "inherits": "Object",
+        "isSystem": false,
+        "isChild": false,
+        "isFetchOnStartup": false,
+        "isReadOnly": false,
+        "properties": {
+            "state": {
+                "description": "State or province code",
+                "alias": "",
+                "type": "string",
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": true,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            },
+            "region": {
+                "description": "Sales region",
+                "alias": "",
+                "type": {
+                    "properties": [
+                        "code",
+                        "description"
+                    ],
+                    "relation": "SalesRegion"
+                },
+                "format": "",
+                "default": "",
+                "isReadOnly": false,
+                "isRequired": true,
+                "isNaturalKey": false,
+                "isLabelKey": false,
+                "isIndexed": false,
+                "isAlwaysLoad": false
+            }
+        }
+    }
+]

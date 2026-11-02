@@ -1,0 +1,384 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Ship",
+        "version": "2.1.13",
+        "description": "Shipping: shipping sales order and outside-process shipments out of inventory, bills of lading and shipping labels."
+    },
+    "tags": [
+        {
+            "name": "Shipment actions",
+            "description": "Ship sales order and outside-process shipments, and picking and packing steps."
+        },
+        {
+            "name": "Shipping documents",
+            "description": "Create and print bills of lading and print shipping labels."
+        },
+        {
+            "name": "Shipping lookups",
+            "description": "Read the order data a shipment is entered against."
+        }
+    ],
+    "paths": {
+        "/confirm-picklist-batch": {
+            "post": {
+                "tags": [
+                    "Shipment actions"
+                ],
+                "operationId": "doConfirmPicklistBatch",
+                "summary": "Confirm a picklist batch (not implemented)",
+                "description": "Declared by the module but no server function is registered under this name, so every call fails with status 500 and the message \"Function POST doConfirmPicklistBatch is not registered.\"",
+                "responses": {
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/create-sales-order-shipment-containers": {
+            "post": {
+                "tags": [
+                    "Shipment actions"
+                ],
+                "operationId": "doCreateSalesOrderShipmentContainers",
+                "summary": "Create shipment containers (not implemented)",
+                "description": "Declared by the module but no server function is registered under this name, so every call fails with status 500 and the message \"Function POST doCreateSalesOrderShipmentContainers is not registered.\"",
+                "responses": {
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/ship-sales-order-shipments": {
+            "post": {
+                "tags": [
+                    "Shipment actions"
+                ],
+                "operationId": "doShipSalesOrderShipment",
+                "summary": "Ship sales order shipments",
+                "description": "Ships pending sales order shipments; ids of shipments in any other status are skipped. For each line with a quantity: adds it to the sales order line's `shipped`, creates negative inventory transactions at the shipment's site for inventory items (one per detail record for location- or trace-controlled lines) and reduces their allocations, backflushes the line's open, untraced assemble-to-order materials (Sales Order Issue transactions, `issued` updated), and adds the cost shipped to the line's actual material, labor, overhead and service cost. Sets the shipment to status S with today's ship date, the sales order to status C when every line is fully shipped, else A, and updates the order's plan status. When the ShipEngine setting `createLabelOnShip` is on, buys a label for shipments using a ShipEngine service that have none and stores its id, URL, tracking number and freight charges. Locks shipments and sales orders. Refuses when a shipment is already being shipped by another request, has no Shipped By employee, its sales order is on hold or its requested date is after today, a quantity is negative, or a location- or trace-controlled line lacks detail or its detail does not sum to the line quantity.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "SalesOrderShipment ids; takes precedence over `id`"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "One SalesOrderShipment id; used when `ids` is not given"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Shipped. The body is the message \"Shipment(s) shipped successfully\".",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/ship-outside-process-shipments": {
+            "post": {
+                "tags": [
+                    "Shipment actions"
+                ],
+                "operationId": "doShipOutsideProcessShipments",
+                "summary": "Ship outside-process shipments",
+                "description": "Ships pending outside-process shipments (material sent to a supplier for a work order operation); ids in any other status are skipped. For each line with a quantity: finds the work order outside process allocated to the purchase order line, adds the quantity to the outside process's `shipped` and sets it in process, releases the work order if it is still pending, posts an operation completion that starts the operation, and adds the quantity to the purchase order line's `shipped`. Sets the shipment to status S with today's ship date. When the ShipEngine setting `createLabelOnShip` is on, buys a label for shipments using a ShipEngine service that have none. Locks shipments and purchase orders. Refuses when a shipment is already being shipped by another request, has no Shipped By employee, has no line with a quantity, a quantity is negative, or the outside-process allocation or work order operation is missing or ambiguous.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "OutsideProcessShipment ids; takes precedence over `id`"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "One OutsideProcessShipment id; used when `ids` is not given"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Shipped. The body is the message \"Shipment(s) shipped successfully\".",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/create-bill-of-lading": {
+            "post": {
+                "tags": [
+                    "Shipping documents"
+                ],
+                "operationId": "doCreateBillOfLading",
+                "summary": "Create a bill of lading",
+                "description": "Creates one bill of lading covering the given sales order shipments. Carrier, freight bill-to, ship-to and freight charge terms (from the pay method: Prepaid, Collect or 3rd Party) come from the first shipment, ship-from from its site's address. Adds one order row per shipment (sales order number with customer PO, package count, weight, pallet flag), one information row per distinct container type, size and freight code (handling count, weight, NMFC class and number), and lists the shipments, their tracking numbers as PRO numbers, container numbers as serial numbers, and the sales order and customer PO numbers. Refuses when none of the shipments are found.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "SalesOrderShipment ids"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Id of the new bill of lading.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-bill-of-lading": {
+            "post": {
+                "tags": [
+                    "Shipping documents"
+                ],
+                "operationId": "doPrintBillOfLading",
+                "summary": "Print a bill of lading",
+                "description": "Fills the straight bill of lading form (the template `files/upload/Straight Bill of Lading.pdf` on the server) with a saved bill of lading, or with an unsaved one passed in the body, and writes the PDF to the downloads folder. Only the first id is printed. Needs the pdf-lib library on the server; refuses with an install hint when it is missing.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "BillOfLading ids; only the first is printed. Takes precedence over `id`."
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "One BillOfLading id; used when `ids` is not given"
+                                    },
+                                    "billOfLading": {
+                                        "$ref": "#/components/schemas/BillOfLading"
+                                    }
+                                },
+                                "description": "Give `id`/`ids` to print a saved bill of lading, or `billOfLading` (with no id) to print one that is not saved."
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Name of the PDF written to the server's downloads folder, e.g. `3k9x0abcd12.pdf`. Fetch it with `GET /<db>/files/downloads/<name>`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-shipment-labels": {
+            "post": {
+                "tags": [
+                    "Shipping documents"
+                ],
+                "operationId": "doPrintShipmentLabels",
+                "summary": "Print shipping labels",
+                "description": "Prints ShipEngine labels for the given shipments as one PDF, one 4 x 6 inch label per page. Only shipments whose ship method is a ShipEngine service are included. Shipments with no label, or a voided one, are locked and get a new label bought from ShipEngine first. Each label PDF is downloaded from ShipEngine, merged, and then deleted. Needs the pdf-lib library on the server. Refuses when `shipmentIds` is missing.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "shipmentIds"
+                                ],
+                                "properties": {
+                                    "shipmentIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Shipment ids (sales order or outside-process shipments)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Name of the PDF written to the server's downloads folder, e.g. `3k9x0abcd12.pdf`. Fetch it with `GET /<db>/files/downloads/<name>`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-sales-order-ship-data": {
+            "post": {
+                "tags": [
+                    "Shipping lookups"
+                ],
+                "operationId": "doGetSalesOrderShipData",
+                "summary": "Get sales order data for a shipment",
+                "description": "Returns the sales order a shipment is entered against, limited to the properties shipping needs, with each line's item extended with its customs and freight data.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "SalesOrder id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The sales order with only number, shipTo, shipMethod, incoTerms, site, status, purchaseOrder, lines, freight, source, customer, requestedDate and contact populated. Each `lines[].item` also carries `harmonizedTariffCode`, `countryOfOrigin`, `customsDescription`, `customsValue`, `freightCode` and `weight` from the Item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SalesOrder"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-purchase-order-ship-data": {
+            "post": {
+                "tags": [
+                    "Shipping lookups"
+                ],
+                "operationId": "doGetPurchaseOrderShipData",
+                "summary": "Get purchase order data for an outside-process shipment",
+                "description": "Returns the purchase order an outside-process shipment is entered against, limited to the properties shipping needs, with each line's item extended with its freight code and weight.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "PurchaseOrder id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The purchase order with only number, shipTo, site, status, reference, lines, freight and contact populated. Each `lines[].item` also carries `freightCode` and `weight` from the Item.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PurchaseOrder"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    }
+}

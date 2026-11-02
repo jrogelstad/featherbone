@@ -1,0 +1,1184 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Make",
+        "version": "2.1.17",
+        "description": "Manufacturing: work order explosion, planning, hold, closing and completion, posting of operation completions, material issues and receipts, and production analytics."
+    },
+    "tags": [
+        {
+            "name": "Work order actions",
+            "description": "Change work orders: explode, plan supply, hold, complete, close, convert planned work orders."
+        },
+        {
+            "name": "Production posting",
+            "description": "Post operation completions, material issues and receipts to inventory and work order cost."
+        },
+        {
+            "name": "Work order views",
+            "description": "Read work order structure, plans and documents; print travellers."
+        },
+        {
+            "name": "Production analytics",
+            "description": "Production key metrics, open production schedule and rollup refresh."
+        }
+    ],
+    "paths": {
+        "/close-work-order": {
+            "post": {
+                "tags": [
+                    "Work order actions"
+                ],
+                "operationId": "doCloseWorkOrder",
+                "summary": "Close work orders",
+                "description": "Locks each work order and sets its status to C (closed). Refuses when none of the ids exist or when any of them is already closed; the whole request is rolled back. Send `ids`: a request with only `id` currently fails.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Work order ids"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "A single work order id; used only when `ids` is absent"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Work orders closed"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/complete-work-order": {
+            "post": {
+                "tags": [
+                    "Work order actions"
+                ],
+                "operationId": "doCompleteWorkOrder",
+                "summary": "Complete work orders",
+                "description": "Creates a work order receipt dated today for each work order, for `quantity` or, when omitted, the work order's open quantity. The receipt is posted automatically after commit (see `/post-work-order-receipts`), which backflushes material and reports operations. On location-controlled sites the receipt goes to the item site default location, else the site default receive location, else the site default location. Refuses work orders that are not active (A) or in process (I), traced products (receive those manually), and missing item site or default location.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Work order ids"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "A single work order id; used only when `ids` is absent"
+                                    },
+                                    "quantity": {
+                                        "type": "number",
+                                        "description": "Quantity to receive on each work order; defaults to each work order's open quantity"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Receipts created"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/convert-planned-work-orders": {
+            "post": {
+                "tags": [
+                    "Work order actions"
+                ],
+                "operationId": "doConvertPlannedWorkOrders",
+                "summary": "Convert planned work orders",
+                "description": "Locks the planned work orders, then for each one creates an unexploded (status U) work order with the planned item, site, quantity, start and due dates, priority, sales order links and the product's drawing and documents, deletes the planned work order, and moves its allocations to the new work order. Plan status of affected work orders and sales orders is updated. Refuses when a planned work order is not found or already locked.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Planned work order ids"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Conversion done",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Work orders created"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/explode-work-order": {
+            "post": {
+                "tags": [
+                    "Work order actions"
+                ],
+                "operationId": "doExplodeWorkOrder",
+                "summary": "Explode work orders",
+                "description": "Rebuilds materials and operations of each work order from its product's bill of material (phantom and kit items expanded) and routing, with yield-adjusted quantities, due dates and estimated costs. Firm make-to-order child work orders from a previous explosion are deleted first and recreated: for each component with planning policy M (make to order) that free inventory and unallocated supply do not cover, a child work order numbered `<parent>-<n>` is created, firmly allocated and exploded in turn. Available inventory is allocated to requirements. Status is set to P, then to the `defaultStatus` of make settings when that differs. Runs one at a time per database (advisory lock). Refuses when a work order is not found, the product has no bill of material, an input item or service is inactive, or a component or service is not set up on the work order's site; the error is also written to the work order and raised as an alert.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Work order ids"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "A single work order id; used only when `ids` is absent"
+                                    },
+                                    "eventKey": {
+                                        "type": "string",
+                                        "description": "Event key to use for record locks; generated when omitted"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Explosion done",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Work Order(s) exploded"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-product-documents": {
+            "post": {
+                "tags": [
+                    "Work order views"
+                ],
+                "operationId": "doGetProductDocuments",
+                "summary": "Get product documents",
+                "description": "Returns the drawing link and documents of a product, used to copy them onto a work order.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Product id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Product with `id`, `drawingLink` and `documents` only",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Product not found"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-work-order-issue-data": {
+            "post": {
+                "tags": [
+                    "Work order views"
+                ],
+                "operationId": "doGetWorkOrderIssueData",
+                "summary": "Get work order data for material issue",
+                "description": "Returns a work order prepared for a manual material issue: its `site` replaced by the site's id, code, default location, default WIP location and location control flag, and `materials` limited to requirements whose item site issue method is M (manual).",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Work order id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Work order with `id`, `site`, `number`, `status`, `onHold`, `materials` and `operations`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WorkOrder"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-work-order-plan": {
+            "post": {
+                "tags": [
+                    "Work order views"
+                ],
+                "operationId": "doGetWorkOrderPlan",
+                "summary": "Get work order Gantt plan",
+                "description": "Returns the work order as a flat, ordered list of Gantt rows: the work order, its operations in sequence, its material requirements under their operation, the supply allocated to those requirements (child work orders expanded recursively, purchase and planned orders as single rows), and outside process supply. Read only.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Work order id"
+                                    },
+                                    "showOperations": {
+                                        "type": "boolean",
+                                        "description": "Include operation rows and nest materials under them",
+                                        "default": true
+                                    },
+                                    "showStockItems": {
+                                        "type": "boolean",
+                                        "description": "Include material requirement rows",
+                                        "default": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plan rows in display order",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MakeWorkOrderPlanItem"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/hold": {
+            "post": {
+                "tags": [
+                    "Work order actions"
+                ],
+                "operationId": "doPropagateWorkOrderHold",
+                "summary": "Put work order on or off hold",
+                "description": "Sets the on-hold flag of the work order and of each of its operations that is not closed. With `recursive`, does the same for every work order firmly allocated to its material requirements, all the way down.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "workOrderId",
+                                    "hold"
+                                ],
+                                "properties": {
+                                    "workOrderId": {
+                                        "type": "string",
+                                        "description": "Work order id"
+                                    },
+                                    "hold": {
+                                        "type": "boolean",
+                                        "description": "True to put on hold, false to take off hold"
+                                    },
+                                    "recursive": {
+                                        "type": "boolean",
+                                        "description": "Also apply to firmly allocated child work orders",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Done",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Work order(s) put on hold"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Work order not found; nothing changed"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/plan-work-order-supply": {
+            "post": {
+                "tags": [
+                    "Work order actions"
+                ],
+                "operationId": "doPlanWorkOrderSupply",
+                "summary": "Plan supply for a work order",
+                "description": "Locks the work order and, for each open material requirement not fully allocated and each outside process operation, runs Plan's supply planning (`/plan/plan-supply`): allocates existing supply, then creates planned purchases, planned work orders or make-to-order work orders for the rest. Updates the work order's plan status. Runs one at a time per database (advisory lock).",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Work order id"
+                                    },
+                                    "silentFail": {
+                                        "type": "boolean",
+                                        "description": "Answer 204 instead of an error when the work order does not exist",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Supply planned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Work order supply planned"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Work order not found and `silentFail` set"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-operation-completion": {
+            "post": {
+                "tags": [
+                    "Production posting"
+                ],
+                "operationId": "doPostOperationCompletion",
+                "summary": "Post an operation completion",
+                "description": "Posts an operation completion record. Normally this runs by itself after the record is inserted; call it to retry a failed post. Locks the completion and its work order, sets the work order to in process (I), adds the quantity to the operation's completed quantity (and to preceding operations up to what this quantity implies after yield), sets operation status to I, or C when `closeOperation` is set on the record, and adds setup, run and service cost to the work order's actual cost. Non-traced material on those operations with a backflush issue method is issued: inventory transactions of type \"Work Order Issue\", allocation relief, requirement status and actual cost. With `startOperation` on the record, the quantity is recorded as started instead and only that operation's material is issued. Marks the completion posted. Refuses when the operation is pending (P) or closed (C), when the quantity exceeds a preceding closed operation, or when a preceding outside process operation has received less; the error is written on the completion and raised as an alert.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Operation completion id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Posted"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-work-order-issues": {
+            "post": {
+                "tags": [
+                    "Production posting"
+                ],
+                "operationId": "doPostWorkOrderIssues",
+                "summary": "Post work order material issues",
+                "description": "Posts work order issue documents in status P; others are skipped. Normally this runs by itself after an issue is inserted. Locks each issue and its work order, adds each line quantity to the requirement's issued quantity (negative quantity returns material), updates requirement status and actual cost, the work order's actual material, labor, overhead and service cost, and the work order status (I, or C when all material is issued and all operations are closed), relieves allocations, writes inventory transactions (\"Work Order Issue\" / \"Work Order Return\", per detail row when there are details), and sets the issue to status I dated today. Refuses when a post of the same issue is in progress, the work order is on hold, a line on a location-controlled site or a traced item has no detail rows, or the detail total differs from the line quantity; the error is written on the issue and raised as an alert.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Work order issue ids"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "A single work order issue id; used only when `ids` is absent"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Posted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Materials issued successfully"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/post-work-order-receipts": {
+            "post": {
+                "tags": [
+                    "Production posting"
+                ],
+                "operationId": "doPostWorkOrderReceipts",
+                "summary": "Post work order receipts",
+                "description": "Posts work order receipts in status P; others are skipped. Normally this runs by itself after a receipt is inserted. Locks each receipt and its work order, adds the quantity to the work order's received quantity and lowers its open quantity, relieves and reallocates the work order's allocations, updates the first operation's available quantity on downstream work orders that consume it, writes \"Work Order Receipt\" inventory transactions (per detail row when there are details), reports completion on unclosed operations (status C when fully completed), backflushes non-traced, non-manual material (\"Work Order Issue\" transactions, allocation relief), adds labor, overhead, material and service cost to the work order's actual cost, and sets the receipt to status R dated today. Refuses quantities not above zero, missing detail rows on location-controlled sites or traced items, detail totals that differ from the receipt quantity, and completion above a closed operation; the error is written on the receipt and raised as an alert.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Work order receipt ids"
+                                    },
+                                    "id": {
+                                        "type": "string",
+                                        "description": "A single work order receipt id; used only when `ids` is absent"
+                                    },
+                                    "lock": {
+                                        "type": "boolean",
+                                        "description": "False when the caller already holds the receipt locks; skips the wait and the receipt lock",
+                                        "default": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "Posted"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-indented-work-order": {
+            "post": {
+                "tags": [
+                    "Work order views"
+                ],
+                "operationId": "doIndentedWorkOrder",
+                "summary": "Get indented work order",
+                "description": "Returns the work order as an indented list with costs: the work order, its operations, its material requirements under their operation, and child work orders allocated to those requirements expanded recursively (only the first such allocation per requirement). Read only; despite the path it returns data, not a printout.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Work order id"
+                                    },
+                                    "showOperations": {
+                                        "type": "boolean",
+                                        "description": "Include operation rows and nest materials under them",
+                                        "default": true
+                                    },
+                                    "showStockItems": {
+                                        "type": "boolean",
+                                        "description": "Include material requirement rows",
+                                        "default": true
+                                    },
+                                    "isFirmOnly": {
+                                        "type": "boolean",
+                                        "description": "Follow only firm allocations to child work orders",
+                                        "default": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Rows in display order",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MakeIndentedWorkOrderRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/print-traveller": {
+            "post": {
+                "tags": [
+                    "Work order views"
+                ],
+                "operationId": "doPrintTraveller",
+                "summary": "Print work order travellers",
+                "description": "Renders the work orders to one PDF with the given form, adding `shipToName` from the linked sales order's ship-to. Does not mark the work orders printed.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "ids"
+                                ],
+                                "properties": {
+                                    "ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Work order ids"
+                                    },
+                                    "form": {
+                                        "type": "string",
+                                        "description": "Name of the form to print with; when omitted a form is built from the WorkOrder feather"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "File name of the PDF, downloadable with GET /{db}/files/downloads/{file name}",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "WO-1001,WO-1002.pdf"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-production-kpis": {
+            "post": {
+                "tags": [
+                    "Production analytics"
+                ],
+                "operationId": "doGetProductionKpis",
+                "summary": "Get production key metrics",
+                "description": "Produced value year, month and week to date from the production rollup (`/refresh-production-bi`), and on-time completion year to date computed live from posted work order receipts, each with the figure a year earlier and 12 months of history. Produced figures are left out until the rollup has been refreshed once. Read only.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date (YYYY-MM-DD); defaults to today"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Key metrics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "asOf": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Reporting date used (YYYY-MM-DD)"
+                                        },
+                                        "kpis": {
+                                            "type": "object",
+                                            "properties": {
+                                                "onTimeCompletion": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/MakeProductionKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Percent (0-100) of posted receipts received on or before the work order due date; null without receipts"
+                                                },
+                                                "producedYtd": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/MakeProductionKpi"
+                                                        }
+                                                    ],
+                                                    "description": "Standard cost of production received, in base currency, year to date; present once the rollup is built"
+                                                },
+                                                "producedMtd": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/MakeProductionKpi"
+                                                        }
+                                                    ],
+                                                    "description": "As producedYtd, month to date"
+                                                },
+                                                "producedWtd": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/MakeProductionKpi"
+                                                        }
+                                                    ],
+                                                    "description": "As producedYtd, week to date"
+                                                }
+                                            }
+                                        },
+                                        "needsRefresh": {
+                                            "type": "boolean",
+                                            "description": "True when the production rollup has never been refreshed"
+                                        },
+                                        "refreshedAt": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true,
+                                            "description": "Time of the last rollup refresh"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/get-production-schedule": {
+            "post": {
+                "tags": [
+                    "Production analytics"
+                ],
+                "operationId": "doGetProductionSchedule",
+                "summary": "Get open production by due date",
+                "description": "Open work order quantity at the reporting date (ordered less received by then; closed work orders count only what they finished), bucketed by due date and split into late (due before the reporting date) and not late, valued at the item's standard cost in base currency. Read only.",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "asOf": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "description": "Reporting date (YYYY-MM-DD); defaults to today"
+                                    },
+                                    "bucket": {
+                                        "type": "string",
+                                        "enum": [
+                                            "day",
+                                            "week",
+                                            "month"
+                                        ],
+                                        "default": "week",
+                                        "description": "Due date bucket size"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Buckets",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "asOf": {
+                                            "type": "string",
+                                            "format": "date",
+                                            "description": "Reporting date used (YYYY-MM-DD)"
+                                        },
+                                        "rows": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "period": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "description": "First day of the bucket (YYYY-MM-DD)"
+                                                    },
+                                                    "late": {
+                                                        "type": "boolean",
+                                                        "description": "Due before the reporting date"
+                                                    },
+                                                    "amount": {
+                                                        "type": "number",
+                                                        "description": "Open value in base currency"
+                                                    },
+                                                    "units": {
+                                                        "type": "number",
+                                                        "description": "Open quantity in inventory units"
+                                                    }
+                                                }
+                                            },
+                                            "description": "Ordered by period, then late"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        },
+        "/refresh-production-bi": {
+            "post": {
+                "tags": [
+                    "Production analytics"
+                ],
+                "operationId": "doRefreshProductionBi",
+                "summary": "Refresh the production rollup",
+                "description": "Rebuilds `bi.production_daily` from \"Work Order Receipt\" inventory transactions (value at transaction cost in base currency, and quantity, per day, item and site) and logs the refresh. Safe to repeat. Refuses when the rollup table is not deployed.",
+                "responses": {
+                    "200": {
+                        "description": "Rollup rebuilt",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "buckets": {
+                                            "type": "integer",
+                                            "description": "Rows in the rollup"
+                                        },
+                                        "refreshed": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "description": "Time of this refresh"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/Error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "MakeProductionKpi": {
+                "type": "object",
+                "description": "One key metric",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Figure at the reporting date"
+                    },
+                    "comparison": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Same figure one year earlier"
+                    },
+                    "comparisonLabel": {
+                        "type": "string",
+                        "description": "Always \"a year ago\""
+                    },
+                    "spark": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        },
+                        "description": "Monthly values, oldest first, up to 12 months ending with the month in progress; months without data are omitted"
+                    }
+                }
+            },
+            "MakeWorkOrderPlanItem": {
+                "type": "object",
+                "description": "One row of a work order Gantt plan",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Row id: the work order, operation, material requirement or supply id"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Display text, indented with leading spaces by depth"
+                    },
+                    "level": {
+                        "type": "integer",
+                        "description": "Depth in the tree; 0 is the requested work order"
+                    },
+                    "objectType": {
+                        "type": "string",
+                        "description": "WorkOrder, WorkOrderOperation, WorkOrderRequirement, or the feather of an allocated supply (PurchaseOrderLine, PlannedWorkOrder, PlannedPurchase)"
+                    },
+                    "number": {
+                        "type": "object",
+                        "description": "Document reference",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "number": {
+                                "type": "string",
+                                "description": "Document number"
+                            },
+                            "objectType": {
+                                "type": "string",
+                                "description": "Feather name of the document"
+                            }
+                        }
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Start date (YYYY-MM-DD)"
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Due or end date (YYYY-MM-DD)"
+                    },
+                    "percent": {
+                        "type": "number",
+                        "description": "Fraction complete, 0 to 1: received/ordered for work orders, completed/planned for operations, (issued + returned)/required for materials, 0 for purchased supply"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "\"group\" for work orders shown with operations, \"task\" otherwise; absent on detail rows"
+                    },
+                    "links": {
+                        "type": "array",
+                        "description": "Gantt dependencies of this row",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "target": {
+                                    "type": "string",
+                                    "description": "Id of the row this one depends on"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "FS",
+                                        "FF"
+                                    ],
+                                    "description": "FS finish-to-start, FF finish-to-finish"
+                                }
+                            }
+                        }
+                    },
+                    "allocated": {
+                        "type": "number",
+                        "description": "Quantity of the work order allocated to demand (top row only)"
+                    }
+                }
+            },
+            "MakeIndentedWorkOrderRow": {
+                "type": "object",
+                "description": "One row of an indented work order: the work order itself, an operation, or a material requirement",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Work order, operation or material requirement id"
+                    },
+                    "objectType": {
+                        "type": "string",
+                        "description": "WorkOrder, WorkOrderOperation or WorkOrderRequirement"
+                    },
+                    "level": {
+                        "type": "integer",
+                        "description": "Depth; 0 is the requested work order"
+                    },
+                    "sequence": {
+                        "type": "integer",
+                        "description": "Operation or material sequence"
+                    },
+                    "number": {
+                        "type": "object",
+                        "description": "Document reference",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "number": {
+                                "type": "string",
+                                "description": "Document number"
+                            },
+                            "objectType": {
+                                "type": "string",
+                                "description": "Feather name of the document"
+                            }
+                        }
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Item description, or operation description"
+                    },
+                    "product": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Item made or consumed (reference with id, number, description...); null on operation rows"
+                    },
+                    "site": {
+                        "type": "object",
+                        "nullable": true,
+                        "description": "Site reference; null on operation rows"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status code of the work order, operation or requirement"
+                    },
+                    "quantity": {
+                        "type": "number",
+                        "description": "Ordered (work order), planned (operation) or required (material) quantity"
+                    },
+                    "remaining": {
+                        "type": "number",
+                        "description": "Quantity still to receive, complete or issue"
+                    },
+                    "allocated": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Allocated quantity; null on operation rows"
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "description": "Due date (YYYY-MM-DD); planned end time (date-time) on operation rows"
+                    },
+                    "drawingLink": {
+                        "type": "object",
+                        "description": "Drawing resource link (work order rows)"
+                    },
+                    "estimatedMaterialCost": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Money"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "Null on operation rows"
+                    },
+                    "estimatedLaborCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "estimatedOverheadCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "estimatedServiceCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "estimatedTotalCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "actualMaterialCost": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Money"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "Null on operation rows"
+                    },
+                    "actualLaborCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "actualOverheadCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "actualServiceCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "actualTotalCost": {
+                        "$ref": "#/components/schemas/Money"
+                    },
+                    "created": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "createdBy": {
+                        "type": "string"
+                    },
+                    "updated": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedBy": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

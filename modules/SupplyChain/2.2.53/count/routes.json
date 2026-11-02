@@ -1,0 +1,35 @@
+[
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Count",
+        "id": "mbsgcjscb4bl",
+        "data": {
+            "module": "Count",
+            "path": "/create-physical-count",
+            "function": "doCreatePhysicalCount"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Count",
+        "id": "s2ps88gc8y18",
+        "data": {
+            "module": "Count",
+            "path": "/post-physical-count",
+            "function": "doPostPhysicalCount"
+        }
+    },
+    {
+        "name": "Route",
+        "method": "POST",
+        "module": "Count",
+        "id": "7tm2uxp1qmr2",
+        "data": {
+            "module": "Count",
+            "path": "/print-recount",
+            "function": "doPrintRecount"
+        }
+    }
+]
