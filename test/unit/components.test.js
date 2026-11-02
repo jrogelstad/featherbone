@@ -651,6 +651,20 @@ describe("client components", function () {
             // At rest: none
             assert.equal(spinner(), undefined);
 
+            // Never inside the canvas, which the viewer owns
+            vm.busy(true);
+            assert.equal(
+                R.find(
+                    R.find(
+                        comp.view.call(r.state, r.vnode),
+                        R.byClass("fb-cad-viewer-canvas")
+                    ),
+                    R.byClass("fb-cad-viewer-loading")
+                ),
+                undefined
+            );
+            vm.busy(false);
+
             // Reading a dropped file
             vm.busy(true);
             assert.match(R.text(spinner()), /Reading the file/);
