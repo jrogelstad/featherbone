@@ -218,7 +218,7 @@ Physical count functionality is only available in Enterprise edition.
 
 ## Workbook authorizations
 
-The default workbook authorization settings when a Job Shop database is created. These can be changed by anyone with a role to update a workbook.
+The default workbook authorization settings when a Job Shop database is created. They are given to a workbook when it is first installed; an upgrade does not change them again. These can be changed by anyone with a role to update a workbook.
 
 | Workbook \ Role | Read | Update |
 | --- | --- | --- |
