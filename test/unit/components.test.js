@@ -1760,6 +1760,157 @@ describe("client components", function () {
             assert.equal(headers(out)[0].attrs.oncontextmenu, undefined);
         });
 
+        describe("columns that serve more than one kind of row", function () {
+            let mixed;
+            let item;
+            let line;
+            let config = {columns: [{
+                attr: "name",
+                byType: {
+                    TestItem: {attr: "name", label: "Name"},
+                    TestItemLine: {attr: "product", label: "Product"}
+                },
+                width: 160
+            }, {
+                attr: "qty",
+                byType: {
+                    TestItem: {attr: "qty", label: "Qty."},
+                    TestItemLine: {attr: "qty", label: "Quantity"}
+                },
+                width: 80
+            }, {
+                attr: "price",
+                byType: {TestItem: {attr: "price", label: "Price"}},
+                label: "Price",
+                width: 80
+            }]};
+
+            before(function () {
+                item = f.createModel("TestItem", {
+                    id: "mx1",
+                    name: "Row 1",
+                    price: 1,
+                    qty: 1
+                });
+                line = item.data.lines().add({product: "Widget", qty: 7});
+                mixed = f.createList("TestItem", {fetch: false});
+                mixed.add(item);
+                mixed.add(line);
+            });
+
+            function mixedVm() {
+                return vms.tableWidget({
+                    config,
+                    feather: "TestItem",
+                    height: "200px",
+                    models: mixed
+                });
+            }
+
+            function heads(vm) {
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let ths = R.findAll(out.tree, R.byTag("th"));
+
+                return ths.map((th) => R.text(th)).filter(Boolean);
+            }
+
+            it("resolves each column per kind of row", function () {
+                let vm = mixedVm();
+
+                assert.deepEqual(vm.attrs(item), ["name", "qty", "price"]);
+                assert.deepEqual(vm.attrs(line), ["product", "qty", ""]);
+                assert.deepEqual(vm.attrs(), ["name", "qty", "price"]);
+            });
+
+            it("focuses the first editable cell of the row's own kind",
+                    function () {
+                let vm = mixedVm();
+
+                assert.equal(vm.defaultFocus(line), "inputProduct");
+                assert.equal(vm.lastFocus(line), "inputQty");
+                assert.equal(vm.defaultFocus(item), "inputName");
+            });
+
+            it("draws each row from its own feather, blank where absent",
+                    function () {
+                let vm = mixedVm();
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let rows = R.findAll(R.find(out.tree, R.byTag("tbody")),
+                        R.byTag("tr"));
+                let lineRow = rows[rows.length - 1];
+                let cells = R.findAll(lineRow, R.byTag("td")).map(
+                    (td) => R.text(td)
+                );
+
+                assert.equal(rows.length, 2);
+                // product, spacer, qty, spacer, blank price, spacer, filler
+                assert.deepEqual(cells, ["Widget", "", "7", "", "", "", ""]);
+                assert.ok(R.text(rows[0]).includes("Row 1"));
+                assert.ok(!R.text(lineRow).includes("Row"));
+            });
+
+            it("labels headers generically, then for the row being edited",
+                    function () {
+                let vm = mixedVm();
+
+                assert.deepEqual(heads(vm), ["Price"]);
+                vm.select(line);
+                vm.toggleEdit();
+                assert.deepEqual(heads(vm), ["Product", "Quantity"]);
+                vm.select(item);
+                assert.deepEqual(heads(vm), ["Name", "Qty.", "Price"]);
+            });
+
+            it("indents from the model's own level", function () {
+                let vm = mixedVm();
+
+                [item, line].forEach(function (mdl, i) {
+                    mdl.isTreeParent = f.prop(true);
+                    mdl.collapsed = f.prop(false);
+                    mdl.toggleCollapse = () => undefined;
+                    mdl.indent = () => i * 2;
+                });
+                mixed.indentOn("level");
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let rows = R.findAll(R.find(out.tree, R.byTag("tbody")),
+                        R.byTag("tr"));
+                let icon = R.find(rows[rows.length - 1], (n) => (
+                    n.attrs && n.attrs.style && n.attrs.style.textIndent
+                ));
+
+                mixed.indentOn("");
+                assert.equal(icon.attrs.style.textIndent, "2em");
+            });
+
+            it("leads a row's tree cell with the icon the row names",
+                    function () {
+                let vm = mixedVm();
+
+                [item, line].forEach(function (mdl) {
+                    mdl.isTreeParent = f.prop(false);
+                    mdl.collapsed = f.prop(false);
+                    mdl.toggleCollapse = () => undefined;
+                    mdl.indent = () => 0;
+                });
+                item.rowIcon = () => ({name: "box", tone: "fb-ip-success"});
+                mixed.indentOn("level");
+                let out = R.render(comps.tableWidget, {viewModel: vm});
+                let rows = R.findAll(R.find(out.tree, R.byTag("tbody")),
+                        R.byTag("tr"));
+                let lead = (r) => R.findAll(r, (n) => (
+                    n.attrs && String(n.attrs.src || "").includes("box")
+                ));
+
+                mixed.indentOn("");
+                delete item.rowIcon;
+                assert.equal(lead(rows[0]).length, 1);
+                assert.ok(
+                    R.classOf(lead(rows[0])[0]).includes("fb-ip-success")
+                );
+                assert.equal(lead(rows[rows.length - 1]).length, 0);
+            });
+        });
+
         /*
             The page is drawn at html's zoom (--fb-ui-scale), so a height
             set on the list's scroll box is stretched by it, while

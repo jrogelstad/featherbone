@@ -39,6 +39,56 @@ const contextMenuStyle = f.prop({display: "none"});
 // The grid whose rows were right-clicked: only its menu shows
 let contextMenuOwner;
 
+/*
+    A column may serve rows of more than one kind (a list mixing two
+    feathers). Such a column carries `byType`, keyed by the feather
+    name of the row's model (`model.name`), each entry giving that
+    kind's own `attr`, `label`, `dataList`, `filter` and `showCurrency`.
+    The column's `width` is shared. A kind with no entry leaves the
+    cell blank. Columns without `byType` behave exactly as before.
+*/
+function columnItem(config, idx, model) {
+    let col = config.columns[idx];
+
+    if (!col.byType) {
+        return col;
+    }
+
+    return Object.assign({}, col, col.byType[model && model.name] || {
+        attr: ""
+    });
+}
+
+/*
+    A row may lead its tree cell with an icon of its own (a kind of
+    row, say): `model.rowIcon()` returns `{name, title, tone}`, the
+    tone being the class that tints the icon. Rows without the hook
+    draw as they always have.
+*/
+function leadIcon(model, id) {
+    let spec = (
+        model.rowIcon
+        ? model.rowIcon()
+        : undefined
+    );
+
+    // Children of the cell are all keyed, so the absence is a keyed
+    // empty fragment rather than a hole
+    if (!spec || !spec.name) {
+        return m.fragment({key: id + "-lead"}, []);
+    }
+
+    return f.icon(spec.name, spec.tone || "", {
+        key: id + "-lead",
+        style: {
+            fontSize: "18px",
+            marginRight: "0.4em",
+            verticalAlign: "text-top"
+        },
+        title: spec.title || ""
+    });
+}
+
 function listMeta() {
     return f.catalog().store().global().listMeta;
 }
@@ -148,6 +198,26 @@ function normalizeDataList(dataList, model) {
     return dataList;
 }
 
+// Empty cell and its spacer, for a column that has nothing for this row
+function blankCells(options, columnWidth, zoom) {
+    let id = options.model.id() + "-" + options.idx;
+    let width = (columnWidth - 6) + "px";
+
+    options.idx += 1;
+
+    return [
+        m("td", {
+            key: id + "-blank",
+            style: {fontSize: zoom, minWidth: width, maxWidth: width}
+        }),
+        m("td", {
+            key: id + "-spcr",
+            class: "fb-column-spacer",
+            style: {fontSize: zoom}
+        })
+    ];
+}
+
 function createTableDataEditor(options, col) {
     let config = options.config;
     let defaultFocusId = options.defaultFocusId;
@@ -161,10 +231,18 @@ function createTableDataEditor(options, col) {
     let inputOpts;
     let columnSpacerClass;
     let theWidget;
-    let prop = f.resolveProperty(theModel, col);
-    let theId = theVm.formatInputId(col);
-    let item = config.columns[options.idx];
+    let item = columnItem(config, options.idx, theModel);
+    let prop;
+    let theId;
     let columnWidth = item.width || COL_WIDTH_DEFAULT;
+
+    // No attribute for this kind of row: leave the cell empty
+    if (!col) {
+        return blankCells(options, columnWidth, zoom);
+    }
+
+    prop = f.resolveProperty(theModel, col);
+    theId = theVm.formatInputId(col);
     let theDataList = normalizeDataList(
         item.dataList || prop.dataList,
         theModel
@@ -339,20 +417,28 @@ function createTableDataView(options, col) {
     let content;
     let tdOpts;
     let tableData;
-    let theProp = f.resolveProperty(options.model, col);
-    let theValue = theProp();
-    let format = theProp.format || theProp.type;
-    let columnWidth = (
-        config.columns[options.idx].width || COL_WIDTH_DEFAULT
-    );
-    let style = (
+    let item = columnItem(config, options.idx, options.model);
+    let theProp;
+    let theValue;
+    let format;
+    let columnWidth = item.width || COL_WIDTH_DEFAULT;
+    let style;
+
+    // No attribute for this kind of row: leave the cell empty
+    if (!col) {
+        return blankCells(options, columnWidth, zoom);
+    }
+
+    theProp = f.resolveProperty(options.model, col);
+    theValue = theProp();
+    format = theProp.format || theProp.type;
+    style = (
         theProp.style
         ? theProp.style()
         : ""
     );
     let relation;
     let id = model.id() + "-" + options.idx;
-    let item = config.columns[options.idx];
     let dataList = normalizeDataList(item.dataList || theProp.dataList, model);
     let otitle = (
         theProp.title
@@ -492,7 +578,11 @@ function createTableDataView(options, col) {
         iconStyle = {
             fontSize: "18px",
             verticalAlign: "text-top",
-            textIndent: options.model.data[indentOn]() + "em"
+            textIndent: (
+                options.model.indent
+                ? options.model.indent()
+                : options.model.data[indentOn]()
+            ) + "em"
         };
         if (!options.model.isTreeParent()) {
             iconStyle.color = "white";
@@ -510,6 +600,7 @@ function createTableDataView(options, col) {
                     onclick: options.model.toggleCollapse,
                     style: iconStyle
                 }),
+                leadIcon(options.model, id),
                 m("span", {
                     key: id + "-content"
                 }, content)
@@ -570,12 +661,33 @@ function createTableHeader(options, col) {
     let icon = [];
     let fidx;
     let fval;
+    let kind;
+    let type;
     let operators = f.operators;
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
     );
     let headerLabel = col.label || vm.alias(key);
     let description = resolveDescription(options.feather, key);
+
+    // A column serving several kinds of row is labelled for the kind
+    // being edited; otherwise it keeps its own generic label
+    if (col.byType) {
+        headerLabel = col.label || "";
+        description = "";
+        if (vm.mode().current()[0] === "/Mode/Edit" && vm.selection()) {
+            type = vm.selection().name;
+            kind = col.byType[type];
+            headerLabel = (
+                kind
+                ? kind.label || f.resolveAlias(
+                    f.catalog().getFeather(type),
+                    kind.attr
+                )
+                : ""
+            );
+        }
+    }
     let headerTitle = (
         description
         ? headerLabel + "\n" + description
@@ -680,7 +792,9 @@ function createTableHeader(options, col) {
             // sort is a button in the sort dialog itself (reached the
             // usual way), not a header right-click menu.
             onclick: function (ev) {
-                vm.toggleSort(key, ev.shiftKey);
+                if (!col.byType) {
+                    vm.toggleSort(key, ev.shiftKey);
+                }
             },
             class: "fb-column-header",
             style: {
@@ -746,7 +860,7 @@ function createTableRow(options, pModel) {
     // Build view row
     if (currentMode === "/Mode/View" || !isSelected) {
         // Build cells
-        tds = theVm.attrs().map(createTableDataView.bind(null, {
+        tds = theVm.attrs(pModel).map(createTableDataView.bind(null, {
             config: theConfig,
             d: data,
             idx: 0,
@@ -811,7 +925,7 @@ function createTableRow(options, pModel) {
         };
 
         // Build cells
-        tds = theVm.attrs().map(createTableDataEditor.bind(null, {
+        tds = theVm.attrs(pModel).map(createTableDataEditor.bind(null, {
             config: theConfig,
             defaultFocusId: theDefaultFocusId,
             idx: 0,
@@ -2114,9 +2228,20 @@ tableWidget.viewModel = function (options) {
         @method attrs
         @return {Array}
     */
-    vm.attrs = function () {
+    vm.attrs = function (model) {
         let columns = vm.config().columns;
         let result = columns.map(function (column) {
+            let kind;
+
+            // Columns serving several kinds of row resolve per row
+            if (column.byType && model) {
+                kind = column.byType[model.name];
+                return (
+                    kind
+                    ? kind.attr
+                    : ""
+                );
+            }
             return column.attr;
         });
 
@@ -2223,8 +2348,10 @@ tableWidget.viewModel = function (options) {
         @return {String}
     */
     vm.defaultFocus = function (model) {
-        let col = vm.attrs().find(function (attr) {
-            return !model.data[attr] || !model.data[attr].isReadOnly();
+        let col = vm.attrs(model).find(function (attr) {
+            return attr && (
+                !model.data[attr] || !model.data[attr].isReadOnly()
+            );
         });
 
         return (
@@ -2511,10 +2638,10 @@ tableWidget.viewModel = function (options) {
     */
     vm.lastFocus = function (model) {
         let col;
-        let attrs = vm.attrs().slice().reverse();
+        let attrs = vm.attrs(model).slice().reverse();
 
         col = attrs.find(function (attr) {
-            return model.data[attr] && !model.data[attr].isReadOnly();
+            return attr && model.data[attr] && !model.data[attr].isReadOnly();
         });
         return (
             col
