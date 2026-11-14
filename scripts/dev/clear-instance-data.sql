@@ -14,7 +14,8 @@
  *     "Core". Install SupplyChain, Job Shop data feathers, Finance, or any
  *     other package and its tables are picked up on the next run.
  *   - A small list of Core master-data feathers: Contact (and its email, phone,
- *     address and social account rows), Address, Comment, Kind.
+ *     address and social account rows), Address, Comment, Kind, ResourceLink
+ *     and CadModel (links and 3D models).
  *     Override with featherbone.clear_core_data.
  *   - Document-number sequences are restarted: only the autonumber sequences of the
  *     feathers being cleared, never a sequence that backs a column default and never
@@ -25,10 +26,11 @@
  *
  * WHAT IS KEPT  (the framework and the packages themselves)
  *   - Control tables: "$settings", "$workbook", "$feather", "$navigation_category",
- *     "$auth", "$db", "$session", "$profiles", "$subscription".
+ *     "$auth", "$db", "$session", "$profiles", "$subscription", and "$file"
+ *     (uploaded files, such as the company logo a setting names).
  *   - All other Core feathers: feather, feather_property, feather_authorization,
  *     form*, print_form, layout, route, script/data_service/module*, style, role,
- *     role_membership, user_account, help_link, resource_link, and Core
+ *     role_membership, user_account, help_link, and Core
  *     reference data (country, state, currency*, honorific, social_network, unit,
  *     base_currency, currency_conversion).
  *   - Run history (server_process, send_mail, notice, log) unless
@@ -73,7 +75,8 @@
  *                                        rather than leaving data behind.
  *   featherbone.clear_core_data    Contact,ContactAddress,ContactEmail,
  *                                  ContactPhone,ContactSocialAccount,Address,
- *                                  Comment,Kind     (Core feathers to clear)
+ *                                  Comment,Kind,ResourceLink,CadModel
+ *                                                   (Core feathers to clear)
  *   featherbone.clear_keep         ''    comma list of feather names to KEEP even
  *                                        though their module is cleared, e.g.
  *                                        configuration-like feathers such as
@@ -96,7 +99,8 @@ DECLARE
     v_core_data     text[]  := coalesce(
         string_to_array(nullif(current_setting('featherbone.clear_core_data', true), ''), ','),
         ARRAY['Contact', 'ContactAddress', 'ContactEmail', 'ContactPhone',
-              'ContactSocialAccount', 'Address', 'Comment', 'Kind']
+              'ContactSocialAccount', 'Address', 'Comment', 'Kind',
+              'ResourceLink', 'CadModel']
     );
     v_keep          text[]  := coalesce(
         string_to_array(nullif(current_setting('featherbone.clear_keep', true), ''), ','),
