@@ -599,6 +599,93 @@
                     });
                 }
 
+                /*
+                    A childOf relation synthesizes a complementary
+                    `parentOf` property on the parent feather (see the
+                    "Parent of" block above) the first time the child
+                    declares it. Nothing retracts that synthesized
+                    property if the child relation is later changed to
+                    a plain (non-childOf) relation on an upgrade -- the
+                    child side updates cleanly, but the stale parentOf
+                    property lingers on the parent forever, because
+                    the "drop properties no longer in spec" cleanup
+                    further up explicitly exempts every parentOf
+                    property, on the (normally correct) assumption
+                    that the parent's own source feather never
+                    declares it either way, so its absence from a
+                    reinstalled spec says nothing about whether it is
+                    still wanted. That exemption stops being correct
+                    once the mirrored child relation itself drops
+                    childOf: the parent is then left depending on the
+                    child, the child depends on the parent (a plain
+                    relation is not exempt from the dependency graph
+                    the way childOf is), and view creation reports
+                    "Relationships cause circular dependencies" and
+                    rolls back the whole deploy (John, demo, SupplyChain
+                    2.2.58, Nov 2026 -- the three journal line feathers'
+                    `journal` property moved from childOf to a plain
+                    relation; InventoryJournal/PurchaseVarianceJournal/
+                    WorkOrderVarianceJournal each still carried the old
+                    "lines" parentOf property pointing back).
+
+                    Repairing this here, against the freshly re-read
+                    catalog and before dependency resolution, fixes
+                    both the crash and the generated view: a stale
+                    parentOf property is pure metadata with no column
+                    of its own (only the child side ever gets a real
+                    `_<key>_<relation>_pk` column), so removing it
+                    needs no DDL, and createView's own catalog lookups
+                    read through the same refreshed-in-place cache
+                    this mutates, so the rebuilt parent view stops
+                    exposing an array of children that can no longer
+                    exist. The correction is not written back to the
+                    persisted `$settings` catalog row, so it simply
+                    reruns, harmlessly, on every future view rebuild
+                    rather than needing a one-time migration step.
+                */
+                function stripStaleParentOf(resp) {
+                    Object.keys(resp).forEach(function (name) {
+                        let fthr = resp[name];
+
+                        if (!fthr.properties) {
+                            return;
+                        }
+
+                        Object.keys(fthr.properties).forEach(
+                            function (pkey) {
+                                let prop = fthr.properties[pkey];
+                                let type = prop.type;
+                                let child;
+                                let childProp;
+
+                                if (
+                                    !type || typeof type !== "object" ||
+                                    !type.parentOf
+                                ) {
+                                    return;
+                                }
+
+                                child = resp[type.relation];
+                                childProp = (
+                                    child && child.properties &&
+                                    child.properties[type.parentOf]
+                                );
+
+                                if (
+                                    !childProp ||
+                                    !childProp.type ||
+                                    typeof childProp.type !== "object" ||
+                                    childProp.type.childOf !== pkey
+                                ) {
+                                    delete fthr.properties[pkey];
+                                }
+                            }
+                        );
+                    });
+
+                    return resp;
+                }
+
                 // Bail out if this turned off
                 if (disablePropagateViews) {
                     resolve();
@@ -611,6 +698,8 @@
                     deleteViews
                 ).then(
                     getCatalog
+                ).then(
+                    stripStaleParentOf
                 ).then(
                     createViews
                 ).then(
