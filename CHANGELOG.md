@@ -5,6 +5,18 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **A package is found however many folders it is wrapped in.** A zip
+  downloaded from a repository holds one folder named after it, and
+  extracting that zip makes another around it; Install found the package
+  only in a zip wrapped once, and not at all when a folder (rather than a
+  zip) was named, or when it was wrapped twice -- "No readable
+  manifest.json". The nearest folder holding a `manifest.json` is now the
+  package, up to four folders down, for a zip, an `npm pack` tarball or a
+  folder alike. A package's own subfolders carry manifests too and are
+  never mistaken for packages; two packages at the same depth are still
+  refused. A package refused for any reason now also clears away the
+  folder it was unpacked into, which it used to leave in the temporary
+  directory. Nothing to run on an existing installation.
 * **Node 24 or newer is required.** The floor was 20 (`engines` in
   `package.json`, the README, the test README). Every installation runs 24
   or later, so the older versions are no longer kept working for. Nothing

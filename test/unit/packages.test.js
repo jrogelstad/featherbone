@@ -559,6 +559,164 @@ describe("installing from an archive", function () {
         fs.rmSync(dest, {recursive: true, force: true});
     });
 
+    /*
+        A repository's "Download ZIP" holds one folder named after the
+        repository, and the package's own parts carry manifests too: the
+        shape SupplyChain-main.zip has. The wrapper is the package, and
+        the manifests below it are not packages.
+    */
+    it("installs a repository download whose parts carry manifests",
+        function () {
+            let dest = into();
+            let src = zipOf("download.zip", {
+                "Repo-main/manifest.json": JSON.stringify({
+                    files: [{path: "part/manifest.json", type: "install"}],
+                    module: "Repo",
+                    version: "2.0.0"
+                }),
+                "Repo-main/part/feathers.json": "[]",
+                "Repo-main/part/manifest.json": JSON.stringify({
+                    module: "Repo",
+                    version: "2.0.0"
+                })
+            });
+            let done = packages.install(src, {dir: dest, skipLibraries: true});
+
+            assert.equal(done.name, "Repo");
+            assert.ok(fs.existsSync(path.join(
+                dest,
+                "Repo",
+                "2.0.0",
+                "part",
+                "feathers.json"
+            )));
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
+    it("finds a package inside two folders in a zip", function () {
+        let dest = into();
+        let src = zipOf("twice.zip", {
+            "downloads/Repo-main/manifest.json": JSON.stringify({
+                module: "Twice",
+                version: "1.0.0"
+            }),
+            "downloads/Repo-main/module.js": "// client"
+        });
+        let done = packages.install(src, {dir: dest, skipLibraries: true});
+
+        assert.equal(done.name, "Twice");
+        assert.ok(fs.existsSync(
+            path.join(dest, "Twice", "1.0.0", "module.js")
+        ));
+        fs.rmSync(dest, {force: true, recursive: true});
+    });
+
+    it("ignores a Mac's resource-fork folder beside the wrapper",
+        function () {
+            let dest = into();
+            let src = zipOf("mac.zip", {
+                "Repo/manifest.json": JSON.stringify({
+                    module: "Mac",
+                    version: "1.0.0"
+                }),
+                "__MACOSX/Repo/manifest.json": "junk"
+            });
+
+            assert.equal(
+                packages.install(src, {dir: dest, skipLibraries: true}).name,
+                "Mac"
+            );
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
+    it("installs from a folder that holds the unpacked wrapper",
+        function () {
+            let dest = into();
+            let src = path.join(work, "extract-all");
+
+            // What "Extract All" makes: a folder named after the zip,
+            // with the repository's own folder inside it
+            write(
+                path.join(src, "Repo-main"),
+                "manifest.json",
+                JSON.stringify({module: "Extracted", version: "3.1.0"})
+            );
+            write(path.join(src, "Repo-main", "docs"), "readme.txt", "hi");
+
+            let done = packages.install(src, {dir: dest, skipLibraries: true});
+
+            assert.equal(done.name, "Extracted");
+            assert.ok(fs.existsSync(
+                path.join(dest, "Extracted", "3.1.0", "docs", "readme.txt")
+            ));
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
+    it("installs from the package folder itself, as it always did",
+        function () {
+            let dest = into();
+            let src = path.join(work, "plain");
+
+            write(src, "manifest.json", JSON.stringify({
+                module: "Plain",
+                version: "1.0.0"
+            }));
+            // A part's manifest below it must not make it two packages
+            write(path.join(src, "part"), "manifest.json", JSON.stringify({
+                module: "Part",
+                version: "1.0.0"
+            }));
+
+            assert.equal(
+                packages.install(src, {dir: dest, skipLibraries: true}).name,
+                "Plain"
+            );
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
+    it("refuses two packages at the same depth, however deep",
+        function () {
+            let dest = into();
+            let src = zipOf("deep-two.zip", {
+                "a/one/manifest.json": JSON.stringify({
+                    module: "One",
+                    version: "1.0.0"
+                }),
+                "a/two/manifest.json": JSON.stringify({
+                    module: "Two",
+                    version: "1.0.0"
+                })
+            });
+
+            assert.throws(
+                () => packages.install(src, {dir: dest}),
+                /more than one package/
+            );
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
+    it("says so when no folder holds a manifest, or it is buried too deep",
+        function () {
+            let dest = into();
+            let none = zipOf("none.zip", {"a/b/readme.txt": "nothing here"});
+            let buried = zipOf("buried.zip", {
+                "a/b/c/d/e/f/manifest.json": JSON.stringify({
+                    module: "Buried",
+                    version: "1.0.0"
+                })
+            });
+
+            assert.throws(
+                () => packages.install(none, {dir: dest}),
+                /No readable manifest\.json/
+            );
+            assert.throws(
+                () => packages.install(buried, {dir: dest}),
+                /No readable manifest\.json/
+            );
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
     it("says so when the file is not an archive at all", function () {
         let dest = into();
         let src = path.join(work, "notes.txt");
