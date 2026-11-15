@@ -124,3 +124,107 @@ describe("view propagation reads the stored catalog", function () {
         assert.deepEqual(missing, []);
     });
 });
+
+/*
+    A childOf relation synthesizes a complementary `parentOf` property
+    on the parent feather the first time the child declares it (for
+    example, FeatherProperty.parent is childOf "properties", so Feather
+    gets a synthesized Feather.properties parentOf property pointing
+    back). Nothing retracts that synthesized property if a later
+    upgrade changes the child relation to a plain (non-childOf)
+    relation -- the child side updates cleanly, but the stale parentOf
+    property lingers on the parent, because the catalog's own
+    properties-cleanup exempts every parentOf property on the
+    assumption that the parent's own source never declares it either
+    way. That assumption holds until the mirrored child relation stops
+    being childOf: the parent is then left depending on the child (via
+    the stale parentOf property) while the child now depends on the
+    parent too (a plain relation is not exempt from the view-creation
+    dependency graph the way childOf is), and view creation reports
+    "Relationships cause circular dependencies" and rolls back the
+    whole deploy (John, demo, SupplyChain 2.2.58, Nov 2026).
+
+    Reproduced here the same way as above: the catalog patched in SQL
+    behind the cache's back to look like an upgrade that dropped
+    childOf from FeatherProperty.parent without touching Feather's
+    stale "properties" property, then rolled back.
+*/
+const CHILD_TYPE = JSON.stringify({childOf: "properties", relation: "Feather"});
+const PLAIN_TYPE = JSON.stringify({properties: ["name"], relation: "Feather"});
+const PATCH_CHILD = (
+    "UPDATE \"$settings\" SET data = jsonb_set(" +
+    "  data::jsonb, '{FeatherProperty,properties,parent,type}', $1::jsonb" +
+    ")::json WHERE name = 'catalog'"
+);
+const FEATHER_VIEW_COLUMN = (
+    "SELECT 1 FROM information_schema.columns " +
+    "WHERE table_schema = 'public' AND table_name = '_feather' " +
+    "  AND column_name = 'properties'"
+);
+
+describe("view propagation retracts a stale parentOf property", function () {
+    let threw;
+    let staleColumn;
+
+    before(async function () {
+        await db.withClient(env.testDb, async function (client) {
+            client.currentDatabase = env.testDb;
+
+            // Cache the catalog the way a boot does, before the patch
+            await settings.getSettings({
+                client,
+                data: {name: "catalog"}
+            });
+
+            await client.query("BEGIN");
+
+            // Simulate an upgrade that drops childOf from the child
+            // side without anything retracting the parent's stale
+            // complementary parentOf property.
+            await client.query(PATCH_CHILD, [PLAIN_TYPE]);
+
+            try {
+                await new Feathers().propagateViews(client);
+                threw = false;
+            } catch (e) {
+                threw = e.message || e;
+            }
+
+            staleColumn = (
+                await client.query(FEATHER_VIEW_COLUMN)
+            ).rows.length;
+
+            // Restore the child's real type before rolling back, so a
+            // failed propagateViews (which may have already dropped
+            // and not recreated views inside its own failed
+            // transaction state) does not leave this connection
+            // confused about what is live.
+            await client.query(PATCH_CHILD, [CHILD_TYPE]);
+
+            await client.query("ROLLBACK");
+        });
+    });
+
+    /*
+        The patch is rolled back, but this process cached it on the way
+        through, so put back what the database kept for whatever reads
+        the catalog next.
+    */
+    after(async function () {
+        await db.withClient(env.testDb, async function (client) {
+            client.currentDatabase = env.testDb;
+            await settings.getSettings({
+                client,
+                data: {force: true, name: "catalog"}
+            });
+        });
+    });
+
+    it("does not report circular dependencies", function () {
+        assert.equal(threw, false);
+    });
+
+    it("drops the stale parentOf column from the parent's view", function () {
+        assert.equal(staleColumn, 0);
+    });
+});
