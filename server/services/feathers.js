@@ -599,6 +599,128 @@
                     });
                 }
 
+                /*
+                    A childOf relation synthesizes a complementary
+                    `parentOf` property on the parent feather (see the
+                    "Parent of" block above) the first time the child
+                    declares it. Nothing retracts that synthesized
+                    property if the child relation is later changed to
+                    a plain (non-childOf) relation on an upgrade -- the
+                    child side updates cleanly, but the stale parentOf
+                    property lingers on the parent forever, because
+                    the "drop properties no longer in spec" cleanup
+                    further up explicitly exempts every parentOf
+                    property, on the (normally correct) assumption
+                    that the parent's own source feather never
+                    declares it either way, so its absence from a
+                    reinstalled spec says nothing about whether it is
+                    still wanted. That exemption stops being correct
+                    once the mirrored child relation itself drops
+                    childOf: the parent is then left depending on the
+                    child, the child depends on the parent (a plain
+                    relation is not exempt from the dependency graph
+                    the way childOf is), and view creation reports
+                    "Relationships cause circular dependencies" and
+                    rolls back the whole deploy (John, demo, SupplyChain
+                    2.2.58, Nov 2026 -- the three journal line feathers'
+                    `journal` property moved from childOf to a plain
+                    relation; InventoryJournal/PurchaseVarianceJournal/
+                    WorkOrderVarianceJournal each still carried the old
+                    "lines" parentOf property pointing back).
+
+                    Repairing this here, against the freshly re-read
+                    catalog and before dependency resolution, fixes
+                    the crash and the generated view: a stale parentOf
+                    property is pure metadata with no column of its
+                    own (only the child side ever gets a real
+                    `_<key>_<relation>_pk` column), so removing it
+                    needs no DDL, and createView's own catalog lookups
+                    read through the same refreshed-in-place cache
+                    this mutates, so the rebuilt parent view stops
+                    exposing an array of children that can no longer
+                    exist.
+
+                    That alone is not enough, though: `getFeather` and
+                    everything built on it (crud.js's own column lists
+                    among them) reads `feather.properties` from
+                    `settings.getSettings` too, but *without* `force`,
+                    so a different, already-running process (the
+                    actual app server, as opposed to this one-shot
+                    install/deploy run) goes on serving whatever its
+                    own copy of the catalog already says -- which, on
+                    its own next forced read or its own next restart,
+                    is this exact stale property again, because
+                    nothing yet has corrected the persisted
+                    `$settings` row itself. That gap is exactly what
+                    turned a fixed install into a live `column "lines"
+                    does not exist` on every open journal after the
+                    server was restarted (John, demo, Nov 2026): the
+                    deploy went through, but the server's own catalog
+                    read came from the same uncorrected row. So, when
+                    anything was actually stale, the correction is
+                    also saved back here -- the one write this repair
+                    pass makes, and only when there is something to
+                    fix.
+                */
+                function stripStaleParentOf(resp) {
+                    let dirty = false;
+
+                    Object.keys(resp).forEach(function (name) {
+                        let fthr = resp[name];
+
+                        if (!fthr.properties) {
+                            return;
+                        }
+
+                        Object.keys(fthr.properties).forEach(
+                            function (pkey) {
+                                let prop = fthr.properties[pkey];
+                                let type = prop.type;
+                                let child;
+                                let childProp;
+
+                                if (
+                                    !type || typeof type !== "object" ||
+                                    !type.parentOf
+                                ) {
+                                    return;
+                                }
+
+                                child = resp[type.relation];
+                                childProp = (
+                                    child && child.properties &&
+                                    child.properties[type.parentOf]
+                                );
+
+                                if (
+                                    !childProp ||
+                                    !childProp.type ||
+                                    typeof childProp.type !== "object" ||
+                                    childProp.type.childOf !== pkey
+                                ) {
+                                    delete fthr.properties[pkey];
+                                    dirty = true;
+                                }
+                            }
+                        );
+                    });
+
+                    if (!dirty) {
+                        return resp;
+                    }
+
+                    return settings.saveSettings({
+                        client: obj.client,
+                        isInternal: true,
+                        data: {
+                            name: "catalog",
+                            data: resp
+                        }
+                    }).then(function () {
+                        return resp;
+                    });
+                }
+
                 // Bail out if this turned off
                 if (disablePropagateViews) {
                     resolve();
@@ -611,6 +733,8 @@
                     deleteViews
                 ).then(
                     getCatalog
+                ).then(
+                    stripStaleParentOf
                 ).then(
                     createViews
                 ).then(
