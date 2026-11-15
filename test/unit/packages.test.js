@@ -619,6 +619,49 @@ describe("installing from an archive", function () {
         fs.rmSync(dest, {force: true, recursive: true});
     });
 
+    it("says each slow step as it starts, so nobody waits in silence",
+        function () {
+            let dest = into();
+            let said = [];
+            let flat = zipOf("said.zip", {
+                "manifest.json": JSON.stringify({
+                    module: "Said",
+                    version: "1.0.0"
+                })
+            });
+            let libs = path.join(work, "said-libs");
+
+            packages.install(flat, {
+                dir: dest,
+                say: (text) => said.push(text),
+                skipLibraries: true
+            });
+            assert.deepEqual(said, ["Unpacking said.zip"]);
+
+            write(libs, "manifest.json", JSON.stringify({
+                module: "SaidLibs",
+                version: "1.0.0"
+            }));
+            write(libs, "package.json", JSON.stringify({
+                dependencies: {"local-lib": "file:./local-lib"},
+                version: "1.0.0"
+            }));
+            write(path.join(libs, "local-lib"), "package.json", JSON.stringify({
+                name: "local-lib",
+                version: "1.0.0"
+            }));
+            said = [];
+            packages.install(libs, {
+                dir: dest,
+                say: (text) => said.push(text)
+            });
+
+            // A folder is not unpacked; the libraries are the slow part
+            assert.equal(said.length, 1);
+            assert.match(said[0], /^Installing its libraries with npm/);
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
+
     it("still reads an npm pack tarball", function () {
         let dest = into();
         let from = path.join(work, "tarme", "package");

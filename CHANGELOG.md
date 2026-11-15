@@ -5,6 +5,12 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Install shows that it is working.** Unpacking a package and running
+  npm for its libraries can take several seconds with nothing on screen.
+  The Modules page's Install now shows a "Processing" bar in the corner
+  until the server answers, then Complete or Error. `node install.js
+  --package` names the package and says each slow step ("Unpacking ...",
+  "Installing its libraries with npm"). Client change: restart the server.
 * **Install can install a package's libraries on Windows.** It ran `npm`
   by that name, but on Windows npm is `npm.cmd`, which Node cannot start
   without a shell, so any package with dependencies (SupplyChain) failed

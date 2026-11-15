@@ -196,9 +196,14 @@
     async function installPackage() {
         let resp = await config.read();
         let where = resp.modulesDir;
+
+        // Unpacking and npm can take a while: say what is happening
+        console.log("Installing " + packageSrc);
+
         let done = packages.install(packageSrc, {
             dir: where,
-            force
+            force,
+            say: console.log
         });
 
         console.log(

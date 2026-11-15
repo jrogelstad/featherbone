@@ -777,6 +777,7 @@
             @param {String} [options.dir] Modules directory
             @param {Boolean} [options.force] Replace the version
             @param {Boolean} [options.skipLibraries] Do not npm install
+            @param {Function} [options.say] Told each slow step as it starts
             @return {Object} {name, version, dir, libraries}
         */
         that.install = function (source, opts) {
@@ -789,6 +790,9 @@
             let pkgJson;
             let place;
             let libraries = false;
+            let say = opts.say || function () {
+                return undefined;
+            };
 
             if (!fs.existsSync(source)) {
                 throw new Error("No package at " + source);
@@ -808,6 +812,7 @@
                 work = fs.mkdtempSync(
                     path.join(os.tmpdir(), "fb-package-")
                 );
+                say("Unpacking " + path.basename(source));
 
                 if (kind === "zip") {
                     unzip(source, work);
@@ -885,6 +890,7 @@
                 ) {
                     let npm = npmCommand(process.platform);
 
+                    say("Installing its libraries with npm (may take a while)");
                     child.execFileSync(
                         npm.file,
                         ["install", "--omit=dev", "--no-audit", "--no-fund"],
