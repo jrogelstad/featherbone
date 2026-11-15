@@ -5,6 +5,12 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **The server starts and answers on Node 26.** It called `res.writeHeader`,
+  an old alias of `writeHead` that Node 26 removed, so the first request for
+  the instance picker, a download or a passkey step crashed the whole server
+  with "res.writeHeader is not a function". All eleven calls (`server.js`,
+  `services/webauthn.js`) now say `writeHead`, which every supported Node
+  has. Nothing to run on an existing installation.
 * **A database can take over its own authorizations.** A new setting,
   `isLocalAuthorization` in the global settings (off by default), says who
   owns the grants on feathers. Off, nothing changes: the grants packages

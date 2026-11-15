@@ -1666,7 +1666,7 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, {"Content-Type": "application.pdf"});
+            res.writeHead(200, {"Content-Type": "application.pdf"});
             res.write(resp);
             res.end();
             fs.unlink(file, function () {
@@ -1839,7 +1839,7 @@
             });
 
         }).then(function () {
-            res.writeHeader(200, "application/json");
+            res.writeHead(200, "application/json");
             res.write(JSON.stringify(data));
             res.end();
         });
@@ -1929,7 +1929,7 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, mimetype);
+            res.writeHead(200, mimetype);
             res.write(resp);
             res.end();
         });
@@ -1946,7 +1946,7 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, (
+            res.writeHead(200, (
                 debug
                 ? {"Cache-Control": "no-cache", "Content-Type": "text/html"}
                 : {"Content-Type": "text/html"}
@@ -1968,7 +1968,7 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.writeHead(200, {"Content-Type": "text/html"});
             res.write(resp);
             res.end();
         });
@@ -2018,7 +2018,7 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.writeHead(200, {"Content-Type": "text/html"});
             res.write(resp);
             res.end();
         });
@@ -2406,7 +2406,7 @@
                 error.bind(res)(new Error(err));
                 return;
             }
-            res.writeHeader(200, {
+            res.writeHead(200, {
                 "Cache-Control": "no-cache",
                 "Content-Type": "text/html"
             });
