@@ -16,7 +16,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const zlib = require("zlib");
-const {Packages} = require("../../server/services/packages");
+const {Packages, npmCommand} = require("../../server/services/packages");
 
 let root;
 let packages;
@@ -570,6 +570,53 @@ describe("installing from an archive", function () {
             /neither a directory nor an archive/
         );
         fs.rmSync(dest, {recursive: true, force: true});
+    });
+
+    it("starts npm.cmd through a shell on Windows, npm itself elsewhere",
+        function () {
+            assert.deepEqual(
+                npmCommand("win32"),
+                {file: "npm.cmd", shell: true}
+            );
+            assert.deepEqual(
+                npmCommand("linux"),
+                {file: "npm", shell: false}
+            );
+            assert.deepEqual(
+                npmCommand("darwin"),
+                {file: "npm", shell: false}
+            );
+        });
+
+    it("installs a package's own libraries with npm", function () {
+        let dest = into();
+        let src = path.join(work, "with-libs");
+
+        write(src, "manifest.json", JSON.stringify({
+            module: "WithLibs",
+            version: "1.0.0"
+        }));
+        write(src, "package.json", JSON.stringify({
+            dependencies: {"local-lib": "file:./local-lib"},
+            version: "1.0.0"
+        }));
+        write(path.join(src, "local-lib"), "package.json", JSON.stringify({
+            name: "local-lib",
+            version: "1.0.0"
+        }));
+
+        let done = packages.install(src, {dir: dest});
+
+        assert.equal(done.libraries, true);
+        assert.ok(fs.existsSync(path.join(
+            dest,
+            "WithLibs",
+            "1.0.0",
+            "node_modules",
+            "local-lib",
+            "package.json"
+        )));
+        fs.rmSync(dest, {force: true, recursive: true});
     });
 
     it("still reads an npm pack tarball", function () {

@@ -5,6 +5,11 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Install can install a package's libraries on Windows.** It ran `npm`
+  by that name, but on Windows npm is `npm.cmd`, which Node cannot start
+  without a shell, so any package with dependencies (SupplyChain) failed
+  with "spawnSync npm ENOENT". Windows now runs `npm.cmd` through a shell;
+  elsewhere nothing changes. Nothing to run on an existing installation.
 * **Node 24 or newer is required.** The floor was 20 (`engines` in
   `package.json`, the README, the test README). Every installation runs 24
   or later, so the older versions are no longer kept working for. Nothing

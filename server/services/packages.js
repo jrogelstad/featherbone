@@ -47,6 +47,21 @@
     const os = require("os");
     const path = require("path");
 
+    // On Windows npm is npm.cmd, which only a shell will start
+    function npmCommand(platform) {
+        let win = platform === "win32";
+
+        return {
+            file: (
+                win
+                ? "npm.cmd"
+                : "npm"
+            ),
+            shell: win
+        };
+    }
+    exports.npmCommand = npmCommand;
+
     /**
         Server-installed package registry.
 
@@ -868,10 +883,12 @@
                     pkgJson.dependencies &&
                     Object.keys(pkgJson.dependencies).length
                 ) {
+                    let npm = npmCommand(process.platform);
+
                     child.execFileSync(
-                        "npm",
+                        npm.file,
                         ["install", "--omit=dev", "--no-audit", "--no-fund"],
-                        {cwd: place, stdio: "inherit"}
+                        {cwd: place, shell: npm.shell, stdio: "inherit"}
                     );
                     libraries = true;
                 }
