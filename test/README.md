@@ -2,7 +2,7 @@
 
 Pins the current behavior of the framework, and runs the tests modules
 carry in their own packages, so a refactor can be checked against it. No new dependencies: the suite uses
-`node:test` and `node:assert` (Node 18+; developed on Node 22).
+`node:test` and `node:assert` (Node 24 or newer).
 
 ## Running
 

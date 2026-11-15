@@ -5,6 +5,10 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Node 24 or newer is required.** The floor was 20 (`engines` in
+  `package.json`, the README, the test README). Every installation runs 24
+  or later, so the older versions are no longer kept working for. Nothing
+  changes in the code; npm will now warn when it installs on an older Node.
 * **The server starts and answers on Node 26.** It called `res.writeHeader`,
   an old alias of `writeHead` that Node 26 removed, so the first request for
   the instance picker, a download or a passkey step crashed the whole server
