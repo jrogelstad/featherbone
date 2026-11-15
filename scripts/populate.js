@@ -45,14 +45,6 @@ const f = require("../common/core");
                 });
             }
 
-            function grantMembership() {
-                return new Promise(function (resolve, reject) {
-                    let sql = "GRANT everyone TO %I;";
-                    sql = sql.format([usr]);
-                    obj.client.query(sql).then(resolve).catch(reject);
-                });
-            }
-
             /*
                 The row this makes is `everyone` itself, so one that is
                 already there is the answer and not a thing to make
@@ -62,8 +54,9 @@ const f = require("../common/core");
                 declared authorizations now make the roles they name
                 (services/feathers.js saveAuthorization), the Core
                 bootstrap pass that runs before this does exactly that.
-                Shaped like createRoleEveryone below it, which has
-                always honoured its own check.
+                There is no Postgres role `everyone` any more: membership
+                is `role_membership`, read by tools.memberNames, and the
+                service account may not create roles (ADR-001).
             */
             function createEveryone(resp) {
                 return new Promise(function (resolve, reject) {
@@ -90,27 +83,6 @@ const f = require("../common/core");
                     obj.client.query(
                         "SELECT * FROM \"role\" WHERE name = 'everyone';"
                     ).then(createEveryone).then(resolve).catch(reject);
-                });
-            }
-
-            function createRoleEveryone(resp) {
-                return new Promise(function (resolve, reject) {
-                    if (resp.rows.length) {
-                        resolve();
-                        return;
-                    }
-
-                    obj.client.query(
-                        "CREATE ROLE everyone;"
-                    ).then(resolve).catch(reject);
-                });
-            }
-
-            function checkRoleEveryone() {
-                return new Promise(function (resolve, reject) {
-                    obj.client.query(
-                        "SELECT * FROM pg_roles WHERE rolname = 'everyone';"
-                    ).then(createRoleEveryone).then(resolve).catch(reject);
                 });
             }
 
@@ -158,11 +130,7 @@ const f = require("../common/core");
                 ).then(
                     insertMember
                 ).then(
-                    checkRoleEveryone
-                ).then(
                     checkEveryone
-                ).then(
-                    grantMembership
                 ).then(
                     grantEveryoneGlobal
                 ).catch(reject);

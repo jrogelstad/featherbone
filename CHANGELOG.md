@@ -11,6 +11,19 @@ Notable changes to Featherbone. Dates are the day the work landed on
   with "res.writeHeader is not a function". All eleven calls (`server.js`,
   `services/webauthn.js`) now say `writeHead`, which every supported Node
   has. Nothing to run on an existing installation.
+* **A fresh install works on Postgres 15 and later.** Run as a superuser
+  (`node install --username postgres ...`), the installer made the manager
+  database as that superuser and then built its tables as the service
+  account, which Postgres 15 refuses: ordinary roles can no longer create
+  in a database's `public` schema. A database that is not installed yet
+  is now handed to the service account first, on 15 and later only. The
+  failure was also hidden: `scripts/tables.js` ignored the error of about
+  twenty of its statements, so the install reported "current transaction
+  is aborted" instead of the cause; it now reports the cause. The install
+  also no longer creates a Postgres role `everyone` or grants it, which
+  nothing has read since memberships moved to `role_membership` and which
+  the service account may not create. Nothing to run on an existing
+  installation.
 * **A database can take over its own authorizations.** A new setting,
   `isLocalAuthorization` in the global settings (off by default), says who
   owns the grants on feathers. Off, nothing changes: the grants packages

@@ -477,7 +477,52 @@
                     conf.pgUser,
                     conf.pgPassword
                 );
-                client.query(sql).then(resolve).catch(() => resolve());
+                // An account that already exists is not an error
+                client.query(sql).catch(
+                    () => undefined
+                ).then(
+                    giveDatabase
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
+            }
+
+            /*
+                The install runs as the service account, but a database
+                the superuser just created belongs to the superuser, and
+                from Postgres 15 nobody else may create objects in its
+                public schema. A database that is not installed yet is
+                handed to the service account, so the install can write
+                to it. One already installed is left as it is.
+            */
+            async function giveDatabase() {
+                let ver = await client.query("SHOW server_version_num;");
+
+                // Before 15 everyone could create in public: nothing to do
+                if (Number(ver.rows[0].server_version_num) < 150000) {
+                    return;
+                }
+
+                let resp = await client.query(
+                    "SELECT pg_get_userbyid(datdba) AS owner, " +
+                    "  to_regclass('public.\"$db\"') IS NOT NULL " +
+                    "    AS is_installed " +
+                    "FROM pg_database WHERE datname = $1;",
+                    [targetDb]
+                );
+                let row = resp.rows[0];
+
+                if (row && !row.is_installed && row.owner !== conf.pgUser) {
+                    await client.query(format(
+                        "ALTER DATABASE %I OWNER TO %I;" +
+                        "ALTER SCHEMA public OWNER TO %I;",
+                        targetDb,
+                        conf.pgUser,
+                        conf.pgUser
+                    ));
+                }
             }
 
             if (!superuser || isDeploy) {
