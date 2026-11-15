@@ -22,8 +22,13 @@ Notable changes to Featherbone. Dates are the day the work landed on
   is aborted" instead of the cause; it now reports the cause. The install
   also no longer creates a Postgres role `everyone` or grants it, which
   nothing has read since memberships moved to `role_membership` and which
-  the service account may not create. Nothing to run on an existing
-  installation.
+  the service account may not create. The service account is also made
+  able to create databases (`CREATEDB`, nothing wider), which the
+  Instances screen and `--instance` need and the installer never gave it;
+  an account an earlier install made gets it the next time the installer
+  runs with superuser credentials, and until then `--instance` without
+  them says so instead of "permission denied". Nothing else to run on an
+  existing installation.
 * **A database can take over its own authorizations.** A new setting,
   `isLocalAuthorization` in the global settings (off by default), says who
   owns the grants on feathers. Off, nothing changes: the grants packages

@@ -449,7 +449,18 @@
                 conf.pgUser
             );
 
-            await client.query(sql);
+            await client.query(sql).catch(function (err) {
+                if (err.code === "42501" && !superuser) {
+                    return Promise.reject(new Error(
+                        "\"" + conf.pgUser + "\" may not create " +
+                        "databases. Run this once with a Postgres " +
+                        "superuser (--username <name> --password " +
+                        "<password>), which also lets \"" + conf.pgUser +
+                        "\" create them from then on."
+                    ));
+                }
+                return Promise.reject(err);
+            });
             await client.end();
             client = new Client({
                 connectionString: conn + targetDb
@@ -481,12 +492,38 @@
                 client.query(sql).catch(
                     () => undefined
                 ).then(
+                    allowCreateDatabase
+                ).then(
                     giveDatabase
                 ).then(
                     resolve
                 ).catch(
                     reject
                 );
+            }
+
+            /*
+                Creating and cloning instances (the Instances screen,
+                `--instance`) is done as the service account, so it may
+                create databases. Nothing wider: not a superuser and not
+                CREATEROLE. An account made by an earlier install lacks
+                it, and a run with superuser credentials is the one
+                chance to add it. A host that will not allow it (a
+                managed service whose login is not a true superuser)
+                gets a warning, not a failed install.
+            */
+            async function allowCreateDatabase() {
+                try {
+                    await client.query(format(
+                        "ALTER ROLE %I CREATEDB;",
+                        conf.pgUser
+                    ));
+                } catch (err) {
+                    console.warn(
+                        "WARNING: could not let \"" + conf.pgUser +
+                        "\" create databases: " + err.message
+                    );
+                }
             }
 
             /*
