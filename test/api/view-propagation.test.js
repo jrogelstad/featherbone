@@ -162,13 +162,24 @@ const FEATHER_VIEW_COLUMN = (
     "  AND column_name = 'properties'"
 );
 
+const READ_STORED_PROPERTY = (
+    "SELECT data->'Feather'->'properties'->'properties' AS prop " +
+    "FROM \"$settings\" WHERE name = 'catalog'"
+);
+
 describe("view propagation retracts a stale parentOf property", function () {
     let threw;
     let staleColumn;
+    let staleStored;
 
     before(async function () {
         await db.withClient(env.testDb, async function (client) {
             client.currentDatabase = env.testDb;
+            // settings.saveSettings records who made the change; the
+            // repair pass runs as the install/upgrade process itself.
+            client.currentUser = function () {
+                return "admin";
+            };
 
             // Cache the catalog the way a boot does, before the patch
             await settings.getSettings({
@@ -193,6 +204,23 @@ describe("view propagation retracts a stale parentOf property", function () {
             staleColumn = (
                 await client.query(FEATHER_VIEW_COLUMN)
             ).rows.length;
+
+            /*
+                Fixing only the in-memory copy used for *this* view
+                rebuild is not enough: a separate, already-running (or
+                later-started) server process reads the catalog from
+                this same row, by its own un-forced getSettings call,
+                and would still find the stale property and still try
+                to select it -- exactly the live "column \"lines\"
+                does not exist" this produced on an actual instance
+                after the view-level fix alone was deployed and the
+                server restarted (John, demo, Nov 2026). So the
+                correction has to be visible here too, read straight
+                off the row rather than through any process's cache.
+            */
+            staleStored = (
+                await client.query(READ_STORED_PROPERTY)
+            ).rows[0].prop;
 
             // Restore the child's real type before rolling back, so a
             // failed propagateViews (which may have already dropped
@@ -226,5 +254,9 @@ describe("view propagation retracts a stale parentOf property", function () {
 
     it("drops the stale parentOf column from the parent's view", function () {
         assert.equal(staleColumn, 0);
+    });
+
+    it("persists the correction to the stored catalog row", function () {
+        assert.equal(staleStored, null);
     });
 });

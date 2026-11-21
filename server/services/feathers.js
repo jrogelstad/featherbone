@@ -630,20 +630,41 @@
 
                     Repairing this here, against the freshly re-read
                     catalog and before dependency resolution, fixes
-                    both the crash and the generated view: a stale
-                    parentOf property is pure metadata with no column
-                    of its own (only the child side ever gets a real
+                    the crash and the generated view: a stale parentOf
+                    property is pure metadata with no column of its
+                    own (only the child side ever gets a real
                     `_<key>_<relation>_pk` column), so removing it
                     needs no DDL, and createView's own catalog lookups
                     read through the same refreshed-in-place cache
                     this mutates, so the rebuilt parent view stops
                     exposing an array of children that can no longer
-                    exist. The correction is not written back to the
-                    persisted `$settings` catalog row, so it simply
-                    reruns, harmlessly, on every future view rebuild
-                    rather than needing a one-time migration step.
+                    exist.
+
+                    That alone is not enough, though: `getFeather` and
+                    everything built on it (crud.js's own column lists
+                    among them) reads `feather.properties` from
+                    `settings.getSettings` too, but *without* `force`,
+                    so a different, already-running process (the
+                    actual app server, as opposed to this one-shot
+                    install/deploy run) goes on serving whatever its
+                    own copy of the catalog already says -- which, on
+                    its own next forced read or its own next restart,
+                    is this exact stale property again, because
+                    nothing yet has corrected the persisted
+                    `$settings` row itself. That gap is exactly what
+                    turned a fixed install into a live `column "lines"
+                    does not exist` on every open journal after the
+                    server was restarted (John, demo, Nov 2026): the
+                    deploy went through, but the server's own catalog
+                    read came from the same uncorrected row. So, when
+                    anything was actually stale, the correction is
+                    also saved back here -- the one write this repair
+                    pass makes, and only when there is something to
+                    fix.
                 */
                 function stripStaleParentOf(resp) {
+                    let dirty = false;
+
                     Object.keys(resp).forEach(function (name) {
                         let fthr = resp[name];
 
@@ -678,12 +699,26 @@
                                     childProp.type.childOf !== pkey
                                 ) {
                                     delete fthr.properties[pkey];
+                                    dirty = true;
                                 }
                             }
                         );
                     });
 
-                    return resp;
+                    if (!dirty) {
+                        return resp;
+                    }
+
+                    return settings.saveSettings({
+                        client: obj.client,
+                        isInternal: true,
+                        data: {
+                            name: "catalog",
+                            data: resp
+                        }
+                    }).then(function () {
+                        return resp;
+                    });
                 }
 
                 // Bail out if this turned off
