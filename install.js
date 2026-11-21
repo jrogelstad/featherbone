@@ -449,7 +449,18 @@
                 conf.pgUser
             );
 
-            await client.query(sql);
+            await client.query(sql).catch(function (err) {
+                if (err.code === "42501" && !superuser) {
+                    return Promise.reject(new Error(
+                        "\"" + conf.pgUser + "\" may not create " +
+                        "databases. Run this once with a Postgres " +
+                        "superuser (--username <name> --password " +
+                        "<password>), which also lets \"" + conf.pgUser +
+                        "\" create them from then on."
+                    ));
+                }
+                return Promise.reject(err);
+            });
             await client.end();
             client = new Client({
                 connectionString: conn + targetDb
@@ -477,7 +488,78 @@
                     conf.pgUser,
                     conf.pgPassword
                 );
-                client.query(sql).then(resolve).catch(() => resolve());
+                // An account that already exists is not an error
+                client.query(sql).catch(
+                    () => undefined
+                ).then(
+                    allowCreateDatabase
+                ).then(
+                    giveDatabase
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
+            }
+
+            /*
+                Creating and cloning instances (the Instances screen,
+                `--instance`) is done as the service account, so it may
+                create databases. Nothing wider: not a superuser and not
+                CREATEROLE. An account made by an earlier install lacks
+                it, and a run with superuser credentials is the one
+                chance to add it. A host that will not allow it (a
+                managed service whose login is not a true superuser)
+                gets a warning, not a failed install.
+            */
+            async function allowCreateDatabase() {
+                try {
+                    await client.query(format(
+                        "ALTER ROLE %I CREATEDB;",
+                        conf.pgUser
+                    ));
+                } catch (err) {
+                    console.warn(
+                        "WARNING: could not let \"" + conf.pgUser +
+                        "\" create databases: " + err.message
+                    );
+                }
+            }
+
+            /*
+                The install runs as the service account, but a database
+                the superuser just created belongs to the superuser, and
+                from Postgres 15 nobody else may create objects in its
+                public schema. A database that is not installed yet is
+                handed to the service account, so the install can write
+                to it. One already installed is left as it is.
+            */
+            async function giveDatabase() {
+                let ver = await client.query("SHOW server_version_num;");
+
+                // Before 15 everyone could create in public: nothing to do
+                if (Number(ver.rows[0].server_version_num) < 150000) {
+                    return;
+                }
+
+                let resp = await client.query(
+                    "SELECT pg_get_userbyid(datdba) AS owner, " +
+                    "  to_regclass('public.\"$db\"') IS NOT NULL " +
+                    "    AS is_installed " +
+                    "FROM pg_database WHERE datname = $1;",
+                    [targetDb]
+                );
+                let row = resp.rows[0];
+
+                if (row && !row.is_installed && row.owner !== conf.pgUser) {
+                    await client.query(format(
+                        "ALTER DATABASE %I OWNER TO %I;" +
+                        "ALTER SCHEMA public OWNER TO %I;",
+                        targetDb,
+                        conf.pgUser,
+                        conf.pgUser
+                    ));
+                }
             }
 
             if (!superuser || isDeploy) {
