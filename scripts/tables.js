@@ -592,6 +592,7 @@
             let createLock;
             let createProfiles;
             let sqlCheck;
+            let step;
             let done;
             let sql;
             let params;
@@ -612,6 +613,24 @@
                 });
             };
 
+            /*
+                A statement whose callback is the next step must not
+                ignore its own error: inside the install's transaction
+                the next statement would fail instead, with "current
+                transaction is aborted", and the real reason would be
+                lost.
+            */
+            step = function (next) {
+                return function (err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    next();
+                };
+            };
+
             // Create a camel case function
             createCamelCase = function () {
                 sql = (
@@ -620,7 +639,7 @@
                     "SELECT replace(initcap($1), '_', '');" +
                     "$$ LANGUAGE SQL IMMUTABLE;"
                 );
-                obj.client.query(sql, createMoney);
+                obj.client.query(sql, step(createMoney));
             };
 
             // Create "mono" data type ("money" is already used)
@@ -640,7 +659,7 @@
                             "   base_amount numeric" +
                             ");"
                         );
-                        obj.client.query(sql, createLock);
+                        obj.client.query(sql, step(createLock));
                         return;
                     }
                     createLock();
@@ -668,7 +687,7 @@
                             "   process text" +
                             ");"
                         );
-                        obj.client.query(sql, createSubscription);
+                        obj.client.query(sql, step(createSubscription));
                         return;
                     }
                     createSubscription();
@@ -687,7 +706,10 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createSubcriptionSql, createSession);
+                        obj.client.query(
+                            createSubcriptionSql,
+                            step(createSession)
+                        );
                         return;
                     }
                     createSession();
@@ -703,7 +725,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createSessionSql, createFile);
+                        obj.client.query(createSessionSql, step(createFile));
                         return;
                     }
                     createFile();
@@ -719,7 +741,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createFileSql, createObject);
+                        obj.client.query(createFileSql, step(createObject));
                         return;
                     }
                     createObject();
@@ -735,7 +757,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createObjectSql, createAuth);
+                        obj.client.query(createObjectSql, step(createAuth));
                         return;
                     }
                     obj.client.query(alterObjectSql, function (err) {
@@ -757,7 +779,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createAuthSql, createFeather);
+                        obj.client.query(createAuthSql, step(createFeather));
                         return;
                     }
                     createFeather();
@@ -773,7 +795,10 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createFeatherSql, createWorkbook);
+                        obj.client.query(
+                            createFeatherSql,
+                            step(createWorkbook)
+                        );
                         return;
                     }
                     createWorkbook();
@@ -806,10 +831,13 @@
                     if (!exists) {
                         obj.client.query(
                             createWorkbookSql,
-                            createNavigationCategory
+                            step(createNavigationCategory)
                         );
                     } else {
-                        obj.client.query(altSql, createNavigationCategory);
+                        obj.client.query(
+                            altSql,
+                            step(createNavigationCategory)
+                        );
                     }
                 });
             };
@@ -825,7 +853,7 @@
                     if (!exists) {
                         obj.client.query(
                             createNavigationCategorySql,
-                            createDashboard
+                            step(createDashboard)
                         );
                         return;
                     }
@@ -844,7 +872,7 @@
                     if (!exists) {
                         obj.client.query(
                             createDashboardSql,
-                            createDashboardTarget
+                            step(createDashboardTarget)
                         );
                         return;
                     }
@@ -863,7 +891,7 @@
                     if (!exists) {
                         obj.client.query(
                             createDashboardTargetSql,
-                            createProfiles
+                            step(createProfiles)
                         );
                         return;
                     }
@@ -880,7 +908,10 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createProfilesSql, createSettings);
+                        obj.client.query(
+                            createProfilesSql,
+                            step(createSettings)
+                        );
                         return;
                     }
                     createSettings();
@@ -917,7 +948,7 @@
                                 "catalog",
                                 JSON.stringify(objectDef)
                             ];
-                            obj.client.query(sql, params, createDb);
+                            obj.client.query(sql, params, step(createDb));
                         });
                         return;
                     }
@@ -965,7 +996,11 @@
                             "INSERT INTO \"$db\" " +
                             "(kind, schema_version, mode) " +
                             "VALUES ($1, $2, $3);"
-                        ), [kind, SCHEMA_VERSION, mode], createEventTrigger);
+                        ), [
+                            kind,
+                            SCHEMA_VERSION,
+                            mode
+                        ], step(createEventTrigger));
                     }
 
                     if (!exists) {
@@ -1025,7 +1060,7 @@
                                     ), [
                                         SCHEMA_VERSION,
                                         mode
-                                    ], createEventTrigger);
+                                    ], step(createEventTrigger));
                                 }
                             );
                         }
@@ -1035,7 +1070,7 @@
 
             // Create event trigger for notifications
             createEventTrigger = function () {
-                obj.client.query(createTriggerFuncSql, done);
+                obj.client.query(createTriggerFuncSql, step(done));
                 return;
             };
 
