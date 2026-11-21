@@ -256,7 +256,7 @@
                 }
             );
 
-            res.writeHeader(200, "application/json");
+            res.writeHead(200, "application/json");
             res.write(JSON.stringify(registrationOptions));
             res.end();
         } catch (err) {
@@ -318,7 +318,7 @@
                 targetIdentityPk: outcome.identityPk
             }));
 
-            res.writeHeader(200, "application/json");
+            res.writeHead(200, "application/json");
             res.write(JSON.stringify({registered: true}));
             res.end();
         } catch (err) {
@@ -358,7 +358,7 @@
                 return options;
             });
 
-            res.writeHeader(200, "application/json");
+            res.writeHead(200, "application/json");
             res.write(JSON.stringify(authnOptions));
             res.end();
         } catch (err) {
@@ -443,7 +443,7 @@
             result.message = err.message || String(err);
         }
 
-        res.writeHeader(200, "application/json");
+        res.writeHead(200, "application/json");
         res.write(JSON.stringify(result));
         res.end();
     }

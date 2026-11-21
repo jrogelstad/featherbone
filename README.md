@@ -6,7 +6,7 @@ A JavaScript based persistence framework for building object relational database
 # Prerequisites
 
 * [PostgreSQL v14](http://www.postgresql.org/) or newer
-* [NodeJS v20](https://nodejs.org/en/) or newer
+* [NodeJS v24](https://nodejs.org/en/) or newer
 
 # Install
 
@@ -788,7 +788,7 @@ identity. A failure now exits non-zero, so a script can tell.
 
 # Tests
 
-A regression suite lives under `test/` and needs no extra dependencies (Node 20+ and the PostgreSQL client tools).
+A regression suite lives under `test/` and needs no extra dependencies (Node 24+ and the PostgreSQL client tools).
 
 ```text
 $ npm test                 # unit tests, then API and SupplyChain flows (about 5 minutes)

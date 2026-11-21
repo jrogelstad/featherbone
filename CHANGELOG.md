@@ -5,6 +5,59 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Adding and removing a package shows that it is working.** Unpacking a
+  package and running npm for its libraries can take several seconds with
+  nothing on screen. The platform console's "Packages on this server" now
+  shows what it is doing and a moving bar for Add package and Remove until
+  the server answers, and the Modules page's Install shows a "Processing"
+  note in the corner the same way. `node install.js --package` names the
+  package and says each slow step ("Unpacking ...", "Installing its
+  libraries with npm"). Client change: restart the server.
+* **Install can install a package's libraries on Windows.** It ran `npm`
+  by that name, but on Windows npm is `npm.cmd`, which Node cannot start
+  without a shell, so any package with dependencies (SupplyChain) failed
+  with "spawnSync npm ENOENT". Windows now runs `npm.cmd` through a shell;
+  elsewhere nothing changes. Nothing to run on an existing installation.
+* **A package is found however many folders it is wrapped in.** A zip
+  downloaded from a repository holds one folder named after it, and
+  extracting that zip makes another around it; Install found the package
+  only in a zip wrapped once, and not at all when a folder (rather than a
+  zip) was named, or when it was wrapped twice -- "No readable
+  manifest.json". The nearest folder holding a `manifest.json` is now the
+  package, up to four folders down, for a zip, an `npm pack` tarball or a
+  folder alike. A package's own subfolders carry manifests too and are
+  never mistaken for packages; two packages at the same depth are still
+  refused. A package refused for any reason now also clears away the
+  folder it was unpacked into, which it used to leave in the temporary
+  directory. Nothing to run on an existing installation.
+* **Node 24 or newer is required.** The floor was 20 (`engines` in
+  `package.json`, the README, the test README). Every installation runs 24
+  or later, so the older versions are no longer kept working for. Nothing
+  changes in the code; npm will now warn when it installs on an older Node.
+* **The server starts and answers on Node 26.** It called `res.writeHeader`,
+  an old alias of `writeHead` that Node 26 removed, so the first request for
+  the instance picker, a download or a passkey step crashed the whole server
+  with "res.writeHeader is not a function". All eleven calls (`server.js`,
+  `services/webauthn.js`) now say `writeHead`, which every supported Node
+  has. Nothing to run on an existing installation.
+* **A fresh install works on Postgres 15 and later.** Run as a superuser
+  (`node install --username postgres ...`), the installer made the manager
+  database as that superuser and then built its tables as the service
+  account, which Postgres 15 refuses: ordinary roles can no longer create
+  in a database's `public` schema. A database that is not installed yet
+  is now handed to the service account first, on 15 and later only. The
+  failure was also hidden: `scripts/tables.js` ignored the error of about
+  twenty of its statements, so the install reported "current transaction
+  is aborted" instead of the cause; it now reports the cause. The install
+  also no longer creates a Postgres role `everyone` or grants it, which
+  nothing has read since memberships moved to `role_membership` and which
+  the service account may not create. The service account is also made
+  able to create databases (`CREATEDB`, nothing wider), which the
+  Instances screen and `--instance` need and the installer never gave it;
+  an account an earlier install made gets it the next time the installer
+  runs with superuser credentials, and until then `--instance` without
+  them says so instead of "permission denied". Nothing else to run on an
+  existing installation.
 * **A database can take over its own authorizations.** A new setting,
   `isLocalAuthorization` in the global settings (off by default), says who
   owns the grants on feathers. Off, nothing changes: the grants packages
