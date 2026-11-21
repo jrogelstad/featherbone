@@ -74,6 +74,8 @@ module.static = f.prop({
             let file = input.files[0];
             let formData = new FormData();
             let payload;
+            let noteId = f.createId();
+            let label = "Install " + file.name;
 
             formData.append("package", file);
             payload = {
@@ -82,10 +84,24 @@ module.static = f.prop({
                 body: formData
             };
 
-            f.notify("Installing " + file.name + "...", {icon: "upload"});
-            f.datasource().request(payload).then(
-                installed
-            ).catch(error);
+            // A moving bar until the server answers; unpacking and npm
+            // can take several seconds with nothing else to show
+            function finish(status) {
+                f.notify(label, {
+                    percentComplete: 100,
+                    processId: noteId,
+                    status
+                });
+            }
+
+            f.notify(label, {processId: noteId, status: "P"});
+            f.datasource().request(payload).then(function (done) {
+                finish("C");
+                return installed(done);
+            }).catch(function (err) {
+                finish("E");
+                error(err);
+            });
         }
 
         input.setAttribute("type", "file");

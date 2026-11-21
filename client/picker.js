@@ -83,7 +83,8 @@
             window.location.pathname.startsWith("/platform")
             ? "platform"
             : "picker"
-        )
+        ),
+        working: ""
     };
 
     function fieldValue(id) {
@@ -1813,6 +1814,8 @@
         vm.isBusy = true;
         vm.error = "";
         vm.note = "";
+        // Unpacking and npm take seconds with nothing else to show
+        vm.working = "Adding " + file.name + "…";
         body.append("package", file);
 
         m.request({
@@ -1835,6 +1838,7 @@
             url: "/platform/packages/install"
         }).then(function (done) {
             vm.isBusy = false;
+            vm.working = "";
             vm.note = (
                 "Installed " + done.name + " " + done.version + (
                     done.libraries
@@ -1846,6 +1850,7 @@
             return loadPackages();
         }).catch(function (err) {
             vm.isBusy = false;
+            vm.working = "";
             vm.error = reason(err);
             m.redraw();
         });
@@ -1861,17 +1866,20 @@
         vm.isBusy = true;
         vm.error = "";
         vm.note = "";
+        vm.working = "Removing " + one.name + " " + one.version + "…";
 
         request("POST", "/platform/packages/remove", {
             name: one.name,
             version: one.version
         }).then(function () {
             vm.isBusy = false;
+            vm.working = "";
             vm.note = one.name + " " + one.version + " is off this server";
             vm.pkgSelection = undefined;
             return loadPackages();
         }).catch(function (err) {
             vm.isBusy = false;
+            vm.working = "";
             vm.error = reason(err);
             m.redraw();
         });
@@ -2405,6 +2413,15 @@
                         max: 100,
                         value: vm.progress.percentComplete
                     })
+                ])
+                : undefined
+            ),
+            (
+                vm.working
+                ? m("div", {class: "fb-admin-note"}, [
+                    m("div", vm.working),
+                    // No value: a bar that moves until the answer comes
+                    m("progress", {class: "fb-admin-progress", max: 100})
                 ])
                 : undefined
             ),
