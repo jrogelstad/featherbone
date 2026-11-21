@@ -5,6 +5,19 @@ Notable changes to Featherbone. Dates are the day the work landed on
 
 ## Unreleased
 
+* **Adding and removing a package shows that it is working.** Unpacking a
+  package and running npm for its libraries can take several seconds with
+  nothing on screen. The platform console's "Packages on this server" now
+  shows what it is doing and a moving bar for Add package and Remove until
+  the server answers, and the Modules page's Install shows a "Processing"
+  note in the corner the same way. `node install.js --package` names the
+  package and says each slow step ("Unpacking ...", "Installing its
+  libraries with npm"). Client change: restart the server.
+* **Install can install a package's libraries on Windows.** It ran `npm`
+  by that name, but on Windows npm is `npm.cmd`, which Node cannot start
+  without a shell, so any package with dependencies (SupplyChain) failed
+  with "spawnSync npm ENOENT". Windows now runs `npm.cmd` through a shell;
+  elsewhere nothing changes. Nothing to run on an existing installation.
 * **A package is found however many folders it is wrapped in.** A zip
   downloaded from a repository holds one folder named after it, and
   extracting that zip makes another around it; Install found the package

@@ -47,6 +47,21 @@
     const os = require("os");
     const path = require("path");
 
+    // On Windows npm is npm.cmd, which only a shell will start
+    function npmCommand(platform) {
+        let win = platform === "win32";
+
+        return {
+            file: (
+                win
+                ? "npm.cmd"
+                : "npm"
+            ),
+            shell: win
+        };
+    }
+    exports.npmCommand = npmCommand;
+
     /**
         Server-installed package registry.
 
@@ -799,6 +814,7 @@
             @param {String} [options.dir] Modules directory
             @param {Boolean} [options.force] Replace the version
             @param {Boolean} [options.skipLibraries] Do not npm install
+            @param {Function} [options.say] Told each slow step as it starts
             @return {Object} {name, version, dir, libraries}
         */
         that.install = function (source, opts) {
@@ -813,6 +829,9 @@
             let place;
             let libraries = false;
             let kind;
+            let say = opts.say || function () {
+                return undefined;
+            };
 
             if (!fs.existsSync(source)) {
                 throw new Error("No package at " + source);
@@ -833,6 +852,7 @@
                     path.join(os.tmpdir(), "fb-package-")
                 );
                 top = work;
+                say("Unpacking " + path.basename(source));
             }
 
             // Unpacking is inside the try so a refusal cleans up after it
@@ -910,10 +930,13 @@
                     pkgJson.dependencies &&
                     Object.keys(pkgJson.dependencies).length
                 ) {
+                    let npm = npmCommand(process.platform);
+
+                    say("Installing its libraries with npm (may take a while)");
                     child.execFileSync(
-                        "npm",
+                        npm.file,
                         ["install", "--omit=dev", "--no-audit", "--no-fund"],
-                        {cwd: place, stdio: "inherit"}
+                        {cwd: place, shell: npm.shell, stdio: "inherit"}
                     );
                     libraries = true;
                 }

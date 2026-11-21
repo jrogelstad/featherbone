@@ -16,7 +16,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const zlib = require("zlib");
-const {Packages} = require("../../server/services/packages");
+const {Packages, npmCommand} = require("../../server/services/packages");
 
 let root;
 let packages;
@@ -729,6 +729,96 @@ describe("installing from an archive", function () {
         );
         fs.rmSync(dest, {recursive: true, force: true});
     });
+
+    it("starts npm.cmd through a shell on Windows, npm itself elsewhere",
+        function () {
+            assert.deepEqual(
+                npmCommand("win32"),
+                {file: "npm.cmd", shell: true}
+            );
+            assert.deepEqual(
+                npmCommand("linux"),
+                {file: "npm", shell: false}
+            );
+            assert.deepEqual(
+                npmCommand("darwin"),
+                {file: "npm", shell: false}
+            );
+        });
+
+    it("installs a package's own libraries with npm", function () {
+        let dest = into();
+        let src = path.join(work, "with-libs");
+
+        write(src, "manifest.json", JSON.stringify({
+            module: "WithLibs",
+            version: "1.0.0"
+        }));
+        write(src, "package.json", JSON.stringify({
+            dependencies: {"local-lib": "file:./local-lib"},
+            version: "1.0.0"
+        }));
+        write(path.join(src, "local-lib"), "package.json", JSON.stringify({
+            name: "local-lib",
+            version: "1.0.0"
+        }));
+
+        let done = packages.install(src, {dir: dest});
+
+        assert.equal(done.libraries, true);
+        assert.ok(fs.existsSync(path.join(
+            dest,
+            "WithLibs",
+            "1.0.0",
+            "node_modules",
+            "local-lib",
+            "package.json"
+        )));
+        fs.rmSync(dest, {force: true, recursive: true});
+    });
+
+    it("says each slow step as it starts, so nobody waits in silence",
+        function () {
+            let dest = into();
+            let said = [];
+            let flat = zipOf("said.zip", {
+                "manifest.json": JSON.stringify({
+                    module: "Said",
+                    version: "1.0.0"
+                })
+            });
+            let libs = path.join(work, "said-libs");
+
+            packages.install(flat, {
+                dir: dest,
+                say: (text) => said.push(text),
+                skipLibraries: true
+            });
+            assert.deepEqual(said, ["Unpacking said.zip"]);
+
+            write(libs, "manifest.json", JSON.stringify({
+                module: "SaidLibs",
+                version: "1.0.0"
+            }));
+            write(libs, "package.json", JSON.stringify({
+                dependencies: {"local-lib": "file:./local-lib"},
+                version: "1.0.0"
+            }));
+            write(path.join(libs, "local-lib"), "package.json", JSON.stringify({
+                name: "local-lib",
+                version: "1.0.0"
+            }));
+            said = [];
+            packages.install(libs, {
+                dir: dest,
+                say: (text) => said.push(text)
+            });
+
+            // A folder is not unpacked; the libraries are the slow part
+            assert.equal(said.length, 1);
+            assert.match(said[0], /^Installing its libraries with npm/);
+            fs.rmSync(dest, {force: true, recursive: true});
+        });
 
     it("still reads an npm pack tarball", function () {
         let dest = into();
